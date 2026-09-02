@@ -1,0 +1,142 @@
+from __future__ import annotations
+
+import uuid
+from datetime import datetime
+from typing import Annotated
+
+from pydantic import BaseModel, EmailStr, Field, field_validator
+
+from app.core.phone import normalize_phone
+from app.models.enums import BusinessStatus, ImageKind, SocialPlatform
+from app.schemas.common import ORMModel
+from app.schemas.item import BusinessItemOut
+from app.schemas.taxonomy import CategoryOut, LocationOut
+
+OptionalPhone = Annotated[str | None, Field(default=None, max_length=25)]
+
+
+def _normalize_optional_phone(value: str | None) -> str | None:
+    if value is None or not value.strip():
+        return None
+    return normalize_phone(value)
+
+
+class BusinessImageOut(ORMModel):
+    id: uuid.UUID
+    url: str
+    kind: ImageKind
+    caption: str | None = None
+    sort_order: int
+    width: int | None = None
+    height: int | None = None
+
+
+class SocialLinkOut(ORMModel):
+    platform: SocialPlatform
+    url: str
+
+
+class SocialLinkIn(BaseModel):
+    platform: SocialPlatform
+    url: str = Field(min_length=3, max_length=500)
+
+
+class BusinessSummaryOut(ORMModel):
+    """Card-sized payload used by lists and search results."""
+
+    id: uuid.UUID
+    name: str
+    slug: str
+    short_description: str | None = None
+    logo_url: str | None = None
+    cover_url: str | None = None
+    phone: str | None = None
+    whatsapp: str | None = None
+    category: CategoryOut | None = None
+    location: LocationOut | None = None
+    created_at: datetime
+
+
+class BusinessDetailOut(BusinessSummaryOut):
+    description: str | None = None
+    email: str | None = None
+    website: str | None = None
+    address_text: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    maps_url: str | None = None
+    images: list[BusinessImageOut] = Field(default_factory=list)
+    social_links: list[SocialLinkOut] = Field(default_factory=list)
+    items: list[BusinessItemOut] = Field(default_factory=list)
+    approved_at: datetime | None = None
+
+
+class OwnerBusinessOut(BusinessDetailOut):
+    """Adds moderation fields only the owner (and admins) may see."""
+
+    status: BusinessStatus
+    rejection_reason: str | None = None
+    submitted_at: datetime | None = None
+    updated_at: datetime
+
+
+class BusinessCreateIn(BaseModel):
+    name: str = Field(min_length=2, max_length=160)
+    short_description: str | None = Field(default=None, max_length=300)
+    description: str | None = Field(default=None, max_length=5000)
+    category_id: uuid.UUID | None = None
+    location_id: uuid.UUID | None = None
+    phone: OptionalPhone = None
+    whatsapp: OptionalPhone = None
+    email: EmailStr | None = None
+    website: str | None = Field(default=None, max_length=500)
+    address_text: str | None = Field(default=None, max_length=400)
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+    maps_url: str | None = Field(default=None, max_length=1000)
+    social_links: list[SocialLinkIn] = Field(default_factory=list)
+
+    @field_validator("name")
+    @classmethod
+    def _strip_name(cls, value: str) -> str:
+        cleaned = " ".join(value.split())
+        if len(cleaned) < 2:
+            raise ValueError("اسم النشاط قصير جداً.")
+        return cleaned
+
+    @field_validator("phone", "whatsapp")
+    @classmethod
+    def _phones(cls, value: str | None) -> str | None:
+        return _normalize_optional_phone(value)
+
+
+class BusinessUpdateIn(BaseModel):
+    """Every field optional: the wizard saves one step at a time."""
+
+    name: str | None = Field(default=None, min_length=2, max_length=160)
+    short_description: str | None = Field(default=None, max_length=300)
+    description: str | None = Field(default=None, max_length=5000)
+    category_id: uuid.UUID | None = None
+    location_id: uuid.UUID | None = None
+    phone: OptionalPhone = None
+    whatsapp: OptionalPhone = None
+    email: EmailStr | None = None
+    website: str | None = Field(default=None, max_length=500)
+    address_text: str | None = Field(default=None, max_length=400)
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+    maps_url: str | None = Field(default=None, max_length=1000)
+    social_links: list[SocialLinkIn] | None = None
+
+    @field_validator("phone", "whatsapp")
+    @classmethod
+    def _phones(cls, value: str | None) -> str | None:
+        return _normalize_optional_phone(value)
+
+
+class ImageReorderIn(BaseModel):
+    image_ids: list[uuid.UUID] = Field(min_length=1)
+
+
+class ImageCaptionIn(BaseModel):
+    caption: str | None = Field(default=None, max_length=300)

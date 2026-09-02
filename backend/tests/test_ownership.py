@@ -1,0 +1,182 @@
+"""Ownership isolation.
+
+The rule under test: an owner must never be able to reach another owner's
+business by substituting an id in the URL. These tests exist because that is
+the single most damaging authorization mistake this application could make.
+"""
+
+from __future__ import annotations
+
+import uuid
+
+import pytest
+from fastapi.testclient import TestClient
+
+from app.models.taxonomy import Category, Location
+from tests.conftest import admin_headers, sign_in
+
+
+@pytest.fixture
+def victim_business(client: TestClient, category: Category, location: Location) -> tuple[str, dict[str, str]]:
+    """A business belonging to owner A, plus owner A's auth header."""
+    headers = sign_in(client, "03700001")
+    response = client.post(
+        "/api/businesses",
+        headers=headers,
+        json={
+            "name": "محل المالك الأول",
+            "short_description": "وصف",
+            "category_id": str(category.id),
+            "location_id": str(location.id),
+            "whatsapp": "03700001",
+        },
+    )
+    assert response.status_code == 201, response.text
+    return response.json()["id"], headers
+
+
+@pytest.fixture
+def attacker_headers(client: TestClient) -> dict[str, str]:
+    return sign_in(client, "03700002")
+
+
+def test_attacker_cannot_read_another_owners_business(
+    client: TestClient, victim_business: tuple[str, dict[str, str]], attacker_headers: dict[str, str]
+) -> None:
+    business_id, _ = victim_business
+    response = client.get(f"/api/businesses/{business_id}/manage", headers=attacker_headers)
+    # 404, not 403: the API must not confirm that this id exists.
+    assert response.status_code == 404
+
+
+def test_attacker_cannot_update_another_owners_business(
+    client: TestClient, victim_business: tuple[str, dict[str, str]], attacker_headers: dict[str, str]
+) -> None:
+    business_id, owner_headers = victim_business
+
+    response = client.put(
+        f"/api/businesses/{business_id}", headers=attacker_headers, json={"name": "مسروق"}
+    )
+    assert response.status_code == 404
+
+    unchanged = client.get(f"/api/businesses/{business_id}/manage", headers=owner_headers)
+    assert unchanged.json()["name"] == "محل المالك الأول"
+
+
+def test_attacker_cannot_delete_another_owners_business(
+    client: TestClient, victim_business: tuple[str, dict[str, str]], attacker_headers: dict[str, str]
+) -> None:
+    business_id, owner_headers = victim_business
+
+    assert client.delete(f"/api/businesses/{business_id}", headers=attacker_headers).status_code == 404
+    assert client.get(f"/api/businesses/{business_id}/manage", headers=owner_headers).status_code == 200
+
+
+def test_attacker_cannot_submit_another_owners_business(
+    client: TestClient, victim_business: tuple[str, dict[str, str]], attacker_headers: dict[str, str]
+) -> None:
+    business_id, _ = victim_business
+    assert client.post(f"/api/businesses/{business_id}/submit", headers=attacker_headers).status_code == 404
+
+
+def test_attacker_cannot_manage_another_owners_items(
+    client: TestClient, victim_business: tuple[str, dict[str, str]], attacker_headers: dict[str, str]
+) -> None:
+    business_id, owner_headers = victim_business
+
+    created = client.post(
+        f"/api/businesses/{business_id}/items",
+        headers=owner_headers,
+        json={"title": "زعتر", "price": "1.50", "currency": "USD"},
+    )
+    item_id = created.json()["id"]
+
+    assert client.get(f"/api/businesses/{business_id}/items", headers=attacker_headers).status_code == 404
+    assert (
+        client.post(
+            f"/api/businesses/{business_id}/items", headers=attacker_headers, json={"title": "x"}
+        ).status_code
+        == 404
+    )
+    assert (
+        client.put(
+            f"/api/businesses/{business_id}/items/{item_id}",
+            headers=attacker_headers,
+            json={"title": "مسروق"},
+        ).status_code
+        == 404
+    )
+    assert (
+        client.delete(
+            f"/api/businesses/{business_id}/items/{item_id}", headers=attacker_headers
+        ).status_code
+        == 404
+    )
+
+
+def test_item_ids_are_scoped_to_their_business(
+    client: TestClient, category: Category, location: Location
+) -> None:
+    """An owner of two businesses cannot cross-edit items between them."""
+    headers = sign_in(client, "03700003")
+
+    def make(name: str) -> str:
+        response = client.post(
+            "/api/businesses",
+            headers=headers,
+            json={
+                "name": name,
+                "category_id": str(category.id),
+                "location_id": str(location.id),
+            },
+        )
+        return response.json()["id"]
+
+    first, second = make("النشاط الأول"), make("النشاط الثاني")
+    item_id = client.post(
+        f"/api/businesses/{first}/items", headers=headers, json={"title": "منتج"}
+    ).json()["id"]
+
+    # The item belongs to `first`, so addressing it under `second` must fail.
+    crossed = client.put(
+        f"/api/businesses/{second}/items/{item_id}", headers=headers, json={"title": "معدّل"}
+    )
+    assert crossed.status_code == 404
+
+
+def test_owner_cannot_reach_the_admin_api(
+    client: TestClient, victim_business: tuple[str, dict[str, str]]
+) -> None:
+    _, owner_headers = victim_business
+
+    for path in (
+        "/api/admin/businesses",
+        "/api/admin/businesses/pending",
+        "/api/admin/stats",
+        "/api/admin/users",
+        "/api/admin/categories",
+    ):
+        assert client.get(path, headers=owner_headers).status_code == 403, path
+
+
+def test_anonymous_cannot_reach_owner_or_admin_endpoints(client: TestClient) -> None:
+    assert client.get("/api/my/businesses").status_code == 401
+    assert client.get("/api/admin/stats").status_code == 401
+    assert client.post("/api/businesses", json={"name": "بدون تسجيل"}).status_code == 401
+
+
+def test_admin_cannot_edit_a_business_through_the_owner_api(
+    client: TestClient, admin, victim_business: tuple[str, dict[str, str]]
+) -> None:
+    """Admins moderate through the admin API, which records an audit trail."""
+    business_id, _ = victim_business
+    headers = admin_headers(client)
+
+    assert client.put(f"/api/businesses/{business_id}", headers=headers, json={"name": "x"}).status_code == 404
+
+
+def test_unknown_business_id_returns_404(client: TestClient, attacker_headers: dict[str, str]) -> None:
+    assert (
+        client.get(f"/api/businesses/{uuid.uuid4()}/manage", headers=attacker_headers).status_code
+        == 404
+    )

@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Environment — never commit real secrets
+.env
+.env.*
+!.env.example
+
+# Uploaded media (development)
+backend/var/
+var/media/
+
+# Test output
+frontend/test-results/
+frontend/playwright-report/
+frontend/e2e/screenshots/
+.coverage
+htmlcov/
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# TypeScript incremental build info
+*.tsbuildinfo
