@@ -1,6 +1,7 @@
 import { type ReactNode, useId } from 'react'
 import { AlertCircle } from 'lucide-react'
 
+import { useT } from '@/i18n'
 import { cn } from '@/utils/cn'
 
 interface FieldProps {
@@ -17,6 +18,7 @@ interface FieldProps {
  * hints and errors with the input they belong to.
  */
 export function Field({ label, children, error, hint, required, className }: FieldProps) {
+  const t = useT()
   const id = useId()
   const hintId = hint ? `${id}-hint` : undefined
   const errorId = error ? `${id}-error` : undefined
@@ -31,7 +33,9 @@ export function Field({ label, children, error, hint, required, className }: Fie
             *
           </span>
         ) : (
-          <span className="ms-2 text-xs font-normal text-ink-300">(اختياري)</span>
+          <span className="ms-2 text-xs font-normal text-ink-300">
+            {t('common.optional')}
+          </span>
         )}
       </label>
 

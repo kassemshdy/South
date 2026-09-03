@@ -1,0 +1,104 @@
+[
+  {
+    "name_ar": "الجنوب",
+    "slug": "south-governorate",
+    "children": [
+      {
+        "name_ar": "صور",
+        "slug": "tyre",
+        "children": [
+          {
+            "name_ar": "الصرفند",
+            "slug": "sarafand"
+          },
+          {
+            "name_ar": "قانا",
+            "slug": "qana"
+          },
+          {
+            "name_ar": "معركة",
+            "slug": "maaroub"
+          }
+        ]
+      },
+      {
+        "name_ar": "صيدا",
+        "slug": "saida",
+        "children": [
+          {
+            "name_ar": "الغازية",
+            "slug": "ghazieh"
+          },
+          {
+            "name_ar": "حارة صيدا",
+            "slug": "haret-saida"
+          }
+        ]
+      },
+      {
+        "name_ar": "جزين",
+        "slug": "jezzine",
+        "children": [
+          {
+            "name_ar": "كفرحونة",
+            "slug": "kfarhouna"
+          }
+        ]
+      },
+      {
+        "name_ar": "بنت جبيل",
+        "slug": "bint-jbeil",
+        "children": [
+          {
+            "name_ar": "عيترون",
+            "slug": "aitaroun"
+          },
+          {
+            "name_ar": "تبنين",
+            "slug": "tebnine"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name_ar": "النبطية",
+    "slug": "nabatieh-governorate",
+    "children": [
+      {
+        "name_ar": "النبطية",
+        "slug": "nabatieh",
+        "children": [
+          {
+            "name_ar": "كفررمان",
+            "slug": "kfarremen"
+          },
+          {
+            "name_ar": "زبدين",
+            "slug": "zebdine"
+          }
+        ]
+      },
+      {
+        "name_ar": "مرجعيون",
+        "slug": "marjeyoun",
+        "children": [
+          {
+            "name_ar": "القليعة",
+            "slug": "qlayaa"
+          }
+        ]
+      },
+      {
+        "name_ar": "حاصبيا",
+        "slug": "hasbaya",
+        "children": [
+          {
+            "name_ar": "شبعا",
+            "slug": "shebaa"
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -59,14 +59,14 @@ class ImageService:
     ) -> StoredFile:
         if len(data) > self._settings.max_upload_bytes:
             limit_mb = self._settings.max_upload_bytes / (1024 * 1024)
-            raise PayloadTooLargeError(f"حجم الصورة يتجاوز الحد المسموح ({limit_mb:.0f} ميغابايت).")
+            raise PayloadTooLargeError(
+                "image.too_large", params={"limit": f"{limit_mb:.0f}"}
+            )
         if not data:
-            raise UnsupportedMediaTypeError("الملف فارغ.")
+            raise UnsupportedMediaTypeError("image.empty")
 
         if content_type and content_type.lower() not in ALLOWED_CONTENT_TYPES:
-            raise UnsupportedMediaTypeError(
-                "يُسمح بصور JPG أو PNG أو WEBP فقط."
-            )
+            raise UnsupportedMediaTypeError("image.unsupported_format")
 
         image = self._decode(data)
         variant = VARIANTS[kind]
@@ -104,10 +104,10 @@ class ImageService:
             image.verify()  # structural check; consumes the file object
             image = Image.open(io.BytesIO(data))
         except (UnidentifiedImageError, OSError, ValueError) as exc:
-            raise UnsupportedMediaTypeError("تعذر قراءة الصورة. تأكد من صحة الملف.") from exc
+            raise UnsupportedMediaTypeError("image.unreadable") from exc
 
         if image.format not in ALLOWED_FORMATS:
-            raise UnsupportedMediaTypeError("يُسمح بصور JPG أو PNG أو WEBP فقط.")
+            raise UnsupportedMediaTypeError("image.unsupported_format")
         return image
 
     def _render(self, image: Image.Image, variant: ImageVariant) -> tuple[bytes, int, int]:

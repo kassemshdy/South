@@ -8,7 +8,9 @@ from typing import Annotated, Literal
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
-Environment = Literal["development", "test", "production"]
+# staging is production-hardened but permits the development OTP provider, so a
+# deployed build can actually be signed into before an SMS gateway exists.
+Environment = Literal["development", "test", "staging", "production"]
 
 
 class Settings(BaseSettings):
@@ -28,7 +30,6 @@ class Settings(BaseSettings):
 
     # --- General -----------------------------------------------------------
     app_env: Environment = "development"
-    app_name: str = "دليل الجنوب"
     debug: bool = False
     log_level: str = "INFO"
     # Public origin of the deployed site; used for canonical URLs and sitemaps.
@@ -85,7 +86,8 @@ class Settings(BaseSettings):
     # --- Admin bootstrap ---------------------------------------------------
     admin_email: str | None = "admin@example.com"
     admin_password: str | None = "ChangeMe!123"
-    admin_display_name: str = "مدير المنصة"
+    # Falls back to a translated default in the seed script when unset.
+    admin_display_name: str | None = None
 
     # --- Frontend serving --------------------------------------------------
     # When set, the API also serves the built SPA from this directory and
@@ -108,25 +110,44 @@ class Settings(BaseSettings):
         return self.app_env == "development"
 
     @property
+    def is_staging(self) -> bool:
+        return self.app_env == "staging"
+
+    @property
+    def allows_mock_otp(self) -> bool:
+        """Environments where a fixed, non-secret OTP code is acceptable."""
+        return self.app_env in ("development", "test", "staging")
+
+    @property
+    def is_hardened(self) -> bool:
+        """Environments that must pass the production safety checks."""
+        return self.app_env in ("staging", "production")
+
+    @property
     def dev_fixed_otp_code(self) -> str | None:
         """The fixed OTP code, or None when it must not be honoured.
 
         Guarded here rather than at the call site so there is exactly one place
         that can enable it.
         """
-        if not self.is_development:
+        if not self.allows_mock_otp:
             return None
         return self.otp_dev_fixed_code
 
     def enforce_production_safety(self) -> None:
-        """Refuse to boot a production process with development shortcuts."""
-        if not self.is_production:
+        """Refuse to boot a deployed process with development shortcuts.
+
+        Applies to staging as well as production. The single difference is the
+        mock OTP provider: staging may use it so the deployment is testable,
+        production may never, because a fixed code is an authentication bypass.
+        """
+        if not self.is_hardened:
             return
 
         problems: list[str] = []
         if self.secret_key == "dev-insecure-secret-change-me":
             problems.append("SECRET_KEY must be set to a strong random value")
-        if self.otp_provider == "mock":
+        if self.otp_provider == "mock" and not self.allows_mock_otp:
             problems.append(
                 "OTP_PROVIDER=mock is not allowed in production; configure a real provider"
             )

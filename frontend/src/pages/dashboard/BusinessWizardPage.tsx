@@ -14,19 +14,20 @@ import { SocialForm } from '@/features/businesses/SocialForm'
 import { ImageManager } from '@/features/images/ImageManager'
 import { ItemManager } from '@/features/items/ItemManager'
 import { useSeo } from '@/hooks/useSeo'
+import { useT, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { ownerApi, type BusinessPayload } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import { cn } from '@/utils/cn'
 
 const STEPS = [
-  { key: 'basics', label: 'المعلومات الأساسية' },
-  { key: 'location', label: 'الموقع' },
-  { key: 'images', label: 'الصور' },
-  { key: 'social', label: 'التواصل الاجتماعي' },
-  { key: 'items', label: 'المنتجات والخدمات' },
-  { key: 'review', label: 'المراجعة والإرسال' },
-] as const
+  { key: 'basics', labelKey: 'wizard.stepBasics' },
+  { key: 'location', labelKey: 'wizard.stepLocation' },
+  { key: 'images', labelKey: 'wizard.stepImages' },
+  { key: 'social', labelKey: 'wizard.stepSocial' },
+  { key: 'items', labelKey: 'wizard.stepItems' },
+  { key: 'review', labelKey: 'wizard.stepReview' },
+] as const satisfies readonly { key: string; labelKey: TranslationKey }[]
 
 type StepKey = (typeof STEPS)[number]['key']
 
@@ -42,8 +43,9 @@ export function BusinessWizardPage() {
   const queryClient = useQueryClient()
   const toast = useToast()
   const navigate = useNavigate()
+  const t = useT()
 
-  useSeo({ title: 'أضف نشاطك التجاري | دليل الجنوب', noIndex: true })
+  useSeo({ title: t('wizard.seoTitle'), noIndex: true })
 
   const business = useQuery({
     queryKey: queryKeys.myBusiness(businessId ?? ''),
@@ -62,11 +64,11 @@ export function BusinessWizardPage() {
       setBusinessId(created.id)
       queryClient.setQueryData(queryKeys.myBusiness(created.id), created)
       void queryClient.invalidateQueries({ queryKey: queryKeys.myBusinesses })
-      toast.success('تم حفظ نشاطك كمسودة')
+      toast.success(t('wizard.draftSaved'))
       setStep('location')
     },
     onError: (error) =>
-      toast.error('تعذر إنشاء النشاط', error instanceof ApiError ? error.message : undefined),
+      toast.error(t('wizard.createFailed'), error instanceof ApiError ? error.message : undefined),
   })
 
   const update = useMutation({
@@ -75,22 +77,25 @@ export function BusinessWizardPage() {
     onSuccess: ({ result, next }) => {
       queryClient.setQueryData(queryKeys.myBusiness(result.id), result)
       invalidate()
-      toast.success('تم الحفظ')
+      toast.success(t('wizard.saved'))
       setStep(next)
     },
     onError: (error) =>
-      toast.error('تعذر الحفظ', error instanceof ApiError ? error.message : undefined),
+      toast.error(t('wizard.saveFailed'), error instanceof ApiError ? error.message : undefined),
   })
 
   const submit = useMutation({
     mutationFn: () => ownerApi.submit(businessId as string),
     onSuccess: () => {
       invalidate()
-      toast.success('تم إرسال نشاطك للمراجعة.', 'سنقوم بمراجعته قبل ظهوره في الدليل.')
+      toast.success(t('dashboard.submitted'), t('dashboard.submittedDescription'))
       navigate('/dashboard')
     },
     onError: (error) =>
-      toast.error('لا يمكن الإرسال بعد', error instanceof ApiError ? error.message : undefined),
+      toast.error(
+        t('dashboard.submitBlocked'),
+        error instanceof ApiError ? error.message : undefined,
+      ),
   })
 
   const currentIndex = STEPS.findIndex((item) => item.key === step)
@@ -99,13 +104,11 @@ export function BusinessWizardPage() {
   return (
     <div className="container-page max-w-3xl py-10">
       <header className="mb-8">
-        <h1 className="text-3xl">أضف نشاطك التجاري</h1>
-        <p className="mt-2 text-ink-500">
-          املأ الخطوات التالية. يمكنك الحفظ والعودة لاحقاً في أي وقت.
-        </p>
+        <h1 className="text-3xl">{t('wizard.heading')}</h1>
+        <p className="mt-2 text-ink-500">{t('wizard.subtitle')}</p>
       </header>
 
-      <ol className="mb-8 flex flex-wrap gap-2" aria-label="خطوات الإضافة">
+      <ol className="mb-8 flex flex-wrap gap-2" aria-label={t('wizard.stepsAria')}>
         {STEPS.map((item, index) => {
           const isDone = index < currentIndex
           const isCurrent = item.key === step
@@ -126,8 +129,12 @@ export function BusinessWizardPage() {
                       : 'bg-white text-ink-500 ring-1 ring-ink-100',
                 )}
               >
-                {isDone ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : <span>{index + 1}</span>}
-                {item.label}
+                {isDone ? (
+                  <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                ) : (
+                  <span>{index + 1}</span>
+                )}
+                {t(item.labelKey)}
               </button>
             </li>
           )
@@ -139,7 +146,7 @@ export function BusinessWizardPage() {
           {step === 'basics' ? (
             <BasicsForm
               business={data}
-              submitLabel={businessId ? 'حفظ ومتابعة' : 'حفظ ومتابعة'}
+              submitLabel={t('wizard.saveAndContinue')}
               pending={create.isPending || update.isPending}
               onSubmit={(payload) =>
                 businessId
@@ -150,7 +157,7 @@ export function BusinessWizardPage() {
           ) : null}
 
           {businessId === null && step !== 'basics' ? (
-            <p className="text-ink-500">احفظ المعلومات الأساسية أولاً.</p>
+            <p className="text-ink-500">{t('wizard.saveBasicsFirst')}</p>
           ) : business.isLoading ? (
             <InlineSpinner />
           ) : (
@@ -158,12 +165,12 @@ export function BusinessWizardPage() {
               {step === 'location' && data ? (
                 <LocationForm
                   business={data}
-                  submitLabel="حفظ ومتابعة"
+                  submitLabel={t('wizard.saveAndContinue')}
                   pending={update.isPending}
                   onSubmit={(payload) => update.mutate({ payload, next: 'images' })}
                   footer={
                     <Button type="button" variant="ghost" onClick={() => setStep('basics')}>
-                      رجوع
+                      {t('common.back')}
                     </Button>
                   }
                 />
@@ -174,10 +181,10 @@ export function BusinessWizardPage() {
                   <ImageManager business={data} />
                   <div className="flex gap-3 border-t border-ink-100 pt-5">
                     <Button size="lg" onClick={() => setStep('social')}>
-                      متابعة
+                      {t('common.continue')}
                     </Button>
                     <Button variant="ghost" onClick={() => setStep('location')}>
-                      رجوع
+                      {t('common.back')}
                     </Button>
                   </div>
                 </div>
@@ -186,12 +193,12 @@ export function BusinessWizardPage() {
               {step === 'social' && data ? (
                 <SocialForm
                   business={data}
-                  submitLabel="حفظ ومتابعة"
+                  submitLabel={t('wizard.saveAndContinue')}
                   pending={update.isPending}
                   onSubmit={(payload) => update.mutate({ payload, next: 'items' })}
                   footer={
                     <Button type="button" variant="ghost" onClick={() => setStep('images')}>
-                      رجوع
+                      {t('common.back')}
                     </Button>
                   }
                 />
@@ -202,10 +209,10 @@ export function BusinessWizardPage() {
                   <ItemManager businessId={data.id} />
                   <div className="flex gap-3 border-t border-ink-100 pt-5">
                     <Button size="lg" onClick={() => setStep('review')}>
-                      متابعة للمراجعة
+                      {t('wizard.continueToReview')}
                     </Button>
                     <Button variant="ghost" onClick={() => setStep('social')}>
-                      رجوع
+                      {t('common.back')}
                     </Button>
                   </div>
                 </div>
@@ -227,9 +234,9 @@ export function BusinessWizardPage() {
 
       {businessId ? (
         <p className="mt-4 text-center text-sm text-ink-500">
-          نشاطك محفوظ كمسودة.{' '}
+          {t('wizard.draftNotice')}{' '}
           <Link to="/dashboard" className="text-clay-600 hover:underline">
-            العودة إلى نشاطاتي
+            {t('wizard.backToDashboard')}
           </Link>
         </p>
       ) : null}
@@ -250,6 +257,7 @@ function ReviewStep({
   onSubmit: () => void
   submitting: boolean
 }) {
+  const t = useT()
   // The backend is the authority on completeness; we ask it rather than
   // duplicating the rule on the client.
   const readiness = useQuery({
@@ -266,17 +274,15 @@ function ReviewStep({
         <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-sand-100 text-clay-600">
           <PartyPopper className="h-7 w-7" aria-hidden="true" />
         </span>
-        <h2 className="text-xl">جاهز لإرسال «{name}» للمراجعة؟</h2>
-        <p className="mt-2 text-ink-500">
-          سيراجع فريق الإدارة نشاطك قبل نشره في الدليل. يمكنك متابعة الحالة من صفحة نشاطاتي.
-        </p>
+        <h2 className="text-xl">{t('wizard.reviewTitle', { name })}</h2>
+        <p className="mt-2 text-ink-500">{t('wizard.reviewBody')}</p>
       </div>
 
       {readiness.isLoading ? (
-        <InlineSpinner label="جارٍ التحقق من اكتمال البيانات…" />
+        <InlineSpinner label={t('wizard.checkingReadiness')} />
       ) : missing.length > 0 ? (
         <div className="rounded-xl border-2 border-sand-300 bg-sand-50 p-4">
-          <p className="font-semibold text-clay-800">أكمل البيانات التالية قبل الإرسال:</p>
+          <p className="font-semibold text-clay-800">{t('wizard.missingTitle')}</p>
           <ul className="mt-2 flex flex-wrap gap-2">
             {missing.map((item) => (
               <li key={item}>
@@ -287,17 +293,17 @@ function ReviewStep({
         </div>
       ) : (
         <p className="rounded-xl border-2 border-olive-200 bg-olive-50 p-4 text-olive-800">
-          جميع البيانات المطلوبة مكتملة.
+          {t('wizard.allComplete')}
         </p>
       )}
 
       <div className="flex flex-wrap gap-3">
         <Button size="lg" disabled={!ready} loading={submitting} onClick={onSubmit}>
           <Send className="h-5 w-5" aria-hidden="true" />
-          إرسال للمراجعة
+          {t('dashboard.submitForReview')}
         </Button>
         <Button variant="ghost" onClick={onBack}>
-          رجوع
+          {t('common.back')}
         </Button>
       </div>
     </div>

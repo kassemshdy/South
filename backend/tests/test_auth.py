@@ -11,6 +11,7 @@ from app.core.phone import normalize_phone
 from app.models.user import User
 from app.repositories.user import UserRepository
 from tests.conftest import sign_in
+from tests.samples import ar
 
 
 def test_phone_variants_resolve_to_one_account(client: TestClient, db: Session) -> None:
@@ -178,4 +179,4 @@ def test_dev_fixed_code_is_ignored_outside_development() -> None:
 def test_phone_normalization() -> None:
     assert normalize_phone("03123456") == "+9613123456"
     assert normalize_phone("+961 3 123 456") == "+9613123456"
-    assert normalize_phone("٧١٢٣٤٥٦٧") == "+96171234567"
+    assert normalize_phone(ar("phone.arabic_indic")) == "+96171234567"

@@ -13,6 +13,8 @@ import html
 import re
 from dataclasses import dataclass
 
+from app.core.i18n import translate
+
 _TITLE_RE = re.compile(r"<title>.*?</title>", re.IGNORECASE | re.DOTALL)
 _META_RE_TEMPLATE = r'<meta\s+(?:name|property)=["\']{key}["\'][^>]*>'
 
@@ -52,7 +54,7 @@ def inject(document: str, tags: SeoTags) -> str:
         ("og:description", tags.description),
         ("og:url", tags.canonical_url),
         ("og:type", tags.og_type),
-        ("og:site_name", "دليل الجنوب"),
+        ("og:site_name", translate("app.name")),
         ("og:locale", "ar_LB"),
         ("twitter:card", "summary_large_image" if tags.image_url else "summary"),
         ("twitter:title", tags.title),
@@ -83,13 +85,17 @@ def business_tags(
     image_url: str | None,
     canonical_url: str,
 ) -> SeoTags:
-    where = f" في {location_name}" if location_name else ""
-    what = f"{category_name} — " if category_name else ""
-    description = (
-        short_description
-        or f"{what}{name}{where}. تعرّف على المنتجات والخدمات وتواصل مباشرة عبر واتساب."
-    )
-    title = f"{name}{where} | دليل الجنوب"
+    site = translate("app.name")
+    if location_name:
+        title = translate(
+            "seo.business.title_with_location", name=name, location=location_name, site=site
+        )
+        fallback = translate("seo.business.description", name=name, location=location_name)
+    else:
+        title = translate("seo.business.title", name=name, site=site)
+        fallback = translate("seo.business.description_no_location", name=name)
+
+    description = short_description or fallback
     return SeoTags(
         title=title,
         description=description[:300],

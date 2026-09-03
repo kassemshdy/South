@@ -14,6 +14,7 @@ from fastapi.testclient import TestClient
 
 from app.models.taxonomy import Category, Location
 from tests.conftest import admin_headers, sign_in
+from tests.samples import ar
 
 
 @pytest.fixture
@@ -24,8 +25,8 @@ def victim_business(client: TestClient, category: Category, location: Location) 
         "/api/businesses",
         headers=headers,
         json={
-            "name": "محل المالك الأول",
-            "short_description": "وصف",
+            "name": ar("business.first_owner"),
+            "short_description": ar("business.generic_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
             "whatsapp": "03700001",
@@ -55,12 +56,12 @@ def test_attacker_cannot_update_another_owners_business(
     business_id, owner_headers = victim_business
 
     response = client.put(
-        f"/api/businesses/{business_id}", headers=attacker_headers, json={"name": "مسروق"}
+        f"/api/businesses/{business_id}", headers=attacker_headers, json={"name": ar("business.stolen")}
     )
     assert response.status_code == 404
 
     unchanged = client.get(f"/api/businesses/{business_id}/manage", headers=owner_headers)
-    assert unchanged.json()["name"] == "محل المالك الأول"
+    assert unchanged.json()["name"] == ar("business.first_owner")
 
 
 def test_attacker_cannot_delete_another_owners_business(
@@ -87,7 +88,7 @@ def test_attacker_cannot_manage_another_owners_items(
     created = client.post(
         f"/api/businesses/{business_id}/items",
         headers=owner_headers,
-        json={"title": "زعتر", "price": "1.50", "currency": "USD"},
+        json={"title": ar("item.zaatar"), "price": "1.50", "currency": "USD"},
     )
     item_id = created.json()["id"]
 
@@ -102,7 +103,7 @@ def test_attacker_cannot_manage_another_owners_items(
         client.put(
             f"/api/businesses/{business_id}/items/{item_id}",
             headers=attacker_headers,
-            json={"title": "مسروق"},
+            json={"title": ar("business.stolen")},
         ).status_code
         == 404
     )
@@ -132,14 +133,14 @@ def test_item_ids_are_scoped_to_their_business(
         )
         return response.json()["id"]
 
-    first, second = make("النشاط الأول"), make("النشاط الثاني")
+    first, second = make(ar("business.first")), make(ar("business.second"))
     item_id = client.post(
-        f"/api/businesses/{first}/items", headers=headers, json={"title": "منتج"}
+        f"/api/businesses/{first}/items", headers=headers, json={"title": ar("item.generic")}
     ).json()["id"]
 
     # The item belongs to `first`, so addressing it under `second` must fail.
     crossed = client.put(
-        f"/api/businesses/{second}/items/{item_id}", headers=headers, json={"title": "معدّل"}
+        f"/api/businesses/{second}/items/{item_id}", headers=headers, json={"title": ar("item.edited")}
     )
     assert crossed.status_code == 404
 
@@ -162,7 +163,7 @@ def test_owner_cannot_reach_the_admin_api(
 def test_anonymous_cannot_reach_owner_or_admin_endpoints(client: TestClient) -> None:
     assert client.get("/api/my/businesses").status_code == 401
     assert client.get("/api/admin/stats").status_code == 401
-    assert client.post("/api/businesses", json={"name": "بدون تسجيل"}).status_code == 401
+    assert client.post("/api/businesses", json={"name": ar("business.unauthenticated")}).status_code == 401
 
 
 def test_admin_cannot_edit_a_business_through_the_owner_api(

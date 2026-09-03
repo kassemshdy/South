@@ -83,7 +83,7 @@ class BusinessRepository(BaseRepository[Business]):
 
         if location_slug:
             # Matching a district also matches the towns beneath it, so
-            # filtering by "صور" returns businesses in its villages too.
+            # filtering by a district returns businesses in its villages too.
             parent = select(Location.id).where(Location.slug == location_slug).scalar_subquery()
             stmt = stmt.where(
                 or_(

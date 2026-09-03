@@ -95,8 +95,6 @@ def decode_access_token(token: str) -> dict[str, Any]:
             options={"require": ["exp", "sub"]},
         )
     except jwt.ExpiredSignatureError as exc:
-        raise AuthenticationError(
-            "انتهت صلاحية الجلسة. يرجى تسجيل الدخول مجدداً.", code="token_expired"
-        ) from exc
+        raise AuthenticationError("auth.session.expired", code="token_expired") from exc
     except jwt.InvalidTokenError as exc:
-        raise AuthenticationError("جلسة غير صالحة.", code="invalid_token") from exc
+        raise AuthenticationError("auth.session.invalid", code="invalid_token") from exc

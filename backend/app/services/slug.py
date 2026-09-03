@@ -1,10 +1,10 @@
 """Slug generation.
 
-Slugs keep their original script: "مناقيش الضيعة" becomes "مناقيش-الضيعة" rather
-than the vowel-less transliteration "mnqysh-ldy", which is meaningless to an
-Arabic reader and worthless for Arabic search. Latin names are unaffected —
-"Abu Ali Bakery" still yields "abu-ali-bakery". Browsers and crawlers handle
-percent-encoded UTF-8 paths and display them decoded.
+Slugs keep their original script. An Arabic business name becomes an Arabic
+slug rather than a vowel-less transliteration such as "mnqysh-ldy", which is
+meaningless to an Arabic reader and worthless for Arabic search. Latin names are
+unaffected: "Abu Ali Bakery" still yields "abu-ali-bakery". Browsers and crawlers
+handle percent-encoded UTF-8 paths and display them decoded.
 """
 
 from __future__ import annotations

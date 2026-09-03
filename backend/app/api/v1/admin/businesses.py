@@ -26,7 +26,7 @@ router = APIRouter(prefix="/admin", tags=["admin-businesses"])
 def _load(db: DbSession, business_id: uuid.UUID):
     business = BusinessRepository(db).get_for_admin(business_id)
     if business is None:
-        raise NotFoundError("النشاط غير موجود.")
+        raise NotFoundError("business.not_found")
     return business
 
 

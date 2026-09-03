@@ -10,15 +10,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
+import { useT, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { adminApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { LocationNode, LocationType } from '@/types/api'
 
-const TYPE_LABELS: Record<LocationType, string> = {
-  GOVERNORATE: 'محافظة',
-  DISTRICT: 'قضاء',
-  TOWN: 'بلدة',
+const TYPE_KEYS: Record<LocationType, TranslationKey> = {
+  GOVERNORATE: 'admin.typeGovernorate',
+  DISTRICT: 'admin.typeDistrict',
+  TOWN: 'admin.typeTown',
 }
 
 export function AdminLocationsPage() {
@@ -27,6 +28,7 @@ export function AdminLocationsPage() {
   const [name, setName] = useState('')
   const [type, setType] = useState<LocationType>('TOWN')
   const [parentId, setParentId] = useState<string>('')
+  const t = useT()
 
   const locations = useQuery({ queryKey: queryKeys.adminLocations, queryFn: adminApi.locations })
 
@@ -43,28 +45,28 @@ export function AdminLocationsPage() {
       adminApi.createLocation({ name_ar: name.trim(), type, parent_id: parentId || null }),
     onSuccess: () => {
       setName('')
-      toast.success('تمت إضافة الموقع')
+      toast.success(t('admin.locationAdded'))
       invalidate()
     },
-    onError: (error) => handleError(error, 'تعذر إضافة الموقع'),
+    onError: (error) => handleError(error, t('admin.locationAddFailed')),
   })
 
   const update = useMutation({
     mutationFn: ({ id, body }: { id: string; body: Partial<LocationNode> }) => adminApi.updateLocation(id, body),
     onSuccess: () => {
-      toast.success('تم حفظ الموقع')
+      toast.success(t('admin.locationSaved'))
       invalidate()
     },
-    onError: (error) => handleError(error, 'تعذر حفظ الموقع'),
+    onError: (error) => handleError(error, t('admin.locationSaveFailed')),
   })
 
   const remove = useMutation({
     mutationFn: (id: string) => adminApi.deleteLocation(id),
     onSuccess: () => {
-      toast.success('تم حذف الموقع')
+      toast.success(t('admin.locationDeleted'))
       invalidate()
     },
-    onError: (error) => handleError(error, 'تعذر حذف الموقع'),
+    onError: (error) => handleError(error, t('admin.locationDeleteFailed')),
   })
 
   // Render the tree in reading order: governorate, then its districts, then towns.
@@ -86,10 +88,8 @@ export function AdminLocationsPage() {
   return (
     <div className="max-w-3xl space-y-6">
       <header>
-        <h1 className="text-3xl">المواقع</h1>
-        <p className="mt-2 text-ink-500">
-          المواقع منظمة كشجرة: محافظة ← قضاء ← بلدة. البحث بقضاء يشمل بلداته.
-        </p>
+        <h1 className="text-3xl">{t('admin.locationsHeading')}</h1>
+        <p className="mt-2 text-ink-500">{t('admin.locationsSubtitle')}</p>
       </header>
 
       <Card>
@@ -103,30 +103,30 @@ export function AdminLocationsPage() {
           >
             <div>
               <label htmlFor="new-location" className="sr-only">
-                اسم الموقع
+                {t('admin.locationNameLabel')}
               </label>
-              <Input id="new-location" value={name} onChange={(event) => setName(event.target.value)} placeholder="اسم الموقع" />
+              <Input id="new-location" value={name} onChange={(event) => setName(event.target.value)} placeholder={t('admin.locationNameLabel')} />
             </div>
 
             <Select value={type} onValueChange={(value) => setType(value as LocationType)}>
-              <SelectTrigger className="sm:w-32" aria-label="نوع الموقع">
+              <SelectTrigger className="sm:w-32" aria-label={t('admin.locationTypeAria')}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {(Object.keys(TYPE_LABELS) as LocationType[]).map((option) => (
+                {(Object.keys(TYPE_KEYS) as LocationType[]).map((option) => (
                   <SelectItem key={option} value={option}>
-                    {TYPE_LABELS[option]}
+                    {t(TYPE_KEYS[option])}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
             <Select value={parentId || 'none'} onValueChange={(value) => setParentId(value === 'none' ? '' : value)}>
-              <SelectTrigger className="sm:w-40" aria-label="الموقع الأب">
-                <SelectValue placeholder="بدون أب" />
+              <SelectTrigger className="sm:w-40" aria-label={t('admin.locationParentAria')}>
+                <SelectValue placeholder={t('admin.locationNoParent')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">بدون أب</SelectItem>
+                <SelectItem value="none">{t('admin.locationNoParent')}</SelectItem>
                 {parents.map((parent) => (
                   <SelectItem key={parent.id} value={parent.id}>
                     {parent.name_ar}
@@ -137,7 +137,7 @@ export function AdminLocationsPage() {
 
             <Button type="submit" loading={create.isPending} disabled={name.trim().length < 2}>
               <Plus className="h-4 w-4" aria-hidden="true" />
-              إضافة
+              {t('admin.add')}
             </Button>
           </form>
         </CardBody>
@@ -159,8 +159,12 @@ export function AdminLocationsPage() {
                 >
                   <div className="flex items-center gap-2">
                     <span className="font-semibold">{location.name_ar}</span>
-                    <Badge className="bg-sand-100 text-clay-700">{TYPE_LABELS[location.type]}</Badge>
-                    {!location.is_active ? <Badge className="bg-ink-100 text-ink-700">غير مفعّل</Badge> : null}
+                    <Badge className="bg-sand-100 text-clay-700">
+                      {t(TYPE_KEYS[location.type])}
+                    </Badge>
+                    {!location.is_active ? (
+                      <Badge className="bg-ink-100 text-ink-700">{t('common.inactive')}</Badge>
+                    ) : null}
                   </div>
                   <div className="flex gap-1">
                     <Button
@@ -168,14 +172,14 @@ export function AdminLocationsPage() {
                       variant="ghost"
                       onClick={() => update.mutate({ id: location.id, body: { is_active: !location.is_active } })}
                     >
-                      {location.is_active ? 'إلغاء التفعيل' : 'تفعيل'}
+                      {location.is_active ? t('common.deactivate') : t('common.activate')}
                     </Button>
                     <Button
                       size="icon"
                       variant="ghost"
                       className="text-clay-600"
                       onClick={() => remove.mutate(location.id)}
-                      aria-label={`حذف ${location.name_ar}`}
+                      aria-label={t('admin.deleteAria', { name: location.name_ar })}
                     >
                       <Trash2 className="h-4 w-4" aria-hidden="true" />
                     </Button>

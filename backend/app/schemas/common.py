@@ -44,7 +44,7 @@ class MessageResponse(BaseModel):
 
 
 class StatsResponse(BaseModel):
-    total_businesses: int = Field(description="كل النشاطات بغض النظر عن الحالة")
+    total_businesses: int = Field(description="All businesses regardless of status")
     pending_businesses: int
     approved_businesses: int
     rejected_businesses: int

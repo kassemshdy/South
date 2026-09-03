@@ -3,12 +3,17 @@ import { Link } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { useT } from '@/i18n'
 import type { BusinessSummary } from '@/types/api'
 import { telHref, whatsappHref } from '@/utils/format'
 
 export function BusinessCard({ business }: { business: BusinessSummary }) {
+  const t = useT()
   const profileUrl = `/business/${encodeURIComponent(business.slug)}`
-  const whatsapp = whatsappHref(business.whatsapp, `مرحباً، وجدت ${business.name} على دليل الجنوب.`)
+  const whatsapp = whatsappHref(
+    business.whatsapp,
+    t('business.whatsappMessage', { name: business.name }),
+  )
   const phone = telHref(business.phone)
 
   return (
@@ -65,17 +70,27 @@ export function BusinessCard({ business }: { business: BusinessSummary }) {
 
         <div className="mt-auto flex items-center gap-2 pt-4">
           <Button asChild size="sm" variant="outline" className="flex-1">
-            <Link to={profileUrl}>عرض التفاصيل</Link>
+            <Link to={profileUrl}>{t('business.viewDetails')}</Link>
           </Button>
           {whatsapp ? (
-            <Button asChild size="icon" variant="whatsapp" aria-label={`مراسلة ${business.name} عبر واتساب`}>
+            <Button
+              asChild
+              size="icon"
+              variant="whatsapp"
+              aria-label={t('business.whatsappAria', { name: business.name })}
+            >
               <a href={whatsapp} target="_blank" rel="noopener noreferrer">
                 <MessageCircle className="h-5 w-5" aria-hidden="true" />
               </a>
             </Button>
           ) : null}
           {phone ? (
-            <Button asChild size="icon" variant="outline" aria-label={`الاتصال بـ ${business.name}`}>
+            <Button
+              asChild
+              size="icon"
+              variant="outline"
+              aria-label={t('business.callAria', { name: business.name })}
+            >
               <a href={phone}>
                 <Phone className="h-5 w-5" aria-hidden="true" />
               </a>

@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useMemo } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 
 import { Button } from '@/components/ui/Button'
@@ -6,6 +7,7 @@ import { Field } from '@/components/ui/Field'
 import { Input, Textarea } from '@/components/ui/Input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 import { useCategories } from '@/hooks/useTaxonomy'
+import { useT } from '@/i18n'
 import type { BusinessPayload } from '@/services/api/endpoints'
 import type { OwnerBusiness } from '@/types/api'
 import { businessBasicsSchema, type BusinessBasicsValues } from '@/utils/validation'
@@ -21,6 +23,9 @@ interface BasicsFormProps {
 /** Step 1 of the wizard, and the first tab of the edit screen. */
 export function BasicsForm({ business, submitLabel, pending, onSubmit, footer }: BasicsFormProps) {
   const categories = useCategories()
+  const t = useT()
+  // Rebuilt when the locale changes so validation messages follow the UI.
+  const schema = useMemo(() => businessBasicsSchema(t), [t])
 
   const {
     register,
@@ -28,7 +33,7 @@ export function BasicsForm({ business, submitLabel, pending, onSubmit, footer }:
     control,
     formState: { errors },
   } = useForm<BusinessBasicsValues>({
-    resolver: zodResolver(businessBasicsSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       name: business?.name ?? '',
       short_description: business?.short_description ?? '',
@@ -56,41 +61,41 @@ export function BasicsForm({ business, submitLabel, pending, onSubmit, footer }:
 
   return (
     <form onSubmit={submit} className="space-y-5" noValidate>
-      <Field label="اسم النشاط" required error={errors.name?.message}>
+      <Field label={t('form.name')} required error={errors.name?.message}>
         {(props) => (
-          <Input {...props} {...register('name')} placeholder="مثال: مناقيش الضيعة" invalid={Boolean(errors.name)} />
+          <Input {...props} {...register('name')} placeholder={t('form.namePlaceholder')} invalid={Boolean(errors.name)} />
         )}
       </Field>
 
       <Field
-        label="وصف مختصر"
+        label={t('form.shortDescription')}
         required
         error={errors.short_description?.message}
-        hint="سطر واحد يظهر في بطاقة النشاط ونتائج البحث."
+        hint={t('form.shortDescriptionHint')}
       >
         {(props) => (
           <Input
             {...props}
             {...register('short_description')}
-            placeholder="مناقيش وفطائر على الصاج كل صباح"
+            placeholder={t('form.shortDescriptionPlaceholder')}
             invalid={Boolean(errors.short_description)}
           />
         )}
       </Field>
 
-      <Field label="نبذة عن النشاط" error={errors.description?.message}>
+      <Field label={t('form.description')} error={errors.description?.message}>
         {(props) => (
           <Textarea
             {...props}
             {...register('description')}
             rows={5}
-            placeholder="اكتب عن نشاطك، ما يميّزه، وساعات العمل…"
+            placeholder={t('form.descriptionPlaceholder')}
             invalid={Boolean(errors.description)}
           />
         )}
       </Field>
 
-      <Field label="التصنيف" required error={errors.category_id?.message}>
+      <Field label={t('form.category')} required error={errors.category_id?.message}>
         {(props) => (
           <Controller
             control={control}
@@ -98,7 +103,7 @@ export function BasicsForm({ business, submitLabel, pending, onSubmit, footer }:
             render={({ field }) => (
               <Select value={field.value || undefined} onValueChange={field.onChange}>
                 <SelectTrigger id={props.id} aria-describedby={props['aria-describedby']} invalid={Boolean(errors.category_id)}>
-                  <SelectValue placeholder="اختر تصنيفاً" />
+                  <SelectValue placeholder={t('form.categoryPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.data?.map((category) => (
@@ -114,13 +119,13 @@ export function BasicsForm({ business, submitLabel, pending, onSubmit, footer }:
       </Field>
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="رقم الهاتف للنشر" error={errors.phone?.message} hint="هذا الرقم يظهر للزوار.">
+        <Field label={t('form.phone')} error={errors.phone?.message} hint={t('form.phoneHint')}>
           {(props) => (
             <Input {...props} {...register('phone')} type="tel" dir="ltr" className="ltr-nums" placeholder="07740111" invalid={Boolean(errors.phone)} />
           )}
         </Field>
 
-        <Field label="رقم واتساب" error={errors.whatsapp?.message} hint="يظهر كزر تواصل مباشر.">
+        <Field label={t('form.whatsapp')} error={errors.whatsapp?.message} hint={t('form.whatsappHint')}>
           {(props) => (
             <Input {...props} {...register('whatsapp')} type="tel" dir="ltr" className="ltr-nums" placeholder="03123456" invalid={Boolean(errors.whatsapp)} />
           )}
@@ -128,13 +133,13 @@ export function BasicsForm({ business, submitLabel, pending, onSubmit, footer }:
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="البريد الإلكتروني" error={errors.email?.message}>
+        <Field label={t('form.email')} error={errors.email?.message}>
           {(props) => (
             <Input {...props} {...register('email')} type="email" dir="ltr" className="ltr-nums" invalid={Boolean(errors.email)} />
           )}
         </Field>
 
-        <Field label="الموقع الإلكتروني" error={errors.website?.message}>
+        <Field label={t('form.website')} error={errors.website?.message}>
           {(props) => (
             <Input {...props} {...register('website')} type="url" dir="ltr" className="ltr-nums" placeholder="https://" invalid={Boolean(errors.website)} />
           )}
@@ -142,7 +147,7 @@ export function BasicsForm({ business, submitLabel, pending, onSubmit, footer }:
       </div>
 
       <p className="rounded-xl bg-sand-100 p-3.5 text-sm text-clay-800">
-        رقم هاتفك الذي سجّلت به لن يُنشر. تظهر للزوار فقط أرقام التواصل التي تدخلها هنا.
+        {t('form.privacyNote')}
       </p>
 
       <div className="flex flex-wrap gap-3 pt-2">

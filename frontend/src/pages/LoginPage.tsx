@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowRight, KeyRound, Phone } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import type { z } from 'zod'
@@ -12,21 +12,23 @@ import { Input } from '@/components/ui/Input'
 import { useToast } from '@/components/ui/Toast'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useSeo } from '@/hooks/useSeo'
+import { useT } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { authApi } from '@/services/api/endpoints'
 import { otpSchema, phoneSchema } from '@/utils/validation'
 
-type PhoneValues = z.infer<typeof phoneSchema>
-type OtpValues = z.infer<typeof otpSchema>
+type PhoneValues = z.infer<ReturnType<typeof phoneSchema>>
+type OtpValues = z.infer<ReturnType<typeof otpSchema>>
 
 export function LoginPage() {
   const { isAuthenticated } = useAuth()
   const location = useLocation()
+  const t = useT()
   const [step, setStep] = useState<'phone' | 'code'>('phone')
   const [phone, setPhone] = useState('')
   const [devCode, setDevCode] = useState<string | null>(null)
 
-  useSeo({ title: 'تسجيل الدخول | دليل الجنوب', noIndex: true })
+  useSeo({ title: t('login.seoTitle'), noIndex: true })
 
   const redirectTo = (location.state as { from?: string } | null)?.from ?? '/dashboard'
   if (isAuthenticated) return <Navigate to={redirectTo} replace />
@@ -59,25 +61,28 @@ export function LoginPage() {
 
 function PhoneStep({ onSent }: { onSent: (phone: string, debugCode: string | null) => void }) {
   const toast = useToast()
+  const t = useT()
   const [submitting, setSubmitting] = useState(false)
+  const schema = useMemo(() => phoneSchema(t), [t])
+
   const {
     register,
     handleSubmit,
     setError,
     formState: { errors },
-  } = useForm<PhoneValues>({ resolver: zodResolver(phoneSchema) })
+  } = useForm<PhoneValues>({ resolver: zodResolver(schema) })
 
   const onSubmit = handleSubmit(async ({ phone_number }) => {
     setSubmitting(true)
     try {
       const response = await authApi.requestOtp(phone_number)
-      toast.success('تم إرسال رمز التحقق', 'تحقق من رسائلك القصيرة.')
+      toast.success(t('login.codeSent'), t('login.codeSentDescription'))
       onSent(phone_number, response.debug_code)
     } catch (error) {
       if (error instanceof ApiError) {
         setError('phone_number', { message: error.message })
       } else {
-        toast.error('تعذر إرسال الرمز', 'يرجى المحاولة مجدداً.')
+        toast.error(t('login.sendFailed'), t('login.sendFailedDescription'))
       }
     } finally {
       setSubmitting(false)
@@ -90,12 +95,17 @@ function PhoneStep({ onSent }: { onSent: (phone: string, debugCode: string | nul
         <span className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-sand-100 text-clay-600">
           <Phone className="h-6 w-6" aria-hidden="true" />
         </span>
-        <h1 className="text-2xl">أدخل رقم هاتفك</h1>
-        <p className="mt-2 text-ink-500">سنرسل لك رمز تحقق لمرة واحدة.</p>
+        <h1 className="text-2xl">{t('login.phoneTitle')}</h1>
+        <p className="mt-2 text-ink-500">{t('login.phoneSubtitle')}</p>
       </div>
 
       <form onSubmit={onSubmit} className="space-y-5" noValidate>
-        <Field label="رقم الهاتف" required error={errors.phone_number?.message} hint="مثال: 03123456 أو 71234567">
+        <Field
+          label={t('login.phoneLabel')}
+          required
+          error={errors.phone_number?.message}
+          hint={t('login.phoneHint')}
+        >
           {(fieldProps) => (
             <Input
               {...fieldProps}
@@ -113,16 +123,14 @@ function PhoneStep({ onSent }: { onSent: (phone: string, debugCode: string | nul
         </Field>
 
         <Button type="submit" size="lg" block loading={submitting}>
-          إرسال رمز التحقق
+          {t('login.sendCode')}
         </Button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-ink-500">
-        بتسجيلك أنت توافق على نشر معلومات نشاطك بعد مراجعتها من فريق الإدارة.
-      </p>
+      <p className="mt-6 text-center text-sm text-ink-500">{t('login.terms')}</p>
       <p className="mt-3 text-center text-sm">
         <Link to="/admin/login" className="text-clay-600 hover:underline">
-          دخول المشرفين
+          {t('login.adminLink')}
         </Link>
       </p>
     </>
@@ -143,7 +151,9 @@ function CodeStep({
   const { signIn } = useAuth()
   const navigate = useNavigate()
   const toast = useToast()
+  const t = useT()
   const [submitting, setSubmitting] = useState(false)
+  const schema = useMemo(() => otpSchema(t), [t])
 
   const {
     register,
@@ -151,7 +161,7 @@ function CodeStep({
     setError,
     formState: { errors },
   } = useForm<OtpValues>({
-    resolver: zodResolver(otpSchema),
+    resolver: zodResolver(schema),
     defaultValues: { code: devCode ?? '' },
   })
 
@@ -160,13 +170,13 @@ function CodeStep({
     try {
       const token = await authApi.verifyOtp(phone, code)
       signIn(token)
-      toast.success('مرحباً بك في دليل الجنوب')
+      toast.success(t('login.welcome'))
       navigate(redirectTo, { replace: true })
     } catch (error) {
       if (error instanceof ApiError) {
         setError('code', { message: error.message })
       } else {
-        toast.error('تعذر التحقق من الرمز')
+        toast.error(t('login.verifyFailed'))
       }
     } finally {
       setSubmitting(false)
@@ -179,20 +189,21 @@ function CodeStep({
         <span className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-sand-100 text-clay-600">
           <KeyRound className="h-6 w-6" aria-hidden="true" />
         </span>
-        <h1 className="text-2xl">أدخل رمز التحقق</h1>
+        <h1 className="text-2xl">{t('login.codeTitle')}</h1>
         <p className="mt-2 text-ink-500">
-          أرسلنا رمزاً إلى <span className="ltr-nums font-semibold text-ink-900">{phone}</span>
+          {t('login.codeSubtitle')}{' '}
+          <span className="ltr-nums font-semibold text-ink-900">{phone}</span>
         </p>
       </div>
 
       {devCode ? (
         <p className="mb-5 rounded-xl border-2 border-dashed border-sand-300 bg-sand-50 p-3 text-center text-sm text-clay-700">
-          وضع التطوير: الرمز هو <strong className="ltr-nums">{devCode}</strong>
+          {t('login.devCodeNotice')} <strong className="ltr-nums">{devCode}</strong>
         </p>
       ) : null}
 
       <form onSubmit={onSubmit} className="space-y-5" noValidate>
-        <Field label="رمز التحقق" required error={errors.code?.message}>
+        <Field label={t('login.codeLabel')} required error={errors.code?.message}>
           {(fieldProps) => (
             <Input
               {...fieldProps}
@@ -211,12 +222,12 @@ function CodeStep({
         </Field>
 
         <Button type="submit" size="lg" block loading={submitting}>
-          تأكيد وتسجيل الدخول
+          {t('login.confirm')}
         </Button>
 
         <Button type="button" variant="ghost" block onClick={onBack}>
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
-          تغيير رقم الهاتف
+          {t('login.changePhone')}
         </Button>
       </form>
     </>

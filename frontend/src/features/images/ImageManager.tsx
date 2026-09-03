@@ -4,6 +4,7 @@ import { useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
+import { useT } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { ownerApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
@@ -27,6 +28,7 @@ interface ImageManagerProps {
 export function ImageManager({ business, maxGallery = 10 }: ImageManagerProps) {
   const queryClient = useQueryClient()
   const toast = useToast()
+  const t = useT()
   const [uploadingKind, setUploadingKind] = useState<ImageKind | null>(null)
 
   const gallery = business.images.filter((image) => image.kind === 'GALLERY')
@@ -40,22 +42,22 @@ export function ImageManager({ business, maxGallery = 10 }: ImageManagerProps) {
     mutationFn: ({ file, kind }: { file: File; kind: ImageKind }) =>
       ownerApi.uploadImage(business.id, file, kind),
     onSuccess: () => {
-      toast.success('تم رفع الصورة')
+      toast.success(t('images.uploaded'))
       invalidate()
     },
     onError: (error) =>
-      toast.error('تعذر رفع الصورة', error instanceof ApiError ? error.message : undefined),
+      toast.error(t('images.uploadFailed'), error instanceof ApiError ? error.message : undefined),
     onSettled: () => setUploadingKind(null),
   })
 
   const remove = useMutation({
     mutationFn: (imageId: string) => ownerApi.deleteImage(business.id, imageId),
     onSuccess: () => {
-      toast.success('تم حذف الصورة')
+      toast.success(t('images.deleted'))
       invalidate()
     },
     onError: (error) =>
-      toast.error('تعذر حذف الصورة', error instanceof ApiError ? error.message : undefined),
+      toast.error(t('images.deleteFailed'), error instanceof ApiError ? error.message : undefined),
   })
 
   const reorder = useMutation({
@@ -66,11 +68,11 @@ export function ImageManager({ business, maxGallery = 10 }: ImageManagerProps) {
   const handleFile = (file: File | undefined, kind: ImageKind) => {
     if (!file) return
     if (!ACCEPTED.split(',').includes(file.type)) {
-      toast.error('نوع ملف غير مدعوم', 'يُسمح بصور JPG أو PNG أو WEBP فقط.')
+      toast.error(t('images.badType'), t('images.badTypeDescription'))
       return
     }
     if (file.size > MAX_BYTES) {
-      toast.error('حجم الصورة كبير', 'الحد الأقصى 5 ميغابايت للصورة الواحدة.')
+      toast.error(t('images.tooLarge'), t('images.tooLargeDescription'))
       return
     }
     setUploadingKind(kind)
@@ -92,8 +94,8 @@ export function ImageManager({ business, maxGallery = 10 }: ImageManagerProps) {
     <div className="space-y-8">
       <div className="grid gap-6 sm:grid-cols-2">
         <SingleImageSlot
-          label="شعار النشاط"
-          hint="مربّع الشكل، يظهر في البطاقة وأعلى الصفحة."
+          label={t('images.logoTitle')}
+          hint={t('images.logoHint')}
           required
           url={business.logo_url}
           uploading={uploadingKind === 'LOGO'}
@@ -104,8 +106,8 @@ export function ImageManager({ business, maxGallery = 10 }: ImageManagerProps) {
           }}
         />
         <SingleImageSlot
-          label="صورة الغلاف"
-          hint="عريضة، تظهر أعلى صفحة نشاطك."
+          label={t('images.coverTitle')}
+          hint={t('images.coverHint')}
           url={business.cover_url}
           uploading={uploadingKind === 'COVER'}
           onSelect={(file) => handleFile(file, 'COVER')}
@@ -119,13 +121,13 @@ export function ImageManager({ business, maxGallery = 10 }: ImageManagerProps) {
       <section>
         <div className="mb-3 flex items-center justify-between gap-3">
           <h3 className="font-bold">
-            معرض الصور
+            {t('images.galleryTitle')}
             <span className="ms-2 text-sm font-normal text-ink-500">
-              {gallery.length} من {maxGallery}
+              {t('images.galleryCount', { current: gallery.length, max: maxGallery })}
             </span>
           </h3>
           <UploadButton
-            label="إضافة صورة"
+            label={t('images.addImage')}
             disabled={gallery.length >= maxGallery}
             uploading={uploadingKind === 'GALLERY'}
             onSelect={(file) => handleFile(file, 'GALLERY')}
@@ -134,7 +136,7 @@ export function ImageManager({ business, maxGallery = 10 }: ImageManagerProps) {
 
         {gallery.length === 0 ? (
           <p className="rounded-xl border-2 border-dashed border-ink-100 p-8 text-center text-ink-500">
-            لم تُضف صوراً بعد. الصور تزيد ثقة الزوار بنشاطك.
+            {t('images.emptyGallery')}
           </p>
         ) : (
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -148,7 +150,7 @@ export function ImageManager({ business, maxGallery = 10 }: ImageManagerProps) {
                       onClick={() => move(index, -1)}
                       disabled={index === 0 || reorder.isPending}
                       className="rounded-md bg-white/90 p-1.5 text-ink-900 disabled:opacity-40"
-                      aria-label="تحريك للخلف"
+                      aria-label={t('images.moveBack')}
                     >
                       <ArrowRight className="h-4 w-4" aria-hidden="true" />
                     </button>
@@ -157,7 +159,7 @@ export function ImageManager({ business, maxGallery = 10 }: ImageManagerProps) {
                       onClick={() => move(index, 1)}
                       disabled={index === gallery.length - 1 || reorder.isPending}
                       className="rounded-md bg-white/90 p-1.5 text-ink-900 disabled:opacity-40"
-                      aria-label="تحريك للأمام"
+                      aria-label={t('images.moveForward')}
                     >
                       <ArrowLeft className="h-4 w-4" aria-hidden="true" />
                     </button>
@@ -166,7 +168,7 @@ export function ImageManager({ business, maxGallery = 10 }: ImageManagerProps) {
                     type="button"
                     onClick={() => remove.mutate(image.id)}
                     className="rounded-md bg-clay-600 p-1.5 text-white"
-                    aria-label="حذف الصورة"
+                    aria-label={t('images.deleteImage')}
                   >
                     <Trash2 className="h-4 w-4" aria-hidden="true" />
                   </button>
@@ -197,6 +199,8 @@ function SingleImageSlot({
   onSelect: (file: File | undefined) => void
   onRemove: () => void
 }) {
+  const t = useT()
+
   return (
     <div>
       <h3 className="font-bold">
@@ -208,7 +212,11 @@ function SingleImageSlot({
       <div className="flex items-center gap-4">
         <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl border-2 border-dashed border-ink-100 bg-sand-50">
           {url ? (
-            <img src={url} alt={`معاينة ${label}`} className="h-full w-full object-cover" />
+            <img
+              src={url}
+              alt={t('images.previewAlt', { label })}
+              className="h-full w-full object-cover"
+            />
           ) : (
             <div className="flex h-full items-center justify-center text-ink-300">
               <ImagePlus className="h-7 w-7" aria-hidden="true" />
@@ -217,11 +225,15 @@ function SingleImageSlot({
         </div>
 
         <div className="flex flex-col gap-2">
-          <UploadButton label={url ? 'استبدال' : 'رفع صورة'} uploading={uploading} onSelect={onSelect} />
+          <UploadButton
+            label={url ? t('images.replace') : t('images.upload')}
+            uploading={uploading}
+            onSelect={onSelect}
+          />
           {url ? (
             <Button type="button" variant="ghost" size="sm" onClick={onRemove}>
               <Trash2 className="h-4 w-4" aria-hidden="true" />
-              حذف
+              {t('common.delete')}
             </Button>
           ) : null}
         </div>
@@ -242,6 +254,7 @@ function UploadButton({
   onSelect: (file: File | undefined) => void
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const t = useT()
 
   return (
     <>
@@ -266,7 +279,7 @@ function UploadButton({
         {uploading ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-            جارٍ الرفع…
+            {t('images.uploading')}
           </>
         ) : (
           <>

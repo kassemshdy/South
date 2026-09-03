@@ -19,7 +19,7 @@ class MockOtpProvider:
     name = "mock"
 
     def __init__(self, settings: Settings) -> None:
-        if settings.is_production:
+        if not settings.allows_mock_otp:
             raise RuntimeError(
                 "MockOtpProvider must never be used in production. "
                 "Set OTP_PROVIDER to a real provider."

@@ -1,0 +1,14 @@
+{
+  "businessName": "مناقيش الضيعة",
+  "shortDescription": "مناقيش وفطائر على الصاج كل صباح",
+  "description": "فرن عائلي في صور، زعتر بلدي وجبنة طازجة يومياً.",
+  "address": "شارع البلدية، مقابل الحديقة العامة",
+  "categorySlug": "restaurants",
+  "locationSlug": "tyre",
+  "searchTerm": "مناقيش",
+  "items": [
+    { "title": "زعتر", "price": "1.50" },
+    { "title": "جبنة", "price": "3.00" },
+    { "title": "لبنة وخضار", "price": "2.50" }
+  ]
+}

@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowRight, Check, ExternalLink, PauseCircle, PlayCircle, X } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useParams } from 'react-router-dom'
 import type { z } from 'zod'
@@ -15,20 +15,23 @@ import { Textarea } from '@/components/ui/Input'
 import { ErrorState, InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
+import { useI18n, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { adminApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import { formatDate, formatPrice, PLATFORM_LABELS, STATUS_LABELS } from '@/utils/format'
+import { formatDate, formatPrice, PLATFORM_KEYS, STATUS_KEYS } from '@/utils/format'
 import { rejectSchema } from '@/utils/validation'
 
-type RejectValues = z.infer<typeof rejectSchema>
+type RejectValues = z.infer<ReturnType<typeof rejectSchema>>
 type ConfirmAction = 'approve' | 'reject' | 'suspend' | 'reactivate' | null
 
 export function AdminReviewPage() {
   const { id = '' } = useParams()
   const queryClient = useQueryClient()
   const toast = useToast()
+  const { t, locale } = useI18n()
   const [confirming, setConfirming] = useState<ConfirmAction>(null)
+  const schema = useMemo(() => rejectSchema(t), [t])
 
   const business = useQuery({
     queryKey: queryKeys.adminBusiness(id),
@@ -57,10 +60,10 @@ export function AdminReviewPage() {
     onSuccess: (result) => {
       invalidate()
       setConfirming(null)
-      toast.success(`تم تحديث حالة النشاط إلى «${STATUS_LABELS[result.status]}»`)
+      toast.success(t('admin.statusUpdated', { status: t(STATUS_KEYS[result.status]) }))
     },
     onError: (error) =>
-      toast.error('تعذر تنفيذ الإجراء', error instanceof ApiError ? error.message : undefined),
+      toast.error(t('admin.actionFailed'), error instanceof ApiError ? error.message : undefined),
   })
 
   const {
@@ -68,7 +71,7 @@ export function AdminReviewPage() {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<RejectValues>({ resolver: zodResolver(rejectSchema) })
+  } = useForm<RejectValues>({ resolver: zodResolver(schema) })
 
   if (business.isLoading) return <InlineSpinner />
   if (business.isError || !business.data) {
@@ -81,7 +84,7 @@ export function AdminReviewPage() {
     <div className="max-w-4xl space-y-6">
       <Link to="/admin/businesses" className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-clay-600">
         <ArrowRight className="h-4 w-4" aria-hidden="true" />
-        العودة إلى النشاطات
+        {t('admin.backToBusinesses')}
       </Link>
 
       <header className="flex flex-wrap items-start justify-between gap-4">
@@ -95,7 +98,7 @@ export function AdminReviewPage() {
               <StatusBadge status={data.status} />
             </div>
             <p className="mt-1 text-sm text-ink-500">
-              أُرسل للمراجعة: {formatDate(data.submitted_at)}
+              {t('admin.submittedAt', { date: formatDate(data.submitted_at, locale) })}
             </p>
           </div>
         </div>
@@ -104,7 +107,7 @@ export function AdminReviewPage() {
           <Button asChild variant="outline" size="sm">
             <Link to={`/business/${encodeURIComponent(data.slug)}`}>
               <ExternalLink className="h-4 w-4" aria-hidden="true" />
-              الصفحة العامة
+              {t('dashboard.publicPage')}
             </Link>
           </Button>
         ) : null}
@@ -117,7 +120,7 @@ export function AdminReviewPage() {
             <>
               <Button size="lg" onClick={() => setConfirming('approve')}>
                 <Check className="h-5 w-5" aria-hidden="true" />
-                موافقة
+                {t('admin.approve')}
               </Button>
               <Button
                 size="lg"
@@ -128,7 +131,7 @@ export function AdminReviewPage() {
                 }}
               >
                 <X className="h-5 w-5" aria-hidden="true" />
-                رفض
+                {t('admin.reject')}
               </Button>
             </>
           ) : null}
@@ -136,22 +139,22 @@ export function AdminReviewPage() {
           {data.status === 'APPROVED' ? (
             <Button size="lg" variant="outline" onClick={() => setConfirming('suspend')}>
               <PauseCircle className="h-5 w-5" aria-hidden="true" />
-              إيقاف النشاط
+              {t('admin.suspend')}
             </Button>
           ) : null}
 
           {data.status === 'SUSPENDED' ? (
             <Button size="lg" onClick={() => setConfirming('reactivate')}>
               <PlayCircle className="h-5 w-5" aria-hidden="true" />
-              إعادة التفعيل
+              {t('admin.reactivate')}
             </Button>
           ) : null}
 
           {data.status === 'DRAFT' || data.status === 'REJECTED' ? (
             <p className="text-ink-500">
               {data.status === 'DRAFT'
-                ? 'هذا النشاط ما زال مسودة لدى صاحبه ولم يُرسل للمراجعة.'
-                : 'تم رفض هذا النشاط. بانتظار تعديل صاحبه وإعادة إرساله.'}
+                ? t('admin.draftNotice')
+                : t('admin.rejectedNotice')}
             </p>
           ) : null}
         </CardBody>
@@ -160,7 +163,7 @@ export function AdminReviewPage() {
       {data.rejection_reason ? (
         <Card className="border-clay-200">
           <CardBody>
-            <p className="font-semibold text-clay-900">سبب الرفض المُسجّل</p>
+            <p className="font-semibold text-clay-900">{t('admin.rejectionReasonTitle')}</p>
             <p className="mt-1 text-clay-700">{data.rejection_reason}</p>
           </CardBody>
         </Card>
@@ -170,25 +173,27 @@ export function AdminReviewPage() {
         <div className="space-y-6 lg:col-span-2">
           <Card>
             <CardHeader>
-              <h2 className="font-bold">معلومات النشاط</h2>
+              <h2 className="font-bold">{t('admin.infoTitle')}</h2>
             </CardHeader>
             <CardBody className="space-y-3">
-              <Detail label="الوصف المختصر" value={data.short_description} />
-              <Detail label="النبذة" value={data.description} />
-              <Detail label="التصنيف" value={data.category?.name_ar ?? null} />
-              <Detail label="الموقع" value={data.location?.name_ar ?? null} />
-              <Detail label="العنوان" value={data.address_text} />
-              <Detail label="هاتف النشاط" value={data.phone} ltr />
-              <Detail label="واتساب النشاط" value={data.whatsapp} ltr />
-              <Detail label="البريد الإلكتروني" value={data.email} ltr />
-              <Detail label="الموقع الإلكتروني" value={data.website} ltr />
+              <Detail labelKey="admin.fieldShortDescription" value={data.short_description} />
+              <Detail labelKey="admin.fieldDescription" value={data.description} />
+              <Detail labelKey="admin.fieldCategory" value={data.category?.name_ar ?? null} />
+              <Detail labelKey="admin.fieldLocation" value={data.location?.name_ar ?? null} />
+              <Detail labelKey="admin.fieldAddress" value={data.address_text} />
+              <Detail labelKey="admin.fieldPhone" value={data.phone} ltr />
+              <Detail labelKey="admin.fieldWhatsapp" value={data.whatsapp} ltr />
+              <Detail labelKey="admin.fieldEmail" value={data.email} ltr />
+              <Detail labelKey="admin.fieldWebsite" value={data.website} ltr />
             </CardBody>
           </Card>
 
           {data.images.length > 0 ? (
             <Card>
               <CardHeader>
-                <h2 className="font-bold">معرض الصور ({data.images.length})</h2>
+                <h2 className="font-bold">
+                  {t('admin.galleryTitle', { count: data.images.length })}
+                </h2>
               </CardHeader>
               <CardBody>
                 <div className="grid grid-cols-3 gap-2">
@@ -205,7 +210,9 @@ export function AdminReviewPage() {
           {data.items.length > 0 ? (
             <Card>
               <CardHeader>
-                <h2 className="font-bold">المنتجات والخدمات ({data.items.length})</h2>
+                <h2 className="font-bold">
+                  {t('admin.itemsTitle', { count: data.items.length })}
+                </h2>
               </CardHeader>
               <CardBody>
                 <ul className="divide-y divide-ink-100">
@@ -214,7 +221,9 @@ export function AdminReviewPage() {
                       <div>
                         <p className="font-semibold">{item.title}</p>
                         {item.description ? <p className="text-sm text-ink-500">{item.description}</p> : null}
-                        {!item.is_available ? <p className="text-xs text-ink-500">غير متوفر</p> : null}
+                        {!item.is_available ? (
+                          <p className="text-xs text-ink-500">{t('items.unavailable')}</p>
+                        ) : null}
                       </div>
                       <span className="ltr-nums shrink-0 font-bold text-clay-700">
                         {formatPrice(item.price, item.currency) ?? '—'}
@@ -230,21 +239,19 @@ export function AdminReviewPage() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <h2 className="font-bold">صاحب النشاط</h2>
+              <h2 className="font-bold">{t('admin.ownerTitle')}</h2>
             </CardHeader>
             <CardBody className="space-y-3">
-              <Detail label="الاسم" value={data.owner_display_name} />
-              <Detail label="رقم الحساب" value={data.owner_phone} ltr />
-              <p className="text-xs text-ink-300">
-                رقم الحساب لا يظهر للزوار — تُنشر فقط أرقام التواصل المدخلة في النشاط.
-              </p>
+              <Detail labelKey="admin.ownerName" value={data.owner_display_name} />
+              <Detail labelKey="admin.ownerAccount" value={data.owner_phone} ltr />
+              <p className="text-xs text-ink-300">{t('admin.ownerPrivacyNote')}</p>
             </CardBody>
           </Card>
 
           {data.social_links.length > 0 ? (
             <Card>
               <CardHeader>
-                <h2 className="font-bold">روابط التواصل</h2>
+                <h2 className="font-bold">{t('admin.socialTitle')}</h2>
               </CardHeader>
               <CardBody className="space-y-2">
                 {data.social_links.map((link) => (
@@ -255,7 +262,8 @@ export function AdminReviewPage() {
                     rel="noopener noreferrer"
                     className="block truncate text-sm text-clay-600 hover:underline"
                   >
-                    {PLATFORM_LABELS[link.platform]}: <span className="ltr-nums">{link.url}</span>
+                    {t(PLATFORM_KEYS[link.platform])}:{' '}
+                    <span className="ltr-nums">{link.url}</span>
                   </a>
                 ))}
               </CardBody>
@@ -264,20 +272,22 @@ export function AdminReviewPage() {
 
           <Card>
             <CardHeader>
-              <h2 className="font-bold">سجل المراجعة</h2>
+              <h2 className="font-bold">{t('admin.historyTitle')}</h2>
             </CardHeader>
             <CardBody>
               {data.moderation_actions.length === 0 ? (
-                <p className="text-sm text-ink-500">لا توجد إجراءات بعد.</p>
+                <p className="text-sm text-ink-500">{t('admin.historyEmpty')}</p>
               ) : (
                 <ol className="space-y-3">
                   {data.moderation_actions.map((action) => (
                     <li key={action.id} className="border-s-2 border-ink-100 ps-3">
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge className="bg-sand-100 text-clay-700">
-                          {STATUS_LABELS[action.to_status]}
+                          {t(STATUS_KEYS[action.to_status])}
                         </Badge>
-                        <span className="text-xs text-ink-300">{formatDate(action.created_at)}</span>
+                        <span className="text-xs text-ink-300">
+                          {formatDate(action.created_at, locale)}
+                        </span>
                       </div>
                       {action.reason ? <p className="mt-1 text-sm text-ink-500">{action.reason}</p> : null}
                     </li>
@@ -291,19 +301,22 @@ export function AdminReviewPage() {
 
       <Dialog open={confirming !== null} onOpenChange={(open) => !open && setConfirming(null)}>
         {confirming === 'reject' ? (
-          <DialogContent title="رفض النشاط" description={`سيظهر السبب لصاحب «${data.name}» ليتمكن من التعديل.`}>
+          <DialogContent
+            title={t('admin.confirmRejectTitle')}
+            description={t('admin.confirmRejectBody', { name: data.name })}
+          >
             <form
               onSubmit={handleSubmit(({ reason }) => act.mutate({ action: 'reject', reason }))}
               className="space-y-4"
               noValidate
             >
-              <Field label="سبب الرفض" required error={errors.reason?.message}>
+              <Field label={t('admin.rejectReasonLabel')} required error={errors.reason?.message}>
                 {(props) => (
                   <Textarea
                     {...props}
                     {...register('reason')}
                     rows={4}
-                    placeholder="مثال: الرجاء إضافة صورة شعار أوضح ووصف أدق للخدمات."
+                    placeholder={t('admin.rejectReasonPlaceholder')}
                     invalid={Boolean(errors.reason)}
                     autoFocus
                   />
@@ -311,11 +324,11 @@ export function AdminReviewPage() {
               </Field>
               <div className="flex gap-3">
                 <Button type="submit" variant="danger" block loading={act.isPending}>
-                  تأكيد الرفض
+                  {t('admin.confirmReject')}
                 </Button>
                 <DialogClose asChild>
                   <Button type="button" variant="outline" block>
-                    إلغاء
+                    {t('common.cancel')}
                   </Button>
                 </DialogClose>
               </div>
@@ -325,17 +338,17 @@ export function AdminReviewPage() {
           <DialogContent
             title={
               confirming === 'approve'
-                ? 'تأكيد الموافقة'
+                ? t('admin.confirmApproveTitle')
                 : confirming === 'suspend'
-                  ? 'تأكيد إيقاف النشاط'
-                  : 'تأكيد إعادة التفعيل'
+                  ? t('admin.confirmSuspendTitle')
+                  : t('admin.confirmReactivateTitle')
             }
             description={
               confirming === 'approve'
-                ? `سيصبح «${data.name}» ظاهراً للجميع في الدليل فوراً.`
+                ? t('admin.confirmApproveBody', { name: data.name })
                 : confirming === 'suspend'
-                  ? `سيُخفى «${data.name}» من الدليل ومن نتائج البحث.`
-                  : `سيعود «${data.name}» للظهور في الدليل.`
+                  ? t('admin.confirmSuspendBody', { name: data.name })
+                  : t('admin.confirmReactivateBody', { name: data.name })
             }
           >
             <div className="flex gap-3">
@@ -345,11 +358,11 @@ export function AdminReviewPage() {
                 loading={act.isPending}
                 onClick={() => act.mutate({ action: confirming })}
               >
-                تأكيد
+                {t('common.confirm')}
               </Button>
               <DialogClose asChild>
                 <Button variant="outline" block>
-                  إلغاء
+                  {t('common.cancel')}
                 </Button>
               </DialogClose>
             </div>
@@ -360,12 +373,25 @@ export function AdminReviewPage() {
   )
 }
 
-function Detail({ label, value, ltr }: { label: string; value: string | null; ltr?: boolean }) {
+function Detail({
+  labelKey,
+  value,
+  ltr,
+}: {
+  labelKey: TranslationKey
+  value: string | null
+  ltr?: boolean
+}) {
+  const { t } = useI18n()
   return (
     <div>
-      <p className="text-sm font-semibold text-ink-700">{label}</p>
-      <p className={`mt-0.5 whitespace-pre-line ${value ? 'text-ink-900' : 'text-ink-300'} ${ltr ? 'ltr-nums' : ''}`}>
-        {value || 'غير محدد'}
+      <p className="text-sm font-semibold text-ink-700">{t(labelKey)}</p>
+      <p
+        className={`mt-0.5 whitespace-pre-line ${value ? 'text-ink-900' : 'text-ink-300'} ${
+          ltr ? 'ltr-nums' : ''
+        }`}
+      >
+        {value || t('common.notSet')}
       </p>
     </div>
   )

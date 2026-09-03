@@ -19,6 +19,7 @@ from app.api.router import api_router
 from app.api.v1 import seo as seo_router
 from app.core.config import Settings, get_settings
 from app.core.errors import AppError, RateLimitedError
+from app.core.i18n import translate
 from app.core.logging import configure_logging
 from app.core.middleware import RequestContextMiddleware, SecurityHeadersMiddleware
 from app.core.seo import business_tags, inject
@@ -49,7 +50,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     configure_logging(settings.log_level, json_output=not settings.is_development)
 
     app = FastAPI(
-        title="دليل الجنوب — South Lebanon Business Directory API",
+        title="South Lebanon Business Directory API",
         version="1.0.0",
         description=(
             "REST API for an Arabic-first business directory. Public endpoints "
@@ -100,6 +101,8 @@ def _register_exception_handlers(app: FastAPI) -> None:
             "Handled application error",
             extra={"code": exc.code, "status_code": exc.status_code, "path": request.url.path},
         )
+        # Rendered here, at the edge, so the message is in the caller's language
+        # regardless of how deep in the stack it was raised.
         return JSONResponse(exc.to_payload(), status_code=exc.status_code, headers=headers)
 
     @app.exception_handler(RequestValidationError)
@@ -111,7 +114,7 @@ def _register_exception_handlers(app: FastAPI) -> None:
         fields = [
             {
                 "field": ".".join(str(part) for part in error["loc"][1:]) or "body",
-                "message": error.get("msg", "قيمة غير صالحة"),
+                "message": error.get("msg", translate("error.field_invalid")),
             }
             for error in exc.errors()
         ]
@@ -119,7 +122,7 @@ def _register_exception_handlers(app: FastAPI) -> None:
             {
                 "error": {
                     "code": "validation_error",
-                    "message": "يرجى التحقق من الحقول المدخلة.",
+                    "message": translate("error.validation_fields"),
                     "details": {"fields": fields},
                 }
             },
@@ -132,7 +135,7 @@ def _register_exception_handlers(app: FastAPI) -> None:
             {
                 "error": {
                     "code": f"http_{exc.status_code}",
-                    "message": str(exc.detail) if exc.detail else "حدث خطأ.",
+                    "message": str(exc.detail) if exc.detail else translate("error.http_generic"),
                 }
             },
             status_code=exc.status_code,
@@ -147,7 +150,7 @@ def _register_exception_handlers(app: FastAPI) -> None:
             {
                 "error": {
                     "code": "internal_error",
-                    "message": "حدث خطأ غير متوقع. يرجى المحاولة لاحقاً.",
+                    "message": translate("error.internal"),
                 }
             },
             status_code=500,

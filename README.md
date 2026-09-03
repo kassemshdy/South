@@ -60,12 +60,13 @@ sitemap, or reachable at `/business/{slug}`.
 | Layer | Choice |
 |---|---|
 | Frontend | React 18 · TypeScript (strict) · Vite · Tailwind CSS · TanStack Query · React Hook Form · Zod |
+| i18n | JSON catalogs on both sides; no user-facing string lives in code |
 | UI | Hand-rolled shadcn-style primitives on Radix UI, fully RTL |
 | Backend | Python 3.11 · FastAPI · SQLAlchemy 2.0 · Alembic · Pydantic v2 |
 | Database | PostgreSQL 16 (with `pg_trgm` for Arabic substring search) |
 | Auth | Phone + OTP for owners, email + password for admins, JWT bearer tokens |
 | Storage | Pluggable: local disk (default) or any S3-compatible service |
-| Deployment | One Docker image (API + built SPA); Railway or any VPS |
+| Deployment | Three services (Postgres, API, web) on Railway, or `docker compose` on any VPS |
 
 ---
 
@@ -123,6 +124,33 @@ refuses to start in production with the mock OTP provider configured.
 
 ---
 
+## Translations
+
+No user-facing string is written in source. Everything lives in JSON catalogs:
+
+| Catalog | Covers |
+|---|---|
+| `frontend/src/i18n/locales/{ar,en}.json` | every string the interface renders (419 keys) |
+| `backend/app/locales/{ar,en}.json` | API error and status messages (97 keys) |
+| `backend/scripts/data/*.json` | seed content — categories, locations, sample businesses |
+
+Arabic is the default and the source of truth. To change wording, edit
+`ar.json`; to add a language, copy it and translate.
+
+The frontend derives its key type from the Arabic catalog
+(`TranslationKey = keyof typeof ar`), and `en.json` is typed as
+`Record<TranslationKey, string>` — so a missing or misspelled key is a **build
+error**, not a blank space in production. The backend negotiates
+`Accept-Language` and renders error messages at the response edge, so the same
+error reads correctly in whichever language the caller asked for while the
+machine-readable `error.code` stays stable.
+
+A test (`backend/tests/test_i18n.py`) fails the build if an Arabic character
+appears anywhere outside those catalogs and fixture files.
+
+The interface currently ships Arabic-only — `setLocale` exists and the English
+catalog is complete, but no language switcher is exposed yet.
+
 ## Configuration
 
 All configuration is environment-driven; nothing secret is committed. See
@@ -134,7 +162,8 @@ The values you must change before a real deployment:
 | `SECRET_KEY` | Signs JWTs. Generate with `python -c "import secrets; print(secrets.token_urlsafe(48))"` |
 | `DATABASE_URL` | Your PostgreSQL instance |
 | `PUBLIC_BASE_URL` | Used for canonical URLs, OG tags and the sitemap |
-| `OTP_PROVIDER` | `mock` is refused in production; use `twilio` (or add your own adapter) |
+| `APP_ENV` | `staging` for a testable deployment, `production` once a real SMS gateway exists |
+| `OTP_PROVIDER` | `mock` is refused in production; allowed in staging; use `twilio` in production |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | The seeded administrator account |
 | `CORS_ORIGINS` | Comma-separated allowlist |
 
@@ -220,7 +249,7 @@ Errors always use one envelope:
 ```bash
 # Backend (needs a PostgreSQL database named south_test)
 cd backend
-pytest                     # 74 tests
+pytest                     # 97 tests
 ruff check . && mypy app scripts
 
 # Frontend
@@ -249,9 +278,22 @@ Python image serves both the API and the built frontend — including
 server-rendered SEO tags for `/business/{slug}`, so WhatsApp and Facebook link
 previews work. One image runs anywhere.
 
-- **Railway** — point a service at this repo (`railway.json` selects the
-  Dockerfile), add the PostgreSQL plugin, set the environment variables above,
-  and attach a volume at `/app/var/media` if using local image storage.
+Three services:
+
+| Service | Image | Role |
+|---|---|---|
+| `postgres` | Railway PostgreSQL | database |
+| `api` | `backend/Dockerfile` | FastAPI; also renders SEO'd `/business/*` HTML |
+| `web` | `frontend/Dockerfile` | Caddy serving the SPA, proxying `/api`, `/media`, `/sitemap.xml`, `/robots.txt` and `/business/*` to the API |
+
+The web service holds the public domain and proxies rather than standing alone,
+which keeps one origin: image URLs resolve, the browser makes no cross-origin
+requests, and the server-rendered Arabic OG tags that make WhatsApp and Facebook
+link previews work survive.
+
+- **Railway** — `railway.json` selects the API Dockerfile; the web service points
+  at `frontend/Dockerfile`. Attach a volume at `/app/var/media` when using local
+  image storage.
 - **Any VPS** — `docker compose -f docker-compose.prod.yml up -d`, with Caddy
   terminating TLS automatically.
 

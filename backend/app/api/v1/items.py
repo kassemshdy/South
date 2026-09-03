@@ -10,6 +10,7 @@ from fastapi import APIRouter, File, UploadFile, status
 from app.api.serializers import item_out
 from app.core.dependencies import AppSettings, DbSession, OwnedBusiness
 from app.core.errors import PayloadTooLargeError
+from app.core.i18n import translate
 from app.models.enums import ImageKind
 from app.schemas.common import MessageResponse
 from app.schemas.item import (
@@ -40,8 +41,8 @@ def create_item(
     payload: BusinessItemIn, business: OwnedBusiness, db: DbSession
 ) -> BusinessItemOut:
     item = BusinessItemService(db).create(business, payload)
-    # Item titles are part of the searchable haystack ("مناقيش" should find the
-    # shop that sells it), so the denormalized text is refreshed here.
+    # Item titles are part of the searchable haystack (searching for a product
+    # should find the shop that sells it), so the text is refreshed here.
     BusinessService(db).refresh_search_text(business)
     db.commit()
     return item_out(item)
@@ -72,7 +73,7 @@ def delete_item(
     ImageService(get_storage(), settings).delete(storage_key)
     BusinessService(db).refresh_search_text(business)
     db.commit()
-    return MessageResponse(message="تم حذف العنصر.")
+    return MessageResponse(message=translate("item.deleted"))
 
 
 @router.put("/businesses/{business_id}/items/order", response_model=list[BusinessItemOut])

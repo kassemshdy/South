@@ -11,6 +11,7 @@ from sqlalchemy import func, select
 from app.api.serializers import owner_business
 from app.core.dependencies import AppSettings, DbSession, OwnedBusiness
 from app.core.errors import NotFoundError, PayloadTooLargeError, ValidationError
+from app.core.i18n import translate
 from app.models.business import BusinessImage
 from app.models.enums import ImageKind
 from app.schemas.business import ImageReorderIn, OwnerBusinessOut
@@ -30,7 +31,7 @@ def upload_image(
     business: OwnedBusiness,
     db: DbSession,
     settings: AppSettings,
-    file: Annotated[UploadFile, File(description="ملف الصورة")],
+    file: Annotated[UploadFile, File(description="Image file")],
     kind: Annotated[ImageKind, Form()] = ImageKind.GALLERY,
     caption: Annotated[str | None, Form(max_length=300)] = None,
 ) -> OwnerBusinessOut:
@@ -41,7 +42,7 @@ def upload_image(
     """
     if kind is ImageKind.ITEM:
         raise ValidationError(
-            "صور العناصر تُرفع من صفحة العنصر.", code="invalid_image_kind"
+            "image.invalid_kind", code="invalid_image_kind"
         )
 
     data = file.file.read()
@@ -63,8 +64,9 @@ def upload_image(
         )
         if gallery_count >= settings.max_gallery_images:
             raise ValidationError(
-                f"الحد الأقصى {settings.max_gallery_images} صور في المعرض.",
+                "image.gallery_limit",
                 code="gallery_limit_reached",
+                params={"max": settings.max_gallery_images},
             )
     else:
         # A business has one logo and one cover; replacing either removes the
@@ -122,7 +124,7 @@ def delete_image(
         )
     ).scalar_one_or_none()
     if image is None:
-        raise NotFoundError("الصورة غير موجودة.")
+        raise NotFoundError("image.not_found")
 
     ImageService(get_storage(), settings).delete(image.storage_key)
 
@@ -146,7 +148,7 @@ def reorder_images(
     }
     unknown = [image_id for image_id in payload.image_ids if image_id not in gallery]
     if unknown:
-        raise ValidationError("ترتيب الصور يحتوي على عناصر غير موجودة.", code="unknown_image")
+        raise ValidationError("image.unknown_in_order", code="unknown_image")
 
     for position, image_id in enumerate(payload.image_ids):
         gallery[image_id].sort_order = position
@@ -163,4 +165,4 @@ def clear_gallery(business: OwnedBusiness, db: DbSession, settings: AppSettings)
             service.delete(image.storage_key)
             db.delete(image)
     db.commit()
-    return MessageResponse(message="تم حذف صور المعرض.")
+    return MessageResponse(message=translate("image.gallery_cleared"))

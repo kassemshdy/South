@@ -58,9 +58,3 @@ class Location(Base, TimestampMixin):
     children: Mapped[list[Location]] = relationship(back_populates="parent")
     businesses: Mapped[list[Business]] = relationship(back_populates="location")
 
-    @property
-    def full_name_ar(self) -> str:
-        """e.g. 'صور، الجنوب' — used in cards and SEO descriptions."""
-        if self.parent is not None:
-            return f"{self.name_ar}، {self.parent.name_ar}"
-        return self.name_ar

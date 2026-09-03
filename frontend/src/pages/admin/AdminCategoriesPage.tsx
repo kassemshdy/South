@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/Input'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
+import { useT } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { adminApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
@@ -20,6 +21,7 @@ export function AdminCategoriesPage() {
   const [newName, setNewName] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
+  const t = useT()
 
   const categories = useQuery({ queryKey: queryKeys.adminCategories, queryFn: adminApi.categories })
 
@@ -35,38 +37,36 @@ export function AdminCategoriesPage() {
     mutationFn: (name_ar: string) => adminApi.createCategory({ name_ar }),
     onSuccess: () => {
       setNewName('')
-      toast.success('تمت إضافة التصنيف')
+      toast.success(t('admin.categoryAdded'))
       invalidate()
     },
-    onError: (error) => handleError(error, 'تعذر إضافة التصنيف'),
+    onError: (error) => handleError(error, t('admin.categoryAddFailed')),
   })
 
   const update = useMutation({
     mutationFn: ({ id, body }: { id: string; body: Partial<Category> }) => adminApi.updateCategory(id, body),
     onSuccess: () => {
       setEditingId(null)
-      toast.success('تم حفظ التصنيف')
+      toast.success(t('admin.categorySaved'))
       invalidate()
     },
-    onError: (error) => handleError(error, 'تعذر حفظ التصنيف'),
+    onError: (error) => handleError(error, t('admin.categorySaveFailed')),
   })
 
   const remove = useMutation({
     mutationFn: (id: string) => adminApi.deleteCategory(id),
     onSuccess: () => {
-      toast.success('تم حذف التصنيف')
+      toast.success(t('admin.categoryDeleted'))
       invalidate()
     },
-    onError: (error) => handleError(error, 'تعذر حذف التصنيف'),
+    onError: (error) => handleError(error, t('admin.categoryDeleteFailed')),
   })
 
   return (
     <div className="max-w-3xl space-y-6">
       <header>
-        <h1 className="text-3xl">التصنيفات</h1>
-        <p className="mt-2 text-ink-500">
-          التصنيفات تُحمَّل من قاعدة البيانات وتظهر مباشرة للزوار.
-        </p>
+        <h1 className="text-3xl">{t('admin.categoriesHeading')}</h1>
+        <p className="mt-2 text-ink-500">{t('admin.categoriesSubtitle')}</p>
       </header>
 
       <Card>
@@ -79,17 +79,17 @@ export function AdminCategoriesPage() {
             className="flex gap-2"
           >
             <label htmlFor="new-category" className="sr-only">
-              اسم التصنيف الجديد
+              {t('admin.newCategoryLabel')}
             </label>
             <Input
               id="new-category"
               value={newName}
               onChange={(event) => setNewName(event.target.value)}
-              placeholder="اسم التصنيف الجديد"
+              placeholder={t('admin.newCategoryLabel')}
             />
             <Button type="submit" loading={create.isPending} disabled={newName.trim().length < 2}>
               <Plus className="h-4 w-4" aria-hidden="true" />
-              إضافة
+              {t('admin.add')}
             </Button>
           </form>
         </CardBody>
@@ -114,10 +114,10 @@ export function AdminCategoriesPage() {
                       className="flex flex-1 gap-2"
                     >
                       <Input value={editingName} onChange={(event) => setEditingName(event.target.value)} autoFocus />
-                      <Button type="submit" size="icon" loading={update.isPending} aria-label="حفظ">
+                      <Button type="submit" size="icon" loading={update.isPending} aria-label={t('admin.saveAria')}>
                         <Check className="h-4 w-4" aria-hidden="true" />
                       </Button>
-                      <Button type="button" size="icon" variant="ghost" onClick={() => setEditingId(null)} aria-label="إلغاء">
+                      <Button type="button" size="icon" variant="ghost" onClick={() => setEditingId(null)} aria-label={t('admin.cancelAria')}>
                         <X className="h-4 w-4" aria-hidden="true" />
                       </Button>
                     </form>
@@ -126,7 +126,11 @@ export function AdminCategoriesPage() {
                       <div className="flex items-center gap-3">
                         <span className="font-semibold">{category.name_ar}</span>
                         <span className="ltr-nums text-xs text-ink-300">{category.slug}</span>
-                        {!category.is_active ? <Badge className="bg-ink-100 text-ink-700">غير مفعّل</Badge> : null}
+                        {!category.is_active ? (
+                          <Badge className="bg-ink-100 text-ink-700">
+                            {t('common.inactive')}
+                          </Badge>
+                        ) : null}
                       </div>
 
                       <div className="flex gap-1">
@@ -137,7 +141,7 @@ export function AdminCategoriesPage() {
                             update.mutate({ id: category.id, body: { is_active: !category.is_active } })
                           }
                         >
-                          {category.is_active ? 'إلغاء التفعيل' : 'تفعيل'}
+                          {category.is_active ? t('common.deactivate') : t('common.activate')}
                         </Button>
                         <Button
                           size="icon"
@@ -146,7 +150,7 @@ export function AdminCategoriesPage() {
                             setEditingId(category.id)
                             setEditingName(category.name_ar)
                           }}
-                          aria-label={`تعديل ${category.name_ar}`}
+                          aria-label={t('admin.editAria', { name: category.name_ar })}
                         >
                           <Pencil className="h-4 w-4" aria-hidden="true" />
                         </Button>
@@ -155,7 +159,7 @@ export function AdminCategoriesPage() {
                           variant="ghost"
                           className="text-clay-600"
                           onClick={() => remove.mutate(category.id)}
-                          aria-label={`حذف ${category.name_ar}`}
+                          aria-label={t('admin.deleteAria', { name: category.name_ar })}
                         >
                           <Trash2 className="h-4 w-4" aria-hidden="true" />
                         </Button>

@@ -13,6 +13,7 @@ from app.core.urls import normalize_social_url, normalize_url
 from app.models.enums import SocialPlatform
 from app.models.taxonomy import Category, Location
 from tests.conftest import sign_in
+from tests.samples import ar
 
 
 def make_image(size: tuple[int, int] = (1200, 900), fmt: str = "JPEG") -> bytes:
@@ -28,7 +29,7 @@ def business(client: TestClient, category: Category, location: Location) -> tupl
         "/api/businesses",
         headers=headers,
         json={
-            "name": "محل الصور",
+            "name": ar("business.image_shop"),
             "category_id": str(category.id),
             "location_id": str(location.id),
         },

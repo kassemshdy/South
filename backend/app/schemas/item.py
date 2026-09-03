@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.core.i18n import translate
 from app.models.enums import Currency
 from app.schemas.common import ORMModel
 
@@ -33,7 +34,7 @@ class BusinessItemIn(BaseModel):
     def _strip_title(cls, value: str) -> str:
         cleaned = value.strip()
         if not cleaned:
-            raise ValueError("اسم العنصر مطلوب.")
+            raise ValueError(translate("item.title_required"))
         return cleaned
 
 

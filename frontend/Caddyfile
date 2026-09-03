@@ -1,0 +1,50 @@
+{
+	admin off
+	auto_https off
+}
+
+:{$PORT:8080} {
+	encode zstd gzip
+
+	# Liveness for the platform's healthcheck; never proxied.
+	handle /healthz {
+		respond "ok" 200
+	}
+
+	# Everything the API owns. /business/* goes to the API as well, so crawlers
+	# and link previews receive server-rendered Arabic meta tags rather than the
+	# generic index.html.
+	@api {
+		path /api/*
+		path /media/*
+		path /sitemap.xml
+		path /robots.txt
+		path /business/*
+	}
+	handle @api {
+		reverse_proxy {$API_INTERNAL_HOST:api.railway.internal:8000} {
+			header_up X-Forwarded-Host {host}
+			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+
+	# Hashed build output is safe to cache indefinitely.
+	@assets path /assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+
+	# index.html must never be cached, or a deploy leaves clients on stale chunks.
+	@html path / /index.html
+	header @html Cache-Control "no-cache"
+
+	header {
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}

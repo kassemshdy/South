@@ -1,0 +1,92 @@
+[
+  {
+    "name_ar": "مطاعم ومأكولات",
+    "slug": "restaurants",
+    "icon": "utensils",
+    "sort_order": 1
+  },
+  {
+    "name_ar": "حلويات",
+    "slug": "sweets",
+    "icon": "cake",
+    "sort_order": 2
+  },
+  {
+    "name_ar": "مواد غذائية",
+    "slug": "groceries",
+    "icon": "shopping-basket",
+    "sort_order": 3
+  },
+  {
+    "name_ar": "ألبسة",
+    "slug": "clothing",
+    "icon": "shirt",
+    "sort_order": 4
+  },
+  {
+    "name_ar": "صحة وجمال",
+    "slug": "beauty",
+    "icon": "sparkles",
+    "sort_order": 5
+  },
+  {
+    "name_ar": "خدمات منزلية",
+    "slug": "home-services",
+    "icon": "home",
+    "sort_order": 6
+  },
+  {
+    "name_ar": "صيانة",
+    "slug": "maintenance",
+    "icon": "wrench",
+    "sort_order": 7
+  },
+  {
+    "name_ar": "سيارات",
+    "slug": "automotive",
+    "icon": "car",
+    "sort_order": 8
+  },
+  {
+    "name_ar": "تعليم",
+    "slug": "education",
+    "icon": "graduation-cap",
+    "sort_order": 9
+  },
+  {
+    "name_ar": "زراعة",
+    "slug": "agriculture",
+    "icon": "sprout",
+    "sort_order": 10
+  },
+  {
+    "name_ar": "حرف وصناعات",
+    "slug": "crafts",
+    "icon": "hammer",
+    "sort_order": 11
+  },
+  {
+    "name_ar": "تقنية",
+    "slug": "technology",
+    "icon": "laptop",
+    "sort_order": 12
+  },
+  {
+    "name_ar": "تصوير وإعلام",
+    "slug": "media",
+    "icon": "camera",
+    "sort_order": 13
+  },
+  {
+    "name_ar": "منتجات منزلية",
+    "slug": "homemade",
+    "icon": "gift",
+    "sort_order": 14
+  },
+  {
+    "name_ar": "أخرى",
+    "slug": "other",
+    "icon": "grid",
+    "sort_order": 99
+  }
+]

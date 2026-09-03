@@ -11,6 +11,7 @@ from app.models.enums import BusinessStatus
 from app.models.taxonomy import Category, Location
 from app.models.user import User
 from tests.conftest import admin_headers, sign_in
+from tests.samples import ar
 
 
 @pytest.fixture
@@ -23,8 +24,8 @@ def complete_business(
         "/api/businesses",
         headers=headers,
         json={
-            "name": "مناقيش الضيعة",
-            "short_description": "مناقيش على الصاج",
+            "name": ar("business.manakish"),
+            "short_description": ar("business.manakish_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
             "whatsapp": "03800001",
@@ -51,7 +52,7 @@ def test_incomplete_business_cannot_be_submitted(
 ) -> None:
     headers = sign_in(client, "03800002")
     business_id = client.post(
-        "/api/businesses", headers=headers, json={"name": "ناقص البيانات"}
+        "/api/businesses", headers=headers, json={"name": ar("business.incomplete")}
     ).json()["id"]
 
     response = client.post(f"/api/businesses/{business_id}/submit", headers=headers)
@@ -79,7 +80,7 @@ def test_pending_business_is_invisible_to_the_public(
     slug = client.get(f"/api/businesses/{business_id}/manage", headers=headers).json()["slug"]
     client.post(f"/api/businesses/{business_id}/submit", headers=headers)
 
-    listing = client.get("/api/businesses", params={"q": "مناقيش"})
+    listing = client.get("/api/businesses", params={"q": ar("search.manakish")})
     profile = client.get(f"/api/businesses/{slug}")
 
     assert listing.json()["meta"]["total"] == 0
@@ -103,7 +104,7 @@ def test_approval_publishes_the_business(
     assert approved.json()["owner_id"] is not None
 
     # Publicly searchable immediately after approval.
-    assert client.get("/api/businesses", params={"q": "مناقيش"}).json()["meta"]["total"] == 1
+    assert client.get("/api/businesses", params={"q": ar("search.manakish")}).json()["meta"]["total"] == 1
     assert client.get(f"/api/businesses/{slug}").status_code == 200
 
 
@@ -116,13 +117,13 @@ def test_rejection_stores_the_reason_and_lets_the_owner_resubmit(
     rejected = client.post(
         f"/api/admin/businesses/{business_id}/reject",
         headers=admin_headers(client),
-        json={"reason": "الرجاء إضافة صورة شعار أوضح."},
+        json={"reason": ar("moderation.reject_reason")},
     )
     assert rejected.status_code == 200
     assert rejected.json()["status"] == "REJECTED"
 
     owner_view = client.get(f"/api/businesses/{business_id}/manage", headers=headers).json()
-    assert owner_view["rejection_reason"] == "الرجاء إضافة صورة شعار أوضح."
+    assert owner_view["rejection_reason"] == ar("moderation.reject_reason")
 
     resubmitted = client.post(f"/api/businesses/{business_id}/submit", headers=headers)
     assert resubmitted.status_code == 200
@@ -140,7 +141,7 @@ def test_rejection_requires_a_reason(
     response = client.post(
         f"/api/admin/businesses/{business_id}/reject",
         headers=admin_headers(client),
-        json={"reason": "لا"},
+        json={"reason": ar("moderation.reject_reason_short")},
     )
     assert response.status_code == 422
 
@@ -163,7 +164,7 @@ def test_illegal_transitions_are_refused(
     response = client.post(
         f"/api/admin/businesses/{business_id}/{action}",
         headers=headers,
-        json={"reason": "سبب كافٍ للرفض"},
+        json={"reason": ar("moderation.reject_reason_valid")},
     )
 
     assert response.status_code == expected_status
@@ -179,12 +180,12 @@ def test_suspend_hides_the_business_and_reactivate_restores_it(
     client.post(f"/api/admin/businesses/{business_id}/approve", headers=admin_auth)
 
     client.post(
-        f"/api/admin/businesses/{business_id}/suspend", headers=admin_auth, json={"reason": "مخالفة"}
+        f"/api/admin/businesses/{business_id}/suspend", headers=admin_auth, json={"reason": ar("moderation.suspend_reason")}
     )
-    assert client.get("/api/businesses", params={"q": "مناقيش"}).json()["meta"]["total"] == 0
+    assert client.get("/api/businesses", params={"q": ar("search.manakish")}).json()["meta"]["total"] == 0
 
     client.post(f"/api/admin/businesses/{business_id}/reactivate", headers=admin_auth)
-    assert client.get("/api/businesses", params={"q": "مناقيش"}).json()["meta"]["total"] == 1
+    assert client.get("/api/businesses", params={"q": ar("search.manakish")}).json()["meta"]["total"] == 1
 
 
 def test_every_transition_is_recorded_in_the_audit_trail(
@@ -195,7 +196,7 @@ def test_every_transition_is_recorded_in_the_audit_trail(
 
     client.post(f"/api/businesses/{business_id}/submit", headers=headers)
     client.post(f"/api/admin/businesses/{business_id}/approve", headers=admin_auth)
-    client.post(f"/api/admin/businesses/{business_id}/suspend", headers=admin_auth, json={"reason": "مخالفة"})
+    client.post(f"/api/admin/businesses/{business_id}/suspend", headers=admin_auth, json={"reason": ar("moderation.suspend_reason")})
     client.post(f"/api/admin/businesses/{business_id}/reactivate", headers=admin_auth)
 
     actions = (
@@ -213,7 +214,7 @@ def test_every_transition_is_recorded_in_the_audit_trail(
     ]
     assert actions[0].admin_id is None  # submitted by the owner
     assert actions[1].admin_id == admin.id
-    assert actions[2].reason == "مخالفة"
+    assert actions[2].reason == ar("moderation.suspend_reason")
 
 
 def test_public_endpoints_never_return_non_approved_businesses(
@@ -234,8 +235,8 @@ def test_public_endpoints_never_return_non_approved_businesses(
             "/api/businesses",
             headers=headers,
             json={
-                "name": f"نشاط مخفي {index}",
-                "short_description": "وصف",
+                "name": f'{ar("business.hidden_prefix")} {index}',
+                "short_description": ar("business.generic_short"),
                 "category_id": str(category.id),
                 "location_id": str(location.id),
             },
@@ -245,10 +246,10 @@ def test_public_endpoints_never_return_non_approved_businesses(
         business.status = status
         db.commit()
 
-    listing = client.get("/api/businesses", params={"q": "مخفي"})
+    listing = client.get("/api/businesses", params={"q": ar("search.hidden")})
     latest = client.get("/api/businesses/latest")
     sitemap = client.get("/sitemap.xml")
 
     assert listing.json()["meta"]["total"] == 0
     assert latest.json() == []
-    assert "نشاط مخفي" not in sitemap.text
+    assert ar("business.hidden_prefix") not in sitemap.text

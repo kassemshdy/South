@@ -1,10 +1,32 @@
 # Deployment
 
-The application ships as **one Docker image**: Node builds the SPA, then the
-Python image serves the API *and* the built frontend, injecting per-business SEO
-tags. That means one service to deploy and no CORS configuration in production.
+The application deploys as **three services**:
 
-Migrations run automatically at container start.
+| Service | Source | Role |
+|---|---|---|
+| `postgres` | managed Postgres | database |
+| `api` | `backend/Dockerfile` | FastAPI. Also carries the SPA build so it can render `/business/*` with real SEO tags |
+| `web` | `frontend/Dockerfile` | Caddy serving the SPA; proxies `/api/*`, `/media/*`, `/sitemap.xml`, `/robots.txt` and `/business/*` to the API |
+
+**The web service is the public entry point and proxies to the API.** That is
+deliberate: the API returns relative `/media/...` image URLs, and the SEO tags
+that make link previews work only exist where FastAPI renders `index.html`. A
+single public origin keeps both working and removes CORS from the browser's
+path entirely.
+
+Migrations run automatically when the API container starts.
+
+## Choosing an environment
+
+| `APP_ENV` | Mock OTP | Use it for |
+|---|---|---|
+| `development` | yes | local work |
+| `staging` | yes | a deployed build people can actually sign into before an SMS gateway exists |
+| `production` | **never** | the real thing, once `OTP_PROVIDER=twilio` and credentials are set |
+
+`staging` applies every production safety check except the mock-OTP ban: a weak
+`SECRET_KEY` still refuses to boot, and security headers and HSTS still apply.
+Moving to production is a variable change plus SMS credentials — no code edit.
 
 ---
 

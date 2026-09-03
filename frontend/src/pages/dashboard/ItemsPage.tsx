@@ -7,12 +7,14 @@ import { ErrorState, InlineSpinner } from '@/components/ui/States'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
 import { ItemManager } from '@/features/items/ItemManager'
 import { useSeo } from '@/hooks/useSeo'
+import { useT } from '@/i18n'
 import { ownerApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 
 export function ItemsPage() {
   const { id = '' } = useParams()
-  useSeo({ title: 'إدارة المنتجات | دليل الجنوب', noIndex: true })
+  const t = useT()
+  useSeo({ title: t('itemsPage.seoTitle'), noIndex: true })
 
   const business = useQuery({
     queryKey: queryKeys.myBusiness(id),
@@ -33,18 +35,18 @@ export function ItemsPage() {
     <div className="container-page max-w-3xl py-10">
       <Link to="/dashboard" className="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-clay-600">
         <ArrowRight className="h-4 w-4" aria-hidden="true" />
-        العودة إلى نشاطاتي
+        {t('wizard.backToDashboard')}
       </Link>
 
       <header className="mb-6">
         <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-3xl">المنتجات والخدمات</h1>
+          <h1 className="text-3xl">{t('itemsPage.heading')}</h1>
           <StatusBadge status={business.data.status} />
         </div>
         <p className="mt-2 text-ink-500">
           {business.data.name} ·{' '}
           <Link to={`/dashboard/businesses/${id}/edit`} className="text-clay-600 hover:underline">
-            تعديل معلومات النشاط
+            {t('itemsPage.editBusinessLink')}
           </Link>
         </p>
       </header>

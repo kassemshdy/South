@@ -1,27 +1,31 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 import { Button } from '@/components/ui/Button'
+import { useI18n } from '@/i18n'
 import type { PageMeta } from '@/types/api'
 
 /**
- * Numbered pagination. Note the chevrons are swapped relative to an LTR site:
- * in RTL, "previous" points right and "next" points left.
+ * Numbered pagination. The chevrons follow reading direction: in RTL
+ * "previous" points right, in LTR it points left.
  */
 export function Pagination({ meta, onChange }: { meta: PageMeta; onChange: (page: number) => void }) {
+  const { t, dir } = useI18n()
   if (meta.total_pages <= 1) return null
 
   const pages = buildPageList(meta.page, meta.total_pages)
+  const PreviousIcon = dir === 'rtl' ? ChevronRight : ChevronLeft
+  const NextIcon = dir === 'rtl' ? ChevronLeft : ChevronRight
 
   return (
-    <nav className="mt-10 flex items-center justify-center gap-1.5" aria-label="تصفح الصفحات">
+    <nav className="mt-10 flex items-center justify-center gap-1.5" aria-label={t('pagination.aria')}>
       <Button
         variant="outline"
         size="icon"
         onClick={() => onChange(meta.page - 1)}
         disabled={!meta.has_previous}
-        aria-label="الصفحة السابقة"
+        aria-label={t('pagination.previous')}
       >
-        <ChevronRight className="h-5 w-5" aria-hidden="true" />
+        <PreviousIcon className="h-5 w-5" aria-hidden="true" />
       </Button>
 
       {pages.map((page, index) =>
@@ -36,7 +40,7 @@ export function Pagination({ meta, onChange }: { meta: PageMeta; onChange: (page
             size="icon"
             onClick={() => onChange(page)}
             aria-current={page === meta.page ? 'page' : undefined}
-            aria-label={`الصفحة ${page}`}
+            aria-label={t('pagination.page', { page })}
           >
             {page}
           </Button>
@@ -48,9 +52,9 @@ export function Pagination({ meta, onChange }: { meta: PageMeta; onChange: (page
         size="icon"
         onClick={() => onChange(meta.page + 1)}
         disabled={!meta.has_next}
-        aria-label="الصفحة التالية"
+        aria-label={t('pagination.next')}
       >
-        <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+        <NextIcon className="h-5 w-5" aria-hidden="true" />
       </Button>
     </nav>
   )

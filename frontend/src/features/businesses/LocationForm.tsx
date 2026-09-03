@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useMemo } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 
 import { Button } from '@/components/ui/Button'
@@ -6,6 +7,7 @@ import { Field } from '@/components/ui/Field'
 import { Input, Textarea } from '@/components/ui/Input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 import { useLocationGroups } from '@/hooks/useTaxonomy'
+import { useT } from '@/i18n'
 import type { BusinessPayload } from '@/services/api/endpoints'
 import type { OwnerBusiness } from '@/types/api'
 import { businessLocationSchema, type BusinessLocationValues } from '@/utils/validation'
@@ -20,6 +22,8 @@ interface LocationFormProps {
 
 export function LocationForm({ business, submitLabel, pending, onSubmit, footer }: LocationFormProps) {
   const { groups } = useLocationGroups()
+  const t = useT()
+  const schema = useMemo(() => businessLocationSchema(t), [t])
 
   const {
     register,
@@ -27,7 +31,7 @@ export function LocationForm({ business, submitLabel, pending, onSubmit, footer 
     control,
     formState: { errors },
   } = useForm<BusinessLocationValues>({
-    resolver: zodResolver(businessLocationSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       location_id: business?.location?.id ?? '',
       address_text: business?.address_text ?? '',
@@ -45,7 +49,12 @@ export function LocationForm({ business, submitLabel, pending, onSubmit, footer 
 
   return (
     <form onSubmit={submit} className="space-y-5" noValidate>
-      <Field label="المنطقة" required error={errors.location_id?.message} hint="اختر القضاء أو البلدة الأقرب لنشاطك.">
+      <Field
+        label={t('form.area')}
+        required
+        error={errors.location_id?.message}
+        hint={t('form.areaHint')}
+      >
         {(props) => (
           <Controller
             control={control}
@@ -53,7 +62,7 @@ export function LocationForm({ business, submitLabel, pending, onSubmit, footer 
             render={({ field }) => (
               <Select value={field.value || undefined} onValueChange={field.onChange}>
                 <SelectTrigger id={props.id} aria-describedby={props['aria-describedby']} invalid={Boolean(errors.location_id)}>
-                  <SelectValue placeholder="اختر المنطقة" />
+                  <SelectValue placeholder={t('form.areaPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
                   {groups.map(({ district, towns }) => [
@@ -74,13 +83,21 @@ export function LocationForm({ business, submitLabel, pending, onSubmit, footer 
         )}
       </Field>
 
-      <Field label="تفاصيل العنوان" error={errors.address_text?.message} hint="مثال: شارع البلدية، مقابل الحديقة العامة.">
+      <Field
+        label={t('form.address')}
+        error={errors.address_text?.message}
+        hint={t('form.addressHint')}
+      >
         {(props) => (
           <Textarea {...props} {...register('address_text')} rows={3} invalid={Boolean(errors.address_text)} />
         )}
       </Field>
 
-      <Field label="رابط الموقع على الخرائط" error={errors.maps_url?.message} hint="انسخ الرابط من تطبيق خرائط جوجل.">
+      <Field
+        label={t('form.mapsUrl')}
+        error={errors.maps_url?.message}
+        hint={t('form.mapsUrlHint')}
+      >
         {(props) => (
           <Input {...props} {...register('maps_url')} type="url" dir="ltr" className="ltr-nums" placeholder="https://maps.google.com/…" invalid={Boolean(errors.maps_url)} />
         )}

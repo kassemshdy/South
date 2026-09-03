@@ -1,11 +1,13 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Facebook, Globe, Instagram, MessageCircle, Music2, Youtube } from 'lucide-react'
+import { useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 
 import { Button } from '@/components/ui/Button'
 import { Field } from '@/components/ui/Field'
 import { Input } from '@/components/ui/Input'
 import type { BusinessPayload } from '@/services/api/endpoints'
+import { useT, type TranslationKey } from '@/i18n'
 import type { OwnerBusiness, SocialPlatform } from '@/types/api'
 import { socialLinksSchema, type SocialLinksValues } from '@/utils/validation'
 
@@ -18,16 +20,16 @@ interface SocialFormProps {
 }
 
 const FIELDS = [
-  { key: 'instagram', platform: 'INSTAGRAM', label: 'إنستغرام', icon: Instagram, placeholder: 'instagram.com/username' },
-  { key: 'facebook', platform: 'FACEBOOK', label: 'فيسبوك', icon: Facebook, placeholder: 'facebook.com/page' },
-  { key: 'tiktok', platform: 'TIKTOK', label: 'تيك توك', icon: Music2, placeholder: 'tiktok.com/@username' },
-  { key: 'youtube', platform: 'YOUTUBE', label: 'يوتيوب', icon: Youtube, placeholder: 'youtube.com/@channel' },
-  { key: 'whatsapp_url', platform: 'WHATSAPP', label: 'رابط واتساب', icon: MessageCircle, placeholder: 'wa.me/9613123456' },
-  { key: 'website', platform: 'WEBSITE', label: 'الموقع الإلكتروني', icon: Globe, placeholder: 'https://example.com' },
+  { key: 'instagram', platform: 'INSTAGRAM', labelKey: 'platform.INSTAGRAM', icon: Instagram, placeholder: 'instagram.com/username' },
+  { key: 'facebook', platform: 'FACEBOOK', labelKey: 'platform.FACEBOOK', icon: Facebook, placeholder: 'facebook.com/page' },
+  { key: 'tiktok', platform: 'TIKTOK', labelKey: 'platform.TIKTOK', icon: Music2, placeholder: 'tiktok.com/@username' },
+  { key: 'youtube', platform: 'YOUTUBE', labelKey: 'platform.YOUTUBE', icon: Youtube, placeholder: 'youtube.com/@channel' },
+  { key: 'whatsapp_url', platform: 'WHATSAPP', labelKey: 'form.whatsappUrl', icon: MessageCircle, placeholder: 'wa.me/9613123456' },
+  { key: 'website', platform: 'WEBSITE', labelKey: 'platform.WEBSITE', icon: Globe, placeholder: 'https://example.com' },
 ] as const satisfies readonly {
   key: keyof SocialLinksValues
   platform: SocialPlatform
-  label: string
+  labelKey: TranslationKey
   icon: typeof Instagram
   placeholder: string
 }[]
@@ -35,13 +37,15 @@ const FIELDS = [
 /** All links optional — only the ones actually provided are rendered publicly. */
 export function SocialForm({ business, submitLabel, pending, onSubmit, footer }: SocialFormProps) {
   const existing = new Map((business?.social_links ?? []).map((link) => [link.platform, link.url]))
+  const t = useT()
+  const schema = useMemo(() => socialLinksSchema(t), [t])
 
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<SocialLinksValues>({
-    resolver: zodResolver(socialLinksSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       instagram: existing.get('INSTAGRAM') ?? '',
       facebook: existing.get('FACEBOOK') ?? '',
@@ -62,10 +66,10 @@ export function SocialForm({ business, submitLabel, pending, onSubmit, footer }:
 
   return (
     <form onSubmit={submit} className="space-y-5" noValidate>
-      <p className="text-ink-500">أضف الحسابات التي تريد عرضها فقط — الحقول الفارغة لن تظهر.</p>
+      <p className="text-ink-500">{t('form.socialIntro')}</p>
 
-      {FIELDS.map(({ key, label, icon: Icon, placeholder }) => (
-        <Field key={key} label={label} error={errors[key]?.message}>
+      {FIELDS.map(({ key, labelKey, icon: Icon, placeholder }) => (
+        <Field key={key} label={t(labelKey)} error={errors[key]?.message}>
           {(props) => (
             <div className="relative">
               <Icon className="pointer-events-none absolute inset-y-0 start-3.5 my-auto h-5 w-5 text-ink-300" aria-hidden="true" />

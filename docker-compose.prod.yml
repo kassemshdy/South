@@ -18,7 +18,7 @@ services:
       timeout: 5s
       retries: 10
 
-  app:
+  api:
     build:
       context: .
       dockerfile: backend/Dockerfile
@@ -41,11 +41,26 @@ services:
     volumes:
       - media_data:/app/var/media
 
+  # Serves the built SPA and proxies /api, /media, /sitemap.xml, /robots.txt
+  # and /business/* to the API — one public origin, so image URLs resolve and
+  # server-rendered SEO tags survive.
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      PORT: "8080"
+      API_INTERNAL_HOST: api:8000
+
+  # TLS termination in front of the web service.
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
     depends_on:
-      - app
+      - web
     ports:
       - "80:80"
       - "443:443"

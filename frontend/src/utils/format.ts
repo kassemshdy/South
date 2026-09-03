@@ -1,13 +1,20 @@
-/** Arabic-aware formatting helpers shared across the UI. */
+/**
+ * Formatting helpers.
+ *
+ * These deliberately take a `t` function rather than importing the catalog:
+ * formatting is locale-dependent, and passing the translator keeps these
+ * functions pure and testable.
+ */
 
+import type { TranslationKey } from '@/i18n'
 import type { BusinessStatus, Currency, SocialPlatform } from '@/types/api'
 
-export const STATUS_LABELS: Record<BusinessStatus, string> = {
-  DRAFT: 'مسودة',
-  PENDING_REVIEW: 'قيد المراجعة',
-  APPROVED: 'مقبول',
-  REJECTED: 'يحتاج إلى تعديل',
-  SUSPENDED: 'موقوف',
+export const STATUS_KEYS: Record<BusinessStatus, TranslationKey> = {
+  DRAFT: 'status.DRAFT',
+  PENDING_REVIEW: 'status.PENDING_REVIEW',
+  APPROVED: 'status.APPROVED',
+  REJECTED: 'status.REJECTED',
+  SUSPENDED: 'status.SUSPENDED',
 }
 
 export const STATUS_TONES: Record<BusinessStatus, string> = {
@@ -18,25 +25,24 @@ export const STATUS_TONES: Record<BusinessStatus, string> = {
   SUSPENDED: 'bg-ink-100 text-ink-700',
 }
 
-export const PLATFORM_LABELS: Record<SocialPlatform, string> = {
-  INSTAGRAM: 'إنستغرام',
-  FACEBOOK: 'فيسبوك',
-  TIKTOK: 'تيك توك',
-  YOUTUBE: 'يوتيوب',
-  WHATSAPP: 'واتساب',
-  WEBSITE: 'الموقع الإلكتروني',
+export const PLATFORM_KEYS: Record<SocialPlatform, TranslationKey> = {
+  INSTAGRAM: 'platform.INSTAGRAM',
+  FACEBOOK: 'platform.FACEBOOK',
+  TIKTOK: 'platform.TIKTOK',
+  YOUTUBE: 'platform.YOUTUBE',
+  WHATSAPP: 'platform.WHATSAPP',
+  WEBSITE: 'platform.WEBSITE',
 }
 
-const CURRENCY_LABELS: Record<Currency, string> = { USD: '$', LBP: 'ل.ل.' }
+const CURRENCY_SUFFIX: Record<Currency, string> = { USD: '$', LBP: 'LBP' }
 
 /**
  * Format a price. Prices arrive as decimal strings so they are never subject to
  * float rounding; only the display is localized.
  *
  * Deliberately formatted with Latin digits and a period decimal separator:
- * that is how prices are written on Lebanese menus and price lists. The
- * ar-LB locale would render ١٫٥٠, and ar-LB-u-nu-latn would render 1,50 —
- * neither is what a shopper here expects to see next to a dollar sign.
+ * that is how prices are written on Lebanese menus and price lists, in both
+ * languages.
  */
 export function formatPrice(price: string | null, currency: Currency = 'USD'): string | null {
   if (price === null || price === '') return null
@@ -49,27 +55,30 @@ export function formatPrice(price: string | null, currency: Currency = 'USD'): s
   }).format(value)
 
   return currency === 'USD'
-    ? `${CURRENCY_LABELS.USD}${formatted}`
-    : `${formatted} ${CURRENCY_LABELS.LBP}`
+    ? `${CURRENCY_SUFFIX.USD}${formatted}`
+    : `${formatted} ${CURRENCY_SUFFIX.LBP}`
 }
 
-export function formatDate(iso: string | null): string {
+/** Levantine Arabic month names with Latin digits; standard English elsewhere. */
+export function formatDate(iso: string | null, locale: string): string {
   if (!iso) return '—'
-  // Levantine Arabic month names (أيلول rather than سبتمبر) with Latin digits.
-  return new Intl.DateTimeFormat('ar-LB-u-nu-latn', {
+  const tag = locale === 'ar' ? 'ar-LB-u-nu-latn' : 'en-GB'
+  return new Intl.DateTimeFormat(tag, {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   }).format(new Date(iso))
 }
 
-export function formatRelativeDate(iso: string | null): string {
+type Translate = (key: TranslationKey, params?: Record<string, string | number>) => string
+
+export function formatRelativeDate(iso: string | null, locale: string, t: Translate): string {
   if (!iso) return '—'
   const diffDays = Math.round((Date.now() - new Date(iso).getTime()) / 86_400_000)
-  if (diffDays < 1) return 'اليوم'
-  if (diffDays === 1) return 'أمس'
-  if (diffDays < 30) return `قبل ${diffDays} يوماً`
-  return formatDate(iso)
+  if (diffDays < 1) return t('date.today')
+  if (diffDays === 1) return t('date.yesterday')
+  if (diffDays < 30) return t('date.daysAgo', { days: diffDays })
+  return formatDate(iso, locale)
 }
 
 /** wa.me requires digits only; our stored numbers are E.164 with a leading +. */
@@ -83,14 +92,4 @@ export function whatsappHref(number: string | null, message?: string): string | 
 
 export function telHref(number: string | null): string | null {
   return number ? `tel:${number.replace(/\s/g, '')}` : null
-}
-
-/** Display a phone number left-to-right even inside RTL text. */
-export function displayPhone(number: string | null): string {
-  return number ?? ''
-}
-
-export function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).slice(0, 2)
-  return parts.map((part) => part[0] ?? '').join('')
 }

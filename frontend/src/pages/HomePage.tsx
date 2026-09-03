@@ -9,6 +9,7 @@ import { EmptyState, ErrorState } from '@/components/ui/States'
 import { BusinessCard } from '@/features/businesses/BusinessCard'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useCategories, useLocationGroups } from '@/hooks/useTaxonomy'
+import { useT } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
 import { publicBusinessApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
@@ -17,11 +18,11 @@ export function HomePage() {
   const [query, setQuery] = useState('')
   const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
+  const t = useT()
 
   useSeo({
-    title: 'دليل الجنوب | اكتشف الأعمال والخدمات في جنوب لبنان',
-    description:
-      'دليل يجمع المحال، الخدمات، المنتجات والمشاريع المحلية في جنوب لبنان في مكان واحد.',
+    title: t('home.seoTitle'),
+    description: t('home.seoDescription'),
     canonicalPath: '/',
   })
 
@@ -48,19 +49,19 @@ export function HomePage() {
         <div className="container-page py-14 text-center sm:py-20">
           <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-clay-700 shadow-card">
             <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-            كل نشاط يُراجع قبل نشره
+            {t('home.reviewBadge')}
           </p>
 
           <h1 className="mx-auto max-w-3xl text-3xl leading-tight sm:text-4xl lg:text-5xl">
-            اكتشف الأعمال والخدمات في جنوب لبنان
+            {t('home.heroTitle')}
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-ink-500">
-            دليل يجمع المحال، الخدمات، المنتجات والمشاريع المحلية في مكان واحد.
+            {t('home.heroSubtitle')}
           </p>
 
           <form onSubmit={handleSearch} className="mx-auto mt-8 flex max-w-2xl flex-col gap-3 sm:flex-row" role="search">
             <label htmlFor="home-search" className="sr-only">
-              ابحث في دليل الأعمال
+              {t('home.searchLabel')}
             </label>
             <div className="relative flex-1">
               <Search
@@ -72,12 +73,12 @@ export function HomePage() {
                 type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="ابحث عن مطعم، محل، خدمة…"
+                placeholder={t('home.searchPlaceholder')}
                 className="h-14 w-full rounded-2xl border-2 border-ink-100 bg-white ps-12 pe-4 text-[15px] shadow-card placeholder:text-ink-300 focus:border-clay-400 focus:outline-none focus:ring-2 focus:ring-clay-500/20"
               />
             </div>
             <Button type="submit" size="lg" className="sm:w-auto">
-              ابحث
+              {t('common.search')}
             </Button>
           </form>
 
@@ -85,7 +86,7 @@ export function HomePage() {
             <Button asChild variant="outline" size="lg">
               <Link to={isAuthenticated ? '/dashboard/businesses/new' : '/login'}>
                 <Plus className="h-5 w-5" aria-hidden="true" />
-                أضف نشاطك
+                {t('home.addBusiness')}
               </Link>
             </Button>
           </div>
@@ -94,7 +95,7 @@ export function HomePage() {
 
       <section className="container-page py-14" aria-labelledby="categories-heading">
         <h2 id="categories-heading" className="mb-6 text-2xl">
-          تصفّح حسب التصنيف
+          {t('home.categoriesHeading')}
         </h2>
 
         {categories.isLoading ? (
@@ -117,7 +118,9 @@ export function HomePage() {
                   <Store className="h-5 w-5" aria-hidden="true" />
                 </span>
                 <span className="font-semibold text-ink-900">{category.name_ar}</span>
-                <span className="text-xs text-ink-500">{category.business_count} نشاط</span>
+                <span className="text-xs text-ink-500">
+                  {t('home.categoryCount', { count: category.business_count })}
+                </span>
               </Link>
             ))}
           </div>
@@ -127,10 +130,10 @@ export function HomePage() {
       <section className="container-page pb-14" aria-labelledby="latest-heading">
         <div className="mb-6 flex items-center justify-between gap-4">
           <h2 id="latest-heading" className="text-2xl">
-            أحدث النشاطات
+            {t('home.latestHeading')}
           </h2>
           <Link to="/businesses" className="flex items-center gap-1 font-semibold text-clay-600 hover:text-clay-700">
-            عرض الكل
+            {t('home.viewAll')}
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>
@@ -151,11 +154,13 @@ export function HomePage() {
           </div>
         ) : (
           <EmptyState
-            title="لا توجد نشاطات منشورة بعد."
-            description="كن أول من يضيف نشاطه إلى دليل الجنوب."
+            title={t('home.emptyTitle')}
+            description={t('home.emptyDescription')}
             action={
               <Button asChild>
-                <Link to={isAuthenticated ? '/dashboard/businesses/new' : '/login'}>أضف نشاطك التجاري</Link>
+                <Link to={isAuthenticated ? '/dashboard/businesses/new' : '/login'}>
+                  {t('nav.addBusiness')}
+                </Link>
               </Button>
             }
           />
@@ -165,7 +170,7 @@ export function HomePage() {
       {popularDistricts.length > 0 ? (
         <section className="container-page pb-16" aria-labelledby="locations-heading">
           <h2 id="locations-heading" className="mb-6 text-2xl">
-            مناطق شائعة
+            {t('home.locationsHeading')}
           </h2>
           <div className="flex flex-wrap gap-3">
             {popularDistricts.map(({ district }) => (
@@ -185,14 +190,12 @@ export function HomePage() {
 
       <section className="border-t border-ink-100 bg-white py-14">
         <div className="container-page text-center">
-          <h2 className="text-2xl">صاحب نشاط في الجنوب؟</h2>
-          <p className="mx-auto mt-3 max-w-xl text-ink-500">
-            أنشئ صفحة مجانية لنشاطك خلال دقائق: صور، منتجات، أسعار، وزر تواصل مباشر عبر واتساب.
-          </p>
+          <h2 className="text-2xl">{t('home.ctaTitle')}</h2>
+          <p className="mx-auto mt-3 max-w-xl text-ink-500">{t('home.ctaBody')}</p>
           <Button asChild size="lg" className="mt-6">
             <Link to={isAuthenticated ? '/dashboard/businesses/new' : '/login'}>
               <Plus className="h-5 w-5" aria-hidden="true" />
-              أضف نشاطك التجاري
+              {t('nav.addBusiness')}
             </Link>
           </Button>
         </div>

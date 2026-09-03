@@ -2,6 +2,7 @@ import { AlertTriangle, Inbox, SearchX, WifiOff } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import { Button } from '@/components/ui/Button'
+import { useT } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 
 interface EmptyStateProps {
@@ -25,15 +26,16 @@ export function EmptyState({ title, description, icon, action }: EmptyStateProps
 }
 
 export function NoSearchResults({ onReset }: { onReset?: () => void }) {
+  const t = useT()
   return (
     <EmptyState
       icon={<SearchX className="h-7 w-7" aria-hidden="true" />}
-      title="لم نجد نشاطات مطابقة لبحثك."
-      description="جرّب كلمات أخرى، أو أزل بعض عوامل التصفية لتوسيع النتائج."
+      title={t('states.noResultsTitle')}
+      description={t('states.noResultsDescription')}
       action={
         onReset ? (
           <Button variant="outline" onClick={onReset}>
-            إزالة عوامل التصفية
+            {t('states.clearFilters')}
           </Button>
         ) : null
       }
@@ -46,9 +48,9 @@ export function NoSearchResults({ onReset }: { onReset?: () => void }) {
  * the two need different actions from the user.
  */
 export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
+  const t = useT()
   const isOffline = error instanceof ApiError && error.isNetworkError
-  const message =
-    error instanceof ApiError ? error.message : 'حدث خطأ غير متوقع. يرجى المحاولة لاحقاً.'
+  const message = error instanceof ApiError ? error.message : t('states.errorFallback')
 
   return (
     <div
@@ -63,23 +65,24 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
         )}
       </div>
       <h3 className="text-lg font-bold text-clay-900">
-        {isOffline ? 'لا يوجد اتصال بالإنترنت' : 'تعذّر تحميل البيانات'}
+        {isOffline ? t('states.offlineTitle') : t('states.errorTitle')}
       </h3>
       <p className="mt-2 max-w-md text-clay-700">{message}</p>
       {onRetry ? (
         <Button className="mt-6" variant="outline" onClick={onRetry}>
-          إعادة المحاولة
+          {t('states.retry')}
         </Button>
       ) : null}
     </div>
   )
 }
 
-export function InlineSpinner({ label = 'جارٍ التحميل…' }: { label?: string }) {
+export function InlineSpinner({ label }: { label?: string }) {
+  const t = useT()
   return (
     <div className="flex items-center justify-center gap-3 py-10 text-ink-500" role="status">
       <span className="h-5 w-5 animate-spin rounded-full border-2 border-ink-100 border-t-clay-500" />
-      <span>{label}</span>
+      <span>{label ?? t('states.loading')}</span>
     </div>
   )
 }

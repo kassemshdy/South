@@ -58,16 +58,14 @@ class AuthService:
         phone_status = self._limiter.hit(self._phone_rule, phone_number)
         if not phone_status.allowed:
             raise RateLimitedError(
-                phone_status.retry_after_seconds,
-                "لقد طلبت رموزاً كثيرة. يرجى الانتظار قبل المحاولة مجدداً.",
+                phone_status.retry_after_seconds, "auth.otp.rate_limited_phone"
             )
 
         if client_ip:
             ip_status = self._limiter.hit(self._ip_rule, client_ip)
             if not ip_status.allowed:
                 raise RateLimitedError(
-                    ip_status.retry_after_seconds,
-                    "عدد المحاولات كبير من هذا الجهاز. يرجى المحاولة لاحقاً.",
+                    ip_status.retry_after_seconds, "auth.otp.rate_limited_ip"
                 )
 
         code = self._provider.fixed_code() or generate_otp_code(self._settings.otp_code_length)
@@ -86,9 +84,7 @@ class AuthService:
         result = self._provider.send(phone_number, code)
         if not result.delivered:
             raise ValidationError(
-                "تعذر إرسال رمز التحقق حالياً. يرجى المحاولة مجدداً.",
-                code="otp_delivery_failed",
-                status_code=502,
+                "auth.otp.delivery_failed", code="otp_delivery_failed", status_code=502
             )
 
         self._db.commit()
@@ -99,24 +95,20 @@ class AuthService:
     def verify_otp(self, phone_number: str, code: str) -> tuple[User, str, datetime]:
         challenge = self._otps.latest_active_for_phone(phone_number)
         if challenge is None:
-            raise AuthenticationError(
-                "انتهت صلاحية الرمز أو لم يتم طلبه. اطلب رمزاً جديداً.",
-                code="otp_not_found",
-            )
+            raise AuthenticationError("auth.otp.not_found", code="otp_not_found")
 
         if challenge.attempt_count >= self._settings.otp_max_verify_attempts:
             challenge.consumed_at = datetime.now(UTC)
             self._db.commit()
             raise RateLimitedError(
-                self._settings.otp_ttl_seconds,
-                "تم تجاوز عدد المحاولات المسموح. اطلب رمزاً جديداً.",
+                self._settings.otp_ttl_seconds, "auth.otp.too_many_attempts"
             )
 
         challenge.attempt_count += 1
 
         if not verify_otp_code(code, challenge.code_hash):
             self._db.commit()
-            raise AuthenticationError("رمز التحقق غير صحيح.", code="otp_invalid")
+            raise AuthenticationError("auth.otp.invalid", code="otp_invalid")
 
         challenge.consumed_at = datetime.now(UTC)
 
@@ -126,7 +118,7 @@ class AuthService:
             logger.info("New owner account created", extra={"user_id": str(user.id)})
         elif not user.is_active:
             self._db.commit()
-            raise AuthenticationError("هذا الحساب موقوف.", code="account_disabled")
+            raise AuthenticationError("auth.account.disabled", code="account_disabled")
 
         token, expires_at = create_access_token(
             user_id=user.id, role=user.role.value, token_version=user.token_version
@@ -144,12 +136,12 @@ class AuthService:
         if user is None or not verify_password(password, user.password_hash):
             logger.warning("Failed admin login", extra={"email": email})
             raise AuthenticationError(
-                "بيانات الدخول غير صحيحة.", code="invalid_credentials"
+                "auth.invalid_credentials", code="invalid_credentials"
             )
         if user.role is not UserRole.ADMIN or not user.is_active:
             logger.warning("Non-admin attempted admin login", extra={"user_id": str(user.id)})
             raise AuthenticationError(
-                "بيانات الدخول غير صحيحة.", code="invalid_credentials"
+                "auth.invalid_credentials", code="invalid_credentials"
             )
 
         token, expires_at = create_access_token(

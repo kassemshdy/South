@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/Toast'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useSeo } from '@/hooks/useSeo'
+import { useI18n, useT } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { ownerApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
@@ -19,7 +20,8 @@ import { formatRelativeDate } from '@/utils/format'
 
 export function DashboardPage() {
   const { user } = useAuth()
-  useSeo({ title: 'نشاطاتي | دليل الجنوب', noIndex: true })
+  const t = useT()
+  useSeo({ title: t('dashboard.seoTitle'), noIndex: true })
 
   const businesses = useQuery({ queryKey: queryKeys.myBusinesses, queryFn: ownerApi.list })
 
@@ -27,15 +29,17 @@ export function DashboardPage() {
     <div className="container-page py-10">
       <header className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl">نشاطاتي</h1>
+          <h1 className="text-3xl">{t('dashboard.heading')}</h1>
           <p className="mt-2 text-ink-500">
-            مرحباً{user?.display_name ? ` ${user.display_name}` : ''}، أدِر نشاطاتك التجارية من هنا.
+            {t('dashboard.greeting', {
+              name: user?.display_name ? ` ${user.display_name}` : '',
+            })}
           </p>
         </div>
         <Button asChild size="lg">
           <Link to="/dashboard/businesses/new">
             <Plus className="h-5 w-5" aria-hidden="true" />
-            إضافة نشاط جديد
+            {t('dashboard.addNew')}
           </Link>
         </Button>
       </header>
@@ -57,11 +61,11 @@ export function DashboardPage() {
       ) : (
         <EmptyState
           icon={<Store className="h-7 w-7" aria-hidden="true" />}
-          title="لم تُضف أي نشاط بعد"
-          description="أنشئ صفحة نشاطك التجاري وأرسلها للمراجعة لتظهر في الدليل."
+          title={t('dashboard.emptyTitle')}
+          description={t('dashboard.emptyDescription')}
           action={
             <Button asChild size="lg">
-              <Link to="/dashboard/businesses/new">أضف نشاطك التجاري</Link>
+              <Link to="/dashboard/businesses/new">{t('nav.addBusiness')}</Link>
             </Button>
           }
         />
@@ -73,20 +77,18 @@ export function DashboardPage() {
 function OwnerBusinessCard({ business }: { business: OwnerBusiness }) {
   const queryClient = useQueryClient()
   const toast = useToast()
+  const { t, locale } = useI18n()
 
   const submit = useMutation({
     mutationFn: () => ownerApi.submit(business.id),
     onSuccess: () => {
-      toast.success(
-        'تم إرسال نشاطك للمراجعة.',
-        'سنقوم بمراجعته قبل ظهوره في الدليل.',
-      )
+      toast.success(t('dashboard.submitted'), t('dashboard.submittedDescription'))
       void queryClient.invalidateQueries({ queryKey: queryKeys.myBusinesses })
     },
     onError: (error) => {
       // A 422 lists the fields the owner still needs to fill in.
-      const message = error instanceof ApiError ? error.message : 'تعذر إرسال النشاط.'
-      toast.error('لا يمكن الإرسال بعد', message)
+      const message = error instanceof ApiError ? error.message : t('dashboard.submitFailed')
+      toast.error(t('dashboard.submitBlocked'), message)
     },
   })
 
@@ -112,11 +114,13 @@ function OwnerBusinessCard({ business }: { business: OwnerBusiness }) {
               <StatusBadge status={business.status} />
             </div>
             <p className="mt-1 text-sm text-ink-500">
-              {business.category?.name_ar ?? 'بدون تصنيف'}
+              {business.category?.name_ar ?? t('dashboard.noCategory')}
               {business.location ? ` · ${business.location.name_ar}` : ''}
             </p>
             <p className="mt-0.5 text-xs text-ink-300">
-              آخر تحديث: {formatRelativeDate(business.updated_at)}
+              {t('dashboard.lastUpdated', {
+                date: formatRelativeDate(business.updated_at, locale, t),
+              })}
             </p>
           </div>
         </div>
@@ -125,7 +129,7 @@ function OwnerBusinessCard({ business }: { business: OwnerBusiness }) {
           <div className="mt-4 flex gap-2.5 rounded-xl border-2 border-clay-200 bg-clay-50 p-3.5">
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-clay-600" aria-hidden="true" />
             <div>
-              <p className="font-semibold text-clay-900">يحتاج إلى تعديل</p>
+              <p className="font-semibold text-clay-900">{t('dashboard.needsChanges')}</p>
               <p className="mt-0.5 text-sm leading-relaxed text-clay-700">{business.rejection_reason}</p>
             </div>
           </div>
@@ -133,13 +137,13 @@ function OwnerBusinessCard({ business }: { business: OwnerBusiness }) {
 
         {business.status === 'PENDING_REVIEW' ? (
           <p className="mt-4 rounded-xl bg-sand-100 p-3.5 text-sm text-clay-800">
-            نشاطك قيد المراجعة من فريق الإدارة. سيظهر في الدليل فور الموافقة عليه.
+            {t('dashboard.pendingNotice')}
           </p>
         ) : null}
 
         {business.status === 'SUSPENDED' ? (
           <p className="mt-4 rounded-xl bg-ink-100 p-3.5 text-sm text-ink-700">
-            تم إيقاف نشاطك مؤقتاً. تواصل مع الإدارة لمزيد من التفاصيل.
+            {t('dashboard.suspendedNotice')}
           </p>
         ) : null}
 
@@ -147,14 +151,14 @@ function OwnerBusinessCard({ business }: { business: OwnerBusiness }) {
           <Button asChild variant="outline" size="sm">
             <Link to={`/dashboard/businesses/${business.id}/edit`}>
               <Pencil className="h-4 w-4" aria-hidden="true" />
-              تعديل النشاط
+              {t('dashboard.editBusiness')}
             </Link>
           </Button>
 
           <Button asChild variant="outline" size="sm">
             <Link to={`/dashboard/businesses/${business.id}/items`}>
               <ListPlus className="h-4 w-4" aria-hidden="true" />
-              إدارة المنتجات ({business.items.length})
+              {t('dashboard.manageItems', { count: business.items.length })}
             </Link>
           </Button>
 
@@ -162,7 +166,7 @@ function OwnerBusinessCard({ business }: { business: OwnerBusiness }) {
             <Button asChild variant="ghost" size="sm">
               <Link to={`/business/${encodeURIComponent(business.slug)}`}>
                 <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                الصفحة العامة
+                {t('dashboard.publicPage')}
               </Link>
             </Button>
           ) : null}
@@ -170,14 +174,16 @@ function OwnerBusinessCard({ business }: { business: OwnerBusiness }) {
           {canSubmit ? (
             <Button size="sm" loading={submit.isPending} onClick={() => submit.mutate()}>
               <Send className="h-4 w-4" aria-hidden="true" />
-              إرسال للمراجعة
+              {t('dashboard.submitForReview')}
             </Button>
           ) : null}
         </div>
 
         {canSubmit && submit.error instanceof ApiError && submit.error.missing.length > 0 ? (
           <div className="mt-3 rounded-xl border border-sand-300 bg-sand-50 p-3">
-            <p className="text-sm font-semibold text-clay-800">أكمل البيانات التالية أولاً:</p>
+            <p className="text-sm font-semibold text-clay-800">
+              {t('dashboard.completeFirst')}
+            </p>
             <ul className="mt-1.5 flex flex-wrap gap-1.5">
               {submit.error.missing.map((item) => (
                 <li key={item}>

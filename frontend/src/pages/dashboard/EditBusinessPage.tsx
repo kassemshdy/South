@@ -15,16 +15,17 @@ import { SocialForm } from '@/features/businesses/SocialForm'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
 import { ImageManager } from '@/features/images/ImageManager'
 import { useSeo } from '@/hooks/useSeo'
+import { useT, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { ownerApi, type BusinessPayload } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import { cn } from '@/utils/cn'
 
-const TABS = [
-  { value: 'basics', label: 'المعلومات الأساسية' },
-  { value: 'location', label: 'الموقع' },
-  { value: 'images', label: 'الصور' },
-  { value: 'social', label: 'التواصل الاجتماعي' },
+const TABS: { value: string; labelKey: TranslationKey }[] = [
+  { value: 'basics', labelKey: 'wizard.stepBasics' },
+  { value: 'location', labelKey: 'wizard.stepLocation' },
+  { value: 'images', labelKey: 'wizard.stepImages' },
+  { value: 'social', labelKey: 'wizard.stepSocial' },
 ]
 
 export function EditBusinessPage() {
@@ -33,8 +34,9 @@ export function EditBusinessPage() {
   const toast = useToast()
   const navigate = useNavigate()
   const [tab, setTab] = useState('basics')
+  const t = useT()
 
-  useSeo({ title: 'تعديل النشاط | دليل الجنوب', noIndex: true })
+  useSeo({ title: t('edit.seoTitle'), noIndex: true })
 
   const business = useQuery({
     queryKey: queryKeys.myBusiness(id),
@@ -52,32 +54,35 @@ export function EditBusinessPage() {
     onSuccess: (result) => {
       queryClient.setQueryData(queryKeys.myBusiness(id), result)
       invalidate()
-      toast.success('تم حفظ التعديلات')
+      toast.success(t('edit.saved'))
     },
     onError: (error) =>
-      toast.error('تعذر الحفظ', error instanceof ApiError ? error.message : undefined),
+      toast.error(t('edit.saveFailed'), error instanceof ApiError ? error.message : undefined),
   })
 
   const submit = useMutation({
     mutationFn: () => ownerApi.submit(id),
     onSuccess: () => {
       invalidate()
-      toast.success('تم إرسال نشاطك للمراجعة.', 'سنقوم بمراجعته قبل ظهوره في الدليل.')
+      toast.success(t('dashboard.submitted'), t('dashboard.submittedDescription'))
       navigate('/dashboard')
     },
     onError: (error) =>
-      toast.error('لا يمكن الإرسال بعد', error instanceof ApiError ? error.message : undefined),
+      toast.error(
+        t('dashboard.submitBlocked'),
+        error instanceof ApiError ? error.message : undefined,
+      ),
   })
 
   const remove = useMutation({
     mutationFn: () => ownerApi.remove(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.myBusinesses })
-      toast.success('تم حذف النشاط')
+      toast.success(t('edit.deleted'))
       navigate('/dashboard')
     },
     onError: (error) =>
-      toast.error('تعذر الحذف', error instanceof ApiError ? error.message : undefined),
+      toast.error(t('edit.deleteFailed'), error instanceof ApiError ? error.message : undefined),
   })
 
   if (business.isLoading) return <InlineSpinner />
@@ -96,7 +101,7 @@ export function EditBusinessPage() {
     <div className="container-page max-w-3xl py-10">
       <Link to="/dashboard" className="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-clay-600">
         <ArrowRight className="h-4 w-4" aria-hidden="true" />
-        العودة إلى نشاطاتي
+        {t('wizard.backToDashboard')}
       </Link>
 
       <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -107,7 +112,7 @@ export function EditBusinessPage() {
           </div>
           <p className="mt-1.5 text-ink-500">
             <Link to={`/dashboard/businesses/${id}/items`} className="text-clay-600 hover:underline">
-              إدارة المنتجات والخدمات ({data.items.length})
+              {t('edit.manageItemsLink', { count: data.items.length })}
             </Link>
           </p>
         </div>
@@ -115,7 +120,7 @@ export function EditBusinessPage() {
         {canSubmit ? (
           <Button loading={submit.isPending} onClick={() => submit.mutate()}>
             <Send className="h-4 w-4" aria-hidden="true" />
-            إرسال للمراجعة
+            {t('dashboard.submitForReview')}
           </Button>
         ) : null}
       </header>
@@ -124,10 +129,10 @@ export function EditBusinessPage() {
         <div className="mb-6 flex gap-2.5 rounded-xl border-2 border-clay-200 bg-clay-50 p-4">
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-clay-600" aria-hidden="true" />
           <div>
-            <p className="font-semibold text-clay-900">يحتاج إلى تعديل</p>
+            <p className="font-semibold text-clay-900">{t('dashboard.needsChanges')}</p>
             <p className="mt-0.5 leading-relaxed text-clay-700">{data.rejection_reason}</p>
             <p className="mt-2 text-sm text-clay-700">
-              عدّل البيانات المطلوبة ثم اضغط «إرسال للمراجعة» مرة أخرى.
+              {t('edit.rejectionHint')}
             </p>
           </div>
         </div>
@@ -135,7 +140,10 @@ export function EditBusinessPage() {
 
       <Card>
         <Tabs.Root value={tab} onValueChange={setTab}>
-          <Tabs.List className="flex gap-1 overflow-x-auto border-b border-ink-100 p-2" aria-label="أقسام التعديل">
+          <Tabs.List
+            className="flex gap-1 overflow-x-auto border-b border-ink-100 p-2"
+            aria-label={t('edit.tabsAria')}
+          >
             {TABS.map((item) => (
               <Tabs.Trigger
                 key={item.value}
@@ -145,51 +153,64 @@ export function EditBusinessPage() {
                   'data-[state=active]:bg-sand-100 data-[state=active]:text-clay-700',
                 )}
               >
-                {item.label}
+                {t(item.labelKey)}
               </Tabs.Trigger>
             ))}
           </Tabs.List>
 
           <CardBody>
             <Tabs.Content value="basics">
-              <BasicsForm business={data} submitLabel="حفظ التعديلات" pending={update.isPending} onSubmit={(payload) => update.mutate(payload)} />
+              <BasicsForm
+                business={data}
+                submitLabel={t('edit.saveChanges')}
+                pending={update.isPending}
+                onSubmit={(payload) => update.mutate(payload)}
+              />
             </Tabs.Content>
             <Tabs.Content value="location">
-              <LocationForm business={data} submitLabel="حفظ التعديلات" pending={update.isPending} onSubmit={(payload) => update.mutate(payload)} />
+              <LocationForm
+                business={data}
+                submitLabel={t('edit.saveChanges')}
+                pending={update.isPending}
+                onSubmit={(payload) => update.mutate(payload)}
+              />
             </Tabs.Content>
             <Tabs.Content value="images">
               <ImageManager business={data} />
             </Tabs.Content>
             <Tabs.Content value="social">
-              <SocialForm business={data} submitLabel="حفظ التعديلات" pending={update.isPending} onSubmit={(payload) => update.mutate(payload)} />
+              <SocialForm
+                business={data}
+                submitLabel={t('edit.saveChanges')}
+                pending={update.isPending}
+                onSubmit={(payload) => update.mutate(payload)}
+              />
             </Tabs.Content>
           </CardBody>
         </Tabs.Root>
       </Card>
 
       <div className="mt-8 rounded-2xl border-2 border-clay-100 bg-clay-50/50 p-5">
-        <h2 className="font-bold text-clay-900">حذف النشاط</h2>
-        <p className="mt-1 text-sm text-clay-700">
-          سيؤدي الحذف إلى إزالة النشاط وصوره ومنتجاته نهائياً. لا يمكن التراجع عن هذا الإجراء.
-        </p>
+        <h2 className="font-bold text-clay-900">{t('edit.deleteHeading')}</h2>
+        <p className="mt-1 text-sm text-clay-700">{t('edit.deleteBody')}</p>
         <Dialog>
           <DialogTrigger asChild>
             <Button variant="danger" size="sm" className="mt-4">
               <Trash2 className="h-4 w-4" aria-hidden="true" />
-              حذف النشاط
+              {t('edit.deleteHeading')}
             </Button>
           </DialogTrigger>
           <DialogContent
-            title="تأكيد حذف النشاط"
-            description={`سيتم حذف «${data.name}» وكل صوره ومنتجاته نهائياً.`}
+            title={t('edit.deleteConfirmTitle')}
+            description={t('edit.deleteConfirmBody', { name: data.name })}
           >
             <div className="flex gap-3">
               <Button variant="danger" block loading={remove.isPending} onClick={() => remove.mutate()}>
-                نعم، احذف النشاط
+                {t('edit.deleteConfirmAction')}
               </Button>
               <DialogClose asChild>
                 <Button variant="outline" block>
-                  إلغاء
+                  {t('common.cancel')}
                 </Button>
               </DialogClose>
             </div>

@@ -2,6 +2,7 @@ import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
 import { forwardRef } from 'react'
 
+import { useT } from '@/i18n'
 import { cn } from '@/utils/cn'
 
 export const Dialog = DialogPrimitive.Root
@@ -12,6 +13,7 @@ export const DialogContent = forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { title: string; description?: string }
 >(function DialogContent({ className, children, title, description, ...props }, ref) {
+  const t = useT()
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-ink-900/40 backdrop-blur-sm" />
@@ -36,7 +38,7 @@ export const DialogContent = forwardRef<
           </div>
           <DialogPrimitive.Close
             className="rounded-lg p-1.5 text-ink-500 transition-colors hover:bg-sand-100 hover:text-ink-900"
-            aria-label="إغلاق"
+            aria-label={t('common.close')}
           >
             <X className="h-5 w-5" aria-hidden="true" />
           </DialogPrimitive.Close>

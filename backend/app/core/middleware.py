@@ -11,6 +11,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
+from app.core.i18n import current_locale, resolve_locale
 from app.core.logging import request_id_var
 
 logger = logging.getLogger("app.access")
@@ -24,6 +25,12 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: Handler) -> Response:
         request_id = request.headers.get("x-request-id") or uuid.uuid4().hex
         token = request_id_var.set(request_id)
+        # Held in a context variable so services deep in the stack can translate
+        # without every function signature growing a locale argument. Starlette
+        # copies the context into the threadpool that runs sync endpoints.
+        locale_token = current_locale.set(
+            resolve_locale(request.headers.get("accept-language"))
+        )
         started = time.perf_counter()
 
         try:
@@ -37,6 +44,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
             )
             raise
         finally:
+            current_locale.reset(locale_token)
             request_id_var.reset(token)
 
         duration_ms = (time.perf_counter() - started) * 1000

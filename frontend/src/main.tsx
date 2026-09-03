@@ -7,6 +7,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { App } from '@/App'
 import { ToastProvider } from '@/components/ui/Toast'
 import { AuthProvider } from '@/features/auth/AuthContext'
+import { I18nProvider } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import '@/index.css'
 
@@ -29,18 +30,20 @@ if (!container) throw new Error('Root element #root was not found')
 
 createRoot(container).render(
   <StrictMode>
-    {/* DirectionProvider tells Radix primitives which way the UI runs, so
-        popovers, selects and swipes behave correctly in RTL. */}
-    <DirectionProvider dir="rtl">
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <AuthProvider>
-            <ToastProvider>
-              <App />
-            </ToastProvider>
-          </AuthProvider>
-        </BrowserRouter>
-      </QueryClientProvider>
-    </DirectionProvider>
+    <I18nProvider>
+      {/* DirectionProvider tells Radix primitives which way the UI runs, so
+          popovers, selects and swipes behave correctly in RTL. */}
+      <DirectionProvider dir="rtl">
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <AuthProvider>
+              <ToastProvider>
+                <App />
+              </ToastProvider>
+            </AuthProvider>
+          </BrowserRouter>
+        </QueryClientProvider>
+      </DirectionProvider>
+    </I18nProvider>
   </StrictMode>,
 )

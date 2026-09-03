@@ -11,6 +11,7 @@ from __future__ import annotations
 from urllib.parse import urlparse, urlunparse
 
 from app.core.errors import ValidationError
+from app.core.i18n import LazyText
 from app.models.enums import SocialPlatform
 
 _ALLOWED_SCHEMES = {"http", "https"}
@@ -26,14 +27,19 @@ PLATFORM_HOSTS: dict[SocialPlatform, frozenset[str]] = {
     SocialPlatform.WEBSITE: frozenset(),  # any host is legitimate here
 }
 
-PLATFORM_LABELS_AR: dict[SocialPlatform, str] = {
-    SocialPlatform.INSTAGRAM: "إنستغرام",
-    SocialPlatform.FACEBOOK: "فيسبوك",
-    SocialPlatform.TIKTOK: "تيك توك",
-    SocialPlatform.YOUTUBE: "يوتيوب",
-    SocialPlatform.WHATSAPP: "واتساب",
-    SocialPlatform.WEBSITE: "الموقع الإلكتروني",
+PLATFORM_LABEL_KEYS: dict[SocialPlatform, str] = {
+    SocialPlatform.INSTAGRAM: "platform.instagram",
+    SocialPlatform.FACEBOOK: "platform.facebook",
+    SocialPlatform.TIKTOK: "platform.tiktok",
+    SocialPlatform.YOUTUBE: "platform.youtube",
+    SocialPlatform.WHATSAPP: "platform.whatsapp",
+    SocialPlatform.WEBSITE: "platform.website",
 }
+
+
+def platform_label(platform: SocialPlatform) -> LazyText:
+    """The platform's name, translated when the response is rendered."""
+    return LazyText(PLATFORM_LABEL_KEYS.get(platform, "url.field.generic"))
 
 
 def _base_host(host: str) -> str:
@@ -41,11 +47,12 @@ def _base_host(host: str) -> str:
     return host
 
 
-def normalize_url(raw: str, *, field: str = "الرابط") -> str:
+def normalize_url(raw: str, *, field: LazyText | None = None) -> str:
     """Return a safe absolute URL, adding https:// when the scheme is missing."""
+    field = field or LazyText("url.field.generic")
     value = (raw or "").strip()
     if not value:
-        raise ValidationError(f"{field} مطلوب.", code="invalid_url")
+        raise ValidationError("url.required", code="invalid_url", params={"field": field})
 
     if "://" not in value:
         value = f"https://{value}"
@@ -53,10 +60,10 @@ def normalize_url(raw: str, *, field: str = "الرابط") -> str:
     parsed = urlparse(value)
     if parsed.scheme.lower() not in _ALLOWED_SCHEMES:
         raise ValidationError(
-            f"{field} يجب أن يبدأ بـ http أو https.", code="invalid_url_scheme"
+            "url.invalid_scheme", code="invalid_url_scheme", params={"field": field}
         )
     if not parsed.netloc or "." not in parsed.netloc:
-        raise ValidationError(f"{field} غير صالح.", code="invalid_url")
+        raise ValidationError("url.invalid", code="invalid_url", params={"field": field})
 
     # Drop any credentials embedded in the URL.
     netloc = parsed.netloc.split("@")[-1]
@@ -66,8 +73,8 @@ def normalize_url(raw: str, *, field: str = "الرابط") -> str:
 
 
 def normalize_social_url(platform: SocialPlatform, raw: str) -> str:
-    label = PLATFORM_LABELS_AR.get(platform, "الرابط")
-    url = normalize_url(raw, field=f"رابط {label}")
+    label = platform_label(platform)
+    url = normalize_url(raw, field=LazyText("url.field.social", {"platform": label}))
 
     allowed = PLATFORM_HOSTS.get(platform, frozenset())
     if not allowed:
@@ -76,10 +83,12 @@ def normalize_social_url(platform: SocialPlatform, raw: str) -> str:
     host = _base_host(urlparse(url).netloc.split(":")[0])
     if host not in allowed and not any(host.endswith(f".{item}") for item in allowed):
         raise ValidationError(
-            f"رابط {label} يجب أن يكون من موقع {label}.", code="invalid_social_host"
+            "url.invalid_social_host",
+            code="invalid_social_host",
+            params={"platform": label},
         )
     return url
 
 
 def normalize_maps_url(raw: str) -> str:
-    return normalize_url(raw, field="رابط الخريطة")
+    return normalize_url(raw, field=LazyText("url.field.maps"))

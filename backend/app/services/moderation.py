@@ -14,6 +14,7 @@ from datetime import UTC, datetime
 from sqlalchemy.orm import Session
 
 from app.core.errors import ConflictError
+from app.core.i18n import LazyText
 from app.models.business import Business, ModerationAction
 from app.models.enums import BusinessStatus, ModerationActionType
 from app.models.user import User
@@ -32,12 +33,12 @@ TRANSITIONS: dict[ModerationActionType, tuple[frozenset[BusinessStatus], Busines
     A.REACTIVATE: (frozenset({S.SUSPENDED}), S.APPROVED),
 }
 
-STATUS_LABELS_AR: dict[BusinessStatus, str] = {
-    S.DRAFT: "مسودة",
-    S.PENDING_REVIEW: "قيد المراجعة",
-    S.APPROVED: "مقبول",
-    S.REJECTED: "يحتاج إلى تعديل",
-    S.SUSPENDED: "موقوف",
+STATUS_LABEL_KEYS: dict[BusinessStatus, str] = {
+    S.DRAFT: "status.draft",
+    S.PENDING_REVIEW: "status.pending_review",
+    S.APPROVED: "status.approved",
+    S.REJECTED: "status.rejected",
+    S.SUSPENDED: "status.suspended",
 }
 
 
@@ -56,9 +57,10 @@ class ModerationService:
         allowed_from, target = TRANSITIONS[action]
         if business.status not in allowed_from:
             raise ConflictError(
-                f"لا يمكن تنفيذ هذا الإجراء والنشاط في حالة «{STATUS_LABELS_AR[business.status]}».",
+                "moderation.invalid_transition",
                 code="invalid_status_transition",
                 details={"current_status": business.status.value, "action": action.value},
+                params={"status": LazyText(STATUS_LABEL_KEYS[business.status])},
             )
 
         previous = business.status

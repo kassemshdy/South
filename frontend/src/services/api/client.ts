@@ -5,6 +5,7 @@
  * envelope and network-failure handling exist in exactly one place.
  */
 
+import { DEFAULT_LOCALE, translate } from '@/i18n'
 import type { ApiErrorPayload } from '@/types/api'
 
 const TOKEN_STORAGE_KEY = 'south.auth.token'
@@ -104,7 +105,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     })
   } catch (cause) {
     if (cause instanceof DOMException && cause.name === 'AbortError') throw cause
-    throw new ApiError(0, null, 'تعذر الاتصال بالخادم. تحقق من اتصالك بالإنترنت.')
+    throw new ApiError(0, null, translate(DEFAULT_LOCALE, 'api.networkError'))
   }
 
   if (response.status === 204) return undefined as T
@@ -116,7 +117,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     const error = new ApiError(
       response.status,
       isJson ? (payload as ApiErrorPayload) : null,
-      'حدث خطأ غير متوقع.',
+      translate(DEFAULT_LOCALE, 'api.unexpectedError'),
     )
     if (error.isUnauthorized) {
       tokenStorage.clear()

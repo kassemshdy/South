@@ -37,11 +37,11 @@ def request_otp(
     service = AuthService(db, settings, provider)
     ttl, debug_code = service.request_otp(payload.phone_number, client_ip=client_ip)
 
-    # Second guard on top of the provider's: the development code is only ever
-    # returned to the client while running in development.
+    # Second guard on top of the provider's: the fixed code is only ever
+    # returned to the client in environments that permit a mock provider.
     return RequestOtpOut(
         expires_in_seconds=ttl,
-        debug_code=debug_code if settings.is_development else None,
+        debug_code=debug_code if settings.allows_mock_otp else None,
     )
 
 

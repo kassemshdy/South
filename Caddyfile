@@ -6,10 +6,6 @@
 	@media path /media/*
 	header @media Cache-Control "public, max-age=31536000, immutable"
 
-	# Hashed build assets are equally safe to cache forever.
-	@assets path /assets/*
-	header @assets Cache-Control "public, max-age=31536000, immutable"
-
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options "nosniff"
@@ -17,5 +13,6 @@
 		-Server
 	}
 
-	reverse_proxy app:8000
+	# The web service serves the SPA and proxies API paths onward.
+	reverse_proxy web:8080
 }

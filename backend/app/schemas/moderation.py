@@ -5,6 +5,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.core.i18n import translate
 from app.models.enums import BusinessStatus, ModerationActionType, UserRole
 from app.schemas.business import OwnerBusinessOut
 from app.schemas.common import ORMModel
@@ -27,7 +28,7 @@ class RejectIn(BaseModel):
     def _strip(cls, value: str) -> str:
         cleaned = value.strip()
         if len(cleaned) < 5:
-            raise ValueError("يرجى كتابة سبب واضح للرفض.")
+            raise ValueError(translate("moderation.reject_reason_required"))
         return cleaned
 
 

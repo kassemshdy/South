@@ -10,16 +10,17 @@ import { ErrorState, NoSearchResults } from '@/components/ui/States'
 import { BusinessCard } from '@/features/businesses/BusinessCard'
 import { Pagination } from '@/features/businesses/Pagination'
 import { useCategories, useLocationGroups } from '@/hooks/useTaxonomy'
+import { useT, type TranslationKey } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
 import { publicBusinessApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { SortOption } from '@/types/api'
 
 const ALL = '__all__'
-const SORT_LABELS: Record<SortOption, string> = {
-  newest: 'الأحدث',
-  name: 'الاسم',
-  oldest: 'الأقدم',
+const SORT_KEYS: Record<SortOption, TranslationKey> = {
+  newest: 'directory.sortNewest',
+  name: 'directory.sortName',
+  oldest: 'directory.sortOldest',
 }
 
 export function DirectoryPage() {
@@ -35,12 +36,13 @@ export function DirectoryPage() {
   // keeps searches shareable and back/forward working.
   const [searchInput, setSearchInput] = useState(q)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const t = useT()
 
   useEffect(() => setSearchInput(q), [q])
 
   useSeo({
-    title: q ? `نتائج البحث عن «${q}» | دليل الجنوب` : 'دليل الأعمال | دليل الجنوب',
-    description: 'ابحث في نشاطات جنوب لبنان حسب التصنيف والموقع.',
+    title: q ? t('directory.seoSearchTitle', { query: q }) : t('directory.seoTitle'),
+    description: t('directory.seoDescription'),
     canonicalPath: '/businesses',
   })
 
@@ -82,11 +84,11 @@ export function DirectoryPage() {
   return (
     <div className="container-page py-10">
       <header className="mb-8">
-        <h1 className="text-3xl">دليل الأعمال</h1>
+        <h1 className="text-3xl">{t('directory.heading')}</h1>
         <p className="mt-2 text-ink-500">
           {results.data
-            ? `${results.data.meta.total} نشاط منشور`
-            : 'ابحث وصفّي حسب التصنيف والموقع.'}
+            ? t('directory.resultCount', { count: results.data.meta.total })
+            : t('directory.introFallback')}
         </p>
       </header>
 
@@ -99,7 +101,7 @@ export function DirectoryPage() {
         className="mb-4 flex gap-2"
       >
         <label htmlFor="directory-search" className="sr-only">
-          ابحث عن نشاط
+          {t('directory.searchLabel')}
         </label>
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute inset-y-0 start-4 my-auto h-5 w-5 text-ink-300" aria-hidden="true" />
@@ -108,11 +110,11 @@ export function DirectoryPage() {
             type="search"
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="ابحث عن مطعم، محل، خدمة…"
+            placeholder={t('home.searchPlaceholder')}
             className="h-12 w-full rounded-xl border-2 border-ink-100 bg-white ps-12 pe-4 text-[15px] placeholder:text-ink-300 focus:border-clay-400 focus:outline-none focus:ring-2 focus:ring-clay-500/20"
           />
         </div>
-        <Button type="submit">ابحث</Button>
+        <Button type="submit">{t('common.search')}</Button>
         <Button
           type="button"
           variant="outline"
@@ -120,7 +122,7 @@ export function DirectoryPage() {
           className="sm:hidden"
           onClick={() => setFiltersOpen((open) => !open)}
           aria-expanded={filtersOpen}
-          aria-label="عوامل التصفية"
+          aria-label={t('directory.filtersAria')}
         >
           <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
         </Button>
@@ -129,20 +131,23 @@ export function DirectoryPage() {
       <div className={`mb-6 grid gap-3 sm:grid-cols-3 ${filtersOpen ? 'grid' : 'hidden sm:grid'}`}>
         <div>
           <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="filter-category">
-            التصنيف
+            {t('directory.category')}
           </label>
           <Select
             value={category || ALL}
             onValueChange={(value) => updateParams({ category: value === ALL ? '' : value })}
           >
             <SelectTrigger aria-labelledby="filter-category">
-              <SelectValue placeholder="كل التصنيفات" />
+              <SelectValue placeholder={t('directory.allCategories')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL}>كل التصنيفات</SelectItem>
+              <SelectItem value={ALL}>{t('directory.allCategories')}</SelectItem>
               {categories.data?.map((item) => (
                 <SelectItem key={item.id} value={item.slug}>
-                  {item.name_ar} ({item.business_count})
+                  {t('directory.categoryWithCount', {
+                    name: item.name_ar,
+                    count: item.business_count,
+                  })}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -151,17 +156,17 @@ export function DirectoryPage() {
 
         <div>
           <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="filter-location">
-            الموقع
+            {t('directory.location')}
           </label>
           <Select
             value={location || ALL}
             onValueChange={(value) => updateParams({ location: value === ALL ? '' : value })}
           >
             <SelectTrigger aria-labelledby="filter-location">
-              <SelectValue placeholder="كل المناطق" />
+              <SelectValue placeholder={t('directory.allLocations')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL}>كل المناطق</SelectItem>
+              <SelectItem value={ALL}>{t('directory.allLocations')}</SelectItem>
               {groups.map(({ district, towns }) => [
                 <SelectItem key={district.id} value={district.slug}>
                   {district.name_ar}
@@ -179,16 +184,16 @@ export function DirectoryPage() {
 
         <div>
           <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="filter-sort">
-            الترتيب
+            {t('directory.sort')}
           </label>
           <Select value={sort} onValueChange={(value) => updateParams({ sort: value })}>
             <SelectTrigger aria-labelledby="filter-sort">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {(Object.keys(SORT_LABELS) as SortOption[]).map((option) => (
+              {(Object.keys(SORT_KEYS) as SortOption[]).map((option) => (
                 <SelectItem key={option} value={option}>
-                  {SORT_LABELS[option]}
+                  {t(SORT_KEYS[option])}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -200,7 +205,7 @@ export function DirectoryPage() {
         <div className="mb-6">
           <Button variant="ghost" size="sm" onClick={resetFilters}>
             <X className="h-4 w-4" aria-hidden="true" />
-            إزالة عوامل التصفية
+            {t('states.clearFilters')}
           </Button>
         </div>
       ) : null}

@@ -6,6 +6,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
+from app.core.i18n import translate
 from app.core.phone import normalize_phone
 from app.models.enums import BusinessStatus, ImageKind, SocialPlatform
 from app.schemas.common import ORMModel
@@ -101,7 +102,7 @@ class BusinessCreateIn(BaseModel):
     def _strip_name(cls, value: str) -> str:
         cleaned = " ".join(value.split())
         if len(cleaned) < 2:
-            raise ValueError("اسم النشاط قصير جداً.")
+            raise ValueError(translate("business.name_too_short"))
         return cleaned
 
     @field_validator("phone", "whatsapp")

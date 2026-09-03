@@ -28,7 +28,7 @@ class LocalDiskStorage:
         # media root via ".." segments.
         candidate = (self._root / key).resolve()
         if not candidate.is_relative_to(self._root):
-            raise ValidationError("مسار الملف غير صالح.", code="invalid_storage_key")
+            raise ValidationError("image.invalid_storage_key", code="invalid_storage_key")
         return candidate
 
     def save(self, *, key: str, data: bytes, content_type: str) -> StoredFile:

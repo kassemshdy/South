@@ -28,6 +28,7 @@ from sqlalchemy import delete, select
 
 from app.core.arabic import build_search_text
 from app.core.config import get_settings
+from app.core.i18n import translate
 from app.core.logging import configure_logging
 from app.core.phone import normalize_phone
 from app.core.security import hash_password
@@ -148,7 +149,8 @@ def seed_admin(db) -> User | None:  # type: ignore[no-untyped-def]
         admin = User(
             email=email,
             password_hash=hash_password(settings.admin_password),
-            display_name=settings.admin_display_name,
+            display_name=settings.admin_display_name
+            or translate("admin.default_display_name"),
             role=UserRole.ADMIN,
         )
         db.add(admin)
@@ -274,7 +276,7 @@ def seed_businesses(db, categories, locations, admin) -> int:  # type: ignore[no
             " ".join(item.title for item in business.items),
         )
 
-        _seed_moderation_history(db, business, admin)
+        _seed_moderation_history(db, business, admin, entry.get("suspension_reason"))
         created += 1
 
     db.flush()
@@ -282,7 +284,12 @@ def seed_businesses(db, categories, locations, admin) -> int:  # type: ignore[no
     return created
 
 
-def _seed_moderation_history(db, business: Business, admin: User | None) -> None:  # type: ignore[no-untyped-def]
+def _seed_moderation_history(
+    db,  # type: ignore[no-untyped-def]
+    business: Business,
+    admin: User | None,
+    suspension_reason: str | None = None,
+) -> None:
     """Recreate the audit trail that would have produced this status."""
     trail: list[tuple[ModerationActionType, BusinessStatus, BusinessStatus, str | None]] = []
     if business.status is not BusinessStatus.DRAFT:
@@ -295,7 +302,14 @@ def _seed_moderation_history(db, business: Business, admin: User | None) -> None
         )
     elif business.status is BusinessStatus.SUSPENDED:
         trail.append((ModerationActionType.APPROVE, BusinessStatus.PENDING_REVIEW, BusinessStatus.APPROVED, None))
-        trail.append((ModerationActionType.SUSPEND, BusinessStatus.APPROVED, BusinessStatus.SUSPENDED, "مخالفة شروط النشر"))
+        trail.append(
+            (
+                ModerationActionType.SUSPEND,
+                BusinessStatus.APPROVED,
+                BusinessStatus.SUSPENDED,
+                suspension_reason,
+            )
+        )
 
     for action, from_status, to_status, reason in trail:
         is_admin_action = action is not ModerationActionType.SUBMIT
@@ -359,7 +373,7 @@ def main() -> int:
             if admin is None:
                 logger.error("ADMIN_EMAIL and ADMIN_PASSWORD must both be set")
                 return 1
-            print(f"\n✅ حساب المشرف جاهز: {settings.admin_email}\n")
+            print(f"\nAdministrator ready: {settings.admin_email}\n")
             return 0
 
         if args.reset:
@@ -369,10 +383,10 @@ def main() -> int:
         admin = seed_admin(db)
         seed_businesses(db, categories, locations, admin)
 
-    print("\n✅ تم تجهيز بيانات التطوير.")
+    print("\nDevelopment data ready.")
     if settings.admin_email:
-        print(f"   لوحة الإدارة: {settings.admin_email} / (ADMIN_PASSWORD من ملف .env)")
-    print(f"   رمز التحقق في وضع التطوير: {settings.dev_fixed_otp_code}\n")
+        print(f"   Admin panel: {settings.admin_email} / (ADMIN_PASSWORD from .env)")
+    print(f"   Development OTP code: {settings.dev_fixed_otp_code}\n")
     return 0
 
 

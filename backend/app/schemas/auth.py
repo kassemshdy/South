@@ -5,6 +5,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
+from app.core.i18n import translate
 from app.core.phone import normalize_phone
 from app.models.enums import UserRole
 from app.schemas.common import ORMModel
@@ -20,7 +21,7 @@ class RequestOtpIn(BaseModel):
 
 
 class RequestOtpOut(BaseModel):
-    message: str = "تم إرسال رمز التحقق."
+    message: str = Field(default_factory=lambda: translate("auth.otp.sent"))
     expires_in_seconds: int
     # Present only in development so the flow is testable without an SMS gateway.
     debug_code: str | None = None
@@ -40,7 +41,7 @@ class VerifyOtpIn(BaseModel):
     def _digits_only(cls, value: str) -> str:
         cleaned = value.strip()
         if not cleaned.isdigit():
-            raise ValueError("رمز التحقق يجب أن يتكون من أرقام فقط.")
+            raise ValueError(translate("auth.otp.digits_only"))
         return cleaned
 
 

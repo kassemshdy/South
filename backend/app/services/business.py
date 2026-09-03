@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.arabic import build_search_text
 from app.core.errors import ConflictError, NotFoundError, ValidationError
+from app.core.i18n import LazyJoin
 from app.core.urls import normalize_maps_url, normalize_social_url, normalize_url
 from app.models.business import Business, BusinessSocialLink
 from app.models.enums import BusinessStatus, ImageKind
@@ -24,10 +25,10 @@ logger = logging.getLogger(__name__)
 # than in the schema because they are required *at submission*, not at save:
 # the wizard deliberately allows saving an incomplete draft.
 SUBMISSION_REQUIREMENTS: tuple[tuple[str, str], ...] = (
-    ("name", "اسم النشاط"),
-    ("short_description", "وصف مختصر"),
-    ("category_id", "التصنيف"),
-    ("location_id", "الموقع"),
+    ("name", "business.field.name"),
+    ("short_description", "business.field.short_description"),
+    ("category_id", "business.field.category"),
+    ("location_id", "business.field.location"),
 )
 
 
@@ -121,28 +122,32 @@ class BusinessService:
     # --- Submission readiness ---------------------------------------------
 
     def missing_requirements(self, business: Business) -> list[str]:
+        """Translation keys for the fields still needed before review.
+
+        Keys rather than text: the caller renders them in the reader's locale.
+        """
         missing = [
-            label
-            for field, label in SUBMISSION_REQUIREMENTS
+            key
+            for field, key in SUBMISSION_REQUIREMENTS
             if not getattr(business, field, None)
         ]
         has_logo = business.logo_url or any(
             image.kind is ImageKind.LOGO for image in business.images
         )
         if not has_logo:
-            missing.append("شعار النشاط")
+            missing.append("business.field.logo")
         if not (business.phone or business.whatsapp):
-            missing.append("رقم هاتف أو واتساب للتواصل")
+            missing.append("business.field.contact")
         return missing
 
     def assert_ready_for_review(self, business: Business) -> None:
         missing = self.missing_requirements(business)
         if missing:
             raise ValidationError(
-                "لا يمكن إرسال النشاط للمراجعة قبل إكمال البيانات التالية: "
-                + "، ".join(missing),
+                "business.incomplete",
                 code="incomplete_business",
                 details={"missing": missing},
+                params={"missing": LazyJoin(tuple(missing))},
             )
 
     # --- internals ---------------------------------------------------------
@@ -150,16 +155,16 @@ class BusinessService:
     def _reload(self, business_id: uuid.UUID) -> Business:
         business = self._repo.get_with_relations(business_id)
         if business is None:  # pragma: no cover - only on concurrent deletion
-            raise NotFoundError("النشاط غير موجود.")
+            raise NotFoundError("business.not_found")
         return business
 
     def _validate_taxonomy(
         self, category_id: uuid.UUID | None, location_id: uuid.UUID | None
     ) -> None:
         if category_id is not None and self._categories.get(category_id) is None:
-            raise ValidationError("التصنيف المحدد غير موجود.", code="unknown_category")
+            raise ValidationError("business.unknown_category", code="unknown_category")
         if location_id is not None and self._locations.get(location_id) is None:
-            raise ValidationError("الموقع المحدد غير موجود.", code="unknown_location")
+            raise ValidationError("business.unknown_location", code="unknown_location")
 
     def _replace_social_links(self, business: Business, links: list[SocialLinkIn]) -> None:
         seen: set[str] = set()
@@ -170,7 +175,7 @@ class BusinessService:
                 continue
             if link.platform.value in seen:
                 raise ConflictError(
-                    "لا يمكن إضافة أكثر من رابط واحد لنفس المنصة.",
+                    "business.duplicate_social_platform",
                     code="duplicate_social_platform",
                 )
             seen.add(link.platform.value)

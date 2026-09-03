@@ -11,13 +11,19 @@ from app.models.business import Business
 from app.models.enums import BusinessStatus, LocationType
 from app.models.taxonomy import Category, Location
 from tests.conftest import sign_in
+from tests.samples import ar
 
 
 @pytest.fixture
 def published(client: TestClient, db: Session, category: Category, location: Location) -> None:
     """Two approved businesses plus a town nested under the seeded district."""
-    town = Location(name_ar="قانا", slug="qana-test", type=LocationType.TOWN, parent_id=location.id)
-    other_category = Category(name_ar="حلويات", slug="sweets-test", sort_order=2)
+    town = Location(
+        name_ar=ar("location.qana"),
+        slug="qana-test",
+        type=LocationType.TOWN,
+        parent_id=location.id,
+    )
+    other_category = Category(name_ar=ar("category.sweets"), slug="sweets-test", sort_order=2)
     db.add_all([town, other_category])
     db.commit()
 
@@ -27,8 +33,8 @@ def published(client: TestClient, db: Session, category: Category, location: Loc
         "/api/businesses",
         headers=headers,
         json={
-            "name": "مناقيش الضيعة",
-            "short_description": "مناقيش وفطائر على الصاج",
+            "name": ar("business.manakish"),
+            "short_description": ar("business.manakish_short_long"),
             "category_id": str(category.id),
             "location_id": str(town.id),
         },
@@ -36,15 +42,15 @@ def published(client: TestClient, db: Session, category: Category, location: Loc
     client.post(
         f"/api/businesses/{first['id']}/items",
         headers=headers,
-        json={"title": "زعتر بلدي", "price": "1.50", "currency": "USD"},
+        json={"title": ar("item.zaatar_local"), "price": "1.50", "currency": "USD"},
     )
 
     second = client.post(
         "/api/businesses",
         headers=headers,
         json={
-            "name": "حلويات أبو علي",
-            "short_description": "كنافة وبقلاوة",
+            "name": ar("business.sweets_shop"),
+            "short_description": ar("business.sweets_short"),
             "category_id": str(other_category.id),
             "location_id": str(location.id),
         },
@@ -58,24 +64,29 @@ def published(client: TestClient, db: Session, category: Category, location: Loc
 
 
 def test_search_matches_the_business_name(client: TestClient, published: None) -> None:
-    results = client.get("/api/businesses", params={"q": "مناقيش"}).json()
-    assert [item["name"] for item in results["items"]] == ["مناقيش الضيعة"]
+    results = client.get("/api/businesses", params={"q": ar("search.manakish")}).json()
+    assert [item["name"] for item in results["items"]] == [ar("business.manakish")]
 
 
 def test_search_matches_the_description(client: TestClient, published: None) -> None:
-    results = client.get("/api/businesses", params={"q": "كنافة"}).json()
-    assert [item["name"] for item in results["items"]] == ["حلويات أبو علي"]
+    results = client.get("/api/businesses", params={"q": ar("search.kunafa")}).json()
+    assert [item["name"] for item in results["items"]] == [ar("business.sweets_shop")]
 
 
 def test_search_matches_item_titles(client: TestClient, published: None) -> None:
     """Searching for a product finds the shop that sells it."""
-    results = client.get("/api/businesses", params={"q": "زعتر"}).json()
-    assert [item["name"] for item in results["items"]] == ["مناقيش الضيعة"]
+    results = client.get("/api/businesses", params={"q": ar("item.zaatar")}).json()
+    assert [item["name"] for item in results["items"]] == [ar("business.manakish")]
 
 
 def test_search_ignores_arabic_spelling_variance(client: TestClient, published: None) -> None:
-    """حلويّات / حلويات and أبو / ابو must all find the same business."""
-    for query in ("حلويات", "حلويّات", "ابو علي", "أبو علي"):
+    """Spelling variants (shadda, hamza) must all find the same business."""
+    for query in (
+        ar("search.sweets"),
+        ar("search.sweets_with_shadda"),
+        ar("search.abu_ali_plain"),
+        ar("search.abu_ali_hamza"),
+    ):
         results = client.get("/api/businesses", params={"q": query}).json()
         assert results["meta"]["total"] == 1, query
 
@@ -84,10 +95,10 @@ def test_category_and_location_filters_combine(
     client: TestClient, published: None
 ) -> None:
     both = client.get(
-        "/api/businesses", params={"category": "sweets-test", "q": "كنافة"}
+        "/api/businesses", params={"category": "sweets-test", "q": ar("search.kunafa")}
     ).json()
     contradictory = client.get(
-        "/api/businesses", params={"category": "sweets-test", "q": "مناقيش"}
+        "/api/businesses", params={"category": "sweets-test", "q": ar("search.manakish")}
     ).json()
 
     assert both["meta"]["total"] == 1
@@ -97,12 +108,12 @@ def test_category_and_location_filters_combine(
 def test_filtering_by_district_includes_its_towns(
     client: TestClient, published: None, location: Location
 ) -> None:
-    """A business in قانا must appear when filtering by صور, its district."""
+    """A business in a town must appear when filtering by its district."""
     results = client.get("/api/businesses", params={"location": location.slug}).json()
     names = {item["name"] for item in results["items"]}
 
-    assert "مناقيش الضيعة" in names  # in the town
-    assert "حلويات أبو علي" in names  # directly in the district
+    assert ar("business.manakish") in names  # in the town
+    assert ar("business.sweets_shop") in names  # directly in the district
 
 
 def test_sorting_by_name(client: TestClient, published: None) -> None:
@@ -122,14 +133,14 @@ def test_pagination_metadata(client: TestClient, published: None) -> None:
 
 
 def test_no_results_returns_an_empty_page_not_an_error(client: TestClient, published: None) -> None:
-    results = client.get("/api/businesses", params={"q": "لا يوجد شيء بهذا الاسم"})
+    results = client.get("/api/businesses", params={"q": ar("search.no_match")})
     assert results.status_code == 200
     assert results.json()["items"] == []
 
 
 def test_public_payload_excludes_private_fields(client: TestClient, published: None) -> None:
     """Owner phone and moderation state must never reach a visitor."""
-    listing = client.get("/api/businesses", params={"q": "مناقيش"}).json()
+    listing = client.get("/api/businesses", params={"q": ar("search.manakish")}).json()
     slug = listing["items"][0]["slug"]
     profile = client.get(f"/api/businesses/{slug}").json()
 
@@ -152,19 +163,26 @@ def test_robots_disallows_private_areas(client: TestClient) -> None:
 
 
 @pytest.mark.parametrize(
-    ("raw", "expected"),
+    ("raw_key", "expected_key"),
     [
-        ("مَنَاقيشُ الضَّيْعَة", "مناقيش الضيعه"),
-        ("حلويّات", "حلويات"),
-        ("أحمد", "احمد"),
-        ("إبراهيم", "ابراهيم"),
-        ("مصطفى", "مصطفي"),
-        ("", ""),
+        ("normalize.manakish_diacritics", "normalize.manakish_expected"),
+        ("normalize.sweets_shadda", "normalize.sweets_expected"),
+        ("normalize.ahmad_hamza", "normalize.ahmad_expected"),
+        ("normalize.ibrahim_hamza", "normalize.ibrahim_expected"),
+        ("normalize.mustafa_maksura", "normalize.mustafa_expected"),
     ],
 )
-def test_arabic_normalization(raw: str, expected: str) -> None:
-    assert normalize_arabic(raw) == expected
+def test_arabic_normalization(raw_key: str, expected_key: str) -> None:
+    assert normalize_arabic(ar(raw_key)) == ar(expected_key)
+
+
+def test_arabic_normalization_of_empty_input() -> None:
+    assert normalize_arabic("") == ""
+    assert normalize_arabic(None) == ""
 
 
 def test_build_search_text_skips_empty_parts() -> None:
-    assert build_search_text("مطعم", None, "", "صور") == "مطعم صور"
+    assert (
+        build_search_text(ar("normalize.restaurant"), None, "", ar("location.tyre"))
+        == ar("normalize.restaurant_and_city")
+    )

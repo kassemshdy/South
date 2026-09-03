@@ -9,6 +9,7 @@ from fastapi import APIRouter, Path, Query, status
 from app.api.serializers import business_detail, business_summary, owner_business, paginate
 from app.core.dependencies import CurrentUser, DbSession, OwnedBusiness
 from app.core.errors import NotFoundError
+from app.core.i18n import translate
 from app.core.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from app.repositories.business import BusinessRepository
 from app.schemas.business import (
@@ -32,9 +33,9 @@ owner_router = APIRouter(tags=["my-businesses"])
 @public_router.get("/businesses", response_model=PaginatedResponse[BusinessSummaryOut])
 def search_businesses(
     db: DbSession,
-    q: Annotated[str | None, Query(max_length=120, description="نص البحث")] = None,
-    category: Annotated[str | None, Query(description="slug التصنيف")] = None,
-    location: Annotated[str | None, Query(description="slug الموقع")] = None,
+    q: Annotated[str | None, Query(max_length=120, description="Free-text search query")] = None,
+    category: Annotated[str | None, Query(description="Category slug")] = None,
+    location: Annotated[str | None, Query(description="Location slug")] = None,
     sort: Annotated[Literal["newest", "name", "oldest"], Query()] = "newest",
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
@@ -66,7 +67,7 @@ def latest_businesses(
 def get_business(slug: Annotated[str, Path(max_length=200)], db: DbSession) -> BusinessDetailOut:
     business = BusinessRepository(db).get_by_slug(slug, public_only=True)
     if business is None:
-        raise NotFoundError("هذا النشاط غير متوفر أو لم تتم الموافقة عليه بعد.")
+        raise NotFoundError("business.not_public")
     return business_detail(business)
 
 
@@ -108,7 +109,7 @@ def update_business(
 @owner_router.delete("/businesses/{business_id}", response_model=MessageResponse)
 def delete_business(business: OwnedBusiness, db: DbSession) -> MessageResponse:
     BusinessService(db).delete(business)
-    return MessageResponse(message="تم حذف النشاط.")
+    return MessageResponse(message=translate("business.deleted"))
 
 
 @owner_router.post("/businesses/{business_id}/submit", response_model=OwnerBusinessOut)

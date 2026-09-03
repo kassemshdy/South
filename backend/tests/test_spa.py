@@ -9,11 +9,13 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings, get_settings
+from app.core.i18n import translate
 from app.main import create_app
 from app.models.business import Business
 from app.models.enums import BusinessStatus
 from app.models.taxonomy import Category, Location
 from tests.conftest import sign_in
+from tests.samples import ar
 
 DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 
@@ -42,8 +44,8 @@ def approved_slug(
         "/api/businesses",
         headers=headers,
         json={
-            "name": "مطعم الاختبار",
-            "short_description": "وصف قصير للاختبار",
+            "name": ar("business.seo_name"),
+            "short_description": ar("business.seo_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
         },
@@ -63,9 +65,17 @@ def test_business_url_gets_server_rendered_seo_tags(
     in the HTML the server sends."""
     html = spa_client.get(f"/business/{approved_slug}").text
 
-    assert "<title>مطعم الاختبار في صور | دليل الجنوب</title>" in html
-    assert 'property="og:title" content="مطعم الاختبار في صور | دليل الجنوب"' in html
-    assert 'property="og:description" content="وصف قصير للاختبار"' in html
+    expected_title = translate(
+        "seo.business.title_with_location",
+        "ar",
+        name=ar("business.seo_name"),
+        location=ar("location.tyre"),
+        site=translate("app.name", "ar"),
+    )
+
+    assert f"<title>{expected_title}</title>" in html
+    assert f'property="og:title" content="{expected_title}"' in html
+    assert f'property="og:description" content="{ar("business.seo_short")}"' in html
     assert 'rel="canonical"' in html
 
 

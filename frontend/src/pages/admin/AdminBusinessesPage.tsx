@@ -9,19 +9,20 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 import { Pagination } from '@/features/businesses/Pagination'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
+import { useI18n, type TranslationKey } from '@/i18n'
 import { adminApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { BusinessStatus } from '@/types/api'
 import { cn } from '@/utils/cn'
-import { formatRelativeDate, STATUS_LABELS } from '@/utils/format'
+import { formatRelativeDate, STATUS_KEYS } from '@/utils/format'
 
-const FILTERS: { value: BusinessStatus | 'ALL'; label: string }[] = [
-  { value: 'PENDING_REVIEW', label: 'بانتظار المراجعة' },
-  { value: 'APPROVED', label: 'مقبولة' },
-  { value: 'REJECTED', label: 'مرفوضة' },
-  { value: 'SUSPENDED', label: 'موقوفة' },
-  { value: 'DRAFT', label: 'مسودات' },
-  { value: 'ALL', label: 'الكل' },
+const FILTERS: { value: BusinessStatus | 'ALL'; labelKey: TranslationKey }[] = [
+  { value: 'PENDING_REVIEW', labelKey: 'admin.filterPending' },
+  { value: 'APPROVED', labelKey: 'admin.filterApproved' },
+  { value: 'REJECTED', labelKey: 'admin.filterRejected' },
+  { value: 'SUSPENDED', labelKey: 'admin.filterSuspended' },
+  { value: 'DRAFT', labelKey: 'admin.filterDrafts' },
+  { value: 'ALL', labelKey: 'admin.filterAll' },
 ]
 
 export function AdminBusinessesPage() {
@@ -31,6 +32,7 @@ export function AdminBusinessesPage() {
   const page = Number(searchParams.get('page') ?? '1')
   const q = searchParams.get('q') ?? ''
   const [searchInput, setSearchInput] = useState(q)
+  const { t, locale } = useI18n()
 
   useEffect(() => setSearchInput(q), [q])
 
@@ -59,8 +61,8 @@ export function AdminBusinessesPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-3xl">النشاطات</h1>
-        <p className="mt-2 text-ink-500">راجع الطلبات وأدر حالة النشاطات المنشورة.</p>
+        <h1 className="text-3xl">{t('admin.businessesHeading')}</h1>
+        <p className="mt-2 text-ink-500">{t('admin.businessesSubtitle')}</p>
       </header>
 
       <div className="flex flex-wrap gap-2">
@@ -77,7 +79,7 @@ export function AdminBusinessesPage() {
                 isActive ? 'bg-clay-500 text-white' : 'bg-white text-ink-700 ring-1 ring-ink-100 hover:bg-sand-100',
               )}
             >
-              {filter.label}
+              {t(filter.labelKey)}
             </button>
           )
         })}
@@ -92,7 +94,7 @@ export function AdminBusinessesPage() {
         className="flex gap-2"
       >
         <label htmlFor="admin-search" className="sr-only">
-          ابحث عن نشاط
+          {t('admin.searchLabel')}
         </label>
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute inset-y-0 start-4 my-auto h-5 w-5 text-ink-300" aria-hidden="true" />
@@ -101,11 +103,11 @@ export function AdminBusinessesPage() {
             type="search"
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="ابحث بالاسم أو الوصف…"
+            placeholder={t('admin.searchPlaceholder')}
             className="h-11 w-full rounded-xl border-2 border-ink-100 bg-white ps-12 pe-4 focus:border-clay-400 focus:outline-none"
           />
         </div>
-        <Button type="submit">ابحث</Button>
+        <Button type="submit">{t('common.search')}</Button>
       </form>
 
       <div aria-live="polite" aria-busy={results.isFetching}>
@@ -136,20 +138,29 @@ export function AdminBusinessesPage() {
                             <StatusBadge status={business.status} />
                           </div>
                           <p className="truncate text-sm text-ink-500">
-                            {business.category?.name_ar ?? '—'} · {business.location?.name_ar ?? '—'} ·{' '}
-                            <span className="ltr-nums">{business.owner_phone ?? '—'}</span>
+                            {business.category?.name_ar ?? t('common.dash')} ·{' '}
+                            {business.location?.name_ar ?? t('common.dash')} ·{' '}
+                            <span className="ltr-nums">
+                              {business.owner_phone ?? t('common.dash')}
+                            </span>
                           </p>
                           <p className="text-xs text-ink-300">
                             {business.status === 'PENDING_REVIEW'
-                              ? `أُرسل ${formatRelativeDate(business.submitted_at)}`
-                              : `أُنشئ ${formatRelativeDate(business.created_at)}`}
+                              ? t('admin.submittedAgo', {
+                                  date: formatRelativeDate(business.submitted_at, locale, t),
+                                })
+                              : t('admin.createdAgo', {
+                                  date: formatRelativeDate(business.created_at, locale, t),
+                                })}
                           </p>
                         </div>
                       </div>
 
                       <Button asChild size="sm">
                         <Link to={`/admin/businesses/${business.id}`}>
-                          {business.status === 'PENDING_REVIEW' ? 'مراجعة' : 'التفاصيل'}
+                          {business.status === 'PENDING_REVIEW'
+                            ? t('admin.review')
+                            : t('admin.details')}
                         </Link>
                       </Button>
                     </CardBody>
@@ -161,8 +172,10 @@ export function AdminBusinessesPage() {
           </>
         ) : (
           <EmptyState
-            title={`لا توجد نشاطات في حالة «${statusParam === 'ALL' ? 'الكل' : STATUS_LABELS[status]}»`}
-            description="جرّب تغيير عامل التصفية أو البحث."
+            title={t('admin.listEmptyTitle', {
+              status: statusParam === 'ALL' ? t('admin.filterAll') : t(STATUS_KEYS[status]),
+            })}
+            description={t('admin.listEmptyDescription')}
           />
         )}
       </div>

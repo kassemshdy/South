@@ -13,6 +13,7 @@ import httpx
 
 from app.auth.otp.base import OtpSendResult
 from app.core.config import Settings
+from app.core.i18n import translate
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,7 @@ class TwilioOtpProvider:
         self._timeout = timeout
 
     def send(self, phone_number: str, code: str) -> OtpSendResult:
-        body = f"رمز الدخول إلى دليل الجنوب: {code}"
+        body = translate("auth.sms.body", code=code)
         try:
             response = httpx.post(
                 f"{_API_ROOT}/Accounts/{self._account_sid}/Messages.json",

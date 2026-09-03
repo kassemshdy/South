@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ImagePlus, Package, Pencil, Plus, Trash2 } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 
 import { Button } from '@/components/ui/Button'
@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
+import { useT } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { ownerApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
@@ -29,6 +30,7 @@ import { itemSchema, type ItemValues } from '@/utils/validation'
 export function ItemManager({ businessId }: { businessId: string }) {
   const queryClient = useQueryClient()
   const toast = useToast()
+  const t = useT()
   const [editing, setEditing] = useState<BusinessItem | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
 
@@ -46,22 +48,25 @@ export function ItemManager({ businessId }: { businessId: string }) {
   const remove = useMutation({
     mutationFn: (itemId: string) => ownerApi.deleteItem(businessId, itemId),
     onSuccess: () => {
-      toast.success('تم حذف العنصر')
+      toast.success(t('items.deleted'))
       invalidate()
     },
     onError: (error) =>
-      toast.error('تعذر الحذف', error instanceof ApiError ? error.message : undefined),
+      toast.error(t('items.deleteFailed'), error instanceof ApiError ? error.message : undefined),
   })
 
   const uploadImage = useMutation({
     mutationFn: ({ itemId, file }: { itemId: string; file: File }) =>
       ownerApi.uploadItemImage(businessId, itemId, file),
     onSuccess: () => {
-      toast.success('تم رفع صورة العنصر')
+      toast.success(t('items.imageUploaded'))
       invalidate()
     },
     onError: (error) =>
-      toast.error('تعذر رفع الصورة', error instanceof ApiError ? error.message : undefined),
+      toast.error(
+        t('items.imageUploadFailed'),
+        error instanceof ApiError ? error.message : undefined,
+      ),
   })
 
   const openCreate = () => {
@@ -77,12 +82,10 @@ export function ItemManager({ businessId }: { businessId: string }) {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-ink-500">
-          أضف المنتجات أو الخدمات أو أصناف القائمة مع أسعارها.
-        </p>
+        <p className="text-ink-500">{t('items.intro')}</p>
         <Button onClick={openCreate}>
           <Plus className="h-4 w-4" aria-hidden="true" />
-          إضافة عنصر
+          {t('items.addItem')}
         </Button>
       </div>
 
@@ -110,9 +113,9 @@ export function ItemManager({ businessId }: { businessId: string }) {
       ) : (
         <EmptyState
           icon={<Package className="h-7 w-7" aria-hidden="true" />}
-          title="لا توجد عناصر بعد"
-          description="أضف أول منتج أو خدمة ليراها الزوار على صفحتك."
-          action={<Button onClick={openCreate}>إضافة عنصر</Button>}
+          title={t('items.emptyTitle')}
+          description={t('items.emptyDescription')}
+          action={<Button onClick={openCreate}>{t('items.addItem')}</Button>}
         />
       )}
 
@@ -146,6 +149,7 @@ function ItemRow({
   uploading: boolean
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const t = useT()
 
   return (
     <Card className={item.is_available ? '' : 'opacity-70'}>
@@ -154,7 +158,7 @@ function ItemRow({
           type="button"
           onClick={() => inputRef.current?.click()}
           className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border-2 border-dashed border-ink-100 bg-sand-50"
-          aria-label={`رفع صورة لـ ${item.title}`}
+          aria-label={t('items.uploadImageAria', { title: item.title })}
         >
           {item.image_url ? (
             <img src={item.image_url} alt="" className="h-full w-full object-cover" />
@@ -189,16 +193,18 @@ function ItemRow({
           {item.description ? (
             <p className="mt-1 line-clamp-2 text-sm text-ink-500">{item.description}</p>
           ) : null}
-          {!item.is_available ? <p className="mt-1 text-xs text-ink-500">غير متوفر حالياً</p> : null}
+          {!item.is_available ? (
+            <p className="mt-1 text-xs text-ink-500">{t('items.unavailable')}</p>
+          ) : null}
 
           <div className="mt-2 flex gap-1">
             <Button variant="ghost" size="sm" onClick={onEdit}>
               <Pencil className="h-4 w-4" aria-hidden="true" />
-              تعديل
+              {t('common.edit')}
             </Button>
             <Button variant="ghost" size="sm" className="text-clay-600" onClick={onDelete}>
               <Trash2 className="h-4 w-4" aria-hidden="true" />
-              حذف
+              {t('common.delete')}
             </Button>
           </div>
         </div>
@@ -217,7 +223,9 @@ function ItemDialog({
   onDone: () => void
 }) {
   const toast = useToast()
+  const t = useT()
   const isEdit = item !== null
+  const schema = useMemo(() => itemSchema(t), [t])
 
   const {
     register,
@@ -225,7 +233,7 @@ function ItemDialog({
     control,
     formState: { errors },
   } = useForm<ItemValues>({
-    resolver: zodResolver(itemSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       title: item?.title ?? '',
       description: item?.description ?? '',
@@ -249,28 +257,28 @@ function ItemDialog({
         : ownerApi.createItem(businessId, payload)
     },
     onSuccess: () => {
-      toast.success(isEdit ? 'تم تحديث العنصر' : 'تمت إضافة العنصر')
+      toast.success(isEdit ? t('items.updated') : t('items.created'))
       onDone()
     },
     onError: (error) =>
-      toast.error('تعذر الحفظ', error instanceof ApiError ? error.message : undefined),
+      toast.error(t('items.saveFailed'), error instanceof ApiError ? error.message : undefined),
   })
 
   return (
-    <DialogContent title={isEdit ? 'تعديل العنصر' : 'إضافة عنصر جديد'}>
+    <DialogContent title={isEdit ? t('items.dialogEdit') : t('items.dialogAdd')}>
       <form onSubmit={handleSubmit((values) => save.mutate(values))} className="space-y-4" noValidate>
-        <Field label="الاسم" required error={errors.title?.message}>
+        <Field label={t('items.nameLabel')} required error={errors.title?.message}>
           {(props) => (
-            <Input {...props} {...register('title')} placeholder="مثال: منقوشة زعتر" invalid={Boolean(errors.title)} autoFocus />
+            <Input {...props} {...register('title')} placeholder={t('items.namePlaceholder')} invalid={Boolean(errors.title)} autoFocus />
           )}
         </Field>
 
-        <Field label="الوصف" error={errors.description?.message}>
+        <Field label={t('items.descriptionLabel')} error={errors.description?.message}>
           {(props) => <Textarea {...props} {...register('description')} rows={3} />}
         </Field>
 
         <div className="grid grid-cols-2 gap-4">
-          <Field label="السعر" error={errors.price?.message}>
+          <Field label={t('items.priceLabel')} error={errors.price?.message}>
             {(props) => (
               <Input
                 {...props}
@@ -284,7 +292,7 @@ function ItemDialog({
             )}
           </Field>
 
-          <Field label="العملة" required error={errors.currency?.message}>
+          <Field label={t('items.currencyLabel')} required error={errors.currency?.message}>
             {(props) => (
               <Controller
                 control={control}
@@ -295,8 +303,8 @@ function ItemDialog({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="USD">دولار أميركي ($)</SelectItem>
-                      <SelectItem value="LBP">ليرة لبنانية (ل.ل.)</SelectItem>
+                      <SelectItem value="USD">{t('items.currencyUsd')}</SelectItem>
+                      <SelectItem value="LBP">{t('items.currencyLbp')}</SelectItem>
                     </SelectContent>
                   </Select>
                 )}
@@ -307,12 +315,12 @@ function ItemDialog({
 
         <label className="flex items-center gap-3 rounded-xl border-2 border-ink-100 p-3.5">
           <input type="checkbox" {...register('is_available')} className="h-5 w-5 accent-clay-500" />
-          <span className="font-medium">متوفر حالياً</span>
+          <span className="font-medium">{t('items.availableLabel')}</span>
         </label>
 
         <div className="flex gap-3 pt-2">
           <Button type="submit" block loading={save.isPending}>
-            {isEdit ? 'حفظ التعديلات' : 'إضافة العنصر'}
+            {isEdit ? t('items.saveAction') : t('items.addAction')}
           </Button>
         </div>
       </form>

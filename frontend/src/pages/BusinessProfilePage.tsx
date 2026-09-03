@@ -25,8 +25,9 @@ import { ErrorState } from '@/components/ui/States'
 import { publicBusinessApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import { useSeo } from '@/hooks/useSeo'
+import { useT } from '@/i18n'
 import type { SocialPlatform } from '@/types/api'
-import { formatPrice, PLATFORM_LABELS, telHref, whatsappHref } from '@/utils/format'
+import { formatPrice, PLATFORM_KEYS, telHref, whatsappHref } from '@/utils/format'
 
 const PLATFORM_ICONS: Record<SocialPlatform, typeof Instagram> = {
   INSTAGRAM: Instagram,
@@ -40,6 +41,7 @@ const PLATFORM_ICONS: Record<SocialPlatform, typeof Instagram> = {
 export function BusinessProfilePage() {
   const { slug = '' } = useParams()
   const [copied, setCopied] = useState(false)
+  const t = useT()
 
   const business = useQuery({
     queryKey: queryKeys.business(slug),
@@ -49,7 +51,11 @@ export function BusinessProfilePage() {
 
   const data = business.data
   useSeo({
-    title: data ? `${data.name}${data.location ? ` في ${data.location.name_ar}` : ''} | دليل الجنوب` : 'دليل الجنوب',
+    title: data
+      ? data.location
+        ? `${data.name} — ${data.location.name_ar} | ${t('app.name')}`
+        : `${data.name} | ${t('app.name')}`
+      : t('app.name'),
     description: data?.short_description ?? undefined,
     image: data?.cover_url ?? data?.logo_url ?? null,
     canonicalPath: `/business/${encodeURIComponent(slug)}`,
@@ -57,7 +63,11 @@ export function BusinessProfilePage() {
 
   const handleShare = async () => {
     const url = window.location.href
-    const shareData = { title: data?.name ?? 'دليل الجنوب', text: data?.short_description ?? '', url }
+    const shareData = {
+      title: data?.name ?? t('app.name'),
+      text: data?.short_description ?? '',
+      url,
+    }
     // Native share on phones; clipboard elsewhere.
     if (navigator.share) {
       try {
@@ -93,14 +103,17 @@ export function BusinessProfilePage() {
         <ErrorState error={business.error} onRetry={() => void business.refetch()} />
         <div className="mt-6 text-center">
           <Button asChild variant="outline">
-            <Link to="/businesses">العودة إلى دليل الأعمال</Link>
+            <Link to="/businesses">{t('business.backToDirectory')}</Link>
           </Button>
         </div>
       </div>
     )
   }
 
-  const whatsapp = whatsappHref(data.whatsapp, `مرحباً، وجدت ${data.name} على دليل الجنوب.`)
+  const whatsapp = whatsappHref(
+    data.whatsapp,
+    t('business.whatsappMessage', { name: data.name }),
+  )
   const phone = telHref(data.phone)
   const mapsUrl =
     data.maps_url ??
@@ -112,7 +125,11 @@ export function BusinessProfilePage() {
     <article className="pb-16">
       <div className="relative h-52 bg-sand-200 sm:h-72">
         {data.cover_url ? (
-          <img src={data.cover_url} alt={`صورة غلاف ${data.name}`} className="h-full w-full object-cover" />
+          <img
+            src={data.cover_url}
+            alt={t('business.coverAlt', { name: data.name })}
+            className="h-full w-full object-cover"
+          />
         ) : (
           <div className="flex h-full items-center justify-center text-sand-500">
             <Store className="h-16 w-16" aria-hidden="true" />
@@ -124,7 +141,11 @@ export function BusinessProfilePage() {
         <div className="-mt-14 flex flex-col gap-4 rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:flex-row sm:items-end">
           <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border-4 border-white bg-sand-100 shadow-card">
             {data.logo_url ? (
-              <img src={data.logo_url} alt={`شعار ${data.name}`} className="h-full w-full object-cover" />
+              <img
+                src={data.logo_url}
+                alt={t('business.logoAlt', { name: data.name })}
+                className="h-full w-full object-cover"
+              />
             ) : (
               <div className="flex h-full items-center justify-center text-sand-500">
                 <Store className="h-9 w-9" aria-hidden="true" />
@@ -137,7 +158,7 @@ export function BusinessProfilePage() {
               <h1 className="text-2xl sm:text-3xl">{data.name}</h1>
               <Badge className="bg-olive-100 text-olive-700">
                 <BadgeCheck className="h-3.5 w-3.5" aria-hidden="true" />
-                نشاط موثّق
+                {t('business.verified')}
               </Badge>
             </div>
 
@@ -158,7 +179,7 @@ export function BusinessProfilePage() {
 
           <Button variant="outline" onClick={() => void handleShare()} className="shrink-0">
             {copied ? <Check className="h-4 w-4" aria-hidden="true" /> : <Share2 className="h-4 w-4" aria-hidden="true" />}
-            {copied ? 'تم نسخ الرابط' : 'مشاركة'}
+            {copied ? t('business.linkCopied') : t('business.share')}
           </Button>
         </div>
 
@@ -169,7 +190,7 @@ export function BusinessProfilePage() {
             <Button asChild variant="whatsapp" size="lg" block>
               <a href={whatsapp} target="_blank" rel="noopener noreferrer">
                 <MessageCircle className="h-5 w-5" aria-hidden="true" />
-                تواصل عبر واتساب
+                {t('business.whatsappCta')}
               </a>
             </Button>
           ) : null}
@@ -177,7 +198,7 @@ export function BusinessProfilePage() {
             <Button asChild size="lg" block>
               <a href={phone}>
                 <Phone className="h-5 w-5" aria-hidden="true" />
-                اتصل الآن
+                {t('business.callCta')}
               </a>
             </Button>
           ) : null}
@@ -188,7 +209,7 @@ export function BusinessProfilePage() {
             {data.description || data.short_description ? (
               <section aria-labelledby="about-heading">
                 <h2 id="about-heading" className="mb-3 text-xl">
-                  نبذة عن النشاط
+                  {t('business.aboutHeading')}
                 </h2>
                 <Card>
                   <CardBody>
@@ -203,7 +224,7 @@ export function BusinessProfilePage() {
             {data.items.length > 0 ? (
               <section aria-labelledby="items-heading">
                 <h2 id="items-heading" className="mb-3 text-xl">
-                  المنتجات والخدمات
+                  {t('business.itemsHeading')}
                 </h2>
                 <div className="grid gap-4 sm:grid-cols-2">
                   {data.items.map((item) => (
@@ -224,7 +245,9 @@ export function BusinessProfilePage() {
                           <p className="mt-1.5 text-sm leading-relaxed text-ink-500">{item.description}</p>
                         ) : null}
                         {!item.is_available ? (
-                          <Badge className="mt-3 bg-ink-100 text-ink-700">غير متوفر حالياً</Badge>
+                          <Badge className="mt-3 bg-ink-100 text-ink-700">
+                            {t('business.itemUnavailable')}
+                          </Badge>
                         ) : null}
                       </CardBody>
                     </Card>
@@ -236,7 +259,7 @@ export function BusinessProfilePage() {
             {data.images.length > 0 ? (
               <section aria-labelledby="gallery-heading">
                 <h2 id="gallery-heading" className="mb-3 text-xl">
-                  معرض الصور
+                  {t('business.galleryHeading')}
                 </h2>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   {data.images.map((image) => (
@@ -249,7 +272,7 @@ export function BusinessProfilePage() {
                     >
                       <img
                         src={image.url}
-                        alt={image.caption ?? `صورة من ${data.name}`}
+                        alt={image.caption ?? t('business.galleryImageAlt', { name: data.name })}
                         loading="lazy"
                         className="h-32 w-full object-cover transition-transform duration-300 group-hover:scale-105 sm:h-40"
                       />
@@ -263,7 +286,7 @@ export function BusinessProfilePage() {
           <aside className="space-y-4">
             <Card>
               <CardBody className="space-y-4">
-                <h2 className="text-lg font-bold">معلومات التواصل</h2>
+                <h2 className="text-lg font-bold">{t('business.contactHeading')}</h2>
 
                 {data.phone ? (
                   <a href={telHref(data.phone) ?? '#'} className="flex items-center gap-3 text-ink-700 hover:text-clay-600">
@@ -297,7 +320,7 @@ export function BusinessProfilePage() {
                   <Button asChild variant="outline" block>
                     <a href={mapsUrl} target="_blank" rel="noopener noreferrer">
                       <MapPin className="h-4 w-4" aria-hidden="true" />
-                      الموقع
+                      {t('business.locationCta')}
                     </a>
                   </Button>
                 ) : null}
@@ -307,7 +330,7 @@ export function BusinessProfilePage() {
             {data.social_links.length > 0 ? (
               <Card>
                 <CardBody className="space-y-3">
-                  <h2 className="text-lg font-bold">تابعنا</h2>
+                  <h2 className="text-lg font-bold">{t('business.followHeading')}</h2>
                   {data.social_links.map((link) => {
                     const Icon = PLATFORM_ICONS[link.platform] ?? Link2
                     return (
@@ -319,7 +342,7 @@ export function BusinessProfilePage() {
                         className="flex items-center gap-3 rounded-lg p-2 text-ink-700 transition-colors hover:bg-sand-100 hover:text-clay-600"
                       >
                         <Icon className="h-5 w-5 shrink-0 text-clay-500" aria-hidden="true" />
-                        {PLATFORM_LABELS[link.platform]}
+                        {t(PLATFORM_KEYS[link.platform])}
                       </a>
                     )
                   })}

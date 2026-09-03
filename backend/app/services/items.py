@@ -44,7 +44,7 @@ class BusinessItemService:
             )
         ).scalar_one_or_none()
         if item is None:
-            raise NotFoundError("العنصر غير موجود.")
+            raise NotFoundError("item.not_found")
         return item
 
     def create(self, business: Business, payload: BusinessItemIn) -> BusinessItem:
@@ -57,8 +57,9 @@ class BusinessItemService:
         )
         if count >= MAX_ITEMS_PER_BUSINESS:
             raise ValidationError(
-                f"لا يمكن إضافة أكثر من {MAX_ITEMS_PER_BUSINESS} عنصر لنشاط واحد.",
+                "item.too_many",
                 code="too_many_items",
+                params={"max": MAX_ITEMS_PER_BUSINESS},
             )
 
         sort_order = payload.sort_order or count
@@ -96,7 +97,7 @@ class BusinessItemService:
         items = {item.id: item for item in self.list_for_business(business.id)}
         unknown = [item_id for item_id in item_ids if item_id not in items]
         if unknown:
-            raise ValidationError("قائمة الترتيب تحتوي على عناصر غير موجودة.", code="unknown_item")
+            raise ValidationError("item.unknown_in_order", code="unknown_item")
 
         for position, item_id in enumerate(item_ids):
             items[item_id].sort_order = position

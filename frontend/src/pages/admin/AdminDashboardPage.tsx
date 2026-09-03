@@ -6,19 +6,21 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/States'
+import { useI18n } from '@/i18n'
 import { adminApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import { formatRelativeDate } from '@/utils/format'
 
 export function AdminDashboardPage() {
+  const { t, locale } = useI18n()
   const stats = useQuery({ queryKey: queryKeys.adminStats, queryFn: adminApi.stats })
   const pending = useQuery({ queryKey: queryKeys.adminBusinesses('PENDING_REVIEW', 1), queryFn: () => adminApi.pending(1) })
 
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-3xl">لوحة التحكم</h1>
-        <p className="mt-2 text-ink-500">نظرة عامة على المنصة وطلبات المراجعة.</p>
+        <h1 className="text-3xl">{t('admin.dashboardHeading')}</h1>
+        <p className="mt-2 text-ink-500">{t('admin.dashboardSubtitle')}</p>
       </header>
 
       {/* The review queue is the primary admin workflow, so it leads the page. */}
@@ -30,7 +32,7 @@ export function AdminDashboardPage() {
                 <Clock className="h-7 w-7" aria-hidden="true" />
               </span>
               <div>
-                <p className="text-sm font-semibold text-clay-700">بانتظار المراجعة</p>
+                <p className="text-sm font-semibold text-clay-700">{t('admin.pendingLabel')}</p>
                 <p className="text-3xl font-bold text-clay-900">
                   {stats.isLoading ? '—' : (stats.data?.pending_businesses ?? 0)}
                 </p>
@@ -38,7 +40,7 @@ export function AdminDashboardPage() {
             </div>
             <Button asChild size="lg">
               <Link to="/admin/businesses?status=PENDING_REVIEW">
-                مراجعة الطلبات
+                {t('admin.reviewRequests')}
                 <ArrowLeft className="h-5 w-5" aria-hidden="true" />
               </Link>
             </Button>
@@ -56,19 +58,19 @@ export function AdminDashboardPage() {
         <ErrorState error={stats.error} onRetry={() => void stats.refetch()} />
       ) : stats.data ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="إجمالي النشاطات" value={stats.data.total_businesses} icon={Store} />
-          <StatCard label="نشاطات مقبولة" value={stats.data.approved_businesses} icon={CheckCircle2} tone="text-olive-600" />
-          <StatCard label="نشاطات مرفوضة" value={stats.data.rejected_businesses} icon={XCircle} tone="text-clay-600" />
-          <StatCard label="نشاطات موقوفة" value={stats.data.suspended_businesses} icon={PauseCircle} tone="text-ink-500" />
-          <StatCard label="مسودات" value={stats.data.draft_businesses} icon={Store} tone="text-ink-500" />
-          <StatCard label="المستخدمون المسجلون" value={stats.data.total_users} icon={Users} />
-          <StatCard label="المشرفون" value={stats.data.total_admins} icon={Users} />
-          <StatCard label="المنتجات والخدمات" value={stats.data.total_items} icon={Package} />
+          <StatCard label={t('admin.statTotal')} value={stats.data.total_businesses} icon={Store} />
+          <StatCard label={t('admin.statApproved')} value={stats.data.approved_businesses} icon={CheckCircle2} tone="text-olive-600" />
+          <StatCard label={t('admin.statRejected')} value={stats.data.rejected_businesses} icon={XCircle} tone="text-clay-600" />
+          <StatCard label={t('admin.statSuspended')} value={stats.data.suspended_businesses} icon={PauseCircle} tone="text-ink-500" />
+          <StatCard label={t('admin.statDrafts')} value={stats.data.draft_businesses} icon={Store} tone="text-ink-500" />
+          <StatCard label={t('admin.statUsers')} value={stats.data.total_users} icon={Users} />
+          <StatCard label={t('admin.statAdmins')} value={stats.data.total_admins} icon={Users} />
+          <StatCard label={t('admin.statItems')} value={stats.data.total_items} icon={Package} />
         </div>
       ) : null}
 
       <section>
-        <h2 className="mb-4 text-xl">أحدث الطلبات</h2>
+        <h2 className="mb-4 text-xl">{t('admin.latestRequests')}</h2>
         {pending.isLoading ? (
           <Skeleton className="h-40 rounded-2xl" />
         ) : pending.isError ? (
@@ -88,13 +90,14 @@ export function AdminDashboardPage() {
                       <div>
                         <p className="font-bold">{business.name}</p>
                         <p className="text-sm text-ink-500">
-                          {business.category?.name_ar ?? '—'} · {business.location?.name_ar ?? '—'} ·{' '}
-                          {formatRelativeDate(business.submitted_at)}
+                          {business.category?.name_ar ?? t('common.dash')} ·{' '}
+                          {business.location?.name_ar ?? t('common.dash')} ·{' '}
+                          {formatRelativeDate(business.submitted_at, locale, t)}
                         </p>
                       </div>
                     </div>
                     <Button asChild size="sm">
-                      <Link to={`/admin/businesses/${business.id}`}>مراجعة</Link>
+                      <Link to={`/admin/businesses/${business.id}`}>{t('admin.review')}</Link>
                     </Button>
                   </CardBody>
                 </Card>
@@ -102,7 +105,10 @@ export function AdminDashboardPage() {
             ))}
           </ul>
         ) : (
-          <EmptyState title="لا توجد طلبات بانتظار المراجعة" description="كل الطلبات تمت معالجتها." />
+          <EmptyState
+            title={t('admin.queueEmpty')}
+            description={t('admin.queueEmptyDescription')}
+          />
         )}
       </section>
     </div>

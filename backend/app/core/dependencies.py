@@ -59,17 +59,15 @@ def get_current_user_optional(request: Request, db: DbSession) -> User | None:
     try:
         user_id = uuid.UUID(str(payload.get("sub")))
     except (TypeError, ValueError) as exc:
-        raise AuthenticationError("جلسة غير صالحة.", code="invalid_token") from exc
+        raise AuthenticationError("auth.session.invalid", code="invalid_token") from exc
 
     user = UserRepository(db).get_active(user_id)
     if user is None:
-        raise AuthenticationError("الحساب غير متاح.", code="account_disabled")
+        raise AuthenticationError("auth.account.unavailable", code="account_disabled")
 
     # Token version lets us revoke every session issued to a user.
     if int(payload.get("tv", -1)) != user.token_version:
-        raise AuthenticationError(
-            "انتهت صلاحية الجلسة. يرجى تسجيل الدخول مجدداً.", code="token_revoked"
-        )
+        raise AuthenticationError("auth.session.expired", code="token_revoked")
     return user
 
 
@@ -87,7 +85,7 @@ OptionalUser = Annotated[User | None, Depends(get_current_user_optional)]
 
 def require_admin(user: CurrentUser) -> User:
     if user.role is not UserRole.ADMIN:
-        raise PermissionDeniedError("هذه الصفحة مخصصة للمشرفين.")
+        raise PermissionDeniedError("auth.admin_only")
     return user
 
 
@@ -104,7 +102,7 @@ def require_owned_business(business_id: uuid.UUID, db: DbSession, user: CurrentU
     """
     business = BusinessRepository(db).get_with_relations(business_id)
     if business is None or business.owner_id != user.id:
-        raise NotFoundError("النشاط غير موجود.")
+        raise NotFoundError("business.not_found")
     return business
 
 
