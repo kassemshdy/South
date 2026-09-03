@@ -1,4 +1,5 @@
 import { DirectionProvider } from '@radix-ui/react-direction'
+import * as Sentry from '@sentry/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -10,6 +11,20 @@ import { AuthProvider } from '@/features/auth/AuthContext'
 import { I18nProvider } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import '@/index.css'
+
+// Inert in local dev unless VITE_SENTRY_DSN is set. Owner phone numbers, OTP
+// codes and Arabic listing content never belong in error reports, so replay
+// and default PII collection stay off rather than being scrubbed after the
+// fact — see the security section in AGENTS.md.
+const sentryDsn = import.meta.env.VITE_SENTRY_DSN
+if (sentryDsn) {
+  Sentry.init({
+    dsn: sentryDsn,
+    environment: import.meta.env.MODE,
+    sendDefaultPii: false,
+    integrations: [],
+  })
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {

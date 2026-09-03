@@ -17,6 +17,12 @@ COPY frontend/package.json frontend/package-lock.json* ./
 RUN npm ci --no-audit --no-fund
 
 COPY frontend/ ./
+
+# Vite inlines import.meta.env.VITE_* at build time, so the DSN must be a
+# build arg, not just a runtime variable on the container — Railway's own
+# service variables aren't visible to `npm run build` otherwise.
+ARG VITE_SENTRY_DSN
+ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN
 RUN npm run build
 
 
