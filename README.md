@@ -8,6 +8,9 @@ without an account.
 
 > **اكتشف وادعم الأعمال المحلية في جنوب لبنان.**
 
+**Live (staging):** <https://web-production-a00a59.up.railway.app> — sign in with
+any Lebanese number and the code `123456`; see [`docs/RAILWAY.md`](docs/RAILWAY.md).
+
 ---
 
 ## Contents

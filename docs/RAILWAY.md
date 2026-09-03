@@ -1,5 +1,18 @@
 # Railway deployment (project `southwork`)
 
+**Live:** <https://web-production-a00a59.up.railway.app>
+
+| | |
+|---|---|
+| Project | `southwork` (`323dd6ae-af69-4035-9e24-6de498989756`), workspace PulseX |
+| Environment | `production` (running `APP_ENV=staging` — see below) |
+| Branch | `claude/arabic-business-directory-south-lebanon-gpte8i`, auto-deploys on push |
+| Admin sign-in | `/admin/login` — `ADMIN_EMAIL` / `ADMIN_PASSWORD` from the api service variables |
+| Owner sign-in | any Lebanese number; the OTP code is **123456** while `APP_ENV=staging` |
+
+Change `ADMIN_PASSWORD` before sharing the URL with anyone.
+
+
 Three services in one project. Build configuration lives on each service rather
 than in a repository-level `railway.json`, because a single config file cannot
 describe two different Dockerfiles.
