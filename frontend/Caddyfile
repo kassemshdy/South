@@ -22,10 +22,9 @@
 		path /business/*
 	}
 	handle @api {
-		reverse_proxy {$API_INTERNAL_HOST:api.railway.internal:8000} {
-			header_up X-Forwarded-Host {host}
-			header_up X-Forwarded-Proto {scheme}
-		}
+		# Caddy forwards X-Forwarded-* by default, which is what lets the API
+		# build absolute canonical and OG URLs on the public host.
+		reverse_proxy {$API_INTERNAL_HOST:api.railway.internal:8000}
 	}
 
 	# Hashed build output is safe to cache indefinitely.
