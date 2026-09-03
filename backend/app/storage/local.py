@@ -47,3 +47,6 @@ class LocalDiskStorage:
 
     def url_for(self, key: str) -> str:
         return f"{self._prefix}/{key.lstrip('/')}"
+
+    def exists(self, key: str) -> bool:
+        return self._path_for(key).is_file()

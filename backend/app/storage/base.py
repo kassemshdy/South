@@ -36,3 +36,7 @@ class StorageBackend(Protocol):
 
     def url_for(self, key: str) -> str:
         ...
+
+    def exists(self, key: str) -> bool:
+        """Whether ``key`` currently has bytes behind it."""
+        ...

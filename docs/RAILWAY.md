@@ -1,6 +1,6 @@
 # Railway deployment (project `southwork`)
 
-**Live:** <https://web-production-a00a59.up.railway.app>
+**Live:** <https://web-production-b8196.up.railway.app>
 
 | | |
 |---|---|
@@ -63,12 +63,19 @@ Set per service (Settings → Build / Deploy, or via the MCP `update-service`):
 
 ## First deploy
 
-Migrations run automatically when the API container starts, and the API's
-**pre-deploy command** is:
+Migrations and seeding both run automatically when the API container starts,
+before it accepts traffic:
 
 ```
-python -m scripts.seed --ensure
+alembic upgrade head && python -m scripts.seed --ensure && exec uvicorn ...
 ```
+
+This runs inside the same container that has the media volume mounted —
+Railway's separate pre-deploy step does not have volume access, which
+previously left seeded businesses with image *rows* pointing at bytes that
+were never written anywhere durable. `seed_businesses` now also detects and
+repairs that case (missing bytes for an existing row) on every boot, not only
+on first creation.
 
 `--ensure` seeds whatever the environment permits and always exits
 successfully, so it is safe to run before every deploy:

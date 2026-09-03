@@ -25,11 +25,13 @@ class S3Storage:
 
         try:
             import boto3
+            from botocore.exceptions import ClientError
         except ImportError as exc:  # pragma: no cover - depends on deployment
             raise RuntimeError(
                 "STORAGE_BACKEND=s3 requires boto3. Install it with: pip install boto3"
             ) from exc
 
+        self._client_error = ClientError
         self._bucket = settings.s3_bucket
         self._public_base = (settings.s3_public_base_url or "").rstrip("/")
         self._client: Any = boto3.client(
@@ -62,3 +64,12 @@ class S3Storage:
         if self._public_base:
             return f"{self._public_base}/{key.lstrip('/')}"
         return f"https://{self._bucket}.s3.amazonaws.com/{key.lstrip('/')}"
+
+    def exists(self, key: str) -> bool:
+        try:
+            self._client.head_object(Bucket=self._bucket, Key=key)
+            return True
+        except self._client_error as exc:
+            if exc.response.get("Error", {}).get("Code") in ("404", "NoSuchKey"):
+                return False
+            raise

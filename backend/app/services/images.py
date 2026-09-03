@@ -96,6 +96,11 @@ class ImageService:
         if key:
             self._storage.delete(key)
 
+    def exists(self, key: str | None) -> bool:
+        if not key:
+            return False
+        return self._storage.exists(key)
+
     # --- internals ---------------------------------------------------------
 
     def _decode(self, data: bytes) -> Image.Image:

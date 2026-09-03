@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------------
-# Single-image deployment: Node builds the SPA, then the FastAPI image serves
-# both the API and the built frontend (injecting per-business SEO tags).
-# One container runs on Railway today and on any VPS later.
+# The API image. Node builds the SPA so the API can serve business-profile
+# pages with server-injected SEO tags; the web service fronts everything
+# else with its own image (see frontend/Dockerfile).
 # ---------------------------------------------------------------------------
 
 FROM node:22-alpine AS frontend
@@ -47,5 +47,8 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD curl -fsS "http://127.0.0.1:${PORT}/api/health" || exit 1
 
-# Migrations run at boot so a deploy never serves against an old schema.
-CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT} --workers ${WEB_CONCURRENCY:-2} --proxy-headers --forwarded-allow-ips='*'"]
+# Migrations and seeding run at boot, in the container that actually has the
+# media volume mounted — Railway's pre-deploy step runs in a separate,
+# volume-less container, which previously left seeded image *rows* pointing
+# at bytes that were never written anywhere durable.
+CMD ["sh", "-c", "alembic upgrade head && python -m scripts.seed --ensure && exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT} --workers ${WEB_CONCURRENCY:-2} --proxy-headers --forwarded-allow-ips='*'"]

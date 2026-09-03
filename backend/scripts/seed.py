@@ -178,7 +178,14 @@ def seed_businesses(db, categories, locations, admin) -> int:  # type: ignore[no
 
     for index, entry in enumerate(BUSINESSES):
         name = entry["name"]
-        if db.execute(select(Business).where(Business.name == name)).scalar_one_or_none():
+        existing = db.execute(select(Business).where(Business.name == name)).scalar_one_or_none()
+        if existing is not None:
+            # A prior deploy may have written image *rows* whose bytes never
+            # reached the storage backend (e.g. a pre-deploy step that ran
+            # before a volume was mounted). Detect and repair that rather
+            # than silently leaving broken image URLs live.
+            if not all(images.exists(image.storage_key) for image in existing.images):
+                _reattach_images(db, images, existing, name, index)
             continue
 
         phone = normalize_phone(entry["owner_phone"])
@@ -218,38 +225,7 @@ def seed_businesses(db, categories, locations, admin) -> int:  # type: ignore[no
         db.add(business)
         db.flush()
 
-        # Logo + cover + two gallery images.
-        for kind, size in (
-            (ImageKind.LOGO, (400, 400)),
-            (ImageKind.COVER, (1200, 675)),
-            (ImageKind.GALLERY, (900, 700)),
-            (ImageKind.GALLERY, (900, 700)),
-        ):
-            sort_order = 0 if kind is not ImageKind.GALLERY else len(
-                [i for i in business.images if i.kind is ImageKind.GALLERY]
-            )
-            stored = images.process_and_store(
-                data=_placeholder_image(name, index + sort_order, size),
-                content_type="image/jpeg",
-                business_id=business.id,
-                kind=kind,
-            )
-            business.images.append(
-                BusinessImage(
-                    business_id=business.id,
-                    url=stored.url,
-                    storage_key=stored.key,
-                    kind=kind,
-                    sort_order=sort_order,
-                    width=stored.width,
-                    height=stored.height,
-                    size_bytes=stored.size_bytes,
-                )
-            )
-            if kind is ImageKind.LOGO:
-                business.logo_url, business.logo_storage_key = stored.url, stored.key
-            elif kind is ImageKind.COVER:
-                business.cover_url, business.cover_storage_key = stored.url, stored.key
+        _reattach_images(db, images, business, name, index)
 
         for platform, url in (entry.get("socials") or {}).items():
             business.social_links.append(
@@ -288,6 +264,56 @@ def seed_businesses(db, categories, locations, admin) -> int:  # type: ignore[no
     db.flush()
     logger.info("Businesses seeded", extra={"created_count": created})
     return created
+
+
+def _reattach_images(  # type: ignore[no-untyped-def]
+    db, images: ImageService, business: Business, name: str, index: int
+) -> None:
+    """(Re)generate the logo, cover and gallery placeholders for ``business``.
+
+    Replaces whatever image rows it already has, so this is also the repair
+    path for a business whose rows survived a broken deploy but whose bytes
+    never reached storage.
+    """
+    for image in list(business.images):
+        images.delete(image.storage_key)
+        db.delete(image)
+    business.images.clear()
+    business.logo_url = business.logo_storage_key = None
+    business.cover_url = business.cover_storage_key = None
+    db.flush()
+
+    for kind, size in (
+        (ImageKind.LOGO, (400, 400)),
+        (ImageKind.COVER, (1200, 675)),
+        (ImageKind.GALLERY, (900, 700)),
+        (ImageKind.GALLERY, (900, 700)),
+    ):
+        sort_order = 0 if kind is not ImageKind.GALLERY else len(
+            [i for i in business.images if i.kind is ImageKind.GALLERY]
+        )
+        stored = images.process_and_store(
+            data=_placeholder_image(name, index + sort_order, size),
+            content_type="image/jpeg",
+            business_id=business.id,
+            kind=kind,
+        )
+        business.images.append(
+            BusinessImage(
+                business_id=business.id,
+                url=stored.url,
+                storage_key=stored.key,
+                kind=kind,
+                sort_order=sort_order,
+                width=stored.width,
+                height=stored.height,
+                size_bytes=stored.size_bytes,
+            )
+        )
+        if kind is ImageKind.LOGO:
+            business.logo_url, business.logo_storage_key = stored.url, stored.key
+        elif kind is ImageKind.COVER:
+            business.cover_url, business.cover_storage_key = stored.url, stored.key
 
 
 def _seed_moderation_history(
