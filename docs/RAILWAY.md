@@ -50,16 +50,23 @@ Set per service (Settings → Build / Deploy, or via the MCP `update-service`):
 
 ## First deploy
 
-Migrations run automatically when the API container starts. Bootstrap the
-administrator once the API is healthy:
+Migrations run automatically when the API container starts, and the API's
+**pre-deploy command** is:
 
-```bash
-railway run --service api python -m scripts.seed --admin-only
+```
+python -m scripts.seed --ensure
 ```
 
-To load the sample categories, locations and businesses into a fresh database,
-run the full seed once with `APP_ENV=development` set for that command only —
-sample data is refused against staging and production.
+`--ensure` seeds whatever the environment permits and always exits
+successfully, so it is safe to run before every deploy:
+
+- **staging** — categories, the location tree, sample businesses and the
+  administrator. A staging deployment nobody can click through is not much of a
+  staging deployment.
+- **production** — the administrator account only. Sample businesses are never
+  created there.
+
+It is idempotent: re-running adds only what is missing.
 
 ## Going to production
 

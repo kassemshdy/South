@@ -8,10 +8,16 @@ Usage:
     python -m scripts.seed               # add missing records
     python -m scripts.seed --reset       # wipe seeded content first
     python -m scripts.seed --admin-only  # create/update only the administrator
+    python -m scripts.seed --ensure      # seed whatever this environment permits
 
-Sample businesses are development fixtures and are never created against a
-production database. ``--admin-only`` is the exception: bootstrapping the first
-administrator is a legitimate production operation, so it is allowed there.
+Sample businesses are fixtures: they are created in development and staging (a
+staging deployment nobody can click through is not much of a staging
+deployment) and never in production. Bootstrapping the administrator is a
+legitimate production operation and is always allowed.
+
+``--ensure`` is the deploy-time entry point. It seeds what the environment
+permits and exits successfully either way, so it can run before every deploy
+without blocking a production release.
 """
 
 from __future__ import annotations
@@ -352,23 +358,35 @@ def main() -> int:
         action="store_true",
         help="create or update only the administrator account (safe in production)",
     )
+    parser.add_argument(
+        "--ensure",
+        action="store_true",
+        help="seed whatever this environment permits, without failing",
+    )
     args = parser.parse_args()
 
     settings = get_settings()
     configure_logging(settings.log_level, json_output=False)
 
-    if settings.is_production and not args.admin_only:
+    # Sample content belongs anywhere a human is expected to click around.
+    sample_data_allowed = not settings.is_production
+    admin_only = args.admin_only or (args.ensure and not sample_data_allowed)
+
+    if args.ensure and not sample_data_allowed:
+        logger.info("Production database: seeding the administrator account only")
+
+    if not sample_data_allowed and not admin_only:
         logger.error(
             "Refusing to seed sample data into a production database. "
             "Use --admin-only to bootstrap the administrator account."
         )
         return 1
-    if args.reset and settings.is_production:
-        logger.error("--reset is never allowed against a production database")
+    if args.reset and settings.is_hardened:
+        logger.error("--reset is never allowed against a deployed database")
         return 1
 
     with session_scope() as db:
-        if args.admin_only:
+        if admin_only:
             admin = seed_admin(db)
             if admin is None:
                 logger.error("ADMIN_EMAIL and ADMIN_PASSWORD must both be set")
