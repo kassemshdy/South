@@ -138,7 +138,11 @@ export function BusinessProfilePage() {
       </div>
 
       <div className="container-page">
-        <div className="-mt-14 flex flex-col gap-4 rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:flex-row sm:items-end">
+        {/* The cover image above is `relative` for its own layout, which makes
+            it a positioned element — without z-index here too, it would paint
+            over this non-positioned card (and the logo inside it) wherever
+            the negative margin makes them overlap, regardless of DOM order. */}
+        <div className="relative z-10 -mt-14 flex flex-col gap-4 rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:flex-row sm:items-end">
           <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border-4 border-white bg-sand-100 shadow-card">
             {data.logo_url ? (
               <img
