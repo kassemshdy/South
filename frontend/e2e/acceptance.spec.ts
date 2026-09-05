@@ -96,6 +96,10 @@ test.describe('MVP acceptance flow', () => {
     await expect(discoverSection.getByText(t('home.discoverTalentTitle'))).toBeVisible()
     await expect(discoverSection.getByText(t('home.comingSoon')).first()).toBeVisible()
 
+    // The "coming soon" cards are not links: clicking one must not navigate away.
+    await discoverSection.getByText(t('home.discoverProductsTitle')).click()
+    await expect(page).toHaveURL('/')
+
     // The public stats strip renders real numbers, not an error state.
     await expect(page.getByText(t('home.statsBusinesses'))).toBeVisible()
     await expect(page.getByText(t('home.statsTowns'))).toBeVisible()
