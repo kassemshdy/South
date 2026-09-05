@@ -114,7 +114,7 @@ function OwnerBusinessCard({ business }: { business: OwnerBusiness }) {
               <StatusBadge status={business.status} />
             </div>
             <p className="mt-1 text-sm text-ink-500">
-              {business.category?.name_ar ?? t('dashboard.noCategory')}
+              {business.custom_category_text || business.category?.name_ar || t('dashboard.noCategory')}
               {business.location ? ` · ${business.location.name_ar}` : ''}
             </p>
             <p className="mt-0.5 text-xs text-ink-300">

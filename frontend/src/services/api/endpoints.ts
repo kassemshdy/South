@@ -5,7 +5,7 @@
  * paths and payload shapes are defined once.
  */
 
-import { apiRequest } from '@/services/api/client'
+import { apiDownload, apiRequest } from '@/services/api/client'
 import type {
   AdminBusiness,
   AdminUser,
@@ -25,6 +25,7 @@ import type {
   RequestOtpResponse,
   SocialPlatform,
   User,
+  VerificationDocument,
 } from '@/types/api'
 
 export interface BusinessPayload {
@@ -32,6 +33,7 @@ export interface BusinessPayload {
   short_description?: string | null
   description?: string | null
   category_id?: string | null
+  custom_category_text?: string | null
   location_id?: string | null
   phone?: string | null
   whatsapp?: string | null
@@ -70,8 +72,19 @@ export const authApi = {
       body: { email, password },
     }),
   me: () => apiRequest<User>('/api/me'),
-  updateProfile: (display_name: string | null) =>
-    apiRequest<User>('/api/me', { method: 'PATCH', body: { display_name } }),
+  updateProfile: (payload: { display_name?: string | null; personal_phone_number?: string | null }) =>
+    apiRequest<User>('/api/me', { method: 'PATCH', body: payload }),
+
+  getVerificationDocument: () =>
+    apiRequest<VerificationDocument | null>('/api/me/verification-document'),
+  uploadVerificationDocument: (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return apiRequest<VerificationDocument>('/api/me/verification-document', {
+      method: 'POST',
+      formData: form,
+    })
+  },
 }
 
 export const taxonomyApi = {
@@ -165,6 +178,11 @@ export const adminApi = {
 
   users: (page = 1) =>
     apiRequest<Paginated<AdminUser>>('/api/admin/users', { query: { page } }),
+
+  getVerificationDocument: (userId: string) =>
+    apiRequest<VerificationDocument>(`/api/admin/users/${userId}/verification-document`),
+  downloadVerificationDocument: (userId: string) =>
+    apiDownload(`/api/admin/users/${userId}/verification-document/download`),
 
   categories: () => apiRequest<Category[]>('/api/admin/categories'),
   createCategory: (body: Partial<Category> & { name_ar: string }) =>

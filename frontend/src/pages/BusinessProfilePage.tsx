@@ -169,7 +169,7 @@ export function BusinessProfilePage() {
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-500">
               {data.category ? (
                 <Link to={`/businesses?category=${encodeURIComponent(data.category.slug)}`} className="font-semibold text-clay-600 hover:underline">
-                  {data.category.name_ar}
+                  {data.custom_category_text || data.category.name_ar}
                 </Link>
               ) : null}
               {data.location ? (

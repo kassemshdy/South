@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowRight, Check, ExternalLink, PauseCircle, PlayCircle, X } from 'lucide-react'
+import { ArrowRight, Check, Download, ExternalLink, PauseCircle, PlayCircle, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useParams } from 'react-router-dom'
@@ -43,6 +43,20 @@ export function AdminReviewPage() {
     void queryClient.invalidateQueries({ queryKey: queryKeys.adminBusiness(id) })
     void queryClient.invalidateQueries({ queryKey: ['admin'] })
   }
+
+  const downloadDocument = useMutation({
+    mutationFn: () => adminApi.downloadVerificationDocument(business.data?.owner_id ?? ''),
+    onSuccess: ({ blob, filename }) => {
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename ?? 'document'
+      link.click()
+      URL.revokeObjectURL(url)
+    },
+    onError: (error) =>
+      toast.error(t('admin.downloadDocumentFailed'), error instanceof ApiError ? error.message : undefined),
+  })
 
   const act = useMutation({
     mutationFn: ({ action, reason }: { action: Exclude<ConfirmAction, null>; reason?: string }) => {
@@ -244,7 +258,22 @@ export function AdminReviewPage() {
             <CardBody className="space-y-3">
               <Detail labelKey="admin.ownerName" value={data.owner_display_name} />
               <Detail labelKey="admin.ownerAccount" value={data.owner_phone} ltr />
+              <Detail labelKey="admin.ownerPersonalPhone" value={data.owner_personal_phone} ltr />
               <p className="text-xs text-ink-300">{t('admin.ownerPrivacyNote')}</p>
+              {data.owner_has_verification_document ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  loading={downloadDocument.isPending}
+                  onClick={() => downloadDocument.mutate()}
+                >
+                  <Download className="h-4 w-4" aria-hidden="true" />
+                  {t('admin.downloadDocument')}
+                </Button>
+              ) : (
+                <p className="text-sm text-ink-500">{t('admin.noDocument')}</p>
+              )}
             </CardBody>
           </Card>
 
