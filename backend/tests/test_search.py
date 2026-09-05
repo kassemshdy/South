@@ -222,3 +222,48 @@ def test_build_search_text_skips_empty_parts() -> None:
         build_search_text(ar("normalize.restaurant"), None, "", ar("location.tyre"))
         == ar("normalize.restaurant_and_city")
     )
+
+
+def test_public_stats_counts_only_approved_businesses_and_distinct_towns(
+    client: TestClient, db: Session, category: Category, location: Location
+) -> None:
+    town_a = Location(name_ar=ar("location.qana"), slug="qana-stats", type=LocationType.TOWN, parent_id=location.id)
+    town_b = Location(name_ar=ar("location.qana"), slug="qana-stats-2", type=LocationType.TOWN, parent_id=location.id)
+    town_c = Location(name_ar=ar("location.qana"), slug="qana-stats-3", type=LocationType.TOWN, parent_id=location.id)
+    db.add_all([town_a, town_b, town_c])
+    db.commit()
+
+    def create_business(phone: str, location_id: str) -> str:
+        headers = sign_in(client, phone)
+        return client.post(
+            "/api/businesses",
+            headers=headers,
+            json={
+                "name": ar("business.manakish"),
+                "short_description": ar("business.manakish_short"),
+                "category_id": str(category.id),
+                "location_id": location_id,
+            },
+        ).json()["id"]
+
+    # In the district itself (not a town), and two businesses sharing one town —
+    # neither should inflate the town count beyond the distinct towns involved.
+    approved_ids = [
+        create_business("03910001", str(location.id)),
+        create_business("03910002", str(town_a.id)),
+        create_business("03910003", str(town_a.id)),
+        create_business("03910004", str(town_b.id)),
+    ]
+    for business_id in approved_ids:
+        business = db.get(Business, business_id)
+        assert business is not None
+        business.status = BusinessStatus.APPROVED
+        db.commit()
+
+    # A business in a third town that never gets approved must not count at all —
+    # neither towards total_businesses nor towards total_towns.
+    create_business("03910005", str(town_c.id))
+
+    stats = client.get("/api/businesses/stats")
+    assert stats.status_code == 200, stats.text
+    assert stats.json() == {"total_businesses": 4, "total_towns": 2}

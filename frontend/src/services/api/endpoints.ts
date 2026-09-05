@@ -22,6 +22,7 @@ import type {
   OwnerBusiness,
   Paginated,
   PlatformStats,
+  PublicStats,
   RequestOtpResponse,
   SocialPlatform,
   User,
@@ -97,6 +98,7 @@ export const publicBusinessApi = {
     apiRequest<Paginated<BusinessSummary>>('/api/businesses', { query: { ...query } }),
   latest: (limit = 8) =>
     apiRequest<BusinessSummary[]>('/api/businesses/latest', { query: { limit } }),
+  stats: () => apiRequest<PublicStats>('/api/businesses/stats'),
   bySlug: (slug: string) =>
     apiRequest<BusinessDetail>(`/api/businesses/${encodeURIComponent(slug)}`),
 }

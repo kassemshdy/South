@@ -8,6 +8,7 @@ export const queryKeys = {
   locations: ['locations'] as const,
   businesses: (query: BusinessQuery) => ['businesses', query] as const,
   latestBusinesses: (limit: number) => ['businesses', 'latest', limit] as const,
+  publicStats: ['businesses', 'stats'] as const,
   business: (slug: string) => ['business', slug] as const,
   myBusinesses: ['my-businesses'] as const,
   myBusiness: (id: string) => ['my-business', id] as const,

@@ -213,6 +213,12 @@ export interface PlatformStats {
   total_items: number
 }
 
+/** The homepage stats strip — approved-only, safe for an anonymous visitor. */
+export interface PublicStats {
+  total_businesses: number
+  total_towns: number
+}
+
 export interface ApiErrorPayload {
   error: {
     code: string
