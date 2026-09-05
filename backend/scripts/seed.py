@@ -239,11 +239,13 @@ def seed_businesses(db, categories, locations, admin) -> int:  # type: ignore[no
                 BusinessItem(
                     business_id=business.id,
                     title=item["title"],
+                    slug=_item_slug_for(item["title"], db),
                     description=item.get("description"),
                     price=Decimal(item["price"]) if item.get("price") else None,
                     currency=Currency.USD,
                     is_available=bool(item.get("is_available", True)),
                     sort_order=order,
+                    search_text=build_search_text(item["title"], item.get("description")),
                 )
             )
 
@@ -363,6 +365,13 @@ def _slug_for(name: str, db) -> str:  # type: ignore[no-untyped-def]
     from app.services.slug import unique_slug
 
     return unique_slug(name, BusinessRepository(db).slug_exists)
+
+
+def _item_slug_for(title: str, db) -> str:  # type: ignore[no-untyped-def]
+    from app.repositories.item import ItemRepository
+    from app.services.slug import unique_slug
+
+    return unique_slug(title, ItemRepository(db).slug_exists, fallback_prefix="item")
 
 
 def reset(db) -> None:  # type: ignore[no-untyped-def]

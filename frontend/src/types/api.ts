@@ -241,3 +241,28 @@ export interface BusinessQuery {
   page?: number
   page_size?: number
 }
+
+/** Just enough of the parent business for a product card/page to link back. */
+export interface ProductBusinessRef {
+  name: string
+  slug: string
+  phone: string | null
+  whatsapp: string | null
+  category: Category | null
+  location: LocationNode | null
+}
+
+export interface ProductSummary {
+  id: string
+  slug: string
+  title: string
+  price: string | null
+  currency: Currency
+  image_url: string | null
+  business: ProductBusinessRef
+}
+
+export interface ProductDetail extends ProductSummary {
+  description: string | null
+  created_at: string
+}

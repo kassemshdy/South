@@ -26,5 +26,6 @@ api_router.include_router(businesses.owner_router)
 api_router.include_router(images.router)
 api_router.include_router(items.router)
 api_router.include_router(businesses.public_router)
+api_router.include_router(items.public_router)
 
 __all__ = ["api_router"]

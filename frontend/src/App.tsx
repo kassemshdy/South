@@ -9,6 +9,8 @@ import { DirectoryPage } from '@/pages/DirectoryPage'
 import { HomePage } from '@/pages/HomePage'
 import { LoginPage } from '@/pages/LoginPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
+import { ProductProfilePage } from '@/pages/ProductProfilePage'
+import { ProductsDirectoryPage } from '@/pages/ProductsDirectoryPage'
 
 /**
  * Public pages ship in the main bundle; the owner dashboard and admin area are
@@ -64,6 +66,8 @@ export function App() {
           <Route index element={<HomePage />} />
           <Route path="businesses" element={<DirectoryPage />} />
           <Route path="business/:slug" element={<BusinessProfilePage />} />
+          <Route path="products" element={<ProductsDirectoryPage />} />
+          <Route path="product/:slug" element={<ProductProfilePage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="admin/login" element={<AdminLoginPage />} />
 

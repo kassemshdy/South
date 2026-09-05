@@ -38,6 +38,12 @@ export function Header() {
           >
             {t('nav.directory')}
           </Link>
+          <Link
+            to="/products"
+            className="rounded-lg px-3 py-2 text-[15px] font-medium text-ink-700 transition-colors hover:bg-sand-100 hover:text-ink-900"
+          >
+            {t('nav.products')}
+          </Link>
 
           {isAdmin ? (
             <Link
@@ -113,6 +119,9 @@ export function Header() {
         <nav className="container-page flex flex-col gap-1 py-3" aria-label={t('nav.mobileAria')}>
           <Link to="/businesses" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">
             {t('nav.directory')}
+          </Link>
+          <Link to="/products" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">
+            {t('nav.products')}
           </Link>
           {isAdmin ? (
             <Link to="/admin" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">
