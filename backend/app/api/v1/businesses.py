@@ -19,7 +19,7 @@ from app.schemas.business import (
     BusinessUpdateIn,
     OwnerBusinessOut,
 )
-from app.schemas.common import MessageResponse, PaginatedResponse
+from app.schemas.common import MessageResponse, PaginatedResponse, PublicStatsOut
 from app.services.business import BusinessService
 from app.services.moderation import ModerationService
 
@@ -61,6 +61,16 @@ def latest_businesses(
         business_summary(business)
         for business in BusinessRepository(db).recently_approved(limit)
     ]
+
+
+@public_router.get("/businesses/stats", response_model=PublicStatsOut)
+def public_stats(db: DbSession) -> PublicStatsOut:
+    """Homepage stats strip: approved-business and distinct-town counts only."""
+    repo = BusinessRepository(db)
+    return PublicStatsOut(
+        total_businesses=repo.public_business_count(),
+        total_towns=repo.public_town_count(),
+    )
 
 
 @public_router.get("/businesses/{slug}", response_model=BusinessDetailOut)

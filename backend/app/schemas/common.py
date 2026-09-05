@@ -53,3 +53,10 @@ class StatsResponse(BaseModel):
     total_users: int
     total_admins: int
     total_items: int
+
+
+class PublicStatsOut(BaseModel):
+    """The homepage stats strip — approved-only, safe for an anonymous visitor."""
+
+    total_businesses: int
+    total_towns: int
