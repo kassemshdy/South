@@ -22,6 +22,8 @@ import type {
   OwnerBusiness,
   Paginated,
   PlatformStats,
+  ProductDetail,
+  ProductSummary,
   PublicStats,
   RequestOtpResponse,
   SocialPlatform,
@@ -101,6 +103,13 @@ export const publicBusinessApi = {
   stats: () => apiRequest<PublicStats>('/api/businesses/stats'),
   bySlug: (slug: string) =>
     apiRequest<BusinessDetail>(`/api/businesses/${encodeURIComponent(slug)}`),
+}
+
+export const publicItemApi = {
+  search: (query: BusinessQuery) =>
+    apiRequest<Paginated<ProductSummary>>('/api/items', { query: { ...query } }),
+  bySlug: (slug: string) =>
+    apiRequest<ProductDetail>(`/api/items/${encodeURIComponent(slug)}`),
 }
 
 export const ownerApi = {

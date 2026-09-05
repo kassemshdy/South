@@ -88,16 +88,16 @@ test.describe('MVP acceptance flow', () => {
     await expect(page.getByRole('heading', { name: t('home.heroTitle') })).toBeVisible()
     await expect(page.getByRole('heading', { name: t('home.latestHeading') })).toBeVisible()
 
-    // The Discover chooser: Businesses is live, Products/Talent are "coming soon".
+    // The Discover chooser: Businesses and Products are live, Talent is "coming soon".
     const discoverSection = page.locator('section', { has: page.getByRole('heading', { name: t('home.discoverHeading') }) })
     await expect(discoverSection).toBeVisible()
     await expect(discoverSection.getByRole('link', { name: new RegExp(t('home.discoverBusinessesTitle')) })).toBeVisible()
-    await expect(discoverSection.getByText(t('home.discoverProductsTitle'))).toBeVisible()
+    await expect(discoverSection.getByRole('link', { name: new RegExp(t('home.discoverProductsTitle')) })).toBeVisible()
     await expect(discoverSection.getByText(t('home.discoverTalentTitle'))).toBeVisible()
     await expect(discoverSection.getByText(t('home.comingSoon')).first()).toBeVisible()
 
-    // The "coming soon" cards are not links: clicking one must not navigate away.
-    await discoverSection.getByText(t('home.discoverProductsTitle')).click()
+    // The "coming soon" card is not a link: clicking it must not navigate away.
+    await discoverSection.getByText(t('home.discoverTalentTitle')).click()
     await expect(page).toHaveURL('/')
 
     // The public stats strip renders real numbers, not an error state.

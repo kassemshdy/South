@@ -8,9 +8,12 @@ import uuid
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.arabic import build_search_text
 from app.core.errors import NotFoundError, ValidationError
 from app.models.business import Business, BusinessItem
+from app.repositories.item import ItemRepository
 from app.schemas.item import BusinessItemIn, BusinessItemUpdateIn
+from app.services.slug import unique_slug
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +23,7 @@ MAX_ITEMS_PER_BUSINESS = 200
 class BusinessItemService:
     def __init__(self, db: Session) -> None:
         self._db = db
+        self._repo = ItemRepository(db)
 
     def list_for_business(self, business_id: uuid.UUID) -> list[BusinessItem]:
         return list(
@@ -66,11 +70,13 @@ class BusinessItemService:
         item = BusinessItem(
             business_id=business.id,
             title=payload.title,
+            slug=unique_slug(payload.title, self._repo.slug_exists, fallback_prefix="item"),
             description=payload.description,
             price=payload.price,
             currency=payload.currency,
             is_available=payload.is_available,
             sort_order=sort_order,
+            search_text=build_search_text(payload.title, payload.description),
         )
         self._db.add(item)
         self._db.commit()
@@ -83,6 +89,9 @@ class BusinessItemService:
     def update(self, item: BusinessItem, payload: BusinessItemUpdateIn) -> BusinessItem:
         for field, value in payload.model_dump(exclude_unset=True).items():
             setattr(item, field, value)
+        # The slug is part of the product's public URL, so it is only derived
+        # once at creation — same reasoning as Business.slug.
+        item.search_text = build_search_text(item.title, item.description)
         self._db.commit()
         return item
 

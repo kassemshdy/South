@@ -17,7 +17,7 @@ from slugify import slugify
 MAX_SLUG_LENGTH = 120
 
 
-def slugify_name(name: str) -> str:
+def slugify_name(name: str, *, fallback_prefix: str = "business") -> str:
     base = slugify(
         name,
         max_length=MAX_SLUG_LENGTH,
@@ -26,17 +26,19 @@ def slugify_name(name: str) -> str:
         allow_unicode=True,
     )
     if not base:
-        base = f"business-{secrets.token_hex(3)}"
+        base = f"{fallback_prefix}-{secrets.token_hex(3)}"
     return base
 
 
-def unique_slug(name: str, exists: Callable[[str], bool]) -> str:
+def unique_slug(
+    name: str, exists: Callable[[str], bool], *, fallback_prefix: str = "business"
+) -> str:
     """Return a slug that ``exists`` reports as free.
 
     Appends -2, -3, ... and finally a random suffix, so concurrent creates
     cannot spin forever on a contended name.
     """
-    base = slugify_name(name)
+    base = slugify_name(name, fallback_prefix=fallback_prefix)
     if not exists(base):
         return base
 

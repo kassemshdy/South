@@ -121,6 +121,7 @@ export function HomePage() {
             icon={Package}
             title={t('home.discoverProductsTitle')}
             description={t('home.discoverProductsDescription')}
+            href="/products"
           />
           <DiscoverCard
             icon={Users}

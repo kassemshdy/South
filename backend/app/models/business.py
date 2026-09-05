@@ -191,6 +191,7 @@ class BusinessItem(Base, TimestampMixin):
         ForeignKey("businesses.id", ondelete="CASCADE"), nullable=False, index=True
     )
     title: Mapped[str] = mapped_column(String(160), nullable=False)
+    slug: Mapped[str] = mapped_column(String(180), unique=True, index=True, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     price: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
     currency: Mapped[Currency] = mapped_column(
@@ -200,6 +201,10 @@ class BusinessItem(Base, TimestampMixin):
     image_storage_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_available: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    # Arabic-normalized haystack for the independent products directory,
+    # maintained by BusinessItemService the same way Business.search_text is.
+    search_text: Mapped[str] = mapped_column(Text, default="", nullable=False)
 
     business: Mapped[Business] = relationship(back_populates="items")
 
