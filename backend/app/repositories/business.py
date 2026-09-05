@@ -18,6 +18,7 @@ from app.core.pagination import Page
 from app.models.business import Business, BusinessItem
 from app.models.enums import BusinessStatus
 from app.models.taxonomy import Category, Location
+from app.models.user import User
 from app.repositories.base import BaseRepository
 
 SortOption = Literal["newest", "name", "oldest"]
@@ -172,7 +173,7 @@ class BusinessRepository(BaseRepository[Business]):
         rows = (
             self.db.execute(
                 self._with_relations(stmt)
-                .options(joinedload(Business.owner))
+                .options(joinedload(Business.owner).joinedload(User.verification_document))
                 .order_by(order)
                 .limit(page_size)
                 .offset((page - 1) * page_size)
@@ -187,7 +188,7 @@ class BusinessRepository(BaseRepository[Business]):
         stmt = (
             self._with_relations(select(Business).where(Business.id == business_id))
             .options(
-                joinedload(Business.owner),
+                joinedload(Business.owner).joinedload(User.verification_document),
                 selectinload(Business.moderation_actions),
             )
         )

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, status
+from typing import Annotated
+
+from fastapi import APIRouter, File, UploadFile, status
 
 from app.core.dependencies import (
     AppSettings,
@@ -20,7 +22,10 @@ from app.schemas.auth import (
     UserOut,
     VerifyOtpIn,
 )
+from app.schemas.verification import VerificationDocumentOut
 from app.services.auth import AuthService
+from app.services.verification import VerificationDocumentService
+from app.storage.factory import get_storage
 
 router = APIRouter(tags=["auth"])
 
@@ -81,7 +86,41 @@ def read_me(user: CurrentUser) -> UserOut:
 
 @router.patch("/me", response_model=UserOut, status_code=status.HTTP_200_OK)
 def update_me(payload: UpdateProfileIn, user: CurrentUser, db: DbSession) -> UserOut:
-    if payload.display_name is not None:
-        user.display_name = payload.display_name.strip() or None
+    # exclude_unset, not "is not None": a field explicitly sent as null must be
+    # able to clear a previously-set value, not be indistinguishable from
+    # "the caller didn't mention this field at all".
+    data = payload.model_dump(exclude_unset=True)
+    if "display_name" in data:
+        user.display_name = (data["display_name"] or "").strip() or None
+    if "personal_phone_number" in data:
+        user.personal_phone_number = data["personal_phone_number"]
     db.commit()
     return UserOut.model_validate(user)
+
+
+@router.get("/me/verification-document", response_model=VerificationDocumentOut | None)
+def read_my_verification_document(user: CurrentUser) -> VerificationDocumentOut | None:
+    """Metadata only, so the account page can show "uploaded on {date}"
+    without ever fetching the bytes."""
+    if user.verification_document is None:
+        return None
+    return VerificationDocumentOut.model_validate(user.verification_document)
+
+
+@router.post(
+    "/me/verification-document",
+    response_model=VerificationDocumentOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def upload_my_verification_document(
+    user: CurrentUser,
+    db: DbSession,
+    settings: AppSettings,
+    file: Annotated[UploadFile, File(description="A national ID, passport, or similar document")],
+) -> VerificationDocumentOut:
+    data = file.file.read()
+    service = VerificationDocumentService(get_storage(), settings)
+    document = service.store(
+        db=db, user=user, data=data, original_filename=file.filename
+    )
+    return VerificationDocumentOut.model_validate(document)

@@ -58,6 +58,9 @@ class Business(Base, TimestampMixin):
     category_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("categories.id", ondelete="SET NULL"), nullable=True, index=True
     )
+    # Set only when category is the seeded "other" row (slug "other"); the
+    # owner's own words for a category that doesn't fit the fixed list.
+    custom_category_text: Mapped[str | None] = mapped_column(String(120), nullable=True)
     location_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("locations.id", ondelete="SET NULL"), nullable=True, index=True
     )

@@ -54,6 +54,13 @@ def normalize_phone(raw: str) -> str:
     return f"+{LEBANON_COUNTRY_CODE}{digits}"
 
 
+def normalize_optional_phone(value: str | None) -> str | None:
+    """Like :func:`normalize_phone`, but treats blank/None as "not provided"."""
+    if value is None or not value.strip():
+        return None
+    return normalize_phone(value)
+
+
 def is_valid_phone(raw: str) -> bool:
     try:
         normalize_phone(raw)

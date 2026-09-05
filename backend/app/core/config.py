@@ -75,6 +75,8 @@ class Settings(BaseSettings):
     storage_public_prefix: str = "/media"
     max_upload_bytes: int = 5 * 1024 * 1024
     max_gallery_images: int = 10
+    # Identity documents run larger than the image cap above (PDFs, scans).
+    max_verification_doc_bytes: int = 10 * 1024 * 1024
 
     s3_bucket: str | None = None
     s3_region: str | None = None

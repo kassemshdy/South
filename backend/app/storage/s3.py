@@ -73,3 +73,7 @@ class S3Storage:
             if exc.response.get("Error", {}).get("Code") in ("404", "NoSuchKey"):
                 return False
             raise
+
+    def read(self, key: str) -> bytes:
+        response = self._client.get_object(Bucket=self._bucket, Key=key)
+        return response["Body"].read()

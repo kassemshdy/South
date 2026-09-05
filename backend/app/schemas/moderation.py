@@ -39,6 +39,7 @@ class SuspendIn(BaseModel):
 class AdminUserOut(ORMModel):
     id: uuid.UUID
     phone_number: str | None
+    personal_phone_number: str | None
     email: str | None
     display_name: str | None
     role: UserRole
@@ -51,6 +52,8 @@ class AdminBusinessOut(OwnerBusinessOut):
     """Full review payload, including the owner's contact details."""
 
     owner_phone: str | None = None
+    owner_personal_phone: str | None = None
+    owner_has_verification_document: bool = False
     owner_display_name: str | None = None
     owner_id: uuid.UUID
     moderation_actions: list[ModerationActionOut] = Field(default_factory=list)

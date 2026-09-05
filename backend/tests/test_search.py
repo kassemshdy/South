@@ -91,6 +91,42 @@ def test_search_ignores_arabic_spelling_variance(client: TestClient, published: 
         assert results["meta"]["total"] == 1, query
 
 
+@pytest.fixture
+def published_other_category(
+    client: TestClient, db: Session, category_other: Category, location: Location
+) -> str:
+    """An approved business under the "Other" category, findable by its own words."""
+    headers = sign_in(client, "03900009")
+    created = client.post(
+        "/api/businesses",
+        headers=headers,
+        json={
+            "name": ar("business.other_shop"),
+            "short_description": ar("business.generic_short"),
+            "category_id": str(category_other.id),
+            "location_id": str(location.id),
+            "custom_category_text": ar("business.custom_category_text"),
+            "whatsapp": "03900009",
+        },
+    ).json()
+
+    business = db.get(Business, created["id"])
+    assert business is not None
+    business.status = BusinessStatus.APPROVED
+    db.commit()
+    return created["id"]
+
+
+def test_search_matches_custom_category_text_not_the_literal_other(
+    client: TestClient, published_other_category: str
+) -> None:
+    results = client.get("/api/businesses", params={"q": ar("search.custom_category")}).json()
+    assert [item["id"] for item in results["items"]] == [published_other_category]
+
+    no_match = client.get("/api/businesses", params={"q": ar("category.other")}).json()
+    assert no_match["meta"]["total"] == 0
+
+
 def test_category_and_location_filters_combine(
     client: TestClient, published: None
 ) -> None:

@@ -40,3 +40,12 @@ class StorageBackend(Protocol):
     def exists(self, key: str) -> bool:
         """Whether ``key`` currently has bytes behind it."""
         ...
+
+    def read(self, key: str) -> bytes:
+        """Return the bytes stored at ``key``.
+
+        Used by callers that must not expose a public URL for the object (see
+        :class:`~app.services.verification.VerificationDocumentService`) and
+        instead proxy the bytes through an access-controlled endpoint.
+        """
+        ...
