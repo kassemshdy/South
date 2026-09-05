@@ -47,6 +47,34 @@ def test_new_business_starts_as_draft(complete_business: tuple[str, dict[str, st
     assert client.get(f"/api/businesses/{business_id}/manage", headers=headers).json()["status"] == "DRAFT"
 
 
+@pytest.mark.usefixtures("admin")
+def test_admin_review_payload_includes_owner_personal_details(
+    complete_business: tuple[str, dict[str, str]], client: TestClient, db: Session
+) -> None:
+    business_id, owner_headers = complete_business
+    client.patch(
+        "/api/me", json={"personal_phone_number": "03123456"}, headers=owner_headers
+    )
+
+    review = client.get(
+        f"/api/admin/businesses/{business_id}", headers=admin_headers(client)
+    )
+    assert review.status_code == 200, review.text
+    body = review.json()
+    assert body["owner_personal_phone"] == "+9613123456"
+    assert body["owner_has_verification_document"] is False
+
+    client.post(
+        "/api/me/verification-document",
+        headers=owner_headers,
+        files={"file": ("id.pdf", b"%PDF-1.4\nfake\n", "application/pdf")},
+    )
+    review_after_upload = client.get(
+        f"/api/admin/businesses/{business_id}", headers=admin_headers(client)
+    )
+    assert review_after_upload.json()["owner_has_verification_document"] is True
+
+
 def test_incomplete_business_cannot_be_submitted(
     client: TestClient, category: Category
 ) -> None:
@@ -60,6 +88,42 @@ def test_incomplete_business_cannot_be_submitted(
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "incomplete_business"
     assert len(response.json()["error"]["details"]["missing"]) > 0
+
+
+def test_other_category_requires_custom_category_text_before_submission(
+    client: TestClient, category_other: Category, location: Location, db: Session
+) -> None:
+    headers = sign_in(client, "03800009")
+    business_id = client.post(
+        "/api/businesses",
+        headers=headers,
+        json={
+            "name": ar("business.other_shop"),
+            "short_description": ar("business.generic_short"),
+            "category_id": str(category_other.id),
+            "location_id": str(location.id),
+            "whatsapp": "03800009",
+        },
+    ).json()["id"]
+
+    business = db.get(Business, business_id)
+    assert business is not None
+    business.logo_url = "/media/test/logo.jpg"
+    db.commit()
+
+    blocked = client.post(f"/api/businesses/{business_id}/submit", headers=headers)
+    assert blocked.status_code == 422
+    assert "business.field.custom_category" in blocked.json()["error"]["details"]["missing"]
+
+    updated = client.put(
+        f"/api/businesses/{business_id}",
+        headers=headers,
+        json={"custom_category_text": ar("business.custom_category_text")},
+    )
+    assert updated.status_code == 200, updated.text
+
+    submitted = client.post(f"/api/businesses/{business_id}/submit", headers=headers)
+    assert submitted.status_code == 200, submitted.text
 
 
 def test_submit_moves_to_pending_review(

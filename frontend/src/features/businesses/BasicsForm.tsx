@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMemo } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 
 import { Button } from '@/components/ui/Button'
 import { Field } from '@/components/ui/Field'
@@ -24,8 +24,10 @@ interface BasicsFormProps {
 export function BasicsForm({ business, submitLabel, pending, onSubmit, footer }: BasicsFormProps) {
   const categories = useCategories()
   const t = useT()
-  // Rebuilt when the locale changes so validation messages follow the UI.
-  const schema = useMemo(() => businessBasicsSchema(t), [t])
+  const otherCategoryId = categories.data?.find((category) => category.slug === 'other')?.id
+  // Rebuilt when the locale or the "Other" category id changes so validation
+  // messages follow the UI and the conditional-required rule stays current.
+  const schema = useMemo(() => businessBasicsSchema(t, otherCategoryId), [t, otherCategoryId])
 
   const {
     register,
@@ -39,6 +41,7 @@ export function BasicsForm({ business, submitLabel, pending, onSubmit, footer }:
       short_description: business?.short_description ?? '',
       description: business?.description ?? '',
       category_id: business?.category?.id ?? '',
+      custom_category_text: business?.custom_category_text ?? '',
       phone: business?.phone ?? '',
       whatsapp: business?.whatsapp ?? '',
       email: business?.email ?? '',
@@ -46,12 +49,16 @@ export function BasicsForm({ business, submitLabel, pending, onSubmit, footer }:
     },
   })
 
+  const categoryId = useWatch({ control, name: 'category_id' })
+  const isOtherCategory = Boolean(otherCategoryId) && categoryId === otherCategoryId
+
   const submit = handleSubmit((values) => {
     onSubmit({
       name: values.name,
       short_description: values.short_description || null,
       description: values.description || null,
       category_id: values.category_id || null,
+      custom_category_text: values.custom_category_text || null,
       phone: values.phone || null,
       whatsapp: values.whatsapp || null,
       email: values.email || null,
@@ -117,6 +124,23 @@ export function BasicsForm({ business, submitLabel, pending, onSubmit, footer }:
           />
         )}
       </Field>
+
+      {isOtherCategory ? (
+        <Field
+          label={t('form.customCategoryLabel')}
+          required
+          error={errors.custom_category_text?.message}
+        >
+          {(props) => (
+            <Input
+              {...props}
+              {...register('custom_category_text')}
+              placeholder={t('form.customCategoryPlaceholder')}
+              invalid={Boolean(errors.custom_category_text)}
+            />
+          )}
+        </Field>
+      ) : null}
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label={t('form.phone')} error={errors.phone?.message} hint={t('form.phoneHint')}>

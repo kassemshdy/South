@@ -61,6 +61,7 @@ def business_summary(business: Business) -> BusinessSummaryOut:
         phone=business.phone,
         whatsapp=business.whatsapp,
         category=category_out(business.category),
+        custom_category_text=business.custom_category_text,
         location=location_out(business.location),
         created_at=business.created_at,
     )
@@ -101,6 +102,10 @@ def admin_business(business: Business) -> AdminBusinessOut:
         **owner_business(business).model_dump(),
         owner_id=business.owner_id,
         owner_phone=business.owner.phone_number if business.owner else None,
+        owner_personal_phone=business.owner.personal_phone_number if business.owner else None,
+        owner_has_verification_document=bool(
+            business.owner and business.owner.verification_document is not None
+        ),
         owner_display_name=business.owner.display_name if business.owner else None,
         moderation_actions=[
             ModerationActionOut.model_validate(action)

@@ -7,7 +7,7 @@ from typing import Annotated
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.core.i18n import translate
-from app.core.phone import normalize_phone
+from app.core.phone import normalize_optional_phone
 from app.models.enums import BusinessStatus, ImageKind, SocialPlatform
 from app.schemas.common import ORMModel
 from app.schemas.item import BusinessItemOut
@@ -16,10 +16,11 @@ from app.schemas.taxonomy import CategoryOut, LocationOut
 OptionalPhone = Annotated[str | None, Field(default=None, max_length=25)]
 
 
-def _normalize_optional_phone(value: str | None) -> str | None:
-    if value is None or not value.strip():
+def _strip_or_none(value: str | None) -> str | None:
+    if value is None:
         return None
-    return normalize_phone(value)
+    cleaned = " ".join(value.split())
+    return cleaned or None
 
 
 class BusinessImageOut(ORMModel):
@@ -54,6 +55,10 @@ class BusinessSummaryOut(ORMModel):
     phone: str | None = None
     whatsapp: str | None = None
     category: CategoryOut | None = None
+    # The owner's own words, shown instead of the literal "Other" category
+    # name — public-safe, deliberately authored for display (unlike the
+    # owner's personal contact info, which never appears on a business tier).
+    custom_category_text: str | None = None
     location: LocationOut | None = None
     created_at: datetime
 
@@ -86,6 +91,7 @@ class BusinessCreateIn(BaseModel):
     short_description: str | None = Field(default=None, max_length=300)
     description: str | None = Field(default=None, max_length=5000)
     category_id: uuid.UUID | None = None
+    custom_category_text: str | None = Field(default=None, max_length=120)
     location_id: uuid.UUID | None = None
     phone: OptionalPhone = None
     whatsapp: OptionalPhone = None
@@ -108,7 +114,12 @@ class BusinessCreateIn(BaseModel):
     @field_validator("phone", "whatsapp")
     @classmethod
     def _phones(cls, value: str | None) -> str | None:
-        return _normalize_optional_phone(value)
+        return normalize_optional_phone(value)
+
+    @field_validator("custom_category_text")
+    @classmethod
+    def _strip_custom_category(cls, value: str | None) -> str | None:
+        return _strip_or_none(value)
 
 
 class BusinessUpdateIn(BaseModel):
@@ -118,6 +129,7 @@ class BusinessUpdateIn(BaseModel):
     short_description: str | None = Field(default=None, max_length=300)
     description: str | None = Field(default=None, max_length=5000)
     category_id: uuid.UUID | None = None
+    custom_category_text: str | None = Field(default=None, max_length=120)
     location_id: uuid.UUID | None = None
     phone: OptionalPhone = None
     whatsapp: OptionalPhone = None
@@ -132,7 +144,12 @@ class BusinessUpdateIn(BaseModel):
     @field_validator("phone", "whatsapp")
     @classmethod
     def _phones(cls, value: str | None) -> str | None:
-        return _normalize_optional_phone(value)
+        return normalize_optional_phone(value)
+
+    @field_validator("custom_category_text")
+    @classmethod
+    def _strip_custom_category(cls, value: str | None) -> str | None:
+        return _strip_or_none(value)
 
 
 class ImageReorderIn(BaseModel):

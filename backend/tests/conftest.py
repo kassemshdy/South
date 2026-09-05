@@ -82,6 +82,16 @@ def category(db: Session) -> Category:
 
 
 @pytest.fixture
+def category_other(db: Session) -> Category:
+    """The seeded "Other" category — real slug, since that's the sentinel
+    the app looks for, not a NULL category_id."""
+    entity = Category(name_ar=ar("category.other"), slug="other", sort_order=99)
+    db.add(entity)
+    db.commit()
+    return entity
+
+
+@pytest.fixture
 def location(db: Session) -> Location:
     entity = Location(
         name_ar=ar("location.tyre"),

@@ -39,6 +39,9 @@ const AdminReviewPage = lazy(() =>
 const AdminUsersPage = lazy(() =>
   import('@/pages/admin/AdminUsersPage').then((m) => ({ default: m.AdminUsersPage })),
 )
+const AccountPage = lazy(() =>
+  import('@/pages/dashboard/AccountPage').then((m) => ({ default: m.AccountPage })),
+)
 const BusinessWizardPage = lazy(() =>
   import('@/pages/dashboard/BusinessWizardPage').then((m) => ({ default: m.BusinessWizardPage })),
 )
@@ -70,6 +73,14 @@ export function App() {
             element={
               <RequireAuth>
                 <DashboardPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="dashboard/account"
+            element={
+              <RequireAuth>
+                <AccountPage />
               </RequireAuth>
             }
           />
