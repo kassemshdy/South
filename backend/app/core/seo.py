@@ -34,7 +34,10 @@ def _escape(value: str) -> str:
 
 def _replace_meta(document: str, key: str, content: str) -> str:
     tag_pattern = re.compile(_META_RE_TEMPLATE.format(key=re.escape(key)), re.IGNORECASE)
-    if key.startswith(("og:", "twitter:")):
+    # Open Graph tags are identified by `property`; Twitter's card tags by
+    # `name` (per Twitter's own spec) — mixing the two means Twitter/X's own
+    # crawler never finds them.
+    if key.startswith("og:"):
         replacement = f'<meta property="{key}" content="{_escape(content)}">'
     else:
         replacement = f'<meta name="{key}" content="{_escape(content)}">'
@@ -102,4 +105,48 @@ def business_tags(
         canonical_url=canonical_url,
         image_url=image_url,
         og_type="business.business",
+    )
+
+
+def talent_tags(
+    *,
+    display_name: str,
+    skill_name: str | None,
+    headline: str | None,
+    bio: str | None,
+    location_name: str | None,
+    image_url: str | None,
+    canonical_url: str,
+) -> SeoTags:
+    site = translate("app.name")
+    title = (
+        translate("seo.talent.title_with_skill", name=display_name, skill=skill_name, site=site)
+        if skill_name
+        else translate("seo.talent.title", name=display_name, site=site)
+    )
+    if location_name:
+        fallback = translate("seo.talent.description", name=display_name, location=location_name)
+    else:
+        fallback = translate("seo.talent.description_no_location", name=display_name)
+
+    description = headline or bio or fallback
+    return SeoTags(
+        title=title,
+        description=description[:300],
+        canonical_url=canonical_url,
+        image_url=image_url,
+        og_type="profile",
+    )
+
+
+def default_tags(*, canonical_url: str, image_url: str) -> SeoTags:
+    """The site-wide fallback used for every route with no listing of its own
+    (home, search, admin, dashboard) so a shared link always carries an
+    absolute-URL image and canonical, not just the static, relative ones
+    baked into the build's index.html."""
+    return SeoTags(
+        title=translate("seo.default.title"),
+        description=translate("seo.default.description"),
+        canonical_url=canonical_url,
+        image_url=image_url,
     )

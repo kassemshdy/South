@@ -13,8 +13,10 @@ from app.core.i18n import translate
 from app.main import create_app
 from app.models.business import Business
 from app.models.enums import BusinessStatus
+from app.models.talent import TalentProfile, TalentSkill
 from app.models.taxonomy import Category, Location
-from tests.conftest import sign_in
+from app.models.user import User
+from tests.conftest import admin_headers, sign_in
 from tests.samples import ar
 
 DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
@@ -77,6 +79,60 @@ def test_business_url_gets_server_rendered_seo_tags(
     assert f'property="og:title" content="{expected_title}"' in html
     assert f'property="og:description" content="{ar("business.seo_short")}"' in html
     assert 'rel="canonical"' in html
+    assert 'property="og:image" content="https://example.test/og-image.png"' in html
+
+
+@pytest.fixture
+def approved_talent_slug(
+    client: TestClient, db: Session, admin: User, location: Location
+) -> str:
+    skill = TalentSkill(name_ar=ar("skill.design"), slug="design", sort_order=1)
+    db.add(skill)
+    db.commit()
+
+    headers = sign_in(client, "03950101")
+    created = client.post(
+        "/api/talent",
+        headers=headers,
+        json={
+            "display_name": ar("talent.designer"),
+            "headline": ar("talent.designer_headline"),
+            "skill_id": str(skill.id),
+            "location_id": str(location.id),
+        },
+    ).json()
+
+    profile = db.get(TalentProfile, created["id"])
+    assert profile is not None
+    profile.status = BusinessStatus.PENDING_REVIEW
+    db.commit()
+
+    approved = client.post(
+        f"/api/admin/talent/{created['id']}/approve", headers=admin_headers(client)
+    )
+    assert approved.status_code == 200, approved.text
+    return created["slug"]
+
+
+def test_talent_url_gets_server_rendered_seo_tags(
+    spa_client: TestClient, approved_talent_slug: str
+) -> None:
+    html = spa_client.get(f"/talent/{approved_talent_slug}").text
+
+    expected_title = translate(
+        "seo.talent.title_with_skill",
+        "ar",
+        name=ar("talent.designer"),
+        skill=ar("skill.design"),
+        site=translate("app.name", "ar"),
+    )
+
+    assert f"<title>{expected_title}</title>" in html
+    assert f'property="og:title" content="{expected_title}"' in html
+    assert f'property="og:description" content="{ar("talent.designer_headline")}"' in html
+    # No photo was uploaded, so the site-wide share image is the fallback —
+    # never a relative URL a crawler can't resolve on its own.
+    assert 'property="og:image" content="https://example.test/og-image.png"' in html
 
 
 def test_unknown_and_client_routes_serve_the_spa(spa_client: TestClient) -> None:
@@ -84,6 +140,17 @@ def test_unknown_and_client_routes_serve_the_spa(spa_client: TestClient) -> None
         response = spa_client.get(path)
         assert response.status_code == 200, path
         assert "<div id=\"root\">" in response.text, path
+
+
+def test_generic_routes_get_the_default_absolute_share_image(spa_client: TestClient) -> None:
+    """Every route without a listing of its own — home, a 404'd slug, the
+    dashboard — still gets an absolute og:image instead of the relative one
+    baked into the built index.html, so a shared link always resolves."""
+    for path in ("/", "/products", "/business/does-not-exist"):
+        html = spa_client.get(path).text
+        assert 'property="og:image" content="https://example.test/og-image.png"' in html
+        assert 'name="twitter:card" content="summary_large_image"' in html
+        assert 'rel="canonical"' in html
 
 
 def test_static_files_are_served_with_their_real_content(spa_client: TestClient) -> None:

@@ -23,9 +23,10 @@ from app.core.i18n import translate
 from app.core.logging import configure_logging
 from app.core.middleware import RequestContextMiddleware, SecurityHeadersMiddleware
 from app.core.observability import configure_error_tracking
-from app.core.seo import business_tags, inject
+from app.core.seo import business_tags, default_tags, inject, talent_tags
 from app.database.session import SessionLocal
 from app.repositories.business import BusinessRepository
+from app.repositories.talent import TalentRepository
 
 logger = logging.getLogger(__name__)
 
@@ -195,9 +196,20 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
         app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
 
     base_url = settings.public_base_url.rstrip("/")
+    default_image_url = f"{base_url}/og-image.png"
+
+    def _absolute(image: str | None) -> str:
+        """A stored path is site-relative (``/media/...``); anything else
+        (an external URL, or nothing at all) falls back to the share image,
+        so a link preview never carries a relative URL a crawler can't
+        resolve on its own."""
+        if image and image.startswith("/"):
+            return f"{base_url}{image}"
+        return image or default_image_url
 
     def _render_index(path: str) -> HTMLResponse:
         document = index_file.read_text(encoding="utf-8")
+        tags = None
 
         if path.startswith("business/"):
             slug = path.removeprefix("business/").split("/")[0]
@@ -205,26 +217,44 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
             try:
                 business = BusinessRepository(db).get_by_slug(slug, public_only=True)
                 if business is not None:
-                    image = business.cover_url or business.logo_url
-                    document = inject(
-                        document,
-                        business_tags(
-                            name=business.name,
-                            short_description=business.short_description,
-                            category_name=business.category.name_ar if business.category else None,
-                            location_name=business.location.name_ar if business.location else None,
-                            image_url=(
-                                f"{base_url}{image}"
-                                if image and image.startswith("/")
-                                else image
-                            ),
-                            canonical_url=f"{base_url}/business/{quote(business.slug)}",
-                        ),
+                    tags = business_tags(
+                        name=business.name,
+                        short_description=business.short_description,
+                        category_name=business.category.name_ar if business.category else None,
+                        location_name=business.location.name_ar if business.location else None,
+                        image_url=_absolute(business.cover_url or business.logo_url),
+                        canonical_url=f"{base_url}/business/{quote(business.slug)}",
+                    )
+            finally:
+                db.close()
+        elif path.startswith("talent/"):
+            slug = path.removeprefix("talent/").split("/")[0]
+            db = SessionLocal()
+            try:
+                profile = TalentRepository(db).get_by_slug(slug, public_only=True)
+                if profile is not None:
+                    tags = talent_tags(
+                        display_name=profile.display_name,
+                        skill_name=profile.skill.name_ar if profile.skill else None,
+                        headline=profile.headline,
+                        bio=profile.bio,
+                        location_name=profile.location.name_ar if profile.location else None,
+                        image_url=_absolute(profile.photo_url),
+                        canonical_url=f"{base_url}/talent/{quote(profile.slug)}",
                     )
             finally:
                 db.close()
 
-        return HTMLResponse(document)
+        if tags is None:
+            # Every other route (home, search, dashboard, a business/talent
+            # slug that isn't public) still gets an absolute-URL image and
+            # canonical instead of the static, relative ones baked into the
+            # build — a shared link works the same everywhere on the site.
+            trimmed = path.rstrip("/")
+            canonical = f"{base_url}/{trimmed}" if trimmed else base_url
+            tags = default_tags(canonical_url=canonical, image_url=default_image_url)
+
+        return HTMLResponse(inject(document, tags))
 
     @app.get("/{full_path:path}", include_in_schema=False)
     def spa(full_path: str) -> Response:
