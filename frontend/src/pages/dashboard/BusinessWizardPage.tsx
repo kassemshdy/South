@@ -286,7 +286,9 @@ function ReviewStep({
           <ul className="mt-2 flex flex-wrap gap-2">
             {missing.map((item) => (
               <li key={item}>
-                <Badge className="bg-white text-clay-700">{item}</Badge>
+                {/* The API returns catalog keys, not sentences, so the
+                    reader's locale decides the wording. */}
+                <Badge className="bg-white text-clay-700">{t(item as TranslationKey)}</Badge>
               </li>
             ))}
           </ul>

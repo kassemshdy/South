@@ -11,7 +11,7 @@ import { useToast } from '@/components/ui/Toast'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useSeo } from '@/hooks/useSeo'
-import { useI18n, useT } from '@/i18n'
+import { useI18n, useT, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { ownerApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
@@ -195,7 +195,9 @@ function OwnerBusinessCard({ business }: { business: OwnerBusiness }) {
             <ul className="mt-1.5 flex flex-wrap gap-1.5">
               {submit.error.missing.map((item) => (
                 <li key={item}>
-                  <Badge className="bg-white text-clay-700">{item}</Badge>
+                  {/* The API returns catalog keys, not sentences, so the
+                      reader's locale decides the wording. */}
+                  <Badge className="bg-white text-clay-700">{t(item as TranslationKey)}</Badge>
                 </li>
               ))}
             </ul>

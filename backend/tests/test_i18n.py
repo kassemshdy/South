@@ -200,6 +200,41 @@ def test_frontend_catalogs_match() -> None:
 
 
 @pytest.mark.skipif(not FRONTEND_LOCALES.exists(), reason="frontend catalogs not present")
+def test_readiness_keys_exist_in_the_frontend_catalogs() -> None:
+    """The readiness endpoints hand the client *keys*, not sentences.
+
+    ``/businesses/{id}/readiness`` and ``/my/talent/readiness`` return catalog
+    keys so the reader's locale decides the wording — which only works if the
+    frontend can actually resolve them. A key added to a service's requirement
+    list and not mirrored into the frontend catalogs renders as the raw key
+    (``business.field.logo``) in the owner's face, so it is caught here rather
+    than in a screenshot.
+    """
+    emitted = {
+        key
+        for module in ("business.py", "talent.py")
+        for key in re.findall(
+            r'"((?:business|talent)\.field\.\w+)"',
+            (BACKEND_ROOT / "app" / "services" / module).read_text(encoding="utf-8"),
+        )
+    }
+    assert emitted, "no readiness keys found — has the requirement list moved?"
+
+    backend = set(_catalog(DEFAULT_LOCALE))
+    frontend = set(
+        json.loads((FRONTEND_LOCALES / f"{DEFAULT_LOCALE}.json").read_text(encoding="utf-8"))
+    )
+
+    assert not (emitted - backend), (
+        f"readiness keys missing from the backend catalog: {sorted(emitted - backend)}"
+    )
+    assert not (emitted - frontend), (
+        "readiness keys missing from the frontend catalogs: "
+        f"{sorted(emitted - frontend)}. Mirror them into frontend/src/i18n/locales/."
+    )
+
+
+@pytest.mark.skipif(not FRONTEND_LOCALES.exists(), reason="frontend catalogs not present")
 def test_frontend_english_catalog_contains_no_arabic() -> None:
     english = json.loads((FRONTEND_LOCALES / "en.json").read_text(encoding="utf-8"))
     for key, value in english.items():
