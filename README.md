@@ -286,13 +286,14 @@ Three services:
 | Service | Image | Role |
 |---|---|---|
 | `postgres` | Railway PostgreSQL | database |
-| `api` | `backend/Dockerfile` | FastAPI; also renders SEO'd `/business/*` HTML |
-| `web` | `frontend/Dockerfile` | Caddy serving the SPA, proxying `/api`, `/media`, `/sitemap.xml`, `/robots.txt` and `/business/*` to the API |
+| `api` | `backend/Dockerfile` | FastAPI; also renders every page's SEO'd HTML |
+| `web` | `frontend/Dockerfile` | Caddy; serves hashed `/assets/*` directly, proxies every other route to the API |
 
-The web service holds the public domain and proxies rather than standing alone,
-which keeps one origin: image URLs resolve, the browser makes no cross-origin
-requests, and the server-rendered Arabic OG tags that make WhatsApp and Facebook
-link previews work survive.
+The web service holds the public domain and proxies almost everything rather
+than standing alone, which keeps one origin: image URLs resolve, the browser
+makes no cross-origin requests, and the server-rendered Arabic OG tags that
+make WhatsApp and Facebook link previews work survive on every page, not just
+a hand-maintained list of proxied paths.
 
 - **Railway** — `railway.json` selects the API Dockerfile; the web service points
   at `frontend/Dockerfile`. Attach a volume at `/app/var/media` when using local
