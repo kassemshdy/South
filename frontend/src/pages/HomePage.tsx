@@ -106,6 +106,20 @@ export function HomePage() {
         </div>
       </section>
 
+      <section className="border-y border-olive-200 bg-olive-50 py-5" aria-label={t('home.sloganTitle')}>
+        <div className="container-page flex flex-col items-center justify-center gap-2 text-center sm:flex-row sm:gap-4">
+          <span className="text-sm font-bold text-olive-700">{t('home.sloganTitle')}</span>
+          <span className="hidden text-olive-300 sm:inline">•</span>
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm font-semibold text-olive-800">
+            <span>{t('home.sloganLine1')}</span>
+            <span className="text-olive-300">•</span>
+            <span>{t('home.sloganLine2')}</span>
+            <span className="text-olive-300">•</span>
+            <span>{t('home.sloganLine3')}</span>
+          </div>
+        </div>
+      </section>
+
       <section className="container-page py-14" aria-labelledby="discover-heading">
         <h2 id="discover-heading" className="mb-6 text-center text-2xl">
           {t('home.discoverHeading')}
