@@ -47,7 +47,7 @@ jobs:
         working-directory: backend
         run: |
           python -m venv .venv
-          ./.venv/bin/pip install --no-cache-dir -r requirements.txt
+          ./.venv/bin/pip install --no-cache-dir -r requirements-dev.txt
 
       - name: pytest
         working-directory: backend
