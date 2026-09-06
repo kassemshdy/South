@@ -134,6 +134,8 @@ deploy that introduced it.
 - Run the full local gate before pushing anything meant to deploy: backend pytest +
   ruff + mypy, frontend `tsc -b` + build, the no-Arabic guard (part of the backend suite),
   and — for anything touching the owner/admin flow — the Playwright acceptance spec.
-- A push to `claude/arabic-business-directory-south-lebanon-gpte8i` auto-deploys to
-  Railway. Treat that branch as production-adjacent: verify locally first, and check
-  Railway deploy status/logs after pushing rather than assuming success.
+- Two branches auto-deploy on push: `master-claude` drives the live services
+  (`api`, `web`) and `develop-claude` drives the staging pair (`api-develop`,
+  `web-develop`). Treat `master-claude` as production: verify locally first, and check
+  Railway deploy status/logs after pushing rather than assuming success. Feature work
+  goes to `develop-claude` first, then to `master-claude`.
