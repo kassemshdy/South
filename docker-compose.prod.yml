@@ -41,9 +41,9 @@ services:
     volumes:
       - media_data:/app/var/media
 
-  # Serves the built SPA and proxies /api, /media, /sitemap.xml, /robots.txt
-  # and /business/* to the API — one public origin, so image URLs resolve and
-  # server-rendered SEO tags survive.
+  # Serves hashed /assets/* directly and proxies every other route to the
+  # API — one public origin, so image URLs resolve and every page (not just
+  # /business/*) gets its server-rendered SEO tags.
   web:
     build:
       context: .

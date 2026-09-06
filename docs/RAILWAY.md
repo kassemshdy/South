@@ -30,11 +30,16 @@ different Dockerfiles.
 
 ## Why the web service is the public entry point
 
-It serves the SPA and reverse-proxies `/api/*`, `/media/*`, `/sitemap.xml`,
-`/robots.txt` and `/business/*` to `api.railway.internal:8000` over Railway's
-private network. One public origin means the API's relative `/media/...` image
-URLs resolve, the browser never makes a cross-origin request, and the
-server-rendered Arabic OG tags behind WhatsApp/Facebook link previews survive.
+It serves only hashed `/assets/*` directly; everything else — `/api/*`,
+`/media/*`, and every page route (`/`, `/business/*`, `/talent/*`, a hard
+refresh on any client-side route) — is reverse-proxied to
+`api.railway.internal:8000` over Railway's private network. One public origin
+means the API's relative `/media/...` image URLs resolve, the browser never
+makes a cross-origin request, and the server-rendered Arabic OG tags behind
+WhatsApp/Facebook link previews survive on every page, not just a
+hand-maintained list of proxied paths (a gap that once left `/` itself served
+a stale, edge-cached `index.html` with no real SEO tags — see the git history
+on `frontend/Caddyfile` for the incident).
 
 ## Service settings
 

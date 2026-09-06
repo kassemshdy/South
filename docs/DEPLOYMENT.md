@@ -5,14 +5,21 @@ The application deploys as **three services**:
 | Service | Source | Role |
 |---|---|---|
 | `postgres` | managed Postgres | database |
-| `api` | `backend/Dockerfile` | FastAPI. Also carries the SPA build so it can render `/business/*` with real SEO tags |
-| `web` | `frontend/Dockerfile` | Caddy serving the SPA; proxies `/api/*`, `/media/*`, `/sitemap.xml`, `/robots.txt` and `/business/*` to the API |
+| `api` | `backend/Dockerfile` | FastAPI. Also carries the SPA build so it can render every page's `index.html` with real per-route SEO tags |
+| `web` | `frontend/Dockerfile` | Caddy; serves hashed `/assets/*` directly and proxies everything else to the API |
 
-**The web service is the public entry point and proxies to the API.** That is
-deliberate: the API returns relative `/media/...` image URLs, and the SEO tags
-that make link previews work only exist where FastAPI renders `index.html`. A
-single public origin keeps both working and removes CORS from the browser's
-path entirely.
+**The web service is the public entry point and proxies almost everything to
+the API.** Only pre-hashed, immutable build assets (`/assets/*`) are served
+directly by Caddy — every page route (`/`, `/business/*`, `/talent/*`,
+`/products/*`, a hard refresh on any client-side route) goes to the API, which
+serves the same built files for a real static request and injects real
+per-route SEO tags for an HTML one. This used to be a hand-maintained list of
+proxied paths (only `/business/*` got real tags; every other route silently
+served the generic static `index.html`) — routing everything through the API
+instead means a new route never needs a matching Caddyfile change to get
+correct tags. A single public origin also keeps the API's relative
+`/media/...` image URLs resolving and removes CORS from the browser's path
+entirely.
 
 Migrations run automatically when the API container starts.
 

@@ -11,29 +11,35 @@
 		respond "ok" 200
 	}
 
-	# Everything the API owns. /business/* goes to the API as well, so crawlers
-	# and link previews receive server-rendered Arabic meta tags rather than the
-	# generic index.html.
+	# Hashed build output is safe to cache indefinitely and needs no
+	# server-side logic — served directly, no round-trip to the API.
+	@assets path /assets/*
+	handle @assets {
+		header Cache-Control "public, max-age=31536000, immutable"
+		root * /srv
+		file_server
+	}
+
+	# Everything else — /api/*, /media/*, and every page route (/, /business/*,
+	# /talent/*, /products/*, /dashboard/*, /admin/*, a hard refresh on any
+	# client-side route) — goes to the API. It serves the exact same built
+	# files for a real static request (favicon, the share image, an
+	# unhashed asset) and, for an HTML page, injects real per-route SEO tags
+	# with its own explicit Cache-Control. Previously only /business/* was
+	# proxied, so /talent/* and every other route silently never got the
+	# server-rendered tags this app builds for them, and index.html's
+	# Cache-Control was set here (unconditionally "no-cache") rather than by
+	# whatever actually renders the response — this is the one place that
+	# now decides both, so the two can't drift out of sync again.
 	@api {
 		path /api/*
 		path /media/*
-		path /sitemap.xml
-		path /robots.txt
-		path /business/*
 	}
 	handle @api {
 		# Caddy forwards X-Forwarded-* by default, which is what lets the API
 		# build absolute canonical and OG URLs on the public host.
 		reverse_proxy {$API_INTERNAL_HOST:api.railway.internal:8000}
 	}
-
-	# Hashed build output is safe to cache indefinitely.
-	@assets path /assets/*
-	header @assets Cache-Control "public, max-age=31536000, immutable"
-
-	# index.html must never be cached, or a deploy leaves clients on stale chunks.
-	@html path / /index.html
-	header @html Cache-Control "no-cache"
 
 	header {
 		X-Content-Type-Options "nosniff"
@@ -42,8 +48,6 @@
 	}
 
 	handle {
-		root * /srv
-		try_files {path} /index.html
-		file_server
+		reverse_proxy {$API_INTERNAL_HOST:api.railway.internal:8000}
 	}
 }
