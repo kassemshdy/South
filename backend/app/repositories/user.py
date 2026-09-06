@@ -45,6 +45,17 @@ class UserRepository(BaseRepository[User]):
             ).scalar_one()
         )
 
+    def list_by_role(self, role: UserRole) -> list[User]:
+        """Every user with ``role`` — used for the feedback assignee picker,
+        which only ever offers administrators."""
+        return list(
+            self.db.execute(
+                select(User).where(User.role == role).order_by(User.display_name, User.email)
+            )
+            .scalars()
+            .all()
+        )
+
     def get_active(self, user_id: uuid.UUID) -> User | None:
         user = self.get(user_id)
         if user is None or not user.is_active:

@@ -3,10 +3,13 @@ import { Outlet } from 'react-router-dom'
 import { Footer } from '@/components/layout/Footer'
 import { Header } from '@/components/layout/Header'
 import { ScrollToTop } from '@/components/layout/ScrollToTop'
+import { useAuth } from '@/features/auth/AuthContext'
+import { FeedbackWidget } from '@/features/feedback/FeedbackWidget'
 import { useT } from '@/i18n'
 
 export function AppLayout() {
   const t = useT()
+  const { isAdmin } = useAuth()
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -23,6 +26,7 @@ export function AppLayout() {
         <Outlet />
       </main>
       <Footer />
+      {isAdmin ? <FeedbackWidget /> : null}
     </div>
   )
 }

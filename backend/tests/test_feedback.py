@@ -1,0 +1,326 @@
+"""Admin bug/feedback ticketing and its Kanban board.
+
+Unlike the business/talent tests, there is no public-visibility rule to
+assert — every route here sits behind ``AdminUser`` and nothing about a
+ticket is ever exposed to an owner or an anonymous visitor. What matters
+instead is that the board's own bookkeeping (column order, resolved_at,
+attachment/comment counts) stays correct across a drag.
+"""
+
+from __future__ import annotations
+
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
+
+from app.models.enums import UserRole
+from app.models.feedback import FeedbackTicket
+from app.models.user import User
+from tests.conftest import admin_headers, sign_in
+from tests.samples import ar
+
+
+def _create(client: TestClient, headers: dict[str, str], **overrides: object) -> dict:
+    payload = {"title": ar("feedback.bug_title"), "priority": "MEDIUM"}
+    payload.update(overrides)
+    response = client.post("/api/admin/feedback/tickets", headers=headers, json=payload)
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+# --- Authorization -----------------------------------------------------
+
+
+def test_owner_routes_are_rejected(client: TestClient) -> None:
+    """A business/talent owner is not an administrator and has no business
+    on this board at all."""
+    headers = sign_in(client, "03960001")
+    assert client.get("/api/admin/feedback/tickets", headers=headers).status_code == 403
+    assert (
+        client.post(
+            "/api/admin/feedback/tickets", headers=headers, json={"title": ar("feedback.bug_title")}
+        ).status_code
+        == 403
+    )
+
+
+def test_unauthenticated_is_rejected(client: TestClient) -> None:
+    assert client.get("/api/admin/feedback/tickets").status_code == 401
+
+
+# --- Creation and the board ---------------------------------------------
+
+
+def test_new_ticket_lands_in_backlog(client: TestClient, admin: User) -> None:
+    headers = admin_headers(client)
+    ticket = _create(client, headers)
+    assert ticket["status"] == "BACKLOG"
+    assert ticket["sort_order"] == 0
+    assert ticket["reporter"]["email"] == admin.email
+    assert ticket["assignee"] is None
+    assert ticket["attachment_count"] == 0
+    assert ticket["comment_count"] == 0
+
+
+def test_board_lists_every_ticket_ordered_by_column_then_position(
+    client: TestClient, admin: User
+) -> None:
+    headers = admin_headers(client)
+    first = _create(client, headers, title=ar("feedback.bug_title"))
+    second = _create(client, headers, title=ar("feedback.feature_title"))
+
+    board = client.get("/api/admin/feedback/tickets", headers=headers).json()
+    ids = [t["id"] for t in board]
+    assert ids == [first["id"], second["id"]]
+    assert [t["sort_order"] for t in board] == [0, 1]
+
+
+# --- Moving across the board ---------------------------------------------
+
+
+def test_move_to_another_column_renumbers_both_columns(client: TestClient, admin: User) -> None:
+    headers = admin_headers(client)
+    first = _create(client, headers, title=ar("feedback.bug_title"))
+    second = _create(client, headers, title=ar("feedback.feature_title"))
+
+    moved = client.post(
+        f"/api/admin/feedback/tickets/{first['id']}/move",
+        headers=headers,
+        json={"status": "IN_PROGRESS", "index": 0},
+    )
+    assert moved.status_code == 200, moved.text
+    board = {t["id"]: t for t in moved.json()}
+
+    # The moved ticket is alone in its new column at position 0...
+    assert board[first["id"]]["status"] == "IN_PROGRESS"
+    assert board[first["id"]]["sort_order"] == 0
+    # ...and the ticket left behind closes the gap in BACKLOG.
+    assert board[second["id"]]["status"] == "BACKLOG"
+    assert board[second["id"]]["sort_order"] == 0
+
+
+def test_reorder_within_the_same_column(client: TestClient, admin: User) -> None:
+    headers = admin_headers(client)
+    first = _create(client, headers, title=ar("feedback.bug_title"))
+    second = _create(client, headers, title=ar("feedback.feature_title"))
+
+    # Move the second ticket ahead of the first, within BACKLOG.
+    moved = client.post(
+        f"/api/admin/feedback/tickets/{second['id']}/move",
+        headers=headers,
+        json={"status": "BACKLOG", "index": 0},
+    )
+    assert moved.status_code == 200, moved.text
+    board = moved.json()
+    assert [t["id"] for t in board] == [second["id"], first["id"]]
+    assert [t["sort_order"] for t in board] == [0, 1]
+
+
+def test_moving_into_done_sets_resolved_at_and_moving_out_clears_it(
+    client: TestClient, admin: User
+) -> None:
+    headers = admin_headers(client)
+    ticket = _create(client, headers)
+
+    done = client.post(
+        f"/api/admin/feedback/tickets/{ticket['id']}/move",
+        headers=headers,
+        json={"status": "DONE", "index": 0},
+    )
+    assert done.status_code == 200, done.text
+    detail = client.get(f"/api/admin/feedback/tickets/{ticket['id']}", headers=headers).json()
+    assert detail["status"] == "DONE"
+    assert detail["resolved_at"] is not None
+
+    reopened = client.post(
+        f"/api/admin/feedback/tickets/{ticket['id']}/move",
+        headers=headers,
+        json={"status": "TODO", "index": 0},
+    )
+    assert reopened.status_code == 200, reopened.text
+    detail = client.get(f"/api/admin/feedback/tickets/{ticket['id']}", headers=headers).json()
+    assert detail["status"] == "TODO"
+    assert detail["resolved_at"] is None
+
+
+# --- Update, assignment, comments -----------------------------------------
+
+
+def test_update_edits_fields_without_touching_status(client: TestClient, admin: User) -> None:
+    headers = admin_headers(client)
+    ticket = _create(client, headers)
+
+    updated = client.put(
+        f"/api/admin/feedback/tickets/{ticket['id']}",
+        headers=headers,
+        json={"priority": "URGENT", "description": ar("feedback.bug_description")},
+    )
+    assert updated.status_code == 200, updated.text
+    body = updated.json()
+    assert body["priority"] == "URGENT"
+    assert body["description"] == ar("feedback.bug_description")
+    assert body["status"] == "BACKLOG"
+
+
+def test_ticket_can_be_assigned_to_an_administrator(
+    client: TestClient, db: Session, admin: User
+) -> None:
+    headers = admin_headers(client)
+    ticket = _create(client, headers)
+
+    second_admin = User(email="second-admin@example.com", role=UserRole.ADMIN, display_name="second")
+    db.add(second_admin)
+    db.commit()
+
+    assignees = client.get("/api/admin/feedback/assignees", headers=headers).json()
+    assert {a["email"] for a in assignees} == {admin.email, second_admin.email}
+
+    assigned = client.put(
+        f"/api/admin/feedback/tickets/{ticket['id']}",
+        headers=headers,
+        json={"assignee_id": str(second_admin.id)},
+    )
+    assert assigned.status_code == 200, assigned.text
+    assert assigned.json()["assignee"]["email"] == second_admin.email
+
+
+def test_assigning_to_a_non_admin_is_rejected(
+    client: TestClient, db: Session, admin: User
+) -> None:
+    """The picker only ever offers administrators, but the API must not
+    trust a request-supplied id blindly — an owner id must not silently
+    become a valid assignee."""
+    headers = admin_headers(client)
+    ticket = _create(client, headers)
+
+    owner = User(phone_number="+9613960099", role=UserRole.OWNER)
+    db.add(owner)
+    db.commit()
+
+    response = client.put(
+        f"/api/admin/feedback/tickets/{ticket['id']}",
+        headers=headers,
+        json={"assignee_id": str(owner.id)},
+    )
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "unknown_assignee"
+
+
+def test_comments_accumulate_and_are_counted(client: TestClient, admin: User) -> None:
+    headers = admin_headers(client)
+    ticket = _create(client, headers)
+
+    commented = client.post(
+        f"/api/admin/feedback/tickets/{ticket['id']}/comments",
+        headers=headers,
+        json={"body": ar("feedback.comment_repro")},
+    )
+    assert commented.status_code == 200, commented.text
+    body = commented.json()
+    assert body["comment_count"] == 1
+    assert body["comments"][0]["body"] == ar("feedback.comment_repro")
+    assert body["comments"][0]["author_display_name"] == admin.display_name
+
+
+# --- Deletion --------------------------------------------------------------
+
+
+def test_delete_removes_the_ticket(client: TestClient, db: Session, admin: User) -> None:
+    headers = admin_headers(client)
+    ticket = _create(client, headers)
+
+    deleted = client.delete(f"/api/admin/feedback/tickets/{ticket['id']}", headers=headers)
+    assert deleted.status_code == 200, deleted.text
+    assert client.get(f"/api/admin/feedback/tickets/{ticket['id']}", headers=headers).status_code == 404
+    assert db.get(FeedbackTicket, ticket["id"]) is None
+
+
+def test_getting_an_unknown_ticket_404s(client: TestClient, admin: User) -> None:
+    headers = admin_headers(client)
+    response = client.get(
+        "/api/admin/feedback/tickets/00000000-0000-0000-0000-000000000000", headers=headers
+    )
+    assert response.status_code == 404
+
+
+# --- Attachments -------------------------------------------------------
+
+
+@pytest.fixture
+def jpeg_bytes() -> bytes:
+    # The attachment service only sniffs the three-byte JPEG magic number —
+    # unlike ImageService, it never decodes the file — so padding after the
+    # header is all a test needs.
+    return b"\xff\xd8\xff" + b"\x00" * 64
+
+
+def test_upload_and_download_a_screenshot_attachment(
+    client: TestClient, admin: User, jpeg_bytes: bytes
+) -> None:
+    headers = admin_headers(client)
+    ticket = _create(client, headers)
+
+    uploaded = client.post(
+        f"/api/admin/feedback/tickets/{ticket['id']}/attachments",
+        headers=headers,
+        files={"file": ("screenshot.jpg", jpeg_bytes, "image/jpeg")},
+        data={"kind": "SCREENSHOT"},
+    )
+    assert uploaded.status_code == 201, uploaded.text
+    body = uploaded.json()
+    assert body["attachment_count"] == 1
+    attachment = body["attachments"][0]
+    assert attachment["kind"] == "SCREENSHOT"
+
+    downloaded = client.get(
+        f"/api/admin/feedback/tickets/{ticket['id']}/attachments/{attachment['id']}/download",
+        headers=headers,
+    )
+    assert downloaded.status_code == 200
+    assert downloaded.content == jpeg_bytes
+
+    deleted = client.delete(
+        f"/api/admin/feedback/tickets/{ticket['id']}/attachments/{attachment['id']}",
+        headers=headers,
+    )
+    assert deleted.status_code == 200, deleted.text
+    assert deleted.json()["attachment_count"] == 0
+
+
+def test_a_document_tagged_photo_is_rejected(client: TestClient, admin: User) -> None:
+    """The client-supplied kind must match what the bytes actually are — a
+    PDF cannot masquerade as a photo, the same distrust the image and
+    verification-document pipelines already apply."""
+    headers = admin_headers(client)
+    ticket = _create(client, headers)
+
+    response = client.post(
+        f"/api/admin/feedback/tickets/{ticket['id']}/attachments",
+        headers=headers,
+        files={"file": ("doc.pdf", b"%PDF-1.4\n%fake pdf body", "application/pdf")},
+        data={"kind": "PHOTO"},
+    )
+    assert response.status_code == 415
+
+
+def test_attachment_limit_is_enforced(client: TestClient, admin: User, jpeg_bytes: bytes) -> None:
+    headers = admin_headers(client)
+    ticket = _create(client, headers)
+
+    for _ in range(8):
+        response = client.post(
+            f"/api/admin/feedback/tickets/{ticket['id']}/attachments",
+            headers=headers,
+            files={"file": ("photo.jpg", jpeg_bytes, "image/jpeg")},
+            data={"kind": "PHOTO"},
+        )
+        assert response.status_code == 201, response.text
+
+    over_limit = client.post(
+        f"/api/admin/feedback/tickets/{ticket['id']}/attachments",
+        headers=headers,
+        files={"file": ("photo.jpg", jpeg_bytes, "image/jpeg")},
+        data={"kind": "PHOTO"},
+    )
+    assert over_limit.status_code == 422
+    assert over_limit.json()["error"]["code"] == "attachment_limit_reached"
