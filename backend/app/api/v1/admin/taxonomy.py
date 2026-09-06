@@ -1,4 +1,4 @@
-"""Administrator CRUD for categories and locations."""
+"""Administrator CRUD for categories, locations and talent skills."""
 
 from __future__ import annotations
 
@@ -7,13 +7,16 @@ from typing import Annotated
 
 from fastapi import APIRouter, Query, status
 
-from app.api.serializers import category_out, location_out
+from app.api.serializers import category_out, location_out, talent_skill_out
 from app.core.dependencies import AdminUser, DbSession
 from app.core.errors import ConflictError, NotFoundError, ValidationError
 from app.core.i18n import translate
+from app.models.talent import TalentSkill
 from app.models.taxonomy import Category, Location
+from app.repositories.talent import TalentSkillRepository
 from app.repositories.taxonomy import CategoryRepository, LocationRepository
 from app.schemas.common import MessageResponse
+from app.schemas.talent import TalentSkillIn, TalentSkillOut, TalentSkillUpdateIn
 from app.schemas.taxonomy import (
     CategoryIn,
     CategoryOut,
@@ -193,3 +196,84 @@ def delete_location(location_id: uuid.UUID, db: DbSession, admin: AdminUser) -> 
     repo.delete(location)
     db.commit()
     return MessageResponse(message=translate("taxonomy.location.deleted"))
+
+
+# --- Talent skills ---------------------------------------------------------
+
+
+@router.get("/talent-skills", response_model=list[TalentSkillOut])
+def list_talent_skills(
+    db: DbSession, admin: AdminUser, include_inactive: Annotated[bool, Query()] = True
+) -> list[TalentSkillOut]:
+    skills = TalentSkillRepository(db).list_all(active_only=not include_inactive)
+    return [out for s in skills if (out := talent_skill_out(s)) is not None]
+
+
+@router.post(
+    "/talent-skills", response_model=TalentSkillOut, status_code=status.HTTP_201_CREATED
+)
+def create_talent_skill(
+    payload: TalentSkillIn, db: DbSession, admin: AdminUser
+) -> TalentSkillOut:
+    repo = TalentSkillRepository(db)
+    slug = (
+        slugify_name(payload.slug)
+        if payload.slug
+        else unique_slug(payload.name_ar, repo.slug_exists)
+    )
+    if repo.slug_exists(slug):
+        raise ConflictError("taxonomy.skill.duplicate_slug", code="duplicate_slug")
+
+    skill = repo.add(
+        TalentSkill(
+            name_ar=payload.name_ar,
+            slug=slug,
+            icon=payload.icon,
+            sort_order=payload.sort_order,
+            is_active=payload.is_active,
+        )
+    )
+    db.commit()
+    out = talent_skill_out(skill)
+    assert out is not None
+    return out
+
+
+@router.put("/talent-skills/{skill_id}", response_model=TalentSkillOut)
+def update_talent_skill(
+    skill_id: uuid.UUID, payload: TalentSkillUpdateIn, db: DbSession, admin: AdminUser
+) -> TalentSkillOut:
+    repo = TalentSkillRepository(db)
+    skill = repo.get(skill_id)
+    if skill is None:
+        raise NotFoundError("taxonomy.skill.not_found")
+
+    data = payload.model_dump(exclude_unset=True)
+    if data.get("slug"):
+        slug = slugify_name(data["slug"])
+        if repo.slug_exists(slug, exclude_id=skill_id):
+            raise ConflictError("taxonomy.skill.duplicate_slug", code="duplicate_slug")
+        data["slug"] = slug
+
+    for field, value in data.items():
+        setattr(skill, field, value)
+    db.commit()
+    out = talent_skill_out(skill)
+    assert out is not None
+    return out
+
+
+@router.delete("/talent-skills/{skill_id}", response_model=MessageResponse)
+def delete_talent_skill(
+    skill_id: uuid.UUID, db: DbSession, admin: AdminUser
+) -> MessageResponse:
+    repo = TalentSkillRepository(db)
+    skill = repo.get(skill_id)
+    if skill is None:
+        raise NotFoundError("taxonomy.skill.not_found")
+    if skill.profiles:
+        # Deactivating keeps existing profiles intact; deleting would orphan them.
+        raise ConflictError("taxonomy.skill.in_use", code="skill_in_use")
+    repo.delete(skill)
+    db.commit()
+    return MessageResponse(message=translate("taxonomy.skill.deleted"))

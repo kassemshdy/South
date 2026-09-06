@@ -12,3 +12,4 @@ python-multipart==0.0.20
 Pillow==11.0.0
 python-slugify==8.0.4
 httpx==0.28.1
+sentry-sdk[fastapi]==2.19.2

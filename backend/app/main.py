@@ -22,6 +22,7 @@ from app.core.errors import AppError, RateLimitedError
 from app.core.i18n import translate
 from app.core.logging import configure_logging
 from app.core.middleware import RequestContextMiddleware, SecurityHeadersMiddleware
+from app.core.observability import configure_error_tracking
 from app.core.seo import business_tags, inject
 from app.database.session import SessionLocal
 from app.repositories.business import BusinessRepository
@@ -48,6 +49,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     configure_logging(settings.log_level, json_output=not settings.is_development)
+    # Before the app is built, so a failure during startup is still reported.
+    configure_error_tracking(settings)
 
     app = FastAPI(
         title="South Lebanon Business Directory API",

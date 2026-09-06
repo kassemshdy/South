@@ -6,22 +6,27 @@
 |---|---|
 | Project | `southwork` (`323dd6ae-af69-4035-9e24-6de498989756`), workspace PulseX |
 | Environment | `production` (running `APP_ENV=staging` — see below) |
-| Branch | `claude/arabic-business-directory-south-lebanon-gpte8i`, auto-deploys on push |
+| Branch | `master-claude` (live) and `develop-claude` (staging), both auto-deploy on push |
 | Admin sign-in | `/admin/login` — `ADMIN_EMAIL` / `ADMIN_PASSWORD` from the api service variables |
 | Owner sign-in | any Lebanese number; the OTP code is **123456** while `APP_ENV=staging` |
 
 Change `ADMIN_PASSWORD` before sharing the URL with anyone.
 
 
-Three services in one project. Build configuration lives on each service rather
-than in a repository-level `railway.json`, because a single config file cannot
-describe two different Dockerfiles.
+Six services in one project — a live trio and a staging trio, all in the single
+`production` Railway environment, separated by which branch each tracks rather
+than by environment. Build configuration lives on each service rather than in a
+repository-level `railway.json`, because a single config file cannot describe two
+different Dockerfiles.
 
-| Service | Dockerfile | Healthcheck | Public |
-|---|---|---|---|
-| `postgres` | `postgres:16-alpine` image | — | no |
-| `api` | `backend/Dockerfile` | `/api/health` | optional (for `/api/docs`) |
-| `web` | `frontend/Dockerfile` | `/healthz` | **yes** — this is the site |
+| Service | Tracks | Dockerfile | Healthcheck | Public |
+|---|---|---|---|---|
+| `postgres` | — | `postgres:16-alpine` image | — | no |
+| `api` | `master-claude` | `backend/Dockerfile` | `/api/health` | optional (for `/api/docs`) |
+| `web` | `master-claude` | `frontend/Dockerfile` | `/healthz` | **yes** — this is the site |
+| `postgres-develop` | — | `postgres:16-alpine` image | — | no |
+| `api-develop` | `develop-claude` | `backend/Dockerfile` | `/api/health` | no |
+| `web-develop` | `develop-claude` | `frontend/Dockerfile` | `/healthz` | yes (staging) |
 
 ## Why the web service is the public entry point
 

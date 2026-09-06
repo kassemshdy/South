@@ -1,4 +1,4 @@
-import { BarChart3, FolderTree, MapPin, Store, Users } from 'lucide-react'
+import { BarChart3, FolderTree, MapPin, Sparkles, Store, UserRound, Users } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
 
 import { useSeo } from '@/hooks/useSeo'
@@ -8,7 +8,9 @@ import { cn } from '@/utils/cn'
 const NAV: { to: string; labelKey: TranslationKey; icon: typeof BarChart3; end: boolean }[] = [
   { to: '/admin', labelKey: 'admin.navDashboard', icon: BarChart3, end: true },
   { to: '/admin/businesses', labelKey: 'admin.navBusinesses', icon: Store, end: false },
+  { to: '/admin/talent', labelKey: 'admin.navTalent', icon: UserRound, end: false },
   { to: '/admin/categories', labelKey: 'admin.navCategories', icon: FolderTree, end: false },
+  { to: '/admin/talent-skills', labelKey: 'admin.navTalentSkills', icon: Sparkles, end: false },
   { to: '/admin/locations', labelKey: 'admin.navLocations', icon: MapPin, end: false },
   { to: '/admin/users', labelKey: 'admin.navUsers', icon: Users, end: false },
 ]

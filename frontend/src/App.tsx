@@ -11,6 +11,8 @@ import { LoginPage } from '@/pages/LoginPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { ProductProfilePage } from '@/pages/ProductProfilePage'
 import { ProductsDirectoryPage } from '@/pages/ProductsDirectoryPage'
+import { TalentDirectoryPage } from '@/pages/TalentDirectoryPage'
+import { TalentProfilePage } from '@/pages/TalentProfilePage'
 
 /**
  * Public pages ship in the main bundle; the owner dashboard and admin area are
@@ -38,6 +40,19 @@ const AdminLoginPage = lazy(() =>
 const AdminReviewPage = lazy(() =>
   import('@/pages/admin/AdminReviewPage').then((m) => ({ default: m.AdminReviewPage })),
 )
+const AdminTalentReviewPage = lazy(() =>
+  import('@/pages/admin/AdminTalentReviewPage').then((m) => ({
+    default: m.AdminTalentReviewPage,
+  })),
+)
+const AdminTalentSkillsPage = lazy(() =>
+  import('@/pages/admin/AdminTalentSkillsPage').then((m) => ({
+    default: m.AdminTalentSkillsPage,
+  })),
+)
+const AdminTalentsPage = lazy(() =>
+  import('@/pages/admin/AdminTalentsPage').then((m) => ({ default: m.AdminTalentsPage })),
+)
 const AdminUsersPage = lazy(() =>
   import('@/pages/admin/AdminUsersPage').then((m) => ({ default: m.AdminUsersPage })),
 )
@@ -56,6 +71,11 @@ const EditBusinessPage = lazy(() =>
 const ItemsPage = lazy(() =>
   import('@/pages/dashboard/ItemsPage').then((m) => ({ default: m.ItemsPage })),
 )
+const TalentDashboardPage = lazy(() =>
+  import('@/pages/dashboard/TalentDashboardPage').then((m) => ({
+    default: m.TalentDashboardPage,
+  })),
+)
 
 export function App() {
   return (
@@ -68,6 +88,8 @@ export function App() {
           <Route path="business/:slug" element={<BusinessProfilePage />} />
           <Route path="products" element={<ProductsDirectoryPage />} />
           <Route path="product/:slug" element={<ProductProfilePage />} />
+          <Route path="talent" element={<TalentDirectoryPage />} />
+          <Route path="talent/:slug" element={<TalentProfilePage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="admin/login" element={<AdminLoginPage />} />
 
@@ -112,6 +134,14 @@ export function App() {
               </RequireAuth>
             }
           />
+          <Route
+            path="dashboard/talent"
+            element={
+              <RequireAuth>
+                <TalentDashboardPage />
+              </RequireAuth>
+            }
+          />
 
           {/* Administrator */}
           <Route
@@ -125,7 +155,10 @@ export function App() {
             <Route index element={<AdminDashboardPage />} />
             <Route path="businesses" element={<AdminBusinessesPage />} />
             <Route path="businesses/:id" element={<AdminReviewPage />} />
+            <Route path="talent" element={<AdminTalentsPage />} />
+            <Route path="talent/:id" element={<AdminTalentReviewPage />} />
             <Route path="categories" element={<AdminCategoriesPage />} />
+            <Route path="talent-skills" element={<AdminTalentSkillsPage />} />
             <Route path="locations" element={<AdminLocationsPage />} />
             <Route path="users" element={<AdminUsersPage />} />
           </Route>

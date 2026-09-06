@@ -9,6 +9,7 @@ from app.core.i18n import translate
 from app.models.enums import BusinessStatus, ModerationActionType, UserRole
 from app.schemas.business import OwnerBusinessOut
 from app.schemas.common import ORMModel
+from app.schemas.talent import OwnerTalentOut
 
 
 class ModerationActionOut(ORMModel):
@@ -50,6 +51,17 @@ class AdminUserOut(ORMModel):
 
 class AdminBusinessOut(OwnerBusinessOut):
     """Full review payload, including the owner's contact details."""
+
+    owner_phone: str | None = None
+    owner_personal_phone: str | None = None
+    owner_has_verification_document: bool = False
+    owner_display_name: str | None = None
+    owner_id: uuid.UUID
+    moderation_actions: list[ModerationActionOut] = Field(default_factory=list)
+
+
+class AdminTalentOut(OwnerTalentOut):
+    """Full review payload, including the account's contact details."""
 
     owner_phone: str | None = None
     owner_personal_phone: str | None = None

@@ -1,17 +1,19 @@
-"""Public category and location endpoints.
+"""Public category, location and talent-skill endpoints.
 
-Both are database-driven: the frontend renders whatever these return and has no
-hardcoded category or town list.
+All three are database-driven: the frontend renders whatever these return and
+has no hardcoded category, town or skill list.
 """
 
 from __future__ import annotations
 
 from fastapi import APIRouter
 
-from app.api.serializers import category_out, location_out
+from app.api.serializers import category_out, location_out, talent_skill_out
 from app.core.dependencies import DbSession
 from app.repositories.business import BusinessRepository
+from app.repositories.talent import TalentRepository, TalentSkillRepository
 from app.repositories.taxonomy import CategoryRepository, LocationRepository
+from app.schemas.talent import TalentSkillOut
 from app.schemas.taxonomy import CategoryOut, LocationOut
 
 router = APIRouter(tags=["taxonomy"])
@@ -47,4 +49,15 @@ def list_locations(db: DbSession) -> list[LocationOut]:
         out
         for location in locations
         if (out := location_out(location, business_count=rollup.get(location.id, 0))) is not None
+    ]
+
+
+@router.get("/talent-skills", response_model=list[TalentSkillOut])
+def list_talent_skills(db: DbSession) -> list[TalentSkillOut]:
+    """Active talent skills with the number of approved profiles in each."""
+    counts = TalentRepository(db).public_counts_by_skill()
+    return [
+        out
+        for skill in TalentSkillRepository(db).list_all()
+        if (out := talent_skill_out(skill, talent_count=counts.get(skill.id, 0))) is not None
     ]

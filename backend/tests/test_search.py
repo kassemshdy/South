@@ -266,4 +266,4 @@ def test_public_stats_counts_only_approved_businesses_and_distinct_towns(
 
     stats = client.get("/api/businesses/stats")
     assert stats.status_code == 200, stats.text
-    assert stats.json() == {"total_businesses": 4, "total_towns": 2}
+    assert stats.json() == {"total_businesses": 4, "total_towns": 2, "total_talents": 0}

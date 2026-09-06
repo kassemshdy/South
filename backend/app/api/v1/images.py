@@ -87,7 +87,7 @@ def upload_image(
         gallery_count = 0
 
     stored = service.process_and_store(
-        data=data, content_type=file.content_type, business_id=business.id, kind=kind
+        data=data, content_type=file.content_type, owner_id=business.id, kind=kind
     )
 
     db.add(

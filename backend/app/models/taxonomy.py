@@ -12,6 +12,7 @@ from app.models.enums import LocationType
 
 if TYPE_CHECKING:
     from app.models.business import Business
+    from app.models.talent import TalentProfile
 
 
 class Category(Base, TimestampMixin):
@@ -57,4 +58,5 @@ class Location(Base, TimestampMixin):
     )
     children: Mapped[list[Location]] = relationship(back_populates="parent")
     businesses: Mapped[list[Business]] = relationship(back_populates="location")
+    talent_profiles: Mapped[list[TalentProfile]] = relationship(back_populates="location")
 

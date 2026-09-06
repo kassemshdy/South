@@ -1,0 +1,62 @@
+[
+  {
+    "name_ar": "تصميم وجرافيك",
+    "slug": "design",
+    "icon": "palette",
+    "sort_order": 1
+  },
+  {
+    "name_ar": "تصوير فوتوغرافي وفيديو",
+    "slug": "photography",
+    "icon": "camera",
+    "sort_order": 2
+  },
+  {
+    "name_ar": "برمجة وتطوير مواقع",
+    "slug": "software",
+    "icon": "code",
+    "sort_order": 3
+  },
+  {
+    "name_ar": "تدريس ودروس خصوصية",
+    "slug": "tutoring",
+    "icon": "graduation-cap",
+    "sort_order": 4
+  },
+  {
+    "name_ar": "حرف يدوية وأشغال",
+    "slug": "handicraft",
+    "icon": "scissors",
+    "sort_order": 5
+  },
+  {
+    "name_ar": "صيانة وتصليح",
+    "slug": "repairs",
+    "icon": "wrench",
+    "sort_order": 6
+  },
+  {
+    "name_ar": "تجميل وحلاقة",
+    "slug": "beauty",
+    "icon": "sparkles",
+    "sort_order": 7
+  },
+  {
+    "name_ar": "محاسبة واستشارات",
+    "slug": "consulting",
+    "icon": "briefcase",
+    "sort_order": 8
+  },
+  {
+    "name_ar": "ترجمة وكتابة",
+    "slug": "writing",
+    "icon": "pen-tool",
+    "sort_order": 9
+  },
+  {
+    "name_ar": "أخرى",
+    "slug": "other",
+    "icon": "ellipsis",
+    "sort_order": 99
+  }
+]

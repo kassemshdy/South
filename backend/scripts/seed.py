@@ -1,8 +1,9 @@
 """Development seed script.
 
-Idempotent: safe to re-run. Creates categories, the South Lebanon location tree,
-sample businesses across every moderation status, and the administrator account
-from environment configuration (never a hardcoded production credential).
+Idempotent: safe to re-run. Creates categories, talent skills, the South Lebanon
+location tree, sample businesses and talent profiles across every moderation
+status, and the administrator account from environment configuration (never a
+hardcoded production credential).
 
 Usage:
     python -m scripts.seed               # add missing records
@@ -10,7 +11,8 @@ Usage:
     python -m scripts.seed --admin-only  # create/update only the administrator
     python -m scripts.seed --ensure      # seed whatever this environment permits
 
-Sample businesses are fixtures: they are created in development and staging (a
+Sample businesses and talent profiles are fixtures: they are created in
+development and staging (a
 staging deployment nobody can click through is not much of a staging
 deployment) and never in production. Bootstrapping the administrator is a
 legitimate production operation and is always allowed.
@@ -56,11 +58,24 @@ from app.models.enums import (
     SocialPlatform,
     UserRole,
 )
+from app.models.talent import (
+    TalentImage,
+    TalentModerationAction,
+    TalentProfile,
+    TalentSkill,
+)
 from app.models.taxonomy import Category, Location
 from app.models.user import User
 from app.services.images import ImageService
 from app.storage.factory import get_storage
-from scripts.seed_data import BUSINESSES, CATEGORIES, LOCATIONS, LocationSeed
+from scripts.seed_data import (
+    BUSINESSES,
+    CATEGORIES,
+    LOCATIONS,
+    TALENT_SKILLS,
+    TALENTS,
+    LocationSeed,
+)
 
 logger = logging.getLogger("seed")
 
@@ -268,6 +283,100 @@ def seed_businesses(db, categories, locations, admin) -> int:  # type: ignore[no
     return created
 
 
+def seed_talent_skills(db) -> dict[str, TalentSkill]:  # type: ignore[no-untyped-def]
+    existing = {s.slug: s for s in db.execute(select(TalentSkill)).scalars().all()}
+    for entry in TALENT_SKILLS:
+        slug = str(entry["slug"])
+        if slug in existing:
+            continue
+        skill = TalentSkill(
+            name_ar=entry["name_ar"],
+            slug=slug,
+            icon=entry.get("icon"),
+            sort_order=int(entry["sort_order"]),
+        )
+        db.add(skill)
+        existing[slug] = skill
+    db.flush()
+    logger.info("Talent skills seeded", extra={"total_count": len(existing)})
+    return existing
+
+
+def seed_talents(db, skills, locations, admin) -> int:  # type: ignore[no-untyped-def]
+    settings = get_settings()
+    images = ImageService(get_storage(), settings)
+    created = 0
+
+    for index, entry in enumerate(TALENTS):
+        display_name = entry["display_name"]
+        existing = db.execute(
+            select(TalentProfile).where(TalentProfile.display_name == display_name)
+        ).scalar_one_or_none()
+        if existing is not None:
+            # Same self-healing rule as businesses: image rows can outlive the
+            # bytes they point at when a deploy writes them without a volume.
+            if not all(images.exists(image.storage_key) for image in existing.images):
+                _reattach_talent_images(db, images, existing, display_name, index)
+            continue
+
+        phone = normalize_phone(entry["owner_phone"])
+        owner = db.execute(select(User).where(User.phone_number == phone)).scalar_one_or_none()
+        if owner is None:
+            owner = User(phone_number=phone, role=UserRole.OWNER)
+            db.add(owner)
+            db.flush()
+
+        skill = skills[entry["skill"]]
+        location = locations[entry["location"]]
+        status = BusinessStatus(entry["status"])
+        created_at = datetime.now(UTC) - timedelta(days=len(TALENTS) - index)
+
+        profile = TalentProfile(
+            owner_id=owner.id,
+            skill_id=skill.id,
+            custom_skill_text=entry.get("custom_skill_text"),
+            location_id=location.id,
+            display_name=display_name,
+            slug=entry.get("slug") or _talent_slug_for(display_name, db),
+            headline=entry.get("headline"),
+            bio=entry.get("bio"),
+            years_experience=entry.get("years_experience"),
+            phone=normalize_phone(entry["phone"]) if entry.get("phone") else None,
+            whatsapp=normalize_phone(entry["whatsapp"]) if entry.get("whatsapp") else None,
+            website=entry.get("website"),
+            status=status,
+            rejection_reason=entry.get("rejection_reason"),
+            created_at=created_at,
+        )
+
+        if status is not BusinessStatus.DRAFT:
+            profile.submitted_at = created_at + timedelta(hours=1)
+        if status in (BusinessStatus.APPROVED, BusinessStatus.SUSPENDED):
+            profile.approved_at = created_at + timedelta(hours=6)
+            profile.approved_by = admin.id if admin else None
+
+        db.add(profile)
+        db.flush()
+
+        _reattach_talent_images(db, images, profile, display_name, index)
+
+        db.flush()
+        profile.search_text = build_search_text(
+            profile.display_name,
+            profile.headline,
+            profile.bio,
+            entry.get("custom_skill_text") or skill.name_ar,
+            location.name_ar,
+        )
+
+        _seed_talent_moderation_history(db, profile, admin, entry.get("suspension_reason"))
+        created += 1
+
+    db.flush()
+    logger.info("Talent profiles seeded", extra={"created_count": created})
+    return created
+
+
 def _reattach_images(  # type: ignore[no-untyped-def]
     db, images: ImageService, business: Business, name: str, index: int
 ) -> None:
@@ -297,7 +406,7 @@ def _reattach_images(  # type: ignore[no-untyped-def]
         stored = images.process_and_store(
             data=_placeholder_image(name, index + sort_order, size),
             content_type="image/jpeg",
-            business_id=business.id,
+            owner_id=business.id,
             kind=kind,
         )
         business.images.append(
@@ -316,6 +425,48 @@ def _reattach_images(  # type: ignore[no-untyped-def]
             business.logo_url, business.logo_storage_key = stored.url, stored.key
         elif kind is ImageKind.COVER:
             business.cover_url, business.cover_storage_key = stored.url, stored.key
+
+
+def _reattach_talent_images(  # type: ignore[no-untyped-def]
+    db, images: ImageService, profile: TalentProfile, name: str, index: int
+) -> None:
+    """(Re)generate the photo and portfolio placeholders for ``profile``."""
+    for image in list(profile.images):
+        images.delete(image.storage_key)
+        db.delete(image)
+    profile.images.clear()
+    profile.photo_url = profile.photo_storage_key = None
+    db.flush()
+
+    for kind, size in (
+        (ImageKind.LOGO, (400, 400)),
+        (ImageKind.GALLERY, (900, 700)),
+        (ImageKind.GALLERY, (900, 700)),
+    ):
+        sort_order = 0 if kind is not ImageKind.GALLERY else len(
+            [i for i in profile.images if i.kind is ImageKind.GALLERY]
+        )
+        stored = images.process_and_store(
+            data=_placeholder_image(name, index + sort_order, size),
+            content_type="image/jpeg",
+            owner_id=profile.id,
+            kind=kind,
+            prefix="talent",
+        )
+        profile.images.append(
+            TalentImage(
+                profile_id=profile.id,
+                url=stored.url,
+                storage_key=stored.key,
+                kind=kind,
+                sort_order=sort_order,
+                width=stored.width,
+                height=stored.height,
+                size_bytes=stored.size_bytes,
+            )
+        )
+        if kind is ImageKind.LOGO:
+            profile.photo_url, profile.photo_storage_key = stored.url, stored.key
 
 
 def _seed_moderation_history(
@@ -360,6 +511,55 @@ def _seed_moderation_history(
         )
 
 
+def _seed_talent_moderation_history(
+    db,  # type: ignore[no-untyped-def]
+    profile: TalentProfile,
+    admin: User | None,
+    suspension_reason: str | None = None,
+) -> None:
+    """Recreate the audit trail that would have produced this status."""
+    trail: list[tuple[ModerationActionType, BusinessStatus, BusinessStatus, str | None]] = []
+    if profile.status is not BusinessStatus.DRAFT:
+        trail.append((ModerationActionType.SUBMIT, BusinessStatus.DRAFT, BusinessStatus.PENDING_REVIEW, None))
+    if profile.status is BusinessStatus.APPROVED:
+        trail.append((ModerationActionType.APPROVE, BusinessStatus.PENDING_REVIEW, BusinessStatus.APPROVED, None))
+    elif profile.status is BusinessStatus.REJECTED:
+        trail.append(
+            (ModerationActionType.REJECT, BusinessStatus.PENDING_REVIEW, BusinessStatus.REJECTED, profile.rejection_reason)
+        )
+    elif profile.status is BusinessStatus.SUSPENDED:
+        trail.append((ModerationActionType.APPROVE, BusinessStatus.PENDING_REVIEW, BusinessStatus.APPROVED, None))
+        trail.append(
+            (
+                ModerationActionType.SUSPEND,
+                BusinessStatus.APPROVED,
+                BusinessStatus.SUSPENDED,
+                suspension_reason,
+            )
+        )
+
+    for action, from_status, to_status, reason in trail:
+        is_admin_action = action is not ModerationActionType.SUBMIT
+        db.add(
+            TalentModerationAction(
+                profile_id=profile.id,
+                admin_id=admin.id if (is_admin_action and admin) else None,
+                actor_id=(admin.id if is_admin_action and admin else profile.owner_id),
+                action=action,
+                from_status=from_status,
+                to_status=to_status,
+                reason=reason,
+            )
+        )
+
+
+def _talent_slug_for(name: str, db) -> str:  # type: ignore[no-untyped-def]
+    from app.repositories.talent import TalentRepository
+    from app.services.slug import unique_slug
+
+    return unique_slug(name, TalentRepository(db).slug_exists, fallback_prefix="talent")
+
+
 def _slug_for(name: str, db) -> str:  # type: ignore[no-untyped-def]
     from app.repositories.business import BusinessRepository
     from app.services.slug import unique_slug
@@ -377,6 +577,7 @@ def _item_slug_for(title: str, db) -> str:  # type: ignore[no-untyped-def]
 def reset(db) -> None:  # type: ignore[no-untyped-def]
     """Remove seeded content. Never run against production data."""
     for model in (
+        TalentModerationAction, TalentImage, TalentProfile, TalentSkill,
         ModerationAction, BusinessItem, BusinessImage, BusinessSocialLink,
         Business, OtpRequest, RateLimitEvent, Category, Location, User,
     ):
@@ -432,9 +633,11 @@ def main() -> int:
         if args.reset:
             reset(db)
         categories = seed_categories(db)
+        skills = seed_talent_skills(db)
         locations = seed_locations(db)
         admin = seed_admin(db)
         seed_businesses(db, categories, locations, admin)
+        seed_talents(db, skills, locations, admin)
 
     print("\nDevelopment data ready.")
     if settings.admin_email:

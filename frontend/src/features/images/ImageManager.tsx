@@ -10,8 +10,11 @@ import { ownerApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { ImageKind, OwnerBusiness } from '@/types/api'
 
-const MAX_BYTES = 5 * 1024 * 1024
-const ACCEPTED = 'image/jpeg,image/png,image/webp'
+export const MAX_IMAGE_BYTES = 5 * 1024 * 1024
+export const ACCEPTED_IMAGE_TYPES = 'image/jpeg,image/png,image/webp'
+
+const MAX_BYTES = MAX_IMAGE_BYTES
+const ACCEPTED = ACCEPTED_IMAGE_TYPES
 
 interface ImageManagerProps {
   business: OwnerBusiness
@@ -182,7 +185,7 @@ export function ImageManager({ business, maxGallery = 10 }: ImageManagerProps) {
   )
 }
 
-function SingleImageSlot({
+export function SingleImageSlot({
   label,
   hint,
   url,
@@ -242,7 +245,7 @@ function SingleImageSlot({
   )
 }
 
-function UploadButton({
+export function UploadButton({
   label,
   uploading,
   disabled,

@@ -19,8 +19,10 @@ from app.core.security import decode_access_token
 from app.database.session import get_db
 from app.models.business import Business
 from app.models.enums import UserRole
+from app.models.talent import TalentProfile
 from app.models.user import User
 from app.repositories.business import BusinessRepository
+from app.repositories.talent import TalentRepository
 from app.repositories.user import UserRepository
 
 DbSession = Annotated[Session, Depends(get_db)]
@@ -107,3 +109,19 @@ def require_owned_business(business_id: uuid.UUID, db: DbSession, user: CurrentU
 
 
 OwnedBusiness = Annotated[Business, Depends(require_owned_business)]
+
+
+def require_own_talent_profile(db: DbSession, user: CurrentUser) -> TalentProfile:
+    """Load the caller's own talent profile.
+
+    There is no profile id in the path: a profile is one-per-account, so the
+    authenticated user *is* the lookup key and no request-supplied id can be
+    used to reach someone else's profile.
+    """
+    profile = TalentRepository(db).get_for_owner(user.id)
+    if profile is None:
+        raise NotFoundError("talent.not_found")
+    return profile
+
+
+OwnTalentProfile = Annotated[TalentProfile, Depends(require_own_talent_profile)]

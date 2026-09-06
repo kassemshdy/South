@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, ExternalLink, ListPlus, Pencil, Plus, Send, Store } from 'lucide-react'
+import { AlertTriangle, ExternalLink, ListPlus, Pencil, Plus, Send, Store, UserRound } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
@@ -11,7 +11,7 @@ import { useToast } from '@/components/ui/Toast'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useSeo } from '@/hooks/useSeo'
-import { useI18n, useT } from '@/i18n'
+import { useI18n, useT, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { ownerApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
@@ -36,12 +36,20 @@ export function DashboardPage() {
             })}
           </p>
         </div>
-        <Button asChild size="lg">
-          <Link to="/dashboard/businesses/new">
-            <Plus className="h-5 w-5" aria-hidden="true" />
-            {t('dashboard.addNew')}
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-3">
+          <Button asChild size="lg" variant="outline">
+            <Link to="/dashboard/talent">
+              <UserRound className="h-5 w-5" aria-hidden="true" />
+              {t('dashboard.myTalentProfile')}
+            </Link>
+          </Button>
+          <Button asChild size="lg">
+            <Link to="/dashboard/businesses/new">
+              <Plus className="h-5 w-5" aria-hidden="true" />
+              {t('dashboard.addNew')}
+            </Link>
+          </Button>
+        </div>
       </header>
 
       {businesses.isLoading ? (
@@ -187,7 +195,9 @@ function OwnerBusinessCard({ business }: { business: OwnerBusiness }) {
             <ul className="mt-1.5 flex flex-wrap gap-1.5">
               {submit.error.missing.map((item) => (
                 <li key={item}>
-                  <Badge className="bg-white text-clay-700">{item}</Badge>
+                  {/* The API returns catalog keys, not sentences, so the
+                      reader's locale decides the wording. */}
+                  <Badge className="bg-white text-clay-700">{t(item as TranslationKey)}</Badge>
                 </li>
               ))}
             </ul>

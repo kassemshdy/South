@@ -91,6 +91,17 @@ class Settings(BaseSettings):
     # Falls back to a translated default in the seed script when unset.
     admin_display_name: str | None = None
 
+    # --- Error tracking ----------------------------------------------------
+    # Unset locally: without a DSN the SDK is never initialised at all, so a
+    # developer's tracebacks stay on their own machine.
+    sentry_dsn: str | None = None
+    # Fraction of requests traced. Performance data is far higher volume than
+    # errors, so this stays low by default and is tuned per environment.
+    sentry_traces_sample_rate: float = 0.0
+    # Ties an error to the deploy that introduced it. Railway exposes the
+    # commit as RAILWAY_GIT_COMMIT_SHA; map it to this in the service config.
+    sentry_release: str | None = None
+
     # --- Frontend serving --------------------------------------------------
     # When set, the API also serves the built SPA from this directory and
     # injects per-business SEO tags into index.html.

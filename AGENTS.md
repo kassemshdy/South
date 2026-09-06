@@ -7,7 +7,8 @@ files (`CLAUDE.md`, etc.) should import this rather than duplicate it.
 
 An Arabic-first business directory for South Lebanon. FastAPI + PostgreSQL backend,
 React/Vite frontend, phone/OTP auth, admin moderation workflow. Deployed to Railway as
-three services (`postgres`, `api`, `web`) under the `southwork` project — see
+two sets of three services — `postgres`/`api`/`web` and their `-develop`
+counterparts — under the `southwork` project — see
 `docs/RAILWAY.md` for the live topology and `docs/DEPLOYMENT.md` for environments.
 
 ## Command Execution Guide
@@ -75,6 +76,22 @@ literal outside `locales/`, `scripts/data/`, or a fixture file as a bug, not a s
 - Production refuses to boot with the mock OTP provider or a weak `SECRET_KEY` — see
   `Settings.enforce_production_safety()` in `app/core/config.py`. Don't weaken this to
   make a deploy easier; fix the underlying config instead.
+- **Nothing an owner authenticates with may reach Sentry.** Both SDKs run with PII
+  collection off, and `app/core/observability.py` additionally drops the query string
+  and request body and recursively redacts credential-shaped keys. A business's
+  *published* phone number is public and deliberately survives — `tests/
+  test_observability.py` pins that distinction, so widen `SENSITIVE_KEYS` rather than
+  loosening the scrub.
+
+## Error Tracking
+
+Two Sentry projects under the `dotcom-yj` org, owned by the `south` team:
+`south-api` (backend) and `south-web` (frontend). Each is wired by a DSN set per
+service in Railway — `SENTRY_DSN` on `api`/`api-develop`, `VITE_SENTRY_DSN` on
+`web`/`web-develop` — and both SDKs are inert without one, so local tracebacks
+never leave the machine and the test suite never touches the network.
+`SENTRY_RELEASE` is set to `${{RAILWAY_GIT_COMMIT_SHA}}` so an error points at the
+deploy that introduced it.
 
 ## Deploy Gotchas (learned the hard way)
 
@@ -117,6 +134,8 @@ literal outside `locales/`, `scripts/data/`, or a fixture file as a bug, not a s
 - Run the full local gate before pushing anything meant to deploy: backend pytest +
   ruff + mypy, frontend `tsc -b` + build, the no-Arabic guard (part of the backend suite),
   and — for anything touching the owner/admin flow — the Playwright acceptance spec.
-- A push to `claude/arabic-business-directory-south-lebanon-gpte8i` auto-deploys to
-  Railway. Treat that branch as production-adjacent: verify locally first, and check
-  Railway deploy status/logs after pushing rather than assuming success.
+- Two branches auto-deploy on push: `master-claude` drives the live services
+  (`api`, `web`) and `develop-claude` drives the staging pair (`api-develop`,
+  `web-develop`). Treat `master-claude` as production: verify locally first, and check
+  Railway deploy status/logs after pushing rather than assuming success. Feature work
+  goes to `develop-claude` first, then to `master-claude`.

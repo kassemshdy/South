@@ -53,6 +53,9 @@ class StatsResponse(BaseModel):
     total_users: int
     total_admins: int
     total_items: int
+    total_talents: int = Field(default=0, description="All talent profiles regardless of status")
+    pending_talents: int = 0
+    approved_talents: int = 0
 
 
 class PublicStatsOut(BaseModel):
@@ -60,3 +63,4 @@ class PublicStatsOut(BaseModel):
 
     total_businesses: int
     total_towns: int
+    total_talents: int = 0
