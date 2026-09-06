@@ -76,7 +76,9 @@ export function AdminBusinessesPage() {
               aria-pressed={isActive}
               className={cn(
                 'rounded-full px-4 py-2 text-sm font-semibold transition-colors',
-                isActive ? 'bg-clay-500 text-white' : 'bg-white text-ink-700 ring-1 ring-ink-100 hover:bg-sand-100',
+                isActive
+                  ? 'bg-clay-500 text-white ring-1 ring-clay-600'
+                  : 'bg-white text-ink-700 ring-1 ring-ink-100 hover:bg-sand-100',
               )}
             >
               {t(filter.labelKey)}
