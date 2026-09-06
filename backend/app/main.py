@@ -254,7 +254,15 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
             canonical = f"{base_url}/{trimmed}" if trimmed else base_url
             tags = default_tags(canonical_url=canonical, image_url=default_image_url)
 
-        return HTMLResponse(inject(document, tags))
+        # Explicit and unambiguous: this document is rebuilt per-request (the
+        # SEO tags depend on the slug/path), so an edge or CDN in front of the
+        # app must never substitute its own default caching heuristic for a
+        # bare "/" or similar path — that silently served stale tags across
+        # multiple deploys until this header was added.
+        return HTMLResponse(
+            inject(document, tags),
+            headers={"Cache-Control": "no-store, must-revalidate"},
+        )
 
     @app.get("/{full_path:path}", include_in_schema=False)
     def spa(full_path: str) -> Response:
