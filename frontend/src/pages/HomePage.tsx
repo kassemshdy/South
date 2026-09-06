@@ -106,6 +106,10 @@ export function HomePage() {
         </div>
       </section>
 
+      <section className="overflow-hidden bg-sand-100" aria-hidden="true">
+        <img src="/home-cover.png" alt="" className="h-auto w-full" loading="eager" />
+      </section>
+
       <section className="border-y border-olive-200 bg-olive-50 py-5" aria-label={t('home.sloganTitle')}>
         <div className="container-page flex flex-col items-center justify-center gap-2 text-center sm:flex-row sm:gap-4">
           <span className="text-sm font-bold text-olive-700">{t('home.sloganTitle')}</span>
