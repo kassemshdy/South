@@ -58,6 +58,10 @@ export function HomePage() {
 
   return (
     <>
+      <section className="overflow-hidden bg-sand-100" aria-hidden="true">
+        <img src="/home-cover.png" alt="" className="h-auto w-full" loading="eager" />
+      </section>
+
       <section className="relative overflow-hidden border-b border-ink-100 bg-gradient-to-b from-sand-100 to-sand-50">
         <div className="container-page py-14 text-center sm:py-20">
           <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-clay-700 shadow-card">
@@ -104,10 +108,6 @@ export function HomePage() {
             </Button>
           </div>
         </div>
-      </section>
-
-      <section className="overflow-hidden bg-sand-100" aria-hidden="true">
-        <img src="/home-cover.png" alt="" className="h-auto w-full" loading="eager" />
       </section>
 
       <section className="border-y border-olive-200 bg-olive-50 py-5" aria-label={t('home.sloganTitle')}>
