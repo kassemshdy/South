@@ -4,14 +4,13 @@ import {
   MapPin,
   Package,
   Plus,
-  Search,
   ShieldCheck,
   Store,
   Users,
   type LucideIcon,
 } from 'lucide-react'
-import { useState, type FormEvent, type ReactNode } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -27,8 +26,6 @@ import { publicBusinessApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 
 export function HomePage() {
-  const [query, setQuery] = useState('')
-  const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
   const t = useT()
 
@@ -45,11 +42,6 @@ export function HomePage() {
     queryFn: () => publicBusinessApi.latest(8),
   })
   const stats = useQuery({ queryKey: queryKeys.publicStats, queryFn: publicBusinessApi.stats })
-
-  const handleSearch = (event: FormEvent) => {
-    event.preventDefault()
-    navigate(query.trim() ? `/businesses?q=${encodeURIComponent(query.trim())}` : '/businesses')
-  }
 
   const popularDistricts = groups
     .slice()
@@ -76,30 +68,7 @@ export function HomePage() {
             {t('home.heroSubtitle')}
           </p>
 
-          <form onSubmit={handleSearch} className="mx-auto mt-8 flex max-w-2xl flex-col gap-3 sm:flex-row" role="search">
-            <label htmlFor="home-search" className="sr-only">
-              {t('home.searchLabel')}
-            </label>
-            <div className="relative flex-1">
-              <Search
-                className="pointer-events-none absolute inset-y-0 start-4 my-auto h-5 w-5 text-ink-300"
-                aria-hidden="true"
-              />
-              <input
-                id="home-search"
-                type="search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={t('home.searchPlaceholder')}
-                className="h-14 w-full rounded-2xl border-2 border-ink-100 bg-white ps-12 pe-4 text-[15px] shadow-card placeholder:text-ink-300 focus:border-clay-400 focus:outline-none focus:ring-2 focus:ring-clay-500/20"
-              />
-            </div>
-            <Button type="submit" size="lg" className="sm:w-auto">
-              {t('common.search')}
-            </Button>
-          </form>
-
-          <div className="mt-6">
+          <div className="mt-8">
             <Button asChild variant="outline" size="lg">
               <Link to={isAuthenticated ? '/dashboard/businesses/new' : '/login'}>
                 <Plus className="h-5 w-5" aria-hidden="true" />
