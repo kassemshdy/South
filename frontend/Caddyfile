@@ -11,34 +11,19 @@
 		respond "ok" 200
 	}
 
-	# Hashed build output is safe to cache indefinitely and needs no
-	# server-side logic — served directly, no round-trip to the API.
+	# Every route — hashed assets included — goes to the API, which is the
+	# single source of truth for the built SPA. This image used to build its
+	# own independent copy of dist/ and serve /assets/* from it directly,
+	# which meant two separate `npm run build` runs (one here, one in
+	# backend/Dockerfile) had to produce byte-identical content hashes to
+	# stay in sync. They didn't: index.html (served by the API) referenced a
+	# JS bundle hash that this image's own /assets/ didn't have, 404ing the
+	# bundle and leaving every visitor on a blank page. There is now exactly
+	# one build of the frontend that anything is ever served from.
 	@assets path /assets/*
 	handle @assets {
-		header Cache-Control "public, max-age=31536000, immutable"
-		root * /srv
-		file_server
-	}
-
-	# Everything else — /api/*, /media/*, and every page route (/, /business/*,
-	# /talent/*, /products/*, /dashboard/*, /admin/*, a hard refresh on any
-	# client-side route) — goes to the API. It serves the exact same built
-	# files for a real static request (favicon, the share image, an
-	# unhashed asset) and, for an HTML page, injects real per-route SEO tags
-	# with its own explicit Cache-Control. Previously only /business/* was
-	# proxied, so /talent/* and every other route silently never got the
-	# server-rendered tags this app builds for them, and index.html's
-	# Cache-Control was set here (unconditionally "no-cache") rather than by
-	# whatever actually renders the response — this is the one place that
-	# now decides both, so the two can't drift out of sync again.
-	@api {
-		path /api/*
-		path /media/*
-	}
-	handle @api {
-		# Caddy forwards X-Forwarded-* by default, which is what lets the API
-		# build absolute canonical and OG URLs on the public host.
 		reverse_proxy {$API_INTERNAL_HOST:api.railway.internal:8000}
+		header Cache-Control "public, max-age=31536000, immutable"
 	}
 
 	header {
@@ -48,6 +33,8 @@
 	}
 
 	handle {
+		# Caddy forwards X-Forwarded-* by default, which is what lets the API
+		# build absolute canonical and OG URLs on the public host.
 		reverse_proxy {$API_INTERNAL_HOST:api.railway.internal:8000}
 	}
 }
