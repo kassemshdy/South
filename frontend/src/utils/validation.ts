@@ -89,31 +89,52 @@ export const adminLoginSchema = (t: Translate) =>
     password: z.string().min(8, t('validation.passwordShort')),
   })
 
-export const businessBasicsSchema = (t: Translate) =>
-  z.object({
-    name: z
-      .string()
-      .trim()
-      .min(2, t('validation.nameRequired'))
-      .max(160, t('validation.nameTooLong')),
-    short_description: z
-      .string()
-      .trim()
-      .max(300, t('validation.shortDescriptionTooLong'))
-      .optional()
-      .or(z.literal('')),
-    description: z
-      .string()
-      .trim()
-      .max(5000, t('validation.descriptionTooLong'))
-      .optional()
-      .or(z.literal('')),
-    category_id: z.string().min(1, t('validation.categoryRequired')),
-    phone: optionalPhone(t),
-    whatsapp: optionalPhone(t),
-    email: z.string().trim().email(t('validation.emailInvalid')).optional().or(z.literal('')),
-    website: optionalUrl(t),
-  })
+/**
+ * `otherCategoryId` is passed in rather than hardcoded: the "Other" category
+ * is a seeded row with a real (env-dependent) id, not a fixed constant, so the
+ * free-text requirement can only be wired up once the category list has
+ * loaded.
+ */
+export const businessBasicsSchema = (t: Translate, otherCategoryId?: string) =>
+  z
+    .object({
+      name: z
+        .string()
+        .trim()
+        .min(2, t('validation.nameRequired'))
+        .max(160, t('validation.nameTooLong')),
+      short_description: z
+        .string()
+        .trim()
+        .max(300, t('validation.shortDescriptionTooLong'))
+        .optional()
+        .or(z.literal('')),
+      description: z
+        .string()
+        .trim()
+        .max(5000, t('validation.descriptionTooLong'))
+        .optional()
+        .or(z.literal('')),
+      category_id: z.string().min(1, t('validation.categoryRequired')),
+      custom_category_text: z.string().trim().max(120).optional().or(z.literal('')),
+      phone: optionalPhone(t),
+      whatsapp: optionalPhone(t),
+      email: z.string().trim().email(t('validation.emailInvalid')).optional().or(z.literal('')),
+      website: optionalUrl(t),
+    })
+    .superRefine((values, ctx) => {
+      if (
+        otherCategoryId &&
+        values.category_id === otherCategoryId &&
+        !values.custom_category_text
+      ) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['custom_category_text'],
+          message: t('validation.customCategoryRequired'),
+        })
+      }
+    })
 
 export const businessLocationSchema = (t: Translate) =>
   z.object({
@@ -158,6 +179,11 @@ export const itemSchema = (t: Translate) =>
     is_available: z.boolean(),
   })
 
+export const accountSchema = (t: Translate) =>
+  z.object({
+    personal_phone_number: optionalPhone(t),
+  })
+
 export const rejectSchema = (t: Translate) =>
   z.object({
     reason: z.string().trim().min(5, t('validation.rejectReasonShort')).max(1000),
@@ -167,3 +193,4 @@ export type BusinessBasicsValues = z.infer<ReturnType<typeof businessBasicsSchem
 export type BusinessLocationValues = z.infer<ReturnType<typeof businessLocationSchema>>
 export type SocialLinksValues = z.infer<ReturnType<typeof socialLinksSchema>>
 export type ItemValues = z.infer<ReturnType<typeof itemSchema>>
+export type AccountValues = z.infer<ReturnType<typeof accountSchema>>

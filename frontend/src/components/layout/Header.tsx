@@ -1,4 +1,4 @@
-import { LayoutDashboard, LogOut, Menu, Plus, Search, Shield, Store, User, X } from 'lucide-react'
+import { LayoutDashboard, LogOut, Menu, Plus, Search, Shield, Store, User, UserCog, X } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -38,6 +38,12 @@ export function Header() {
           >
             {t('nav.directory')}
           </Link>
+          <Link
+            to="/products"
+            className="rounded-lg px-3 py-2 text-[15px] font-medium text-ink-700 transition-colors hover:bg-sand-100 hover:text-ink-900"
+          >
+            {t('nav.products')}
+          </Link>
 
           {isAdmin ? (
             <Link
@@ -57,6 +63,13 @@ export function Header() {
               >
                 <LayoutDashboard className="h-4 w-4" aria-hidden="true" />
                 {t('nav.myBusinesses')}
+              </Link>
+              <Link
+                to="/dashboard/account"
+                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-[15px] font-medium text-ink-700 transition-colors hover:bg-sand-100"
+              >
+                <UserCog className="h-4 w-4" aria-hidden="true" />
+                {t('nav.account')}
               </Link>
               <Button variant="ghost" size="sm" onClick={handleSignOut}>
                 <LogOut className="h-4 w-4" aria-hidden="true" />
@@ -107,6 +120,9 @@ export function Header() {
           <Link to="/businesses" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">
             {t('nav.directory')}
           </Link>
+          <Link to="/products" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">
+            {t('nav.products')}
+          </Link>
           {isAdmin ? (
             <Link to="/admin" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">
               {t('nav.adminPanel')}
@@ -116,6 +132,9 @@ export function Header() {
             <>
               <Link to="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">
                 {t('nav.myBusinesses')}
+              </Link>
+              <Link to="/dashboard/account" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">
+                {t('nav.account')}
               </Link>
               <p className="px-3 pt-2 text-xs text-ink-500">
                 <span className="ltr-nums inline-block">{user?.phone_number ?? user?.email}</span>

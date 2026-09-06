@@ -51,6 +51,7 @@ class BusinessService:
             short_description=payload.short_description,
             description=payload.description,
             category_id=payload.category_id,
+            custom_category_text=payload.custom_category_text,
             location_id=payload.location_id,
             phone=payload.phone,
             whatsapp=payload.whatsapp,
@@ -62,8 +63,13 @@ class BusinessService:
             maps_url=normalize_maps_url(payload.maps_url) if payload.maps_url else None,
             status=BusinessStatus.DRAFT,
         )
-        business.search_text = self._build_search_text(business)
+        # Add (and flush) before deriving the haystack: on a transient object
+        # not yet attached to the session, relationship access (business.category,
+        # business.location) silently returns None regardless of the FK columns
+        # above, which would index every new business with a blank category and
+        # location.
         self._repo.add(business)
+        business.search_text = self._build_search_text(business)
 
         if payload.social_links:
             self._replace_social_links(business, payload.social_links)
@@ -138,6 +144,12 @@ class BusinessService:
             missing.append("business.field.logo")
         if not (business.phone or business.whatsapp):
             missing.append("business.field.contact")
+        if (
+            business.category is not None
+            and business.category.slug == "other"
+            and not (business.custom_category_text or "").strip()
+        ):
+            missing.append("business.field.custom_category")
         return missing
 
     def assert_ready_for_review(self, business: Business) -> None:
@@ -195,7 +207,15 @@ class BusinessService:
 
     def _build_search_text(self, business: Business) -> str:
         item_titles = " ".join(item.title for item in business.items) if business.items else ""
-        category = business.category.name_ar if business.category else ""
+        if business.category is None:
+            category = ""
+        elif business.category.slug == "other" and business.custom_category_text:
+            # Otherwise every "Other" business would index the same literal
+            # category name and none of them would be findable by what they
+            # actually are.
+            category = business.custom_category_text
+        else:
+            category = business.category.name_ar
         location = business.location.name_ar if business.location else ""
         return build_search_text(
             business.name,

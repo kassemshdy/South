@@ -1,0 +1,11 @@
+{
+  "businessName": "ورشة النجارة الحديثة",
+  "shortDescription": "تصنيع أثاث خشبي حسب الطلب",
+  "description": "ورشة نجارة تخدم صور وضواحيها، تصنيع وتفصيل أثاث منزلي ومكتبي.",
+  "address": "شارع الصناعيين",
+  "categorySlug": "restaurants",
+  "locationSlug": "tyre",
+  "phone": "03911122",
+  "availableItem": { "title": "طاولة طعام خشبية", "price": "3.00" },
+  "unavailableItem": { "title": "خزانة ملابس مخصصة" }
+}

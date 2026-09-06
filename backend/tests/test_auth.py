@@ -34,6 +34,26 @@ def test_account_is_created_on_first_verification(client: TestClient, db: Sessio
     assert me.json()["role"] == "OWNER"
 
 
+def test_personal_phone_number_round_trips_and_is_never_public(client: TestClient) -> None:
+    headers = sign_in(client, "03555222")
+
+    updated = client.patch(
+        "/api/me", json={"personal_phone_number": "03123456"}, headers=headers
+    )
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["personal_phone_number"] == "+9613123456"
+
+    me = client.get("/api/me", headers=headers)
+    assert me.json()["personal_phone_number"] == "+9613123456"
+
+    # Clearing it explicitly (not "field not sent") must actually clear it.
+    cleared = client.patch(
+        "/api/me", json={"personal_phone_number": None}, headers=headers
+    )
+    assert cleared.status_code == 200, cleared.text
+    assert cleared.json()["personal_phone_number"] is None
+
+
 def test_invalid_phone_is_rejected(client: TestClient) -> None:
     response = client.post("/api/auth/request-otp", json={"phone_number": "123"})
     assert response.status_code == 422

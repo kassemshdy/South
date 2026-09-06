@@ -128,3 +128,36 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   return payload as T
 }
+
+/**
+ * For endpoints that return a file body rather than JSON (e.g. the admin
+ * verification-document download) — `apiRequest` always decodes as
+ * JSON/text, which would corrupt binary content.
+ */
+export async function apiDownload(path: string): Promise<{ blob: Blob; filename: string | null }> {
+  const headers: Record<string, string> = {}
+  const token = tokenStorage.get()
+  if (token) headers.Authorization = `Bearer ${token}`
+
+  let response: Response
+  try {
+    response = await fetch(buildUrl(path), { headers })
+  } catch {
+    throw new ApiError(0, null, translate(DEFAULT_LOCALE, 'api.networkError'))
+  }
+
+  if (!response.ok) {
+    const isJson = response.headers.get('content-type')?.includes('application/json')
+    const payload = isJson ? ((await response.json()) as ApiErrorPayload) : null
+    const error = new ApiError(response.status, payload, translate(DEFAULT_LOCALE, 'api.unexpectedError'))
+    if (error.isUnauthorized) {
+      tokenStorage.clear()
+      window.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT))
+    }
+    throw error
+  }
+
+  const disposition = response.headers.get('content-disposition')
+  const match = disposition?.match(/filename="?([^"]+)"?/)
+  return { blob: await response.blob(), filename: match?.[1] ?? null }
+}

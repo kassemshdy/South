@@ -1,30 +1,71 @@
-"""Products / services / menu items for a business the caller owns."""
+"""Products / services / menu items for a business the caller owns, plus the
+independent public `/items` directory."""
 
 from __future__ import annotations
 
 import uuid
-from typing import Annotated
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, File, UploadFile, status
+from fastapi import APIRouter, File, Path, Query, UploadFile, status
 
-from app.api.serializers import item_out
+from app.api.serializers import item_out, paginate, product_detail, product_summary
 from app.core.dependencies import AppSettings, DbSession, OwnedBusiness
-from app.core.errors import PayloadTooLargeError
+from app.core.errors import NotFoundError, PayloadTooLargeError
 from app.core.i18n import translate
+from app.core.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from app.models.enums import ImageKind
-from app.schemas.common import MessageResponse
+from app.repositories.item import ItemRepository
+from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.item import (
     BusinessItemIn,
     BusinessItemOut,
     BusinessItemUpdateIn,
     ItemReorderIn,
 )
+from app.schemas.product import ProductDetailOut, ProductSummaryOut
 from app.services.business import BusinessService
 from app.services.images import ImageService
 from app.services.items import BusinessItemService
 from app.storage.factory import get_storage
 
 router = APIRouter(tags=["business-items"])
+public_router = APIRouter(tags=["products"])
+
+
+# --- Public ------------------------------------------------------------------
+
+
+@public_router.get("/items", response_model=PaginatedResponse[ProductSummaryOut])
+def search_products(
+    db: DbSession,
+    q: Annotated[str | None, Query(max_length=120, description="Free-text search query")] = None,
+    category: Annotated[str | None, Query(description="Category slug")] = None,
+    location: Annotated[str | None, Query(description="Location slug")] = None,
+    sort: Annotated[Literal["newest", "name", "oldest"], Query()] = "newest",
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
+) -> PaginatedResponse[ProductSummaryOut]:
+    """Search available products/services of approved businesses.
+
+    Never returns an item whose business isn't approved, or an unavailable one.
+    """
+    results = ItemRepository(db).search_public(
+        q=q,
+        category_slug=category,
+        location_slug=location,
+        sort=sort,
+        page=page,
+        page_size=page_size,
+    )
+    return paginate(results, product_summary)
+
+
+@public_router.get("/items/{slug}", response_model=ProductDetailOut)
+def get_product(slug: Annotated[str, Path(max_length=200)], db: DbSession) -> ProductDetailOut:
+    item = ItemRepository(db).get_by_slug(slug)
+    if item is None:
+        raise NotFoundError("item.not_found")
+    return product_detail(item)
 
 
 @router.get("/businesses/{business_id}/items", response_model=list[BusinessItemOut])

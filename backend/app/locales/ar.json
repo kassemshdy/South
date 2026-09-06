@@ -22,6 +22,7 @@
   "business.duplicate_social_platform": "لا يمكن إضافة أكثر من رابط واحد لنفس المنصة.",
   "business.field.category": "التصنيف",
   "business.field.contact": "رقم هاتف أو واتساب للتواصل",
+  "business.field.custom_category": "اسم التصنيف المخصص",
   "business.field.location": "الموقع",
   "business.field.logo": "شعار النشاط",
   "business.field.name": "اسم النشاط",
@@ -95,5 +96,9 @@
   "url.invalid": "{field} غير صالح.",
   "url.invalid_scheme": "{field} يجب أن يبدأ بـ http أو https.",
   "url.invalid_social_host": "رابط {platform} يجب أن يكون من موقع {platform}.",
-  "url.required": "{field} مطلوب."
+  "url.required": "{field} مطلوب.",
+  "verification.empty": "الملف فارغ.",
+  "verification.not_found": "المستند غير موجود.",
+  "verification.too_large": "حجم الملف يتجاوز الحد المسموح ({limit} ميغابايت).",
+  "verification.unsupported_format": "يُسمح فقط بملفات PDF أو JPG أو PNG."
 }

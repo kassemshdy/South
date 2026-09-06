@@ -1,10 +1,22 @@
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, MapPin, Plus, Search, ShieldCheck, Store } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import {
+  ArrowLeft,
+  MapPin,
+  Package,
+  Plus,
+  Search,
+  ShieldCheck,
+  Store,
+  Users,
+  type LucideIcon,
+} from 'lucide-react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
+import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
-import { BusinessCardSkeleton } from '@/components/ui/Skeleton'
+import { Card, CardBody } from '@/components/ui/Card'
+import { BusinessCardSkeleton, Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 import { BusinessCard } from '@/features/businesses/BusinessCard'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -32,6 +44,7 @@ export function HomePage() {
     queryKey: queryKeys.latestBusinesses(8),
     queryFn: () => publicBusinessApi.latest(8),
   })
+  const stats = useQuery({ queryKey: queryKeys.publicStats, queryFn: publicBusinessApi.stats })
 
   const handleSearch = (event: FormEvent) => {
     event.preventDefault()
@@ -90,6 +103,50 @@ export function HomePage() {
               </Link>
             </Button>
           </div>
+        </div>
+      </section>
+
+      <section className="container-page py-14" aria-labelledby="discover-heading">
+        <h2 id="discover-heading" className="mb-6 text-center text-2xl">
+          {t('home.discoverHeading')}
+        </h2>
+        <div className="grid gap-5 sm:grid-cols-3">
+          <DiscoverCard
+            icon={Store}
+            title={t('home.discoverBusinessesTitle')}
+            description={t('home.discoverBusinessesDescription')}
+            href="/businesses"
+          />
+          <DiscoverCard
+            icon={Package}
+            title={t('home.discoverProductsTitle')}
+            description={t('home.discoverProductsDescription')}
+            href="/products"
+          />
+          <DiscoverCard
+            icon={Users}
+            title={t('home.discoverTalentTitle')}
+            description={t('home.discoverTalentDescription')}
+          />
+        </div>
+      </section>
+
+      <section className="container-page pb-14" aria-label={t('home.statsHeading')}>
+        <div className="mx-auto grid max-w-md grid-cols-2 gap-4">
+          {stats.isLoading ? (
+            <>
+              <Skeleton className="h-28 rounded-2xl" />
+              <Skeleton className="h-28 rounded-2xl" />
+            </>
+          ) : stats.data ? (
+            <>
+              <StatTile value={stats.data.total_businesses} label={t('home.statsBusinesses')} />
+              <StatTile value={stats.data.total_towns} label={t('home.statsTowns')} />
+            </>
+          ) : null}
+          {/* A failed fetch renders nothing here: this is a decorative strip, not
+              a page the visitor came to use, so it must never block or clutter
+              the homepage with an error state. */}
         </div>
       </section>
 
@@ -201,5 +258,58 @@ export function HomePage() {
         </div>
       </section>
     </>
+  )
+}
+
+function DiscoverCard({
+  icon: Icon,
+  title,
+  description,
+  href,
+}: {
+  icon: LucideIcon
+  title: string
+  description: string
+  href?: string
+}) {
+  const t = useT()
+  const content: ReactNode = (
+    <CardBody className="flex h-full flex-col items-center gap-2 text-center">
+      <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-sand-100 text-clay-600">
+        <Icon className="h-6 w-6" aria-hidden="true" />
+      </span>
+      <span className="flex items-center gap-2 font-bold text-ink-900">
+        {title}
+        {!href ? <Badge className="bg-sand-100 text-clay-700">{t('home.comingSoon')}</Badge> : null}
+      </span>
+      <span className="text-sm text-ink-500">{description}</span>
+    </CardBody>
+  )
+
+  if (!href) {
+    return (
+      <Card aria-disabled="true" className="opacity-60">
+        {content}
+      </Card>
+    )
+  }
+
+  return (
+    <Card className="transition-all hover:-translate-y-0.5 hover:border-clay-300 hover:shadow-lift">
+      <Link to={href} className="block h-full">
+        {content}
+      </Link>
+    </Card>
+  )
+}
+
+function StatTile({ value, label }: { value: number; label: string }) {
+  return (
+    <Card>
+      <CardBody className="text-center">
+        <p className="ltr-nums text-3xl font-bold text-clay-900">{value}</p>
+        <p className="mt-1 text-sm text-ink-500">{label}</p>
+      </CardBody>
+    </Card>
   )
 }

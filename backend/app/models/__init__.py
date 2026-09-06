@@ -19,6 +19,7 @@ from app.models.enums import (
 )
 from app.models.taxonomy import Category, Location
 from app.models.user import User
+from app.models.verification import OwnerVerificationDocument
 
 __all__ = [
     "Business",
@@ -34,6 +35,7 @@ __all__ = [
     "ModerationAction",
     "ModerationActionType",
     "OtpRequest",
+    "OwnerVerificationDocument",
     "RateLimitEvent",
     "SocialPlatform",
     "User",

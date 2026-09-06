@@ -6,6 +6,9 @@ or the owner's login phone" is visible in a single place.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import TypeVar
+
 from app.core.pagination import Page
 from app.models.business import Business, BusinessItem
 from app.models.enums import ImageKind
@@ -21,7 +24,11 @@ from app.schemas.business import (
 from app.schemas.common import PageMeta, PaginatedResponse
 from app.schemas.item import BusinessItemOut
 from app.schemas.moderation import AdminBusinessOut, AdminUserOut, ModerationActionOut
+from app.schemas.product import ProductBusinessRef, ProductDetailOut, ProductSummaryOut
 from app.schemas.taxonomy import CategoryOut, LocationOut
+
+RecordT = TypeVar("RecordT")
+SchemaT = TypeVar("SchemaT")
 
 
 def category_out(category: Category | None, *, business_count: int = 0) -> CategoryOut | None:
@@ -61,6 +68,7 @@ def business_summary(business: Business) -> BusinessSummaryOut:
         phone=business.phone,
         whatsapp=business.whatsapp,
         category=category_out(business.category),
+        custom_category_text=business.custom_category_text,
         location=location_out(business.location),
         created_at=business.created_at,
     )
@@ -101,6 +109,10 @@ def admin_business(business: Business) -> AdminBusinessOut:
         **owner_business(business).model_dump(),
         owner_id=business.owner_id,
         owner_phone=business.owner.phone_number if business.owner else None,
+        owner_personal_phone=business.owner.personal_phone_number if business.owner else None,
+        owner_has_verification_document=bool(
+            business.owner and business.owner.verification_document is not None
+        ),
         owner_display_name=business.owner.display_name if business.owner else None,
         moderation_actions=[
             ModerationActionOut.model_validate(action)
@@ -109,12 +121,45 @@ def admin_business(business: Business) -> AdminBusinessOut:
     )
 
 
+def _product_business_ref(business: Business) -> ProductBusinessRef:
+    return ProductBusinessRef(
+        name=business.name,
+        slug=business.slug,
+        phone=business.phone,
+        whatsapp=business.whatsapp,
+        category=category_out(business.category),
+        location=location_out(business.location),
+    )
+
+
+def product_summary(item: BusinessItem) -> ProductSummaryOut:
+    return ProductSummaryOut(
+        id=item.id,
+        slug=item.slug,
+        title=item.title,
+        price=item.price,
+        currency=item.currency,
+        image_url=item.image_url,
+        business=_product_business_ref(item.business),
+    )
+
+
+def product_detail(item: BusinessItem) -> ProductDetailOut:
+    return ProductDetailOut(
+        **product_summary(item).model_dump(),
+        description=item.description,
+        created_at=item.created_at,
+    )
+
+
 def admin_user(user: User, *, business_count: int = 0) -> AdminUserOut:
     data = AdminUserOut.model_validate(user)
     return data.model_copy(update={"business_count": business_count})
 
 
-def paginate(page: Page[Business], mapper) -> PaginatedResponse:  # type: ignore[type-arg]
+def paginate(
+    page: Page[RecordT], mapper: Callable[[RecordT], SchemaT]
+) -> PaginatedResponse[SchemaT]:
     return PaginatedResponse(
         items=[mapper(item) for item in page.items],
         meta=PageMeta(

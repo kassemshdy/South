@@ -3,11 +3,15 @@ import type { BusinessQuery, BusinessStatus } from '@/types/api'
 /** Central query-key registry so invalidation targets stay consistent. */
 export const queryKeys = {
   me: ['me'] as const,
+  myVerificationDocument: ['me', 'verification-document'] as const,
   categories: ['categories'] as const,
   locations: ['locations'] as const,
   businesses: (query: BusinessQuery) => ['businesses', query] as const,
   latestBusinesses: (limit: number) => ['businesses', 'latest', limit] as const,
+  publicStats: ['businesses', 'stats'] as const,
   business: (slug: string) => ['business', slug] as const,
+  products: (query: BusinessQuery) => ['products', query] as const,
+  product: (slug: string) => ['product', slug] as const,
   myBusinesses: ['my-businesses'] as const,
   myBusiness: (id: string) => ['my-business', id] as const,
   myBusinessItems: (id: string) => ['my-business', id, 'items'] as const,

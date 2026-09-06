@@ -41,7 +41,18 @@ export interface User {
   phone_number: string | null
   email: string | null
   display_name: string | null
+  /** A second, private contact number used only for identity verification. */
+  personal_phone_number: string | null
   role: UserRole
+  created_at: string
+}
+
+/** Metadata only — the document bytes are never exposed by a URL. */
+export interface VerificationDocument {
+  id: string
+  content_type: string
+  original_filename: string | null
+  size_bytes: number | null
   created_at: string
 }
 
@@ -117,6 +128,8 @@ export interface BusinessSummary {
   phone: string | null
   whatsapp: string | null
   category: Category | null
+  /** The owner's own words, shown instead of the literal "Other" category name. */
+  custom_category_text: string | null
   location: LocationNode | null
   created_at: string
 }
@@ -156,6 +169,8 @@ export interface ModerationAction {
 export interface AdminBusiness extends OwnerBusiness {
   owner_id: string
   owner_phone: string | null
+  owner_personal_phone: string | null
+  owner_has_verification_document: boolean
   owner_display_name: string | null
   moderation_actions: ModerationAction[]
 }
@@ -165,6 +180,7 @@ export interface AdminUser {
   phone_number: string | null
   email: string | null
   display_name: string | null
+  personal_phone_number: string | null
   role: UserRole
   is_active: boolean
   created_at: string
@@ -197,6 +213,12 @@ export interface PlatformStats {
   total_items: number
 }
 
+/** The homepage stats strip — approved-only, safe for an anonymous visitor. */
+export interface PublicStats {
+  total_businesses: number
+  total_towns: number
+}
+
 export interface ApiErrorPayload {
   error: {
     code: string
@@ -218,4 +240,29 @@ export interface BusinessQuery {
   sort?: SortOption
   page?: number
   page_size?: number
+}
+
+/** Just enough of the parent business for a product card/page to link back. */
+export interface ProductBusinessRef {
+  name: string
+  slug: string
+  phone: string | null
+  whatsapp: string | null
+  category: Category | null
+  location: LocationNode | null
+}
+
+export interface ProductSummary {
+  id: string
+  slug: string
+  title: string
+  price: string | null
+  currency: Currency
+  image_url: string | null
+  business: ProductBusinessRef
+}
+
+export interface ProductDetail extends ProductSummary {
+  description: string | null
+  created_at: string
 }

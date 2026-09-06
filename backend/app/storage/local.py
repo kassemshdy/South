@@ -50,3 +50,6 @@ class LocalDiskStorage:
 
     def exists(self, key: str) -> bool:
         return self._path_for(key).is_file()
+
+    def read(self, key: str) -> bytes:
+        return self._path_for(key).read_bytes()

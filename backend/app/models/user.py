@@ -12,6 +12,7 @@ from app.models.enums import UserRole
 
 if TYPE_CHECKING:
     from app.models.business import Business
+    from app.models.verification import OwnerVerificationDocument
 
 
 class User(Base, TimestampMixin):
@@ -34,6 +35,11 @@ class User(Base, TimestampMixin):
     )
     password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     display_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    # A second, owner-supplied contact number collected for identity
+    # verification; distinct from the login phone above and never published.
+    # Not unique: a shared family/business line could reasonably belong to
+    # more than one account.
+    personal_phone_number: Mapped[str | None] = mapped_column(String(20), nullable=True)
     role: Mapped[UserRole] = mapped_column(
         SAEnum(UserRole, name="user_role", values_callable=lambda e: [m.value for m in e]),
         default=UserRole.OWNER,
@@ -48,6 +54,11 @@ class User(Base, TimestampMixin):
         back_populates="owner",
         foreign_keys="Business.owner_id",
         cascade="all, delete-orphan",
+    )
+    verification_document: Mapped[OwnerVerificationDocument | None] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        uselist=False,
     )
 
     @property

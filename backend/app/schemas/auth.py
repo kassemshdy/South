@@ -6,7 +6,7 @@ from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.core.i18n import translate
-from app.core.phone import normalize_phone
+from app.core.phone import normalize_optional_phone, normalize_phone
 from app.models.enums import UserRole
 from app.schemas.common import ORMModel
 
@@ -53,12 +53,13 @@ class AdminLoginIn(BaseModel):
 class UserOut(ORMModel):
     """The authenticated user's own profile.
 
-    A user's login phone is returned only to themselves and to administrators;
-    it is never part of any public payload.
+    A user's login phone (and personal phone) is returned only to themselves
+    and to administrators; neither is ever part of any public payload.
     """
 
     id: uuid.UUID
     phone_number: str | None
+    personal_phone_number: str | None
     email: str | None
     display_name: str | None
     role: UserRole
@@ -74,3 +75,9 @@ class TokenOut(BaseModel):
 
 class UpdateProfileIn(BaseModel):
     display_name: str | None = Field(default=None, max_length=120)
+    personal_phone_number: str | None = Field(default=None, max_length=25)
+
+    @field_validator("personal_phone_number")
+    @classmethod
+    def _normalize_personal_phone(cls, value: str | None) -> str | None:
+        return normalize_optional_phone(value)
