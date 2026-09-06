@@ -7,7 +7,7 @@
  */
 
 import type { TranslationKey } from '@/i18n'
-import type { BusinessStatus, Currency, SocialPlatform } from '@/types/api'
+import type { BusinessStatus, Currency, FeedbackPriority, FeedbackStatus, SocialPlatform } from '@/types/api'
 
 export const STATUS_KEYS: Record<BusinessStatus, TranslationKey> = {
   DRAFT: 'status.DRAFT',
@@ -23,6 +23,20 @@ export const STATUS_TONES: Record<BusinessStatus, string> = {
   APPROVED: 'bg-olive-100 text-olive-700',
   REJECTED: 'bg-clay-100 text-clay-700',
   SUSPENDED: 'bg-ink-100 text-ink-700',
+}
+
+export const FEEDBACK_STATUS_KEYS: Record<FeedbackStatus, TranslationKey> = {
+  BACKLOG: 'feedback.status.BACKLOG',
+  TODO: 'feedback.status.TODO',
+  IN_PROGRESS: 'feedback.status.IN_PROGRESS',
+  DONE: 'feedback.status.DONE',
+}
+
+export const FEEDBACK_PRIORITY_KEYS: Record<FeedbackPriority, TranslationKey> = {
+  LOW: 'feedback.priority.LOW',
+  MEDIUM: 'feedback.priority.MEDIUM',
+  HIGH: 'feedback.priority.HIGH',
+  URGENT: 'feedback.priority.URGENT',
 }
 
 export const PLATFORM_KEYS: Record<SocialPlatform, TranslationKey> = {

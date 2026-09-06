@@ -28,6 +28,11 @@ import type {
   ProductSummary,
   PublicStats,
   RequestOtpResponse,
+  FeedbackAttachmentKind,
+  FeedbackPriority,
+  FeedbackTicketDetail,
+  FeedbackTicketSummary,
+  FeedbackUser,
   SocialPlatform,
   TalentDetail,
   TalentQuery,
@@ -296,4 +301,67 @@ export const adminApi = {
     apiRequest<LocationNode>(`/api/admin/locations/${id}`, { method: 'PUT', body }),
   deleteLocation: (id: string) =>
     apiRequest<{ message: string }>(`/api/admin/locations/${id}`, { method: 'DELETE' }),
+}
+
+export interface FeedbackTicketPayload {
+  title: string
+  description?: string | null
+  priority?: FeedbackPriority
+  page_path?: string | null
+  client_context?: string | null
+}
+
+export interface FeedbackTicketUpdatePayload {
+  title?: string
+  description?: string | null
+  priority?: FeedbackPriority
+  assignee_id?: string | null
+}
+
+/**
+ * Every route here is admin-only — there is no owner- or public-facing
+ * counterpart to any of this, unlike ownerApi/adminApi's business split.
+ */
+export const feedbackApi = {
+  list: () => apiRequest<FeedbackTicketSummary[]>('/api/admin/feedback/tickets'),
+  assignees: () => apiRequest<FeedbackUser[]>('/api/admin/feedback/assignees'),
+  get: (id: string) => apiRequest<FeedbackTicketDetail>(`/api/admin/feedback/tickets/${id}`),
+  create: (payload: FeedbackTicketPayload) =>
+    apiRequest<FeedbackTicketDetail>('/api/admin/feedback/tickets', {
+      method: 'POST',
+      body: payload,
+    }),
+  update: (id: string, payload: FeedbackTicketUpdatePayload) =>
+    apiRequest<FeedbackTicketDetail>(`/api/admin/feedback/tickets/${id}`, {
+      method: 'PUT',
+      body: payload,
+    }),
+  remove: (id: string) =>
+    apiRequest<{ message: string }>(`/api/admin/feedback/tickets/${id}`, { method: 'DELETE' }),
+  move: (id: string, status: FeedbackTicketSummary['status'], index: number) =>
+    apiRequest<FeedbackTicketSummary[]>(`/api/admin/feedback/tickets/${id}/move`, {
+      method: 'POST',
+      body: { status, index },
+    }),
+  addComment: (id: string, body: string) =>
+    apiRequest<FeedbackTicketDetail>(`/api/admin/feedback/tickets/${id}/comments`, {
+      method: 'POST',
+      body: { body },
+    }),
+  uploadAttachment: (id: string, file: File, kind: FeedbackAttachmentKind) => {
+    const form = new FormData()
+    form.append('file', file)
+    form.append('kind', kind)
+    return apiRequest<FeedbackTicketDetail>(`/api/admin/feedback/tickets/${id}/attachments`, {
+      method: 'POST',
+      formData: form,
+    })
+  },
+  deleteAttachment: (id: string, attachmentId: string) =>
+    apiRequest<FeedbackTicketDetail>(
+      `/api/admin/feedback/tickets/${id}/attachments/${attachmentId}`,
+      { method: 'DELETE' },
+    ),
+  attachmentUrl: (id: string, attachmentId: string) =>
+    `/api/admin/feedback/tickets/${id}/attachments/${attachmentId}/download`,
 }

@@ -237,9 +237,23 @@ export const rejectSchema = (t: Translate) =>
     reason: z.string().trim().min(5, t('validation.rejectReasonShort')).max(1000),
   })
 
+export const feedbackTicketSchema = (t: Translate) =>
+  z.object({
+    title: z.string().trim().min(2, t('validation.titleRequired')).max(200),
+    description: z.string().trim().max(5000).optional().or(z.literal('')),
+    priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
+  })
+
+export const commentSchema = (t: Translate) =>
+  z.object({
+    body: z.string().trim().min(1, t('validation.commentRequired')).max(4000),
+  })
+
 export type BusinessBasicsValues = z.infer<ReturnType<typeof businessBasicsSchema>>
 export type BusinessLocationValues = z.infer<ReturnType<typeof businessLocationSchema>>
 export type SocialLinksValues = z.infer<ReturnType<typeof socialLinksSchema>>
 export type ItemValues = z.infer<ReturnType<typeof itemSchema>>
 export type AccountValues = z.infer<ReturnType<typeof accountSchema>>
 export type TalentValues = z.infer<ReturnType<typeof talentSchema>>
+export type FeedbackTicketValues = z.infer<ReturnType<typeof feedbackTicketSchema>>
+export type CommentValues = z.infer<ReturnType<typeof commentSchema>>

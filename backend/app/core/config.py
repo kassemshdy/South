@@ -77,6 +77,11 @@ class Settings(BaseSettings):
     max_gallery_images: int = 10
     # Identity documents run larger than the image cap above (PDFs, scans).
     max_verification_doc_bytes: int = 10 * 1024 * 1024
+    # A bug screenshot or a photo of a printed receipt runs larger than a
+    # listing image but doesn't need PDF's headroom, so this gets its own cap
+    # rather than reusing either.
+    max_feedback_attachment_bytes: int = 8 * 1024 * 1024
+    max_feedback_attachments_per_ticket: int = 8
 
     s3_bucket: str | None = None
     s3_region: str | None = None

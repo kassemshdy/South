@@ -33,4 +33,7 @@ export const queryKeys = {
   adminTalent: (id: string) => ['admin', 'talent', id] as const,
   adminTalentSkills: ['admin', 'talent-skills'] as const,
   adminLocations: ['admin', 'locations'] as const,
+  feedbackTickets: ['admin', 'feedback', 'tickets'] as const,
+  feedbackTicket: (id: string) => ['admin', 'feedback', 'ticket', id] as const,
+  feedbackAssignees: ['admin', 'feedback', 'assignees'] as const,
 }

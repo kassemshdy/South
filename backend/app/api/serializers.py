@@ -12,6 +12,7 @@ from typing import TypeVar
 from app.core.pagination import Page
 from app.models.business import Business, BusinessItem
 from app.models.enums import ImageKind
+from app.models.feedback import FeedbackAttachment, FeedbackComment, FeedbackTicket
 from app.models.talent import TalentProfile, TalentSkill
 from app.models.taxonomy import Category, Location
 from app.models.user import User
@@ -23,6 +24,13 @@ from app.schemas.business import (
     SocialLinkOut,
 )
 from app.schemas.common import PageMeta, PaginatedResponse
+from app.schemas.feedback import (
+    FeedbackAttachmentOut,
+    FeedbackCommentOut,
+    FeedbackTicketDetailOut,
+    FeedbackTicketSummaryOut,
+    FeedbackUserOut,
+)
 from app.schemas.item import BusinessItemOut
 from app.schemas.moderation import (
     AdminBusinessOut,
@@ -235,6 +243,54 @@ def admin_talent(profile: TalentProfile) -> AdminTalentOut:
             ModerationActionOut.model_validate(action)
             for action in sorted(profile.moderation_actions, key=lambda a: a.created_at)
         ],
+    )
+
+
+def feedback_user_out(user: User | None) -> FeedbackUserOut | None:
+    if user is None:
+        return None
+    return FeedbackUserOut.model_validate(user)
+
+
+def feedback_attachment_out(attachment: FeedbackAttachment) -> FeedbackAttachmentOut:
+    return FeedbackAttachmentOut.model_validate(attachment)
+
+
+def feedback_comment_out(comment: FeedbackComment) -> FeedbackCommentOut:
+    return FeedbackCommentOut(
+        id=comment.id,
+        body=comment.body,
+        author_id=comment.author_id,
+        author_display_name=comment.author.display_name if comment.author else None,
+        created_at=comment.created_at,
+    )
+
+
+def feedback_ticket_summary(ticket: FeedbackTicket) -> FeedbackTicketSummaryOut:
+    return FeedbackTicketSummaryOut(
+        id=ticket.id,
+        title=ticket.title,
+        status=ticket.status,
+        priority=ticket.priority,
+        sort_order=ticket.sort_order,
+        reporter=FeedbackUserOut.model_validate(ticket.reporter),
+        assignee=feedback_user_out(ticket.assignee),
+        attachment_count=len(ticket.attachments),
+        comment_count=len(ticket.comments),
+        created_at=ticket.created_at,
+        updated_at=ticket.updated_at,
+    )
+
+
+def feedback_ticket_detail(ticket: FeedbackTicket) -> FeedbackTicketDetailOut:
+    return FeedbackTicketDetailOut(
+        **feedback_ticket_summary(ticket).model_dump(),
+        description=ticket.description,
+        page_path=ticket.page_path,
+        client_context=ticket.client_context,
+        resolved_at=ticket.resolved_at,
+        attachments=[feedback_attachment_out(a) for a in ticket.attachments],
+        comments=[feedback_comment_out(c) for c in ticket.comments],
     )
 
 

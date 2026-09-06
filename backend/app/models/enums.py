@@ -51,3 +51,26 @@ class ModerationActionType(str, enum.Enum):
     REJECT = "REJECT"
     SUSPEND = "SUSPEND"
     REACTIVATE = "REACTIVATE"
+
+
+class FeedbackStatus(str, enum.Enum):
+    """Kanban columns. Order matters for the board and for sensible sorting;
+    keep new values here in the order they should appear left to right."""
+
+    BACKLOG = "BACKLOG"
+    TODO = "TODO"
+    IN_PROGRESS = "IN_PROGRESS"
+    DONE = "DONE"
+
+
+class FeedbackPriority(str, enum.Enum):
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    URGENT = "URGENT"
+
+
+class FeedbackAttachmentKind(str, enum.Enum):
+    SCREENSHOT = "SCREENSHOT"
+    PHOTO = "PHOTO"
+    DOCUMENT = "DOCUMENT"

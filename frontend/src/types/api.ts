@@ -285,6 +285,58 @@ export interface PublicStats {
   total_talents: number
 }
 
+export type FeedbackStatus = 'BACKLOG' | 'TODO' | 'IN_PROGRESS' | 'DONE'
+
+export type FeedbackPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
+
+export type FeedbackAttachmentKind = 'SCREENSHOT' | 'PHOTO' | 'DOCUMENT'
+
+export interface FeedbackUser {
+  id: string
+  display_name: string | null
+  email: string | null
+}
+
+export interface FeedbackAttachment {
+  id: string
+  kind: FeedbackAttachmentKind
+  content_type: string
+  original_filename: string | null
+  size_bytes: number | null
+  created_at: string
+}
+
+export interface FeedbackComment {
+  id: string
+  body: string
+  author_id: string | null
+  author_display_name: string | null
+  created_at: string
+}
+
+export interface FeedbackTicketSummary {
+  id: string
+  title: string
+  status: FeedbackStatus
+  priority: FeedbackPriority
+  sort_order: number
+  reporter: FeedbackUser
+  assignee: FeedbackUser | null
+  attachment_count: number
+  comment_count: number
+  created_at: string
+  updated_at: string
+}
+
+export interface FeedbackTicketDetail extends FeedbackTicketSummary {
+  description: string | null
+  page_path: string | null
+  client_context: string | null
+  resolved_at: string | null
+  attachments: FeedbackAttachment[]
+  comments: FeedbackComment[]
+}
+
 export interface ApiErrorPayload {
   error: {
     code: string

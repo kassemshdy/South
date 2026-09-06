@@ -11,12 +11,16 @@ from app.models.business import (
 from app.models.enums import (
     BusinessStatus,
     Currency,
+    FeedbackAttachmentKind,
+    FeedbackPriority,
+    FeedbackStatus,
     ImageKind,
     LocationType,
     ModerationActionType,
     SocialPlatform,
     UserRole,
 )
+from app.models.feedback import FeedbackAttachment, FeedbackComment, FeedbackTicket
 from app.models.talent import (
     TalentImage,
     TalentModerationAction,
@@ -35,6 +39,12 @@ __all__ = [
     "BusinessStatus",
     "Category",
     "Currency",
+    "FeedbackAttachment",
+    "FeedbackAttachmentKind",
+    "FeedbackComment",
+    "FeedbackPriority",
+    "FeedbackStatus",
+    "FeedbackTicket",
     "ImageKind",
     "Location",
     "LocationType",
