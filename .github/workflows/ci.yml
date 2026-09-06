@@ -1,0 +1,142 @@
+name: CI
+
+# Replaces the earlier node.js.yml, which ran `npm ci` at the repo root and
+# would have failed immediately — there is no root package.json, the
+# frontend lives in frontend/. This runs the actual local gate documented in
+# AGENTS.md (backend pytest + ruff + mypy against a real Postgres, frontend
+# tsc + build) and posts one summary comment on the pull request so a
+# reviewer never has to click into a run to see whether it's green.
+
+on:
+  pull_request:
+    branches: [develop-claude, master-claude]
+  push:
+    branches: [develop-claude, master-claude]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  backend:
+    name: Backend (pytest, ruff, mypy)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: south_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          python -m venv .venv
+          ./.venv/bin/pip install --no-cache-dir -r requirements-dev.txt
+
+      - name: pytest
+        working-directory: backend
+        env:
+          APP_ENV: development
+          DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/south_test
+          SECRET_KEY: ci-test-secret-key
+          STORAGE_LOCAL_DIR: var/test-media
+        run: ./.venv/bin/pytest tests/ -q
+
+      - name: ruff
+        if: always()
+        working-directory: backend
+        run: ./.venv/bin/ruff check .
+
+      - name: mypy
+        if: always()
+        working-directory: backend
+        run: ./.venv/bin/mypy app scripts
+
+  frontend:
+    name: Frontend (tsc, build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: tsc -b
+        working-directory: frontend
+        run: npx tsc -b
+
+      - name: build
+        if: always()
+        working-directory: frontend
+        run: npm run build
+
+  comment:
+    name: Post PR status comment
+    needs: [backend, frontend]
+    if: always() && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const results = { backend: '${{ needs.backend.result }}', frontend: '${{ needs.frontend.result }}' }
+            const icon = (r) => (r === 'success' ? '✅' : r === 'skipped' ? '⏭️' : '❌')
+            const allGreen = Object.values(results).every((r) => r === 'success')
+            const marker = '<!-- ci-status-comment -->'
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            const body = [
+              marker,
+              `## ${allGreen ? '✅ CI passed' : '❌ CI failed'}`,
+              '',
+              '| Check | Result |',
+              '|---|---|',
+              `| Backend (pytest, ruff, mypy) | ${icon(results.backend)} ${results.backend} |`,
+              `| Frontend (tsc, build) | ${icon(results.frontend)} ${results.frontend} |`,
+              '',
+              `[View run](${runUrl})`,
+            ].join('\n')
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            })
+            const existing = comments.find((c) => c.body && c.body.includes(marker))
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              })
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              })
+            }
