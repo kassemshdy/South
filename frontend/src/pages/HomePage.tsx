@@ -127,20 +127,23 @@ export function HomePage() {
             icon={Users}
             title={t('home.discoverTalentTitle')}
             description={t('home.discoverTalentDescription')}
+            href="/talent"
           />
         </div>
       </section>
 
       <section className="container-page pb-14" aria-label={t('home.statsHeading')}>
-        <div className="mx-auto grid max-w-md grid-cols-2 gap-4">
+        <div className="mx-auto grid max-w-2xl grid-cols-3 gap-4">
           {stats.isLoading ? (
             <>
+              <Skeleton className="h-28 rounded-2xl" />
               <Skeleton className="h-28 rounded-2xl" />
               <Skeleton className="h-28 rounded-2xl" />
             </>
           ) : stats.data ? (
             <>
               <StatTile value={stats.data.total_businesses} label={t('home.statsBusinesses')} />
+              <StatTile value={stats.data.total_talents} label={t('home.statsTalents')} />
               <StatTile value={stats.data.total_towns} label={t('home.statsTowns')} />
             </>
           ) : null}

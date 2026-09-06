@@ -54,9 +54,16 @@ class ImageService:
         *,
         data: bytes,
         content_type: str | None,
-        business_id: uuid.UUID,
+        owner_id: uuid.UUID,
         kind: ImageKind,
+        prefix: str = "businesses",
     ) -> StoredFile:
+        """Validate, re-encode and store one image.
+
+        ``prefix``/``owner_id`` decide the storage path, so the same pipeline
+        serves both ``businesses/<id>/...`` and ``talent/<id>/...`` without the
+        caller reaching into the storage backend itself.
+        """
         if len(data) > self._settings.max_upload_bytes:
             limit_mb = self._settings.max_upload_bytes / (1024 * 1024)
             raise PayloadTooLargeError(
@@ -72,12 +79,12 @@ class ImageService:
         variant = VARIANTS[kind]
         payload, width, height = self._render(image, variant)
 
-        key = f"businesses/{business_id}/{kind.value.lower()}/{uuid.uuid4().hex}.jpg"
+        key = f"{prefix}/{owner_id}/{kind.value.lower()}/{uuid.uuid4().hex}.jpg"
         stored = self._storage.save(key=key, data=payload, content_type="image/jpeg")
         logger.info(
             "Stored image",
             extra={
-                "business_id": str(business_id),
+                "owner_id": str(owner_id),
                 "kind": kind.value,
                 "storage_key": key,
                 "size_bytes": len(payload),

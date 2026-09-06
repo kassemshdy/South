@@ -17,6 +17,12 @@ from app.models.enums import (
     SocialPlatform,
     UserRole,
 )
+from app.models.talent import (
+    TalentImage,
+    TalentModerationAction,
+    TalentProfile,
+    TalentSkill,
+)
 from app.models.taxonomy import Category, Location
 from app.models.user import User
 from app.models.verification import OwnerVerificationDocument
@@ -38,6 +44,10 @@ __all__ = [
     "OwnerVerificationDocument",
     "RateLimitEvent",
     "SocialPlatform",
+    "TalentImage",
+    "TalentModerationAction",
+    "TalentProfile",
+    "TalentSkill",
     "User",
     "UserRole",
 ]

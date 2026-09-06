@@ -44,6 +44,12 @@ export function Header() {
           >
             {t('nav.products')}
           </Link>
+          <Link
+            to="/talent"
+            className="rounded-lg px-3 py-2 text-[15px] font-medium text-ink-700 transition-colors hover:bg-sand-100 hover:text-ink-900"
+          >
+            {t('nav.talent')}
+          </Link>
 
           {isAdmin ? (
             <Link
@@ -122,6 +128,9 @@ export function Header() {
           </Link>
           <Link to="/products" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">
             {t('nav.products')}
+          </Link>
+          <Link to="/talent" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">
+            {t('nav.talent')}
           </Link>
           {isAdmin ? (
             <Link to="/admin" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">

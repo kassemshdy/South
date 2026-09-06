@@ -144,7 +144,7 @@ def upload_item_image(
     stored = images.process_and_store(
         data=data,
         content_type=file.content_type,
-        business_id=business.id,
+        owner_id=business.id,
         kind=ImageKind.ITEM,
     )
 

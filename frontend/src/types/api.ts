@@ -201,6 +201,68 @@ export interface Paginated<T> {
   meta: PageMeta
 }
 
+export interface TalentSkill {
+  id: string
+  name_ar: string
+  slug: string
+  icon: string | null
+  sort_order: number
+  is_active: boolean
+  talent_count: number
+}
+
+export interface TalentImage {
+  id: string
+  url: string
+  kind: ImageKind
+  caption: string | null
+  sort_order: number
+  width: number | null
+  height: number | null
+}
+
+export interface TalentSummary {
+  id: string
+  display_name: string
+  slug: string
+  headline: string | null
+  photo_url: string | null
+  phone: string | null
+  whatsapp: string | null
+  years_experience: number | null
+  skill: TalentSkill | null
+  /** The person's own words, shown instead of the literal "Other" skill name. */
+  custom_skill_text: string | null
+  location: LocationNode | null
+  created_at: string
+}
+
+export interface TalentDetail extends TalentSummary {
+  bio: string | null
+  email: string | null
+  website: string | null
+  images: TalentImage[]
+  approved_at: string | null
+}
+
+/** The person's own view of their profile, including moderation state. */
+export interface OwnerTalent extends TalentDetail {
+  status: BusinessStatus
+  rejection_reason: string | null
+  submitted_at: string | null
+  updated_at: string
+}
+
+/** Adds account details that only administrators may see. */
+export interface AdminTalent extends OwnerTalent {
+  owner_id: string
+  owner_phone: string | null
+  owner_personal_phone: string | null
+  owner_has_verification_document: boolean
+  owner_display_name: string | null
+  moderation_actions: ModerationAction[]
+}
+
 export interface PlatformStats {
   total_businesses: number
   pending_businesses: number
@@ -211,12 +273,16 @@ export interface PlatformStats {
   total_users: number
   total_admins: number
   total_items: number
+  total_talents: number
+  pending_talents: number
+  approved_talents: number
 }
 
 /** The homepage stats strip — approved-only, safe for an anonymous visitor. */
 export interface PublicStats {
   total_businesses: number
   total_towns: number
+  total_talents: number
 }
 
 export interface ApiErrorPayload {
@@ -236,6 +302,15 @@ export type SortOption = 'newest' | 'name' | 'oldest'
 export interface BusinessQuery {
   q?: string
   category?: string
+  location?: string
+  sort?: SortOption
+  page?: number
+  page_size?: number
+}
+
+export interface TalentQuery {
+  q?: string
+  skill?: string
   location?: string
   sort?: SortOption
   page?: number

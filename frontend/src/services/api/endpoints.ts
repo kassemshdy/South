@@ -8,6 +8,7 @@
 import { apiDownload, apiRequest } from '@/services/api/client'
 import type {
   AdminBusiness,
+  AdminTalent,
   AdminUser,
   AuthToken,
   BusinessDetail,
@@ -20,6 +21,7 @@ import type {
   ImageKind,
   LocationNode,
   OwnerBusiness,
+  OwnerTalent,
   Paginated,
   PlatformStats,
   ProductDetail,
@@ -27,6 +29,10 @@ import type {
   PublicStats,
   RequestOtpResponse,
   SocialPlatform,
+  TalentDetail,
+  TalentQuery,
+  TalentSkill,
+  TalentSummary,
   User,
   VerificationDocument,
 } from '@/types/api'
@@ -56,6 +62,20 @@ export interface ItemPayload {
   currency?: Currency
   is_available?: boolean
   sort_order?: number
+}
+
+export interface TalentPayload {
+  display_name: string
+  headline?: string | null
+  bio?: string | null
+  years_experience?: number | null
+  skill_id?: string | null
+  custom_skill_text?: string | null
+  location_id?: string | null
+  phone?: string | null
+  whatsapp?: string | null
+  email?: string | null
+  website?: string | null
 }
 
 export const authApi = {
@@ -93,6 +113,7 @@ export const authApi = {
 export const taxonomyApi = {
   categories: () => apiRequest<Category[]>('/api/categories'),
   locations: () => apiRequest<LocationNode[]>('/api/locations'),
+  talentSkills: () => apiRequest<TalentSkill[]>('/api/talent-skills'),
 }
 
 export const publicBusinessApi = {
@@ -110,6 +131,43 @@ export const publicItemApi = {
     apiRequest<Paginated<ProductSummary>>('/api/items', { query: { ...query } }),
   bySlug: (slug: string) =>
     apiRequest<ProductDetail>(`/api/items/${encodeURIComponent(slug)}`),
+}
+
+export const publicTalentApi = {
+  search: (query: TalentQuery) =>
+    apiRequest<Paginated<TalentSummary>>('/api/talent', { query: { ...query } }),
+  latest: (limit = 8) => apiRequest<TalentSummary[]>('/api/talent/latest', { query: { limit } }),
+  bySlug: (slug: string) => apiRequest<TalentDetail>(`/api/talent/${encodeURIComponent(slug)}`),
+}
+
+/**
+ * The caller's own talent profile. No id in any path: a profile is
+ * one-per-account, so the authenticated user is the lookup key.
+ */
+export const ownerTalentApi = {
+  get: () => apiRequest<OwnerTalent>('/api/my/talent'),
+  create: (payload: TalentPayload) =>
+    apiRequest<OwnerTalent>('/api/talent', { method: 'POST', body: payload }),
+  update: (payload: Partial<TalentPayload>) =>
+    apiRequest<OwnerTalent>('/api/my/talent', { method: 'PUT', body: payload }),
+  remove: () => apiRequest<{ message: string }>('/api/my/talent', { method: 'DELETE' }),
+  submit: () => apiRequest<OwnerTalent>('/api/my/talent/submit', { method: 'POST' }),
+  readiness: () => apiRequest<string[]>('/api/my/talent/readiness'),
+
+  uploadImage: (file: File, kind: ImageKind, caption?: string) => {
+    const form = new FormData()
+    form.append('file', file)
+    form.append('kind', kind)
+    if (caption) form.append('caption', caption)
+    return apiRequest<OwnerTalent>('/api/my/talent/images', { method: 'POST', formData: form })
+  },
+  deleteImage: (imageId: string) =>
+    apiRequest<OwnerTalent>(`/api/my/talent/images/${imageId}`, { method: 'DELETE' }),
+  reorderImages: (image_ids: string[]) =>
+    apiRequest<OwnerTalent>('/api/my/talent/images/order', {
+      method: 'PUT',
+      body: { image_ids },
+    }),
 }
 
 export const ownerApi = {
@@ -202,6 +260,34 @@ export const adminApi = {
     apiRequest<Category>(`/api/admin/categories/${id}`, { method: 'PUT', body }),
   deleteCategory: (id: string) =>
     apiRequest<{ message: string }>(`/api/admin/categories/${id}`, { method: 'DELETE' }),
+
+  talent: (params: { status?: BusinessStatus; q?: string; page?: number; page_size?: number }) =>
+    apiRequest<Paginated<AdminTalent>>('/api/admin/talent', { query: { ...params } }),
+  pendingTalent: (page = 1) =>
+    apiRequest<Paginated<AdminTalent>>('/api/admin/talent/pending', { query: { page } }),
+  getTalent: (id: string) => apiRequest<AdminTalent>(`/api/admin/talent/${id}`),
+  approveTalent: (id: string) =>
+    apiRequest<AdminTalent>(`/api/admin/talent/${id}/approve`, { method: 'POST' }),
+  rejectTalent: (id: string, reason: string) =>
+    apiRequest<AdminTalent>(`/api/admin/talent/${id}/reject`, {
+      method: 'POST',
+      body: { reason },
+    }),
+  suspendTalent: (id: string, reason?: string) =>
+    apiRequest<AdminTalent>(`/api/admin/talent/${id}/suspend`, {
+      method: 'POST',
+      body: { reason: reason ?? null },
+    }),
+  reactivateTalent: (id: string) =>
+    apiRequest<AdminTalent>(`/api/admin/talent/${id}/reactivate`, { method: 'POST' }),
+
+  talentSkills: () => apiRequest<TalentSkill[]>('/api/admin/talent-skills'),
+  createTalentSkill: (body: Partial<TalentSkill> & { name_ar: string }) =>
+    apiRequest<TalentSkill>('/api/admin/talent-skills', { method: 'POST', body }),
+  updateTalentSkill: (id: string, body: Partial<TalentSkill>) =>
+    apiRequest<TalentSkill>(`/api/admin/talent-skills/${id}`, { method: 'PUT', body }),
+  deleteTalentSkill: (id: string) =>
+    apiRequest<{ message: string }>(`/api/admin/talent-skills/${id}`, { method: 'DELETE' }),
 
   locations: () => apiRequest<LocationNode[]>('/api/admin/locations'),
   createLocation: (body: Partial<LocationNode> & { name_ar: string }) =>

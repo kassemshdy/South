@@ -17,12 +17,9 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy import (
-    Enum as SAEnum,
-)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.database.base import Base, TimestampMixin, uuid_pk
+from app.database.base import Base, TimestampMixin, pg_enum, uuid_pk
 from app.models.enums import (
     BusinessStatus,
     Currency,
@@ -34,12 +31,6 @@ from app.models.enums import (
 if TYPE_CHECKING:
     from app.models.taxonomy import Category, Location
     from app.models.user import User
-
-
-def _enum(python_enum: type, name: str) -> SAEnum:
-    return SAEnum(
-        python_enum, name=name, values_callable=lambda e: [m.value for m in e]
-    )
 
 
 class Business(Base, TimestampMixin):
@@ -88,7 +79,7 @@ class Business(Base, TimestampMixin):
     maps_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
 
     status: Mapped[BusinessStatus] = mapped_column(
-        _enum(BusinessStatus, "business_status"),
+        pg_enum(BusinessStatus, "business_status"),
         default=BusinessStatus.DRAFT,
         nullable=False,
         index=True,
@@ -148,7 +139,7 @@ class BusinessImage(Base):
     url: Mapped[str] = mapped_column(String(500), nullable=False)
     storage_key: Mapped[str] = mapped_column(String(500), nullable=False)
     kind: Mapped[ImageKind] = mapped_column(
-        _enum(ImageKind, "image_kind"), default=ImageKind.GALLERY, nullable=False
+        pg_enum(ImageKind, "image_kind"), default=ImageKind.GALLERY, nullable=False
     )
     caption: Mapped[str | None] = mapped_column(String(300), nullable=True)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
@@ -173,7 +164,7 @@ class BusinessSocialLink(Base, TimestampMixin):
         ForeignKey("businesses.id", ondelete="CASCADE"), nullable=False, index=True
     )
     platform: Mapped[SocialPlatform] = mapped_column(
-        _enum(SocialPlatform, "social_platform"), nullable=False
+        pg_enum(SocialPlatform, "social_platform"), nullable=False
     )
     url: Mapped[str] = mapped_column(String(500), nullable=False)
 
@@ -195,7 +186,7 @@ class BusinessItem(Base, TimestampMixin):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     price: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
     currency: Mapped[Currency] = mapped_column(
-        _enum(Currency, "currency"), default=Currency.USD, nullable=False
+        pg_enum(Currency, "currency"), default=Currency.USD, nullable=False
     )
     image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     image_storage_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
@@ -226,13 +217,13 @@ class ModerationAction(Base):
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     action: Mapped[ModerationActionType] = mapped_column(
-        _enum(ModerationActionType, "moderation_action_type"), nullable=False
+        pg_enum(ModerationActionType, "moderation_action_type"), nullable=False
     )
     from_status: Mapped[BusinessStatus | None] = mapped_column(
-        _enum(BusinessStatus, "business_status"), nullable=True
+        pg_enum(BusinessStatus, "business_status"), nullable=True
     )
     to_status: Mapped[BusinessStatus] = mapped_column(
-        _enum(BusinessStatus, "business_status"), nullable=False
+        pg_enum(BusinessStatus, "business_status"), nullable=False
     )
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(

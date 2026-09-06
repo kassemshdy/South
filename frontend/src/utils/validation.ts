@@ -179,8 +179,56 @@ export const itemSchema = (t: Translate) =>
     is_available: z.boolean(),
   })
 
+/**
+ * `otherSkillId` mirrors `businessBasicsSchema`'s `otherCategoryId`: the
+ * "Other" skill is a seeded row with a real id, so the free-text requirement
+ * can only be wired up once the skill list has loaded.
+ */
+export const talentSchema = (t: Translate, otherSkillId?: string) =>
+  z
+    .object({
+      display_name: z
+        .string()
+        .trim()
+        .min(2, t('validation.nameRequired'))
+        .max(160, t('validation.nameTooLong')),
+      headline: z
+        .string()
+        .trim()
+        .max(300, t('validation.shortDescriptionTooLong'))
+        .optional()
+        .or(z.literal('')),
+      bio: z.string().trim().max(5000, t('validation.descriptionTooLong')).optional().or(z.literal('')),
+      years_experience: z
+        .string()
+        .trim()
+        .optional()
+        .or(z.literal(''))
+        .refine(
+          (value) => !value || (/^\d{1,2}$/.test(value) && Number(value) <= 70),
+          t('validation.yearsInvalid'),
+        ),
+      skill_id: z.string().min(1, t('validation.skillRequired')),
+      custom_skill_text: z.string().trim().max(120).optional().or(z.literal('')),
+      location_id: z.string().min(1, t('validation.locationRequired')),
+      phone: optionalPhone(t),
+      whatsapp: optionalPhone(t),
+      email: z.string().trim().email(t('validation.emailInvalid')).optional().or(z.literal('')),
+      website: optionalUrl(t),
+    })
+    .superRefine((values, ctx) => {
+      if (otherSkillId && values.skill_id === otherSkillId && !values.custom_skill_text) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['custom_skill_text'],
+          message: t('validation.customSkillRequired'),
+        })
+      }
+    })
+
 export const accountSchema = (t: Translate) =>
   z.object({
+    display_name: z.string().trim().max(120, t('validation.displayNameLong')),
     personal_phone_number: optionalPhone(t),
   })
 
@@ -194,3 +242,4 @@ export type BusinessLocationValues = z.infer<ReturnType<typeof businessLocationS
 export type SocialLinksValues = z.infer<ReturnType<typeof socialLinksSchema>>
 export type ItemValues = z.infer<ReturnType<typeof itemSchema>>
 export type AccountValues = z.infer<ReturnType<typeof accountSchema>>
+export type TalentValues = z.infer<ReturnType<typeof talentSchema>>

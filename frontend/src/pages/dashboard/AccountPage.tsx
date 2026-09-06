@@ -53,7 +53,7 @@ function ProfileCard({
   user,
   onSaved,
 }: {
-  user: { personal_phone_number: string | null }
+  user: { display_name: string | null; personal_phone_number: string | null }
   onSaved: () => Promise<void>
 }) {
   const t = useT()
@@ -66,12 +66,18 @@ function ProfileCard({
     formState: { errors },
   } = useForm<AccountValues>({
     resolver: zodResolver(schema),
-    defaultValues: { personal_phone_number: user.personal_phone_number ?? '' },
+    defaultValues: {
+      display_name: user.display_name ?? '',
+      personal_phone_number: user.personal_phone_number ?? '',
+    },
   })
 
   const save = useMutation({
     mutationFn: (values: AccountValues) =>
-      authApi.updateProfile({ personal_phone_number: values.personal_phone_number || null }),
+      authApi.updateProfile({
+        display_name: values.display_name || null,
+        personal_phone_number: values.personal_phone_number || null,
+      }),
     onSuccess: async () => {
       await onSaved()
       toast.success(t('account.profileSaved'))
@@ -85,10 +91,24 @@ function ProfileCard({
   return (
     <Card>
       <CardHeader>
-        <h2 className="font-bold">{t('account.personalPhoneLabel')}</h2>
+        <h2 className="font-bold">{t('account.profileTitle')}</h2>
       </CardHeader>
       <CardBody>
         <form onSubmit={submit} className="space-y-5" noValidate>
+          <Field
+            label={t('account.displayNameLabel')}
+            error={errors.display_name?.message}
+            hint={t('account.displayNameHint')}
+          >
+            {(props) => (
+              <Input
+                {...props}
+                {...register('display_name')}
+                autoComplete="name"
+                invalid={Boolean(errors.display_name)}
+              />
+            )}
+          </Field>
           <Field
             label={t('account.personalPhoneLabel')}
             error={errors.personal_phone_number?.message}

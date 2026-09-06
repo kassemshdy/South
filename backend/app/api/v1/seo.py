@@ -1,8 +1,8 @@
 """Sitemap and robots.txt.
 
-Only APPROVED businesses are ever listed: draft, pending, rejected and suspended
-listings must not be discoverable, and the sitemap is the easiest place to leak
-them by accident.
+Only APPROVED businesses and talent profiles are ever listed: draft, pending,
+rejected and suspended entries must not be discoverable, and the sitemap is the
+easiest place to leak them by accident.
 """
 
 from __future__ import annotations
@@ -13,6 +13,7 @@ from fastapi import APIRouter, Response
 
 from app.core.dependencies import AppSettings, DbSession
 from app.repositories.business import BusinessRepository
+from app.repositories.talent import TalentRepository, TalentSkillRepository
 from app.repositories.taxonomy import CategoryRepository
 
 router = APIRouter(include_in_schema=False)
@@ -39,6 +40,14 @@ def sitemap(db: DbSession, settings: AppSettings) -> Response:
 
     for slug, updated_at in BusinessRepository(db).approved_slugs():
         add(f"/business/{slug}", changefreq="weekly", priority="0.8", lastmod=updated_at)
+
+    add("/talent", changefreq="daily", priority="0.9")
+
+    for skill in TalentSkillRepository(db).list_all():
+        add(f"/talent?skill={skill.slug}", changefreq="weekly", priority="0.7")
+
+    for slug, updated_at in TalentRepository(db).approved_slugs():
+        add(f"/talent/{slug}", changefreq="weekly", priority="0.8", lastmod=updated_at)
 
     return Response(
         content=tostring(urlset, encoding="utf-8", xml_declaration=True),

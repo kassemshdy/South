@@ -13,6 +13,7 @@ from app.core.dependencies import AdminUser, DbSession
 from app.models.business import Business, BusinessItem
 from app.models.enums import BusinessStatus, UserRole
 from app.repositories.business import BusinessRepository
+from app.repositories.talent import TalentRepository
 from app.repositories.user import UserRepository
 from app.schemas.common import PageMeta, PaginatedResponse, StatsResponse
 from app.schemas.moderation import AdminUserOut
@@ -23,6 +24,7 @@ router = APIRouter(prefix="/admin", tags=["admin-stats"])
 @router.get("/stats", response_model=StatsResponse)
 def platform_stats(db: DbSession, admin: AdminUser) -> StatsResponse:
     counts = BusinessRepository(db).count_by_status()
+    talent_counts = TalentRepository(db).count_by_status()
     users = UserRepository(db)
     total_items = int(
         db.execute(select(func.count()).select_from(BusinessItem)).scalar_one()
@@ -38,6 +40,9 @@ def platform_stats(db: DbSession, admin: AdminUser) -> StatsResponse:
         total_users=users.count(),
         total_admins=users.count_by_role(UserRole.ADMIN),
         total_items=total_items,
+        total_talents=sum(talent_counts.values()),
+        pending_talents=talent_counts.get(BusinessStatus.PENDING_REVIEW, 0),
+        approved_talents=talent_counts.get(BusinessStatus.APPROVED, 0),
     )
 
 

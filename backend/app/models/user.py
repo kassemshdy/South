@@ -12,6 +12,7 @@ from app.models.enums import UserRole
 
 if TYPE_CHECKING:
     from app.models.business import Business
+    from app.models.talent import TalentProfile
     from app.models.verification import OwnerVerificationDocument
 
 
@@ -54,6 +55,12 @@ class User(Base, TimestampMixin):
         back_populates="owner",
         foreign_keys="Business.owner_id",
         cascade="all, delete-orphan",
+    )
+    talent_profile: Mapped[TalentProfile | None] = relationship(
+        back_populates="owner",
+        foreign_keys="TalentProfile.owner_id",
+        cascade="all, delete-orphan",
+        uselist=False,
     )
     verification_document: Mapped[OwnerVerificationDocument | None] = relationship(
         back_populates="user",

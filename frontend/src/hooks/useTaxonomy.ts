@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 
 import { queryKeys } from '@/services/api/queryKeys'
 import { taxonomyApi } from '@/services/api/endpoints'
-import type { Category, LocationNode } from '@/types/api'
+import type { Category, LocationNode, TalentSkill } from '@/types/api'
 
 /** Categories and locations change rarely, so they are cached aggressively. */
 const STATIC_DATA_OPTIONS = { staleTime: 5 * 60_000, gcTime: 30 * 60_000 }
@@ -20,6 +20,14 @@ export function useLocations() {
   return useQuery({
     queryKey: queryKeys.locations,
     queryFn: taxonomyApi.locations,
+    ...STATIC_DATA_OPTIONS,
+  })
+}
+
+export function useTalentSkills() {
+  return useQuery({
+    queryKey: queryKeys.talentSkills,
+    queryFn: taxonomyApi.talentSkills,
     ...STATIC_DATA_OPTIONS,
   })
 }
@@ -56,4 +64,9 @@ export function useLocationGroups(): {
 export function useCategoryMap(): Map<string, Category> {
   const { data } = useCategories()
   return useMemo(() => new Map((data ?? []).map((category) => [category.id, category])), [data])
+}
+
+export function useTalentSkillMap(): Map<string, TalentSkill> {
+  const { data } = useTalentSkills()
+  return useMemo(() => new Map((data ?? []).map((skill) => [skill.id, skill])), [data])
 }

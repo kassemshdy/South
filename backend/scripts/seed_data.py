@@ -51,12 +51,39 @@ class BusinessSeed(TypedDict, total=False):
     items: list[ItemSeed]
 
 
+class TalentSkillSeed(TypedDict):
+    name_ar: str
+    slug: str
+    icon: str
+    sort_order: int
+
+
+class TalentSeed(TypedDict, total=False):
+    display_name: str
+    owner_phone: str
+    skill: str
+    custom_skill_text: str
+    location: str
+    status: str
+    headline: str
+    bio: str
+    years_experience: int
+    phone: str
+    whatsapp: str
+    website: str
+    rejection_reason: str
+    suspension_reason: str
+    slug: str
+
+
 DATA_DIR = Path(__file__).resolve().parent / "data"
 
 REQUIRED_FIELDS: dict[str, tuple[str, ...]] = {
     "categories": ("name_ar", "slug", "sort_order"),
     "locations": ("name_ar", "slug"),
     "businesses": ("name", "owner_phone", "category", "location", "status"),
+    "talent_skills": ("name_ar", "slug", "sort_order"),
+    "talents": ("display_name", "owner_phone", "skill", "location", "status"),
 }
 
 
@@ -87,3 +114,5 @@ def _load(name: str) -> list[dict[str, Any]]:
 CATEGORIES: list[CategorySeed] = _load("categories")  # type: ignore[assignment]
 LOCATIONS: list[LocationSeed] = _load("locations")  # type: ignore[assignment]
 BUSINESSES: list[BusinessSeed] = _load("businesses")  # type: ignore[assignment]
+TALENT_SKILLS: list[TalentSkillSeed] = _load("talent_skills")  # type: ignore[assignment]
+TALENTS: list[TalentSeed] = _load("talents")  # type: ignore[assignment]

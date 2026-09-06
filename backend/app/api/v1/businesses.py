@@ -12,6 +12,7 @@ from app.core.errors import NotFoundError
 from app.core.i18n import translate
 from app.core.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from app.repositories.business import BusinessRepository
+from app.repositories.talent import TalentRepository
 from app.schemas.business import (
     BusinessCreateIn,
     BusinessDetailOut,
@@ -65,11 +66,12 @@ def latest_businesses(
 
 @public_router.get("/businesses/stats", response_model=PublicStatsOut)
 def public_stats(db: DbSession) -> PublicStatsOut:
-    """Homepage stats strip: approved-business and distinct-town counts only."""
+    """Homepage stats strip: approved-only counts, safe for an anonymous visitor."""
     repo = BusinessRepository(db)
     return PublicStatsOut(
         total_businesses=repo.public_business_count(),
         total_towns=repo.public_town_count(),
+        total_talents=TalentRepository(db).public_profile_count(),
     )
 
 

@@ -12,6 +12,7 @@ from typing import TypeVar
 from app.core.pagination import Page
 from app.models.business import Business, BusinessItem
 from app.models.enums import ImageKind
+from app.models.talent import TalentProfile, TalentSkill
 from app.models.taxonomy import Category, Location
 from app.models.user import User
 from app.schemas.business import (
@@ -23,8 +24,20 @@ from app.schemas.business import (
 )
 from app.schemas.common import PageMeta, PaginatedResponse
 from app.schemas.item import BusinessItemOut
-from app.schemas.moderation import AdminBusinessOut, AdminUserOut, ModerationActionOut
+from app.schemas.moderation import (
+    AdminBusinessOut,
+    AdminTalentOut,
+    AdminUserOut,
+    ModerationActionOut,
+)
 from app.schemas.product import ProductBusinessRef, ProductDetailOut, ProductSummaryOut
+from app.schemas.talent import (
+    OwnerTalentOut,
+    TalentDetailOut,
+    TalentImageOut,
+    TalentSkillOut,
+    TalentSummaryOut,
+)
 from app.schemas.taxonomy import CategoryOut, LocationOut
 
 RecordT = TypeVar("RecordT")
@@ -149,6 +162,79 @@ def product_detail(item: BusinessItem) -> ProductDetailOut:
         **product_summary(item).model_dump(),
         description=item.description,
         created_at=item.created_at,
+    )
+
+
+def talent_skill_out(skill: TalentSkill | None, *, talent_count: int = 0) -> TalentSkillOut | None:
+    if skill is None:
+        return None
+    data = TalentSkillOut.model_validate(skill)
+    return data.model_copy(update={"talent_count": talent_count})
+
+
+def _talent_gallery(profile: TalentProfile) -> list[TalentImageOut]:
+    return [
+        TalentImageOut.model_validate(image)
+        for image in sorted(profile.images, key=lambda i: i.sort_order)
+        if image.kind is ImageKind.GALLERY
+    ]
+
+
+def talent_summary(profile: TalentProfile) -> TalentSummaryOut:
+    return TalentSummaryOut(
+        id=profile.id,
+        display_name=profile.display_name,
+        slug=profile.slug,
+        headline=profile.headline,
+        photo_url=profile.photo_url,
+        phone=profile.phone,
+        whatsapp=profile.whatsapp,
+        years_experience=profile.years_experience,
+        skill=talent_skill_out(profile.skill),
+        custom_skill_text=profile.custom_skill_text,
+        location=location_out(profile.location),
+        created_at=profile.created_at,
+    )
+
+
+def talent_detail(profile: TalentProfile) -> TalentDetailOut:
+    """Public profile. Contains only what the person chose to publish."""
+    return TalentDetailOut(
+        **talent_summary(profile).model_dump(),
+        bio=profile.bio,
+        email=profile.email,
+        website=profile.website,
+        images=_talent_gallery(profile),
+        approved_at=profile.approved_at,
+    )
+
+
+def owner_talent(profile: TalentProfile) -> OwnerTalentOut:
+    """Owner's own view — adds moderation state and the rejection reason."""
+    return OwnerTalentOut(
+        **talent_detail(profile).model_dump(),
+        status=profile.status,
+        rejection_reason=profile.rejection_reason,
+        submitted_at=profile.submitted_at,
+        updated_at=profile.updated_at,
+    )
+
+
+def admin_talent(profile: TalentProfile) -> AdminTalentOut:
+    """Review payload — administrators may see the account's own details."""
+    return AdminTalentOut(
+        **owner_talent(profile).model_dump(),
+        owner_id=profile.owner_id,
+        owner_phone=profile.owner.phone_number if profile.owner else None,
+        owner_personal_phone=profile.owner.personal_phone_number if profile.owner else None,
+        owner_has_verification_document=bool(
+            profile.owner and profile.owner.verification_document is not None
+        ),
+        owner_display_name=profile.owner.display_name if profile.owner else None,
+        moderation_actions=[
+            ModerationActionOut.model_validate(action)
+            for action in sorted(profile.moderation_actions, key=lambda a: a.created_at)
+        ],
     )
 
 

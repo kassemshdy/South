@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, ExternalLink, ListPlus, Pencil, Plus, Send, Store } from 'lucide-react'
+import { AlertTriangle, ExternalLink, ListPlus, Pencil, Plus, Send, Store, UserRound } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
@@ -36,12 +36,20 @@ export function DashboardPage() {
             })}
           </p>
         </div>
-        <Button asChild size="lg">
-          <Link to="/dashboard/businesses/new">
-            <Plus className="h-5 w-5" aria-hidden="true" />
-            {t('dashboard.addNew')}
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-3">
+          <Button asChild size="lg" variant="outline">
+            <Link to="/dashboard/talent">
+              <UserRound className="h-5 w-5" aria-hidden="true" />
+              {t('dashboard.myTalentProfile')}
+            </Link>
+          </Button>
+          <Button asChild size="lg">
+            <Link to="/dashboard/businesses/new">
+              <Plus className="h-5 w-5" aria-hidden="true" />
+              {t('dashboard.addNew')}
+            </Link>
+          </Button>
+        </div>
       </header>
 
       {businesses.isLoading ? (

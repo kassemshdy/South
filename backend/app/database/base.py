@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import DateTime, MetaData, func
+from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -22,6 +23,19 @@ NAMING_CONVENTION = {
 
 class Base(DeclarativeBase):
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
+
+
+def pg_enum(python_enum: type, name: str) -> SAEnum:
+    """A Postgres enum column that stores the member *values*, not their names.
+
+    SQLAlchemy defaults to persisting ``BusinessStatus.APPROVED`` as the member
+    name; every enum in this project is a ``str`` enum whose value is already
+    the wire format, so ``values_callable`` keeps the database, the JSON API and
+    the Python enum spelling one and the same thing.
+    """
+    return SAEnum(
+        python_enum, name=name, values_callable=lambda e: [m.value for m in e]
+    )
 
 
 def uuid_pk() -> Mapped[uuid.UUID]:
