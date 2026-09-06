@@ -187,6 +187,13 @@ export interface AdminUser {
   business_count: number
 }
 
+/** The account's row, plus everything it owns — every business, in any
+ * status, and its talent profile if it has one. */
+export interface AdminUserDetail extends AdminUser {
+  businesses: AdminBusiness[]
+  talent_profile: AdminTalent | null
+}
+
 export interface PageMeta {
   total: number
   page: number

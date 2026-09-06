@@ -132,6 +132,7 @@
   "url.invalid_scheme": "{field} must start with http or https.",
   "url.invalid_social_host": "The {platform} link must point to {platform}.",
   "url.required": "{field} is required.",
+  "user.not_found": "User not found.",
   "verification.empty": "The file is empty.",
   "verification.not_found": "Document not found.",
   "verification.too_large": "The file exceeds the {limit} MB limit.",

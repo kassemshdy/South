@@ -10,6 +10,7 @@ import type {
   AdminBusiness,
   AdminTalent,
   AdminUser,
+  AdminUserDetail,
   AuthToken,
   BusinessDetail,
   BusinessItem,
@@ -252,6 +253,7 @@ export const adminApi = {
 
   users: (page = 1) =>
     apiRequest<Paginated<AdminUser>>('/api/admin/users', { query: { page } }),
+  user: (id: string) => apiRequest<AdminUserDetail>(`/api/admin/users/${id}`),
 
   getVerificationDocument: (userId: string) =>
     apiRequest<VerificationDocument>(`/api/admin/users/${userId}/verification-document`),

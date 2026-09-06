@@ -1,4 +1,6 @@
-"""Per-user admin actions: today, just reading an owner's verification document.
+"""Per-user admin actions: viewing a single account's detail (its businesses
+and talent profile, in any status) and reading an owner's verification
+document.
 
 The aggregate user list lives in ``admin/stats.py`` — this file is for actions
 scoped to a single user, the same split ``admin/businesses.py`` follows for
@@ -11,9 +13,13 @@ import uuid
 
 from fastapi import APIRouter, Response
 
+from app.api.serializers import admin_user_detail
 from app.core.dependencies import AdminUser, AppSettings, DbSession
 from app.core.errors import NotFoundError
+from app.repositories.business import BusinessRepository
+from app.repositories.talent import TalentRepository
 from app.repositories.user import UserRepository
+from app.schemas.moderation import AdminUserDetailOut
 from app.schemas.verification import VerificationDocumentOut
 from app.services.verification import VerificationDocumentService
 from app.storage.factory import get_storage
@@ -26,6 +32,16 @@ def _load_document(db: DbSession, user_id: uuid.UUID):
     if user is None or user.verification_document is None:
         raise NotFoundError("verification.not_found")
     return user.verification_document
+
+
+@router.get("/users/{user_id}", response_model=AdminUserDetailOut)
+def get_user(user_id: uuid.UUID, db: DbSession, admin: AdminUser) -> AdminUserDetailOut:
+    user = UserRepository(db).get(user_id)
+    if user is None:
+        raise NotFoundError("user.not_found")
+    businesses = BusinessRepository(db).list_for_owner(user_id)
+    talent_profile = TalentRepository(db).get_for_owner(user_id)
+    return admin_user_detail(user, businesses=businesses, talent_profile=talent_profile)
 
 
 @router.get(

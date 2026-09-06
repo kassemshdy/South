@@ -132,6 +132,7 @@
   "url.invalid_scheme": "{field} يجب أن يبدأ بـ http أو https.",
   "url.invalid_social_host": "رابط {platform} يجب أن يكون من موقع {platform}.",
   "url.required": "{field} مطلوب.",
+  "user.not_found": "المستخدم غير موجود.",
   "verification.empty": "الملف فارغ.",
   "verification.not_found": "المستند غير موجود.",
   "verification.too_large": "حجم الملف يتجاوز الحد المسموح ({limit} ميغابايت).",

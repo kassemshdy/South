@@ -69,3 +69,14 @@ class AdminTalentOut(OwnerTalentOut):
     owner_display_name: str | None = None
     owner_id: uuid.UUID
     moderation_actions: list[ModerationActionOut] = Field(default_factory=list)
+
+
+class AdminUserDetailOut(AdminUserOut):
+    """The account list's row, plus everything it owns — every business (in
+    any status, not just APPROVED) and its talent profile if it has one — so
+    an administrator can go from a user straight to reviewing what they've
+    listed, website link included, without hunting through /admin/businesses
+    by owner phone number."""
+
+    businesses: list[AdminBusinessOut] = Field(default_factory=list)
+    talent_profile: AdminTalentOut | None = None
