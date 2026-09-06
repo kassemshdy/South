@@ -244,10 +244,29 @@ export interface TalentSummary {
   created_at: string
 }
 
+export type Gender = 'MALE' | 'FEMALE'
+export type MaritalStatus = 'SINGLE' | 'MARRIED' | 'DIVORCED' | 'WIDOWED'
+export type LanguageProficiency = 'BASIC' | 'GOOD' | 'FLUENT' | 'NATIVE'
+
+export interface TalentLanguage {
+  id: string
+  name: string
+  proficiency: LanguageProficiency
+  sort_order: number
+}
+
 export interface TalentDetail extends TalentSummary {
   bio: string | null
   email: string | null
   website: string | null
+  /** Professional detail — published on the public profile. */
+  highest_degree: string | null
+  specialization: string | null
+  university: string | null
+  experience: string | null
+  skills_text: string | null
+  services_offered: string | null
+  languages: TalentLanguage[]
   images: TalentImage[]
   approved_at: string | null
 }
@@ -258,6 +277,14 @@ export interface OwnerTalent extends TalentDetail {
   rejection_reason: string | null
   submitted_at: string | null
   updated_at: string
+  /** Identity detail. Present here and on AdminTalent only — the public
+   * TalentDetail deliberately omits it. */
+  full_name: string | null
+  birth_year: number | null
+  gender: Gender | null
+  marital_status: MaritalStatus | null
+  registration_place: string | null
+  residence_place: string | null
 }
 
 /** Adds account details that only administrators may see. */
@@ -266,6 +293,7 @@ export interface AdminTalent extends OwnerTalent {
   owner_phone: string | null
   owner_personal_phone: string | null
   owner_has_verification_document: boolean
+  owner_has_cv_document: boolean
   owner_display_name: string | null
   moderation_actions: ModerationAction[]
 }

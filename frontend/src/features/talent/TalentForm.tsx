@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Plus, Trash2 } from 'lucide-react'
 import { useMemo } from 'react'
-import { Controller, useForm, useWatch } from 'react-hook-form'
+import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form'
 
 import { Button } from '@/components/ui/Button'
 import { Field } from '@/components/ui/Field'
@@ -11,6 +12,15 @@ import { useT } from '@/i18n'
 import type { TalentPayload } from '@/services/api/endpoints'
 import type { OwnerTalent } from '@/types/api'
 import { talentSchema, type TalentValues } from '@/utils/validation'
+
+import {
+  GENDERS,
+  GENDER_KEYS,
+  LANGUAGE_PROFICIENCIES,
+  MARITAL_STATUSES,
+  MARITAL_STATUS_KEYS,
+  PROFICIENCY_KEYS,
+} from './labels'
 
 interface TalentFormProps {
   profile?: OwnerTalent | undefined
@@ -51,8 +61,34 @@ export function TalentForm({ profile, submitLabel, pending, onSubmit, footer }: 
       whatsapp: profile?.whatsapp ?? '',
       email: profile?.email ?? '',
       website: profile?.website ?? '',
+      highest_degree: profile?.highest_degree ?? '',
+      specialization: profile?.specialization ?? '',
+      university: profile?.university ?? '',
+      experience: profile?.experience ?? '',
+      skills_text: profile?.skills_text ?? '',
+      services_offered: profile?.services_offered ?? '',
+      languages:
+        profile?.languages?.map((language) => ({
+          name: language.name,
+          proficiency: language.proficiency,
+        })) ?? [],
+      full_name: profile?.full_name ?? '',
+      birth_year:
+        profile?.birth_year !== null && profile?.birth_year !== undefined
+          ? String(profile.birth_year)
+          : '',
+      gender: profile?.gender ?? '',
+      marital_status: profile?.marital_status ?? '',
+      registration_place: profile?.registration_place ?? '',
+      residence_place: profile?.residence_place ?? '',
     },
   })
+
+  const {
+    fields: languageFields,
+    append: appendLanguage,
+    remove: removeLanguage,
+  } = useFieldArray({ control, name: 'languages' })
 
   const skillId = useWatch({ control, name: 'skill_id' })
   const isOtherSkill = Boolean(otherSkillId) && skillId === otherSkillId
@@ -70,6 +106,24 @@ export function TalentForm({ profile, submitLabel, pending, onSubmit, footer }: 
       whatsapp: values.whatsapp || null,
       email: values.email || null,
       website: values.website || null,
+      highest_degree: values.highest_degree || null,
+      specialization: values.specialization || null,
+      university: values.university || null,
+      experience: values.experience || null,
+      skills_text: values.skills_text || null,
+      services_offered: values.services_offered || null,
+      // Always sent, even when empty: an omitted key means "leave as-is",
+      // so clearing the last language has to be an explicit empty list.
+      languages: (values.languages ?? []).map((language) => ({
+        name: language.name,
+        proficiency: language.proficiency,
+      })),
+      full_name: values.full_name || null,
+      birth_year: values.birth_year ? Number(values.birth_year) : null,
+      gender: values.gender || null,
+      marital_status: values.marital_status || null,
+      registration_place: values.registration_place || null,
+      residence_place: values.residence_place || null,
     })
   })
 
@@ -281,6 +335,214 @@ export function TalentForm({ profile, submitLabel, pending, onSubmit, footer }: 
       <p className="rounded-xl bg-sand-100 p-3.5 text-sm text-clay-800">
         {t('talentForm.privacyNote')}
       </p>
+
+      {/* --- Published professional detail ------------------------------ */}
+      <section className="space-y-5 border-t border-ink-100 pt-6">
+        <div>
+          <h2 className="text-lg font-bold">{t('talentForm.professionalHeading')}</h2>
+          <p className="mt-1 text-sm text-ink-500">{t('talentForm.professionalHint')}</p>
+        </div>
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field label={t('talentForm.highestDegree')} error={errors.highest_degree?.message}>
+            {(props) => <Input {...props} {...register('highest_degree')} />}
+          </Field>
+          <Field label={t('talentForm.specialization')} error={errors.specialization?.message}>
+            {(props) => <Input {...props} {...register('specialization')} />}
+          </Field>
+        </div>
+
+        <Field label={t('talentForm.university')} error={errors.university?.message}>
+          {(props) => <Input {...props} {...register('university')} />}
+        </Field>
+
+        <Field label={t('talentForm.experience')} error={errors.experience?.message}>
+          {(props) => <Textarea {...props} {...register('experience')} rows={4} />}
+        </Field>
+
+        <Field
+          label={t('talentForm.skillsText')}
+          hint={t('talentForm.skillsTextHint')}
+          error={errors.skills_text?.message}
+        >
+          {(props) => <Textarea {...props} {...register('skills_text')} rows={2} />}
+        </Field>
+
+        <Field
+          label={t('talentForm.servicesOffered')}
+          hint={t('talentForm.servicesOfferedHint')}
+          error={errors.services_offered?.message}
+        >
+          {(props) => <Textarea {...props} {...register('services_offered')} rows={3} />}
+        </Field>
+
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm font-semibold text-ink-700">
+              {t('talentForm.languages')}
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => appendLanguage({ name: '', proficiency: 'GOOD' })}
+            >
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              {t('talentForm.addLanguage')}
+            </Button>
+          </div>
+
+          {languageFields.length === 0 ? (
+            <p className="text-sm text-ink-500">{t('talentForm.noLanguages')}</p>
+          ) : (
+            <ul className="space-y-3">
+              {languageFields.map((field, index) => (
+                <li key={field.id} className="flex flex-wrap items-end gap-3">
+                  <div className="min-w-[10rem] flex-1">
+                    <Field
+                      label={t('talentForm.languageName')}
+                      error={errors.languages?.[index]?.name?.message}
+                    >
+                      {(props) => (
+                        <Input
+                          {...props}
+                          {...register(`languages.${index}.name` as const)}
+                          invalid={Boolean(errors.languages?.[index]?.name)}
+                        />
+                      )}
+                    </Field>
+                  </div>
+                  <div className="min-w-[9rem] flex-1">
+                    <Field label={t('talentForm.languageLevel')}>
+                      {(props) => (
+                        <Controller
+                          control={control}
+                          name={`languages.${index}.proficiency` as const}
+                          render={({ field: select }) => (
+                            <Select value={select.value} onValueChange={select.onChange}>
+                              <SelectTrigger id={props.id}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {LANGUAGE_PROFICIENCIES.map((level) => (
+                                  <SelectItem key={level} value={level}>
+                                    {t(PROFICIENCY_KEYS[level])}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                      )}
+                    </Field>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-clay-600"
+                    onClick={() => removeLanguage(index)}
+                    aria-label={t('talentForm.removeLanguage')}
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
+
+      {/* --- Verification detail: entered here, never published --------- */}
+      <section className="space-y-5 border-t border-ink-100 pt-6">
+        <div>
+          <h2 className="text-lg font-bold">{t('talentForm.identityHeading')}</h2>
+          <p className="mt-1 text-sm text-ink-500">{t('talentForm.identityHint')}</p>
+        </div>
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field label={t('talentForm.fullName')} error={errors.full_name?.message}>
+            {(props) => <Input {...props} {...register('full_name')} />}
+          </Field>
+          <Field
+            label={t('talentForm.birthYear')}
+            hint={t('talentForm.birthYearHint')}
+            error={errors.birth_year?.message}
+          >
+            {(props) => (
+              <Input
+                {...props}
+                {...register('birth_year')}
+                inputMode="numeric"
+                dir="ltr"
+                placeholder="1994"
+                className="ltr-nums"
+                invalid={Boolean(errors.birth_year)}
+              />
+            )}
+          </Field>
+        </div>
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field label={t('talentForm.gender')}>
+            {(props) => (
+              <Controller
+                control={control}
+                name="gender"
+                render={({ field }) => (
+                  <Select value={field.value || ''} onValueChange={field.onChange}>
+                    <SelectTrigger id={props.id}>
+                      <SelectValue placeholder={t('talentForm.notSpecified')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {GENDERS.map((value) => (
+                        <SelectItem key={value} value={value}>
+                          {t(GENDER_KEYS[value])}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            )}
+          </Field>
+
+          <Field label={t('talentForm.maritalStatus')}>
+            {(props) => (
+              <Controller
+                control={control}
+                name="marital_status"
+                render={({ field }) => (
+                  <Select value={field.value || ''} onValueChange={field.onChange}>
+                    <SelectTrigger id={props.id}>
+                      <SelectValue placeholder={t('talentForm.notSpecified')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MARITAL_STATUSES.map((value) => (
+                        <SelectItem key={value} value={value}>
+                          {t(MARITAL_STATUS_KEYS[value])}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            )}
+          </Field>
+        </div>
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field
+            label={t('talentForm.registrationPlace')}
+            error={errors.registration_place?.message}
+          >
+            {(props) => <Input {...props} {...register('registration_place')} />}
+          </Field>
+          <Field label={t('talentForm.residencePlace')} error={errors.residence_place?.message}>
+            {(props) => <Input {...props} {...register('residence_place')} />}
+          </Field>
+        </div>
+      </section>
 
       <div className="flex flex-wrap gap-3 pt-2">
         <Button type="submit" size="lg" loading={pending}>

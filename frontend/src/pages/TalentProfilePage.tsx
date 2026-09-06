@@ -20,6 +20,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { useSeo } from '@/hooks/useSeo'
 import { useT } from '@/i18n'
+import { PROFICIENCY_KEYS } from '@/features/talent/labels'
 import { publicTalentApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import { telHref, whatsappHref } from '@/utils/format'
@@ -104,6 +105,22 @@ export function TalentProfilePage() {
       ? data.custom_skill_text
       : (data.skill?.name_ar ?? null)
 
+  // Only the fields the person actually filled in get a row — an empty
+  // definition list would otherwise render as a box of headings.
+  const professional = (
+    [
+      ['highest_degree', 'talent.degreeLabel'],
+      ['specialization', 'talent.specializationLabel'],
+      ['university', 'talent.universityLabel'],
+      ['experience', 'talent.experienceLabel'],
+      ['skills_text', 'talent.skillsLabel'],
+      ['services_offered', 'talent.servicesLabel'],
+    ] as const
+  ).flatMap(([key, labelKey]) => {
+    const value = data[key]
+    return value ? [{ key, label: t(labelKey), value }] : []
+  })
+
   return (
     <article className="pb-16">
       <div className="container-page pt-10">
@@ -179,6 +196,41 @@ export function TalentProfilePage() {
                   {t('talent.aboutHeading')}
                 </h2>
                 <p className="whitespace-pre-line leading-relaxed text-ink-700">{data.bio}</p>
+              </section>
+            ) : null}
+
+            {professional.length > 0 || data.languages.length > 0 ? (
+              <section aria-labelledby="professional-heading">
+                <h2 id="professional-heading" className="mb-3 text-xl">
+                  {t('talent.professionalHeading')}
+                </h2>
+                <dl className="grid gap-4 rounded-2xl border border-ink-100 bg-white p-5 shadow-card sm:grid-cols-2">
+                  {professional.map(({ key, label, value }) => (
+                    <div key={key}>
+                      <dt className="text-sm font-semibold text-ink-500">{label}</dt>
+                      <dd className="mt-1 whitespace-pre-line leading-relaxed text-ink-700">
+                        {value}
+                      </dd>
+                    </div>
+                  ))}
+                  {data.languages.length > 0 ? (
+                    <div className="sm:col-span-2">
+                      <dt className="text-sm font-semibold text-ink-500">
+                        {t('talent.languagesLabel')}
+                      </dt>
+                      <dd className="mt-2 flex flex-wrap gap-2">
+                        {data.languages.map((language) => (
+                          <Badge key={language.id} className="bg-sand-100 text-ink-700">
+                            {language.name}
+                            <span className="text-ink-500">
+                              {t(PROFICIENCY_KEYS[language.proficiency])}
+                            </span>
+                          </Badge>
+                        ))}
+                      </dd>
+                    </div>
+                  ) : null}
+                </dl>
               </section>
             ) : null}
 

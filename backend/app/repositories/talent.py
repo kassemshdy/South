@@ -57,7 +57,13 @@ class TalentRepository(BaseRepository[TalentProfile]):
             joinedload(TalentProfile.skill),
             joinedload(TalentProfile.location).joinedload(Location.parent),
             selectinload(TalentProfile.images),
-        )
+            selectinload(TalentProfile.languages),
+        ).execution_options(populate_existing=True)
+        # populate_existing: an update replaces the whole languages
+        # collection, then reloads the same profile by primary key. Without
+        # this the identity map hands back the object with its previous
+        # collection still attached and the edit reads back stale — the same
+        # trap FeedbackTicketRepository documents.
 
     def get_with_relations(self, profile_id: uuid.UUID) -> TalentProfile | None:
         return self.db.execute(
@@ -186,7 +192,7 @@ class TalentRepository(BaseRepository[TalentProfile]):
         rows = (
             self.db.execute(
                 self._with_relations(stmt)
-                .options(joinedload(TalentProfile.owner).joinedload(User.verification_document))
+                .options(joinedload(TalentProfile.owner).selectinload(User.documents))
                 .order_by(order)
                 .limit(page_size)
                 .offset((page - 1) * page_size)
@@ -201,7 +207,7 @@ class TalentRepository(BaseRepository[TalentProfile]):
         stmt = self._with_relations(
             select(TalentProfile).where(TalentProfile.id == profile_id)
         ).options(
-            joinedload(TalentProfile.owner).joinedload(User.verification_document),
+            joinedload(TalentProfile.owner).selectinload(User.documents),
             selectinload(TalentProfile.moderation_actions),
         )
         return self.db.execute(stmt).unique().scalar_one_or_none()

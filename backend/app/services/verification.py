@@ -1,4 +1,8 @@
-"""Owner identity-document ingestion: validate, store, never expose a public URL.
+"""Personal-document ingestion: validate, store, never expose a public URL.
+
+Covers both documents an account can attach — the ID scan every owner uploads
+and the CV a talent profile may add — told apart by
+:class:`~app.models.enums.VerificationDocumentKind`.
 
 Unlike image uploads, a document must survive unmodified — a resized/
 re-encoded ID scan can become illegible, and a PDF cannot be decoded by
@@ -17,6 +21,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import Settings
 from app.core.errors import PayloadTooLargeError, UnsupportedMediaTypeError
+from app.models.enums import VerificationDocumentKind
 from app.models.user import User
 from app.models.verification import OwnerVerificationDocument
 from app.storage.base import StorageBackend
@@ -29,6 +34,12 @@ _MAGIC_BYTES: tuple[tuple[bytes, str], ...] = (
     (b"\x89PNG\r\n\x1a\n", "image/png"),
 )
 _EXTENSIONS = {"application/pdf": "pdf", "image/jpeg": "jpg", "image/png": "png"}
+# Separate prefixes so a bucket listing still says what a file is, and so an
+# accidentally over-broad rule on one prefix cannot expose the other.
+_FOLDERS = {
+    VerificationDocumentKind.IDENTITY: "owner-verification",
+    VerificationDocumentKind.CV: "owner-cv",
+}
 
 
 class VerificationDocumentService:
@@ -43,8 +54,9 @@ class VerificationDocumentService:
         user: User,
         data: bytes,
         original_filename: str | None,
+        kind: VerificationDocumentKind = VerificationDocumentKind.IDENTITY,
     ) -> OwnerVerificationDocument:
-        """Replace ``user``'s document (one per owner) with ``data``."""
+        """Replace ``user``'s document of ``kind`` (one per owner) with ``data``."""
         if not data:
             raise UnsupportedMediaTypeError("verification.empty")
         if len(data) > self._settings.max_verification_doc_bytes:
@@ -55,28 +67,36 @@ class VerificationDocumentService:
 
         content_type = self._sniff(data)
 
-        existing = user.verification_document
+        existing = user.document_of(kind)
         if existing is not None:
             self._storage.delete(existing.storage_key)
-            db.delete(existing)
+            user.documents.remove(existing)
             db.flush()
 
-        key = f"owner-verification/{user.id}/{uuid.uuid4().hex}.{_EXTENSIONS[content_type]}"
+        folder = _FOLDERS[kind]
+        key = f"{folder}/{user.id}/{uuid.uuid4().hex}.{_EXTENSIONS[content_type]}"
         self._storage.save(key=key, data=data, content_type=content_type)
 
         document = OwnerVerificationDocument(
-            user_id=user.id,
+            kind=kind,
             storage_key=key,
             content_type=content_type,
             original_filename=original_filename[:255] if original_filename else None,
             size_bytes=len(data),
         )
-        db.add(document)
+        # Appended rather than db.add()ed so the loaded collection — and the
+        # per-kind accessors reading it — stay correct after the commit.
+        user.documents.append(document)
         db.commit()
         db.refresh(document)
         logger.info(
-            "Stored owner verification document",
-            extra={"user_id": str(user.id), "storage_key": key, "size_bytes": len(data)},
+            "Stored owner document",
+            extra={
+                "user_id": str(user.id),
+                "kind": kind.value,
+                "storage_key": key,
+                "size_bytes": len(data),
+            },
         )
         return document
 

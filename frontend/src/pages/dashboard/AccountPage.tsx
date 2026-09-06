@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { FileCheck2, Loader2, ShieldCheck, Upload } from 'lucide-react'
-import { useRef } from 'react'
+import { FileCheck2, FileText, Loader2, ShieldCheck, Upload } from 'lucide-react'
+import { useRef, type ReactNode } from 'react'
 import { useForm } from 'react-hook-form'
 
 import { Button } from '@/components/ui/Button'
@@ -12,10 +12,11 @@ import { InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useSeo } from '@/hooks/useSeo'
-import { useI18n, useT } from '@/i18n'
+import { useI18n, useT, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { authApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
+import type { VerificationDocument } from '@/types/api'
 import { formatDate } from '@/utils/format'
 import { accountSchema, type AccountValues } from '@/utils/validation'
 
@@ -43,7 +44,22 @@ export function AccountPage() {
 
       <div className="space-y-6">
         <ProfileCard user={user} onSaved={refresh} />
-        <DocumentCard />
+        <DocumentCard
+          icon={<ShieldCheck className="h-5 w-5 text-clay-600" aria-hidden="true" />}
+          titleKey="account.documentTitle"
+          hintKey="account.documentHint"
+          queryKey={queryKeys.myVerificationDocument}
+          read={authApi.getVerificationDocument}
+          upload={authApi.uploadVerificationDocument}
+        />
+        <DocumentCard
+          icon={<FileText className="h-5 w-5 text-clay-600" aria-hidden="true" />}
+          titleKey="account.cvTitle"
+          hintKey="account.cvHint"
+          queryKey={queryKeys.myCvDocument}
+          read={authApi.getCvDocument}
+          upload={authApi.uploadCvDocument}
+        />
       </div>
     </div>
   )
@@ -135,7 +151,26 @@ function ProfileCard({
   )
 }
 
-function DocumentCard() {
+/**
+ * One personal document — the ID scan or the CV. Both are uploaded, replaced
+ * and stored identically and differ only in copy and endpoint, so they share
+ * a card rather than two near-identical ones drifting apart.
+ */
+function DocumentCard({
+  icon,
+  titleKey,
+  hintKey,
+  queryKey,
+  read,
+  upload: uploadFile,
+}: {
+  icon: ReactNode
+  titleKey: TranslationKey
+  hintKey: TranslationKey
+  queryKey: readonly string[]
+  read: () => Promise<VerificationDocument | null>
+  upload: (file: File) => Promise<VerificationDocument>
+}) {
   const t = useT()
   const { locale } = useI18n()
   const toast = useToast()
@@ -143,15 +178,15 @@ function DocumentCard() {
   const inputRef = useRef<HTMLInputElement>(null)
 
   const documentQuery = useQuery({
-    queryKey: queryKeys.myVerificationDocument,
-    queryFn: authApi.getVerificationDocument,
+    queryKey,
+    queryFn: read,
   })
 
   const upload = useMutation({
-    mutationFn: (file: File) => authApi.uploadVerificationDocument(file),
+    mutationFn: (file: File) => uploadFile(file),
     onSuccess: () => {
       toast.success(t('account.documentUpload'))
-      void queryClient.invalidateQueries({ queryKey: queryKeys.myVerificationDocument })
+      void queryClient.invalidateQueries({ queryKey })
     },
     onError: (error) =>
       toast.error(t('account.documentUploadFailed'), error instanceof ApiError ? error.message : undefined),
@@ -175,12 +210,12 @@ function DocumentCard() {
     <Card>
       <CardHeader>
         <h2 className="flex items-center gap-2 font-bold">
-          <ShieldCheck className="h-5 w-5 text-clay-600" aria-hidden="true" />
-          {t('account.documentTitle')}
+          {icon}
+          {t(titleKey)}
         </h2>
       </CardHeader>
       <CardBody className="space-y-4">
-        <p className="text-sm text-ink-500">{t('account.documentHint')}</p>
+        <p className="text-sm text-ink-500">{t(hintKey)}</p>
 
         {documentQuery.isLoading ? (
           <InlineSpinner />

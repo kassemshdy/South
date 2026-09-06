@@ -173,7 +173,7 @@ class BusinessRepository(BaseRepository[Business]):
         rows = (
             self.db.execute(
                 self._with_relations(stmt)
-                .options(joinedload(Business.owner).joinedload(User.verification_document))
+                .options(joinedload(Business.owner).selectinload(User.documents))
                 .order_by(order)
                 .limit(page_size)
                 .offset((page - 1) * page_size)
@@ -188,7 +188,7 @@ class BusinessRepository(BaseRepository[Business]):
         stmt = (
             self._with_relations(select(Business).where(Business.id == business_id))
             .options(
-                joinedload(Business.owner).joinedload(User.verification_document),
+                joinedload(Business.owner).selectinload(User.documents),
                 selectinload(Business.moderation_actions),
             )
         )

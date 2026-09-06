@@ -215,6 +215,42 @@ export const talentSchema = (t: Translate, otherSkillId?: string) =>
       whatsapp: optionalPhone(t),
       email: z.string().trim().email(t('validation.emailInvalid')).optional().or(z.literal('')),
       website: optionalUrl(t),
+
+      // Published professional detail.
+      highest_degree: z.string().trim().max(160).optional().or(z.literal('')),
+      specialization: z.string().trim().max(160).optional().or(z.literal('')),
+      university: z.string().trim().max(200).optional().or(z.literal('')),
+      experience: z.string().trim().max(5000).optional().or(z.literal('')),
+      skills_text: z.string().trim().max(2000).optional().or(z.literal('')),
+      services_offered: z.string().trim().max(2000).optional().or(z.literal('')),
+      languages: z
+        .array(
+          z.object({
+            name: z.string().trim().min(1, t('validation.languageNameRequired')).max(80),
+            proficiency: z.enum(['BASIC', 'GOOD', 'FLUENT', 'NATIVE']),
+          }),
+        )
+        .max(20)
+        .optional(),
+
+      // Verification detail — entered by the person, never published.
+      full_name: z.string().trim().max(200).optional().or(z.literal('')),
+      birth_year: z
+        .string()
+        .trim()
+        .optional()
+        .or(z.literal(''))
+        .refine(
+          (value) => !value || (/^\d{4}$/.test(value) && Number(value) >= 1900 && Number(value) <= 2100),
+          t('validation.birthYearInvalid'),
+        ),
+      gender: z.enum(['MALE', 'FEMALE']).optional().or(z.literal('')),
+      marital_status: z
+        .enum(['SINGLE', 'MARRIED', 'DIVORCED', 'WIDOWED'])
+        .optional()
+        .or(z.literal('')),
+      registration_place: z.string().trim().max(160).optional().or(z.literal('')),
+      residence_place: z.string().trim().max(200).optional().or(z.literal('')),
     })
     .superRefine((values, ctx) => {
       if (otherSkillId && values.skill_id === otherSkillId && !values.custom_skill_text) {

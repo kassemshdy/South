@@ -105,6 +105,7 @@
   "talent.field.photo": "profile photo",
   "talent.field.skill": "skill",
   "talent.incomplete": "The talent profile cannot be submitted for review until the following are complete: {missing}",
+  "talent.language_name_required": "The language name is required.",
   "talent.name_too_short": "The display name is too short.",
   "talent.not_found": "Talent profile not found.",
   "talent.not_public": "This talent profile is unavailable or has not been approved yet.",

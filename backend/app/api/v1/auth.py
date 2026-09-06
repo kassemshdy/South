@@ -13,6 +13,7 @@ from app.core.dependencies import (
     DbSession,
     OtpProviderDep,
 )
+from app.models.enums import VerificationDocumentKind
 from app.schemas.auth import (
     AdminLoginIn,
     RequestOtpIn,
@@ -122,5 +123,37 @@ def upload_my_verification_document(
     service = VerificationDocumentService(get_storage(), settings)
     document = service.store(
         db=db, user=user, data=data, original_filename=file.filename
+    )
+    return VerificationDocumentOut.model_validate(document)
+
+
+@router.get("/me/cv-document", response_model=VerificationDocumentOut | None)
+def read_my_cv_document(user: CurrentUser) -> VerificationDocumentOut | None:
+    """Metadata only, like the ID document above — a CV is a personal
+    document and never gets a public URL either."""
+    if user.cv_document is None:
+        return None
+    return VerificationDocumentOut.model_validate(user.cv_document)
+
+
+@router.post(
+    "/me/cv-document",
+    response_model=VerificationDocumentOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def upload_my_cv_document(
+    user: CurrentUser,
+    db: DbSession,
+    settings: AppSettings,
+    file: Annotated[UploadFile, File(description="A CV as PDF or an image scan")],
+) -> VerificationDocumentOut:
+    data = file.file.read()
+    service = VerificationDocumentService(get_storage(), settings)
+    document = service.store(
+        db=db,
+        user=user,
+        data=data,
+        original_filename=file.filename,
+        kind=VerificationDocumentKind.CV,
     )
     return VerificationDocumentOut.model_validate(document)
