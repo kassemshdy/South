@@ -153,6 +153,16 @@ def test_generic_routes_get_the_default_absolute_share_image(spa_client: TestCli
         assert 'rel="canonical"' in html
 
 
+def test_rendered_index_is_never_edge_cached(spa_client: TestClient) -> None:
+    """Regression: an edge/CDN in front of the app once served a stale
+    snapshot of "/" across multiple deploys, since nothing told it this
+    document is rebuilt per-request. An explicit no-store is the only
+    reliable way to stop a cache from substituting its own default."""
+    for path in ("/", "/business/does-not-exist"):
+        response = spa_client.get(path)
+        assert response.headers["cache-control"] == "no-store, must-revalidate"
+
+
 def test_static_files_are_served_with_their_real_content(spa_client: TestClient) -> None:
     """Regression: the SPA fallback used to return empty bodies for non-HTML files."""
     response = spa_client.get("/favicon.svg")
