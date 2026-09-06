@@ -16,21 +16,54 @@ branch_labels = None
 depends_on = None
 
 
+def _inspector():
+    return sa.inspect(op.get_bind())
+
+
+def _has_table(table: str) -> bool:
+    return _inspector().has_table(table)
+
+
+def _has_column(table: str, column: str) -> bool:
+    if not _has_table(table):
+        return False
+    return column in {c["name"] for c in _inspector().get_columns(table)}
+
+
+def _has_index(table: str, index: str) -> bool:
+    if not _has_table(table):
+        return False
+    return index in {i["name"] for i in _inspector().get_indexes(table)}
+
+
 def upgrade() -> None:
     from app.core.arabic import build_search_text
     from app.services.slug import slugify_name
 
-    op.add_column('business_items', sa.Column('slug', sa.String(length=180), nullable=True))
-    op.add_column(
-        'business_items', sa.Column('search_text', sa.Text(), nullable=False, server_default='')
-    )
+    if not _has_column('business_items', 'slug'):
+        op.add_column('business_items', sa.Column('slug', sa.String(length=180), nullable=True))
+    if not _has_column('business_items', 'search_text'):
+        op.add_column(
+            'business_items', sa.Column('search_text', sa.Text(), nullable=False, server_default='')
+        )
 
     connection = op.get_bind()
+    # Only rows this migration has not already backfilled: on a database whose
+    # schema ran ahead of its recorded version, the columns are populated and
+    # re-deriving every slug would churn public URLs.
     rows = connection.execute(
-        sa.text('SELECT id, title, description FROM business_items')
+        sa.text(
+            "SELECT id, title, description FROM business_items "
+            "WHERE slug IS NULL OR slug = ''"
+        )
     ).fetchall()
 
-    used_slugs: set[str] = set()
+    used_slugs: set[str] = {
+        row[0]
+        for row in connection.execute(
+            sa.text("SELECT slug FROM business_items WHERE slug IS NOT NULL AND slug <> ''")
+        ).fetchall()
+    }
     for row in rows:
         base = slugify_name(row.title, fallback_prefix='item')
         candidate = base
@@ -54,9 +87,10 @@ def upgrade() -> None:
 
     op.alter_column('business_items', 'slug', nullable=False)
     op.alter_column('business_items', 'search_text', server_default=None)
-    op.create_index(op.f('ix_business_items_slug'), 'business_items', ['slug'], unique=True)
+    if not _has_index('business_items', 'ix_business_items_slug'):
+        op.create_index(op.f('ix_business_items_slug'), 'business_items', ['slug'], unique=True)
     op.execute(
-        "CREATE INDEX ix_business_items_search_text_trgm "
+        "CREATE INDEX IF NOT EXISTS ix_business_items_search_text_trgm "
         "ON business_items USING gin (search_text gin_trgm_ops)"
     )
     # NOTE: a future autogenerate in this area will spuriously propose dropping
