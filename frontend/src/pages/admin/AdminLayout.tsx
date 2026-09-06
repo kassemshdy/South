@@ -22,7 +22,7 @@ export function AdminLayout() {
 
   return (
     <div className="container-page py-8">
-      <nav className="mb-8 flex gap-1.5 overflow-x-auto pb-1" aria-label={t('admin.navAria')}>
+      <nav className="mb-8 flex flex-wrap gap-1.5" aria-label={t('admin.navAria')}>
         {NAV.map(({ to, labelKey, icon: Icon, end }) => (
           <NavLink
             key={to}
