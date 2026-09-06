@@ -27,6 +27,7 @@ export const queryKeys = {
     ['admin', 'businesses', status ?? 'all', page, q ?? ''] as const,
   adminBusiness: (id: string) => ['admin', 'business', id] as const,
   adminUsers: (page: number) => ['admin', 'users', page] as const,
+  adminUser: (id: string) => ['admin', 'user', id] as const,
   adminCategories: ['admin', 'categories'] as const,
   adminTalents: (status: BusinessStatus | undefined, page: number, q?: string) =>
     ['admin', 'talents', status ?? 'all', page, q ?? ''] as const,

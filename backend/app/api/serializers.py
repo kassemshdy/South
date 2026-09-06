@@ -35,6 +35,7 @@ from app.schemas.item import BusinessItemOut
 from app.schemas.moderation import (
     AdminBusinessOut,
     AdminTalentOut,
+    AdminUserDetailOut,
     AdminUserOut,
     ModerationActionOut,
 )
@@ -297,6 +298,17 @@ def feedback_ticket_detail(ticket: FeedbackTicket) -> FeedbackTicketDetailOut:
 def admin_user(user: User, *, business_count: int = 0) -> AdminUserOut:
     data = AdminUserOut.model_validate(user)
     return data.model_copy(update={"business_count": business_count})
+
+
+def admin_user_detail(
+    user: User, *, businesses: list[Business], talent_profile: TalentProfile | None
+) -> AdminUserDetailOut:
+    base = admin_user(user, business_count=len(businesses))
+    return AdminUserDetailOut(
+        **base.model_dump(),
+        businesses=[admin_business(business) for business in businesses],
+        talent_profile=admin_talent(talent_profile) if talent_profile else None,
+    )
 
 
 def paginate(
