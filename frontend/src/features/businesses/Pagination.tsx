@@ -16,12 +16,22 @@ export function Pagination({ meta, onChange }: { meta: PageMeta; onChange: (page
   const PreviousIcon = dir === 'rtl' ? ChevronRight : ChevronLeft
   const NextIcon = dir === 'rtl' ? ChevronLeft : ChevronRight
 
+  // The new page's content is rarely the same height as the old one, and
+  // this control usually sits near the bottom of a long list — without
+  // this, the browser keeps the exact same scroll offset while the content
+  // underneath it changes, so the visitor lands on an arbitrary part of the
+  // new page instead of its start.
+  const go = (page: number) => {
+    onChange(page)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   return (
     <nav className="mt-10 flex items-center justify-center gap-1.5" aria-label={t('pagination.aria')}>
       <Button
         variant="outline"
         size="icon"
-        onClick={() => onChange(meta.page - 1)}
+        onClick={() => go(meta.page - 1)}
         disabled={!meta.has_previous}
         aria-label={t('pagination.previous')}
       >
@@ -38,7 +48,7 @@ export function Pagination({ meta, onChange }: { meta: PageMeta; onChange: (page
             key={page}
             variant={page === meta.page ? 'primary' : 'outline'}
             size="icon"
-            onClick={() => onChange(page)}
+            onClick={() => go(page)}
             aria-current={page === meta.page ? 'page' : undefined}
             aria-label={t('pagination.page', { page })}
           >
@@ -50,7 +60,7 @@ export function Pagination({ meta, onChange }: { meta: PageMeta; onChange: (page
       <Button
         variant="outline"
         size="icon"
-        onClick={() => onChange(meta.page + 1)}
+        onClick={() => go(meta.page + 1)}
         disabled={!meta.has_next}
         aria-label={t('pagination.next')}
       >

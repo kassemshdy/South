@@ -226,6 +226,9 @@ function ItemDialog({
   const t = useT()
   const isEdit = item !== null
   const schema = useMemo(() => itemSchema(t), [t])
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(item?.image_url ?? null)
 
   const {
     register,
@@ -243,8 +246,18 @@ function ItemDialog({
     },
   })
 
+  const pickFile = (file: File) => {
+    setSelectedFile(file)
+    setPreviewUrl(URL.createObjectURL(file))
+  }
+
+  // One save covers both: the fields and, if a photo was picked, the image —
+  // a new item has no id to attach a photo to until it exists, so the image
+  // upload (when there is one) always runs right after the create/update
+  // resolves, as a single submit rather than "save, then separately go find
+  // the small thumbnail to add a photo."
   const save = useMutation({
-    mutationFn: (values: ItemValues) => {
+    mutationFn: async (values: ItemValues) => {
       const payload = {
         title: values.title,
         description: values.description || null,
@@ -252,9 +265,13 @@ function ItemDialog({
         currency: values.currency,
         is_available: values.is_available,
       }
-      return isEdit
-        ? ownerApi.updateItem(businessId, item.id, payload)
-        : ownerApi.createItem(businessId, payload)
+      const saved = isEdit
+        ? await ownerApi.updateItem(businessId, item.id, payload)
+        : await ownerApi.createItem(businessId, payload)
+      if (selectedFile) {
+        return ownerApi.uploadItemImage(businessId, saved.id, selectedFile)
+      }
+      return saved
     },
     onSuccess: () => {
       toast.success(isEdit ? t('items.updated') : t('items.created'))
@@ -267,6 +284,39 @@ function ItemDialog({
   return (
     <DialogContent title={isEdit ? t('items.dialogEdit') : t('items.dialogAdd')}>
       <form onSubmit={handleSubmit((values) => save.mutate(values))} className="space-y-4" noValidate>
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border-2 border-dashed border-ink-100 bg-sand-50"
+          >
+            {previewUrl ? (
+              <img src={previewUrl} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <span className="flex h-full items-center justify-center text-ink-300">
+                <ImagePlus className="h-6 w-6" aria-hidden="true" />
+              </span>
+            )}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="sr-only"
+            onChange={(event) => {
+              const file = event.target.files?.[0]
+              if (file) pickFile(file)
+              event.target.value = ''
+            }}
+          />
+          <div>
+            <p className="text-sm font-semibold">{t('items.photoLabel')}</p>
+            <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+              {previewUrl ? t('items.photoChange') : t('items.photoChoose')}
+            </Button>
+          </div>
+        </div>
+
         <Field label={t('items.nameLabel')} required error={errors.title?.message}>
           {(props) => (
             <Input {...props} {...register('title')} placeholder={t('items.namePlaceholder')} invalid={Boolean(errors.title)} autoFocus />

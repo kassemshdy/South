@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom'
 import { Store } from 'lucide-react'
 
+import { useAuth } from '@/features/auth/AuthContext'
 import { useT } from '@/i18n'
 
 export function Footer() {
   const t = useT()
+  const { isAuthenticated } = useAuth()
 
   return (
     <footer className="mt-20 border-t border-ink-100 bg-white">
@@ -35,9 +37,15 @@ export function Footer() {
               </Link>
             </li>
             <li>
-              <Link to="/login" className="hover:text-clay-600">
-                {t('nav.login')}
-              </Link>
+              {isAuthenticated ? (
+                <Link to="/dashboard" className="hover:text-clay-600">
+                  {t('nav.myBusinesses')}
+                </Link>
+              ) : (
+                <Link to="/login" className="hover:text-clay-600">
+                  {t('nav.login')}
+                </Link>
+              )}
             </li>
           </ul>
         </nav>
