@@ -234,11 +234,29 @@ def test_readiness_keys_exist_in_the_frontend_catalogs() -> None:
     )
 
 
+# Language names are the one thing an English catalog states in another
+# language. Every language picker does this — a person who switched by mistake
+# and cannot read where they landed still recognises the name of their own
+# language, which a translated "Arabic" would deny them. Narrow and explicit,
+# so the check below keeps its teeth for genuinely untranslated strings.
+_ENDONYM_KEYS = frozenset({"nav.localeArabic"})
+
+
 @pytest.mark.skipif(not FRONTEND_LOCALES.exists(), reason="frontend catalogs not present")
 def test_frontend_english_catalog_contains_no_arabic() -> None:
     english = json.loads((FRONTEND_LOCALES / "en.json").read_text(encoding="utf-8"))
     for key, value in english.items():
+        if key in _ENDONYM_KEYS:
+            continue
         assert not ARABIC.search(value), f"frontend en.json '{key}' still contains Arabic"
+
+
+@pytest.mark.skipif(not FRONTEND_LOCALES.exists(), reason="frontend catalogs not present")
+def test_every_endonym_exception_is_still_used() -> None:
+    """An exception that outlives its key silently widens the guard above."""
+    english = json.loads((FRONTEND_LOCALES / "en.json").read_text(encoding="utf-8"))
+    missing = _ENDONYM_KEYS - set(english)
+    assert not missing, f"stale endonym exceptions, remove them: {sorted(missing)}"
 
 
 def test_production_still_refuses_the_mock_otp_provider() -> None:

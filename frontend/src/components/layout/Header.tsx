@@ -2,6 +2,7 @@ import { LayoutDashboard, LogOut, Menu, Plus, Search, Shield, Store, User, UserC
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
+import { LocaleToggle } from '@/components/layout/LocaleToggle'
 import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useT } from '@/i18n'
@@ -91,6 +92,8 @@ export function Header() {
             </Button>
           )}
 
+          <LocaleToggle />
+
           <Button asChild size="sm" className="ms-2">
             <Link to={addBusinessTarget}>
               <Plus className="h-4 w-4" aria-hidden="true" />
@@ -100,6 +103,7 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-1 md:hidden">
+          <LocaleToggle compact />
           <Button asChild variant="ghost" size="icon" aria-label={t('nav.searchAria')}>
             <Link to="/businesses">
               <Search className="h-5 w-5" aria-hidden="true" />

@@ -18,7 +18,11 @@ export function TalentCard({ talent }: { talent: TalentSummary }) {
 
   return (
     <article className="group flex flex-col overflow-hidden rounded-2xl border border-ink-100 bg-white shadow-card transition-shadow hover:shadow-lift">
-      <div className="flex items-start gap-4 p-5">
+      {/* dir="auto" so an Arabic listing still reads right-to-left on an
+          English page, and an English one reads left-to-right on an Arabic
+          page: owner-authored content carries its own direction, independent
+          of the UI language. */}
+      <div className="flex items-start gap-4 p-5" dir="auto">
         <Link to={profileUrl} className="shrink-0" tabIndex={-1} aria-hidden="true">
           <div className="h-16 w-16 overflow-hidden rounded-full bg-sand-100">
             {talent.photo_url ? (
@@ -48,7 +52,7 @@ export function TalentCard({ talent }: { talent: TalentSummary }) {
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col px-5 pb-5">
+      <div className="flex flex-1 flex-col px-5 pb-5" dir="auto">
         <div className="mb-3 flex flex-wrap items-center gap-2">
           {skillLabel ? <Badge className="bg-sand-100 text-clay-700">{skillLabel}</Badge> : null}
           {talent.years_experience !== null ? (

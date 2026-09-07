@@ -32,7 +32,11 @@ export function ProductCard({ product }: { product: ProductSummary }) {
         </div>
       </Link>
 
-      <div className="flex flex-1 flex-col p-5">
+      {/* dir="auto" so an Arabic listing still reads right-to-left on an
+          English page, and an English one reads left-to-right on an Arabic
+          page: owner-authored content carries its own direction, independent
+          of the UI language. */}
+      <div className="flex flex-1 flex-col p-5" dir="auto">
         <div className="mb-2 flex flex-wrap items-center gap-2">
           {product.business.category ? (
             <Badge className="bg-sand-100 text-clay-700">{product.business.category.name_ar}</Badge>
