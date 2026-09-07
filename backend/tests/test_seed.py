@@ -10,11 +10,21 @@ from __future__ import annotations
 
 from sqlalchemy import select
 
+from app.core.arabic import build_search_text
 from app.core.config import get_settings
 from app.models.business import Business
+from app.models.talent import TalentProfile
 from app.services.images import ImageService
 from app.storage.factory import get_storage
-from scripts.seed import seed_admin, seed_businesses, seed_categories, seed_locations
+from scripts.seed import (
+    seed_admin,
+    seed_businesses,
+    seed_categories,
+    seed_locations,
+    seed_talent_skills,
+    seed_talents,
+)
+from tests.samples import ar
 
 
 def test_seed_businesses_repairs_missing_image_bytes(db):
@@ -50,3 +60,39 @@ def test_seed_businesses_repairs_missing_image_bytes(db):
         select(Business).where(Business.name == business_name)
     ).scalars().all()
     assert len(duplicates) == 1
+
+
+def test_seed_talents_backfills_detail_added_to_the_seed_file(db):
+    """A profile seeded before the detail fields existed must gain them on the
+    next run — a redeploy is the only chance staging gets to catch up."""
+    locations = seed_locations(db)
+    admin = seed_admin(db)
+    skills = seed_talent_skills(db)
+    assert seed_talents(db, skills, locations, admin) > 0
+    db.commit()
+
+    profile = db.execute(
+        select(TalentProfile).where(TalentProfile.skills_text.is_not(None))
+    ).scalars().first()
+    assert profile is not None
+    profile_id = profile.id
+
+    # Simulate the pre-migration state: detail columns empty, no languages.
+    profile.highest_degree = None
+    profile.skills_text = None
+    owner_text = ar('talent.owner_edited_services')
+    profile.services_offered = owner_text
+    profile.languages.clear()
+    db.commit()
+
+    assert seed_talents(db, skills, locations, admin) == 0
+    db.commit()
+
+    db.expire_all()
+    healed = db.get(TalentProfile, profile_id)
+    assert healed.highest_degree
+    assert healed.skills_text
+    assert healed.languages
+    # An owner's own edit is never overwritten — only empty columns are filled.
+    assert healed.services_offered == owner_text
+    assert build_search_text(healed.skills_text) in healed.search_text

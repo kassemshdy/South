@@ -77,6 +77,7 @@ from scripts.seed_data import (
     TALENT_SKILLS,
     TALENTS,
     LocationSeed,
+    TalentSeed,
 )
 
 logger = logging.getLogger("seed")
@@ -304,6 +305,63 @@ def seed_talent_skills(db) -> dict[str, TalentSkill]:  # type: ignore[no-untyped
     return existing
 
 
+_TALENT_DETAIL_FIELDS = (
+    "highest_degree",
+    "specialization",
+    "university",
+    "experience",
+    "skills_text",
+    "services_offered",
+)
+
+
+def _talent_search_text(profile: TalentProfile, skill_name: str, location_name: str) -> str:
+    """The same haystack ``TalentService`` builds, so a seeded profile is as
+    findable as an owner-authored one."""
+    return build_search_text(
+        profile.display_name,
+        profile.headline,
+        profile.bio,
+        profile.skills_text,
+        profile.services_offered,
+        skill_name,
+        location_name,
+    )
+
+
+def _backfill_talent_detail(profile: TalentProfile, entry: TalentSeed) -> None:
+    """Fill in detail fields a seed file grew after this profile was created.
+
+    Only ever writes where the column is still empty, so a real edit made
+    through the dashboard is never overwritten — the same conservative rule
+    the image self-healing follows.
+    """
+    changed = False
+    for field in _TALENT_DETAIL_FIELDS:
+        value = entry.get(field)  # type: ignore[misc]
+        if value and getattr(profile, field) is None:
+            setattr(profile, field, value)
+            changed = True
+
+    if entry.get("languages") and not profile.languages:
+        for order, language in enumerate(entry.get("languages", [])):
+            profile.languages.append(
+                TalentLanguage(
+                    name=language["name"],
+                    proficiency=LanguageProficiency(language["proficiency"]),
+                    sort_order=order,
+                )
+            )
+        changed = True
+
+    if changed:
+        skill_name = entry.get("custom_skill_text") or (
+            profile.skill.name_ar if profile.skill else ""
+        )
+        location_name = profile.location.name_ar if profile.location else ""
+        profile.search_text = _talent_search_text(profile, skill_name, location_name)
+
+
 def seed_talents(db, skills, locations, admin) -> int:  # type: ignore[no-untyped-def]
     settings = get_settings()
     images = ImageService(get_storage(), settings)
@@ -319,6 +377,7 @@ def seed_talents(db, skills, locations, admin) -> int:  # type: ignore[no-untype
             # bytes they point at when a deploy writes them without a volume.
             if not all(images.exists(image.storage_key) for image in existing.images):
                 _reattach_talent_images(db, images, existing, display_name, index)
+            _backfill_talent_detail(existing, entry)
             continue
 
         phone = normalize_phone(entry["owner_phone"])
@@ -378,12 +437,8 @@ def seed_talents(db, skills, locations, admin) -> int:  # type: ignore[no-untype
         _reattach_talent_images(db, images, profile, display_name, index)
 
         db.flush()
-        profile.search_text = build_search_text(
-            profile.display_name,
-            profile.headline,
-            profile.bio,
-            entry.get("custom_skill_text") or skill.name_ar,
-            location.name_ar,
+        profile.search_text = _talent_search_text(
+            profile, entry.get("custom_skill_text") or skill.name_ar, location.name_ar
         )
 
         _seed_talent_moderation_history(db, profile, admin, entry.get("suspension_reason"))
