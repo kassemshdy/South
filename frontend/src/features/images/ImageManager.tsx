@@ -39,6 +39,11 @@ export function ImageManager({ business, maxGallery = 10 }: ImageManagerProps) {
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.myBusiness(business.id) })
     void queryClient.invalidateQueries({ queryKey: queryKeys.myBusinesses })
+    // A logo is one of the six things required before review, so uploading one
+    // can complete a listing. Anything watching readiness — the wizard's
+    // "ready to submit" shortcut — has to hear about it from here, because
+    // this upload does not go through the wizard's own save.
+    void queryClient.invalidateQueries({ queryKey: queryKeys.readiness(business.id) })
   }
 
   const upload = useMutation({

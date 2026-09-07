@@ -121,6 +121,11 @@ test.describe('MVP acceptance flow', () => {
     await page.goto('/dashboard/businesses/new')
     await page.getByLabel(t('form.name')).fill(BUSINESS_NAME)
     await page.getByLabel(t('form.shortDescription')).fill(fixture.shortDescription)
+
+    // The long description is optional at submission, so it now sits behind a
+    // disclosure (#34). This flow still fills it — a real listing wants one —
+    // which also keeps the optional section covered end to end.
+    await page.getByText(t('form.optionalSectionTitle')).click()
     await page.getByLabel(t('form.description')).fill(fixture.description)
 
     await page.getByRole('combobox').first().click()
