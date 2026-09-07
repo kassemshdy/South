@@ -13,14 +13,7 @@ import type { TalentPayload } from '@/services/api/endpoints'
 import type { OwnerTalent } from '@/types/api'
 import { talentSchema, type TalentValues } from '@/utils/validation'
 
-import {
-  GENDERS,
-  GENDER_KEYS,
-  LANGUAGE_PROFICIENCIES,
-  MARITAL_STATUSES,
-  MARITAL_STATUS_KEYS,
-  PROFICIENCY_KEYS,
-} from './labels'
+import { LANGUAGE_PROFICIENCIES, PROFICIENCY_KEYS } from './labels'
 
 interface TalentFormProps {
   profile?: OwnerTalent | undefined
@@ -72,15 +65,6 @@ export function TalentForm({ profile, submitLabel, pending, onSubmit, footer }: 
           name: language.name,
           proficiency: language.proficiency,
         })) ?? [],
-      full_name: profile?.full_name ?? '',
-      birth_year:
-        profile?.birth_year !== null && profile?.birth_year !== undefined
-          ? String(profile.birth_year)
-          : '',
-      gender: profile?.gender ?? '',
-      marital_status: profile?.marital_status ?? '',
-      registration_place: profile?.registration_place ?? '',
-      residence_place: profile?.residence_place ?? '',
     },
   })
 
@@ -118,12 +102,6 @@ export function TalentForm({ profile, submitLabel, pending, onSubmit, footer }: 
         name: language.name,
         proficiency: language.proficiency,
       })),
-      full_name: values.full_name || null,
-      birth_year: values.birth_year ? Number(values.birth_year) : null,
-      gender: values.gender || null,
-      marital_status: values.marital_status || null,
-      registration_place: values.registration_place || null,
-      residence_place: values.residence_place || null,
     })
   })
 
@@ -453,96 +431,11 @@ export function TalentForm({ profile, submitLabel, pending, onSubmit, footer }: 
         </div>
       </section>
 
-      {/* --- Verification detail: entered here, never published --------- */}
-      <section className="space-y-5 border-t border-ink-100 pt-6">
-        <div>
-          <h2 className="text-lg font-bold">{t('talentForm.identityHeading')}</h2>
-          <p className="mt-1 text-sm text-ink-500">{t('talentForm.identityHint')}</p>
-        </div>
-
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field label={t('talentForm.fullName')} error={errors.full_name?.message}>
-            {(props) => <Input {...props} {...register('full_name')} />}
-          </Field>
-          <Field
-            label={t('talentForm.birthYear')}
-            hint={t('talentForm.birthYearHint')}
-            error={errors.birth_year?.message}
-          >
-            {(props) => (
-              <Input
-                {...props}
-                {...register('birth_year')}
-                inputMode="numeric"
-                dir="ltr"
-                placeholder="1994"
-                className="ltr-nums"
-                invalid={Boolean(errors.birth_year)}
-              />
-            )}
-          </Field>
-        </div>
-
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field label={t('talentForm.gender')}>
-            {(props) => (
-              <Controller
-                control={control}
-                name="gender"
-                render={({ field }) => (
-                  <Select value={field.value || ''} onValueChange={field.onChange}>
-                    <SelectTrigger id={props.id}>
-                      <SelectValue placeholder={t('talentForm.notSpecified')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {GENDERS.map((value) => (
-                        <SelectItem key={value} value={value}>
-                          {t(GENDER_KEYS[value])}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            )}
-          </Field>
-
-          <Field label={t('talentForm.maritalStatus')}>
-            {(props) => (
-              <Controller
-                control={control}
-                name="marital_status"
-                render={({ field }) => (
-                  <Select value={field.value || ''} onValueChange={field.onChange}>
-                    <SelectTrigger id={props.id}>
-                      <SelectValue placeholder={t('talentForm.notSpecified')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MARITAL_STATUSES.map((value) => (
-                        <SelectItem key={value} value={value}>
-                          {t(MARITAL_STATUS_KEYS[value])}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            )}
-          </Field>
-        </div>
-
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field
-            label={t('talentForm.registrationPlace')}
-            error={errors.registration_place?.message}
-          >
-            {(props) => <Input {...props} {...register('registration_place')} />}
-          </Field>
-          <Field label={t('talentForm.residencePlace')} error={errors.residence_place?.message}>
-            {(props) => <Input {...props} {...register('residence_place')} />}
-          </Field>
-        </div>
-      </section>
+      {/* Identity is set on the account, not here: one legal name per
+          person, however many listings they own. */}
+      <p className="rounded-xl bg-sand-100 p-3.5 text-sm text-clay-800">
+        {t('talentForm.identityMovedNote')}
+      </p>
 
       <div className="flex flex-wrap gap-3 pt-2">
         <Button type="submit" size="lg" loading={pending}>

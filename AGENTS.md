@@ -73,6 +73,14 @@ literal outside `locales/`, `scripts/data/`, or a fixture file as a bug, not a s
 - **Public endpoints only ever return `APPROVED` businesses.** A pending/rejected/
   suspended listing must be invisible to an unauthenticated request, both via search and
   via its direct `/business/{slug}` URL — the acceptance test asserts this explicitly.
+- **An account holder's identity is stored on `users`, and no public schema carries it.**
+  Legal name, birth year, gender, marital status, place of civil registration and place
+  of residence describe the person, not a listing — one account holds one copy, shared by
+  its talent profile and every business it owns, set through `PATCH /api/me`. Publishing
+  any of them means adding the field to a public `*Out` class, which is the only thing
+  standing between those columns and the open internet: read it back through
+  `OwnerIdentityOut` on a review payload instead. `tests/test_identity.py` pins that
+  boundary, so treat a failure there as a disclosure bug rather than a stale assertion.
 - Production refuses to boot with the mock OTP provider or a weak `SECRET_KEY` — see
   `Settings.enforce_production_safety()` in `app/core/config.py`. Don't weaken this to
   make a deploy easier; fix the underlying config instead.

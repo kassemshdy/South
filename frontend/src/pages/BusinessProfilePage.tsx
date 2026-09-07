@@ -25,9 +25,9 @@ import { ErrorState } from '@/components/ui/States'
 import { publicBusinessApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import { useSeo } from '@/hooks/useSeo'
-import { useT } from '@/i18n'
+import { useI18n, useT } from '@/i18n'
 import type { SocialPlatform } from '@/types/api'
-import { formatPrice, PLATFORM_KEYS, telHref, whatsappHref } from '@/utils/format'
+import { formatDate, formatPrice, PLATFORM_KEYS, telHref, whatsappHref } from '@/utils/format'
 
 const PLATFORM_ICONS: Record<SocialPlatform, typeof Instagram> = {
   INSTAGRAM: Instagram,
@@ -42,6 +42,7 @@ export function BusinessProfilePage() {
   const { slug = '' } = useParams()
   const [copied, setCopied] = useState(false)
   const t = useT()
+  const { locale } = useI18n()
 
   const business = useQuery({
     queryKey: queryKeys.business(slug),
@@ -220,6 +221,49 @@ export function BusinessProfilePage() {
                     <p className="whitespace-pre-line leading-loose text-ink-700">
                       {data.description || data.short_description}
                     </p>
+                  </CardBody>
+                </Card>
+              </section>
+            ) : null}
+
+
+            {data.institution_name || data.founding_date || data.production_nature ? (
+              <section aria-labelledby="producer-heading">
+                <h2 id="producer-heading" className="mb-3 text-xl">
+                  {t('business.producerHeading')}
+                </h2>
+                <Card>
+                  <CardBody>
+                    <dl className="grid gap-4 sm:grid-cols-2">
+                      {data.institution_name ? (
+                        <div>
+                          <dt className="text-sm font-semibold text-ink-500">
+                            {t('business.institutionLabel')}
+                          </dt>
+                          <dd className="mt-1 text-ink-700">{data.institution_name}</dd>
+                        </div>
+                      ) : null}
+                      {data.founding_date ? (
+                        <div>
+                          <dt className="text-sm font-semibold text-ink-500">
+                            {t('business.foundingDateLabel')}
+                          </dt>
+                          <dd className="mt-1 text-ink-700">
+                            {formatDate(data.founding_date, locale)}
+                          </dd>
+                        </div>
+                      ) : null}
+                      {data.production_nature ? (
+                        <div className="sm:col-span-2">
+                          <dt className="text-sm font-semibold text-ink-500">
+                            {t('business.productionLabel')}
+                          </dt>
+                          <dd className="mt-1 whitespace-pre-line leading-relaxed text-ink-700">
+                            {data.production_nature}
+                          </dd>
+                        </div>
+                      ) : null}
+                    </dl>
                   </CardBody>
                 </Card>
               </section>

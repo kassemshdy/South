@@ -42,6 +42,9 @@ export function BasicsForm({ business, submitLabel, pending, onSubmit, footer }:
       description: business?.description ?? '',
       category_id: business?.category?.id ?? '',
       custom_category_text: business?.custom_category_text ?? '',
+      institution_name: business?.institution_name ?? '',
+      founding_date: business?.founding_date ?? '',
+      production_nature: business?.production_nature ?? '',
       phone: business?.phone ?? '',
       whatsapp: business?.whatsapp ?? '',
       email: business?.email ?? '',
@@ -59,6 +62,9 @@ export function BasicsForm({ business, submitLabel, pending, onSubmit, footer }:
       description: values.description || null,
       category_id: values.category_id || null,
       custom_category_text: values.custom_category_text || null,
+      institution_name: values.institution_name || null,
+      founding_date: values.founding_date || null,
+      production_nature: values.production_nature || null,
       phone: values.phone || null,
       whatsapp: values.whatsapp || null,
       email: values.email || null,
@@ -141,6 +147,60 @@ export function BasicsForm({ business, submitLabel, pending, onSubmit, footer }:
           )}
         </Field>
       ) : null}
+
+
+      <fieldset className="space-y-5 rounded-2xl border border-ink-100 p-4">
+        <legend className="px-2 text-sm font-bold text-clay-700">
+          {t('form.producerHeading')}
+        </legend>
+        <p className="text-sm text-ink-500">{t('form.producerHint')}</p>
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field label={t('form.institutionName')} error={errors.institution_name?.message}>
+            {(props) => (
+              <Input
+                {...props}
+                {...register('institution_name')}
+                placeholder={t('form.institutionNamePlaceholder')}
+                invalid={Boolean(errors.institution_name)}
+              />
+            )}
+          </Field>
+
+          <Field
+            label={t('form.foundingDate')}
+            error={errors.founding_date?.message}
+            hint={t('form.foundingDateHint')}
+          >
+            {(props) => (
+              <Input
+                {...props}
+                {...register('founding_date')}
+                type="date"
+                dir="ltr"
+                className="ltr-nums"
+                invalid={Boolean(errors.founding_date)}
+              />
+            )}
+          </Field>
+        </div>
+
+        <Field
+          label={t('form.productionNature')}
+          error={errors.production_nature?.message}
+          hint={t('form.productionNatureHint')}
+        >
+          {(props) => (
+            <Textarea
+              {...props}
+              {...register('production_nature')}
+              rows={3}
+              placeholder={t('form.productionNaturePlaceholder')}
+              invalid={Boolean(errors.production_nature)}
+            />
+          )}
+        </Field>
+      </fieldset>
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label={t('form.phone')} error={errors.phone?.message} hint={t('form.phoneHint')}>

@@ -15,6 +15,26 @@ export type BusinessStatus =
 
 export type UserRole = 'OWNER' | 'ADMIN'
 
+export type Gender = 'MALE' | 'FEMALE'
+export type MaritalStatus = 'SINGLE' | 'MARRIED' | 'DIVORCED' | 'WIDOWED'
+
+/**
+ * The account holder's identity.
+ *
+ * Belongs to the person, not to any one listing — one account holds a single
+ * copy, shared by its talent profile and every business it owns. Never part
+ * of a public payload: the account reads its own through `User`, an admin
+ * reads it through `owner_identity` on a review payload.
+ */
+export interface OwnerIdentity {
+  full_name: string | null
+  birth_year: number | null
+  gender: Gender | null
+  marital_status: MaritalStatus | null
+  registration_place: string | null
+  residence_place: string | null
+}
+
 export type SocialPlatform =
   | 'INSTAGRAM'
   | 'FACEBOOK'
@@ -36,7 +56,7 @@ export type ModerationActionType =
   | 'SUSPEND'
   | 'REACTIVATE'
 
-export interface User {
+export interface User extends OwnerIdentity {
   id: string
   phone_number: string | null
   email: string | null
@@ -136,6 +156,11 @@ export interface BusinessSummary {
 
 export interface BusinessDetail extends BusinessSummary {
   description: string | null
+  /** Producer detail — published, unlike the owner's own identity. */
+  institution_name: string | null
+  /** ISO date (YYYY-MM-DD): founded, or started producing. */
+  founding_date: string | null
+  production_nature: string | null
   email: string | null
   website: string | null
   address_text: string | null
@@ -170,7 +195,10 @@ export interface AdminBusiness extends OwnerBusiness {
   owner_id: string
   owner_phone: string | null
   owner_personal_phone: string | null
+  /** Null when the owner has filled in nothing — distinct from all-null. */
+  owner_identity: OwnerIdentity | null
   owner_has_verification_document: boolean
+  owner_has_cv_document: boolean
   owner_display_name: string | null
   moderation_actions: ModerationAction[]
 }
@@ -185,6 +213,7 @@ export interface AdminUser {
   is_active: boolean
   created_at: string
   business_count: number
+  identity: OwnerIdentity | null
 }
 
 /** The account's row, plus everything it owns — every business, in any
@@ -244,8 +273,6 @@ export interface TalentSummary {
   created_at: string
 }
 
-export type Gender = 'MALE' | 'FEMALE'
-export type MaritalStatus = 'SINGLE' | 'MARRIED' | 'DIVORCED' | 'WIDOWED'
 export type LanguageProficiency = 'BASIC' | 'GOOD' | 'FLUENT' | 'NATIVE'
 
 export interface TalentLanguage {
@@ -277,14 +304,6 @@ export interface OwnerTalent extends TalentDetail {
   rejection_reason: string | null
   submitted_at: string | null
   updated_at: string
-  /** Identity detail. Present here and on AdminTalent only — the public
-   * TalentDetail deliberately omits it. */
-  full_name: string | null
-  birth_year: number | null
-  gender: Gender | null
-  marital_status: MaritalStatus | null
-  registration_place: string | null
-  residence_place: string | null
 }
 
 /** Adds account details that only administrators may see. */
@@ -292,6 +311,7 @@ export interface AdminTalent extends OwnerTalent {
   owner_id: string
   owner_phone: string | null
   owner_personal_phone: string | null
+  owner_identity: OwnerIdentity | null
   owner_has_verification_document: boolean
   owner_has_cv_document: boolean
   owner_display_name: string | null

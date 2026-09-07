@@ -9,6 +9,7 @@ from app.core.i18n import translate
 from app.models.enums import BusinessStatus, ModerationActionType, UserRole
 from app.schemas.business import OwnerBusinessOut
 from app.schemas.common import ORMModel
+from app.schemas.identity import OwnerIdentityOut
 from app.schemas.talent import OwnerTalentOut
 
 
@@ -47,6 +48,7 @@ class AdminUserOut(ORMModel):
     is_active: bool
     created_at: datetime
     business_count: int = 0
+    identity: OwnerIdentityOut | None = None
 
 
 class AdminBusinessOut(OwnerBusinessOut):
@@ -54,7 +56,9 @@ class AdminBusinessOut(OwnerBusinessOut):
 
     owner_phone: str | None = None
     owner_personal_phone: str | None = None
+    owner_identity: OwnerIdentityOut | None = None
     owner_has_verification_document: bool = False
+    owner_has_cv_document: bool = False
     owner_display_name: str | None = None
     owner_id: uuid.UUID
     moderation_actions: list[ModerationActionOut] = Field(default_factory=list)
@@ -65,6 +69,7 @@ class AdminTalentOut(OwnerTalentOut):
 
     owner_phone: str | None = None
     owner_personal_phone: str | None = None
+    owner_identity: OwnerIdentityOut | None = None
     owner_has_verification_document: bool = False
     owner_has_cv_document: bool = False
     owner_display_name: str | None = None

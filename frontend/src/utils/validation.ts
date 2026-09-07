@@ -117,6 +117,20 @@ export const businessBasicsSchema = (t: Translate, otherCategoryId?: string) =>
         .or(z.literal('')),
       category_id: z.string().min(1, t('validation.categoryRequired')),
       custom_category_text: z.string().trim().max(120).optional().or(z.literal('')),
+
+      // Producer detail — optional, and published like the rest of this step.
+      institution_name: z.string().trim().max(200).optional().or(z.literal('')),
+      founding_date: z
+        .string()
+        .trim()
+        .optional()
+        .or(z.literal(''))
+        .refine(
+          (value) => !value || !Number.isNaN(Date.parse(value)),
+          t('validation.foundingDateInvalid'),
+        ),
+      production_nature: z.string().trim().max(5000).optional().or(z.literal('')),
+
       phone: optionalPhone(t),
       whatsapp: optionalPhone(t),
       email: z.string().trim().email(t('validation.emailInvalid')).optional().or(z.literal('')),
@@ -232,25 +246,6 @@ export const talentSchema = (t: Translate, otherSkillId?: string) =>
         )
         .max(20)
         .optional(),
-
-      // Verification detail — entered by the person, never published.
-      full_name: z.string().trim().max(200).optional().or(z.literal('')),
-      birth_year: z
-        .string()
-        .trim()
-        .optional()
-        .or(z.literal(''))
-        .refine(
-          (value) => !value || (/^\d{4}$/.test(value) && Number(value) >= 1900 && Number(value) <= 2100),
-          t('validation.birthYearInvalid'),
-        ),
-      gender: z.enum(['MALE', 'FEMALE']).optional().or(z.literal('')),
-      marital_status: z
-        .enum(['SINGLE', 'MARRIED', 'DIVORCED', 'WIDOWED'])
-        .optional()
-        .or(z.literal('')),
-      registration_place: z.string().trim().max(160).optional().or(z.literal('')),
-      residence_place: z.string().trim().max(200).optional().or(z.literal('')),
     })
     .superRefine((values, ctx) => {
       if (otherSkillId && values.skill_id === otherSkillId && !values.custom_skill_text) {
@@ -266,6 +261,25 @@ export const accountSchema = (t: Translate) =>
   z.object({
     display_name: z.string().trim().max(120, t('validation.displayNameLong')),
     personal_phone_number: optionalPhone(t),
+
+    // Identity — one copy per account, shared by every listing it owns.
+    full_name: z.string().trim().max(200).optional().or(z.literal('')),
+    birth_year: z
+      .string()
+      .trim()
+      .optional()
+      .or(z.literal(''))
+      .refine(
+        (value) => !value || (/^\d{4}$/.test(value) && Number(value) >= 1900 && Number(value) <= 2100),
+        t('validation.birthYearInvalid'),
+      ),
+    gender: z.enum(['MALE', 'FEMALE']).optional().or(z.literal('')),
+    marital_status: z
+      .enum(['SINGLE', 'MARRIED', 'DIVORCED', 'WIDOWED'])
+      .optional()
+      .or(z.literal('')),
+    registration_place: z.string().trim().max(160).optional().or(z.literal('')),
+    residence_place: z.string().trim().max(200).optional().or(z.literal('')),
   })
 
 export const rejectSchema = (t: Translate) =>

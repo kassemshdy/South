@@ -28,7 +28,7 @@ import argparse
 import io
 import logging
 import sys
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 from PIL import Image, ImageDraw
@@ -76,6 +76,7 @@ from scripts.seed_data import (
     LOCATIONS,
     TALENT_SKILLS,
     TALENTS,
+    BusinessSeed,
     LocationSeed,
     TalentSeed,
 )
@@ -189,6 +190,56 @@ def seed_admin(db) -> User | None:  # type: ignore[no-untyped-def]
     return admin
 
 
+_BUSINESS_DETAIL_FIELDS = ("institution_name", "production_nature")
+
+
+def _seed_date(value: str | None) -> date | None:
+    return date.fromisoformat(value) if value else None
+
+
+def _business_search_text(
+    business: Business, category_name: str, location_name: str
+) -> str:
+    """The same haystack ``BusinessService`` builds, so a seeded listing is as
+    findable as an owner-authored one."""
+    return build_search_text(
+        business.name,
+        business.short_description,
+        business.description,
+        business.institution_name,
+        business.production_nature,
+        business.address_text,
+        category_name,
+        location_name,
+        " ".join(item.title for item in business.items),
+    )
+
+
+def _backfill_business_detail(business: Business, entry: BusinessSeed) -> None:
+    """Fill in producer detail a seed file grew after this listing was created.
+
+    Only ever writes where the column is still empty, so a real edit made
+    through the dashboard is never overwritten — the same conservative rule
+    the image self-healing follows.
+    """
+    changed = False
+    for field in _BUSINESS_DETAIL_FIELDS:
+        value = entry.get(field)  # type: ignore[misc]
+        if value and getattr(business, field) is None:
+            setattr(business, field, value)
+            changed = True
+
+    founding = _seed_date(entry.get("founding_date"))
+    if founding and business.founding_date is None:
+        business.founding_date = founding
+        changed = True
+
+    if changed:
+        category = business.category.name_ar if business.category else ""
+        location = business.location.name_ar if business.location else ""
+        business.search_text = _business_search_text(business, category, location)
+
+
 def seed_businesses(db, categories, locations, admin) -> int:  # type: ignore[no-untyped-def]
     settings = get_settings()
     images = ImageService(get_storage(), settings)
@@ -204,6 +255,7 @@ def seed_businesses(db, categories, locations, admin) -> int:  # type: ignore[no
             # than silently leaving broken image URLs live.
             if not all(images.exists(image.storage_key) for image in existing.images):
                 _reattach_images(db, images, existing, name, index)
+            _backfill_business_detail(existing, entry)
             continue
 
         phone = normalize_phone(entry["owner_phone"])
@@ -226,6 +278,9 @@ def seed_businesses(db, categories, locations, admin) -> int:  # type: ignore[no
             slug=entry.get("slug") or _slug_for(name, db),
             short_description=entry.get("short_description"),
             description=entry.get("description"),
+            institution_name=entry.get("institution_name"),
+            founding_date=_seed_date(entry.get("founding_date")),
+            production_nature=entry.get("production_nature"),
             phone=normalize_phone(entry["phone"]) if entry.get("phone") else None,
             whatsapp=normalize_phone(entry["whatsapp"]) if entry.get("whatsapp") else None,
             address_text=entry.get("address_text"),
@@ -268,14 +323,8 @@ def seed_businesses(db, categories, locations, admin) -> int:  # type: ignore[no
             )
 
         db.flush()
-        business.search_text = build_search_text(
-            business.name,
-            business.short_description,
-            business.description,
-            business.address_text,
-            category.name_ar,
-            location.name_ar,
-            " ".join(item.title for item in business.items),
+        business.search_text = _business_search_text(
+            business, category.name_ar, location.name_ar
         )
 
         _seed_moderation_history(db, business, admin, entry.get("suspension_reason"))

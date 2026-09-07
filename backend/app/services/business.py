@@ -50,6 +50,9 @@ class BusinessService:
             slug=unique_slug(payload.name, self._repo.slug_exists),
             short_description=payload.short_description,
             description=payload.description,
+            institution_name=payload.institution_name,
+            founding_date=payload.founding_date,
+            production_nature=payload.production_nature,
             category_id=payload.category_id,
             custom_category_text=payload.custom_category_text,
             location_id=payload.location_id,
@@ -221,6 +224,11 @@ class BusinessService:
             business.name,
             business.short_description,
             business.description,
+            # A buyer searches for what a place makes and, sometimes, for the
+            # registered name on its paperwork. The founding date is not text
+            # anyone searches by, so it stays out.
+            business.institution_name,
+            business.production_nature,
             business.address_text,
             category,
             location,

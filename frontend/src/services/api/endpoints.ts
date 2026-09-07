@@ -50,6 +50,11 @@ export interface BusinessPayload {
   name: string
   short_description?: string | null
   description?: string | null
+  // Producer detail — published.
+  institution_name?: string | null
+  /** ISO date (YYYY-MM-DD). */
+  founding_date?: string | null
+  production_nature?: string | null
   category_id?: string | null
   custom_category_text?: string | null
   location_id?: string | null
@@ -94,8 +99,16 @@ export interface TalentPayload {
   skills_text?: string | null
   services_offered?: string | null
   languages?: { name: string; proficiency: LanguageProficiency }[]
+}
 
-  // Verification detail; stored but never published.
+/**
+ * The identity fields an account sets on itself.
+ *
+ * Not part of TalentPayload or BusinessPayload on purpose: identity belongs
+ * to the person, so it is written once through PATCH /api/me however many
+ * listings the account owns.
+ */
+export interface IdentityPayload {
   full_name?: string | null
   birth_year?: number | null
   gender?: Gender | null
@@ -121,8 +134,12 @@ export const authApi = {
       body: { email, password },
     }),
   me: () => apiRequest<User>('/api/me'),
-  updateProfile: (payload: { display_name?: string | null; personal_phone_number?: string | null }) =>
-    apiRequest<User>('/api/me', { method: 'PATCH', body: payload }),
+  updateProfile: (
+    payload: IdentityPayload & {
+      display_name?: string | null
+      personal_phone_number?: string | null
+    },
+  ) => apiRequest<User>('/api/me', { method: 'PATCH', body: payload }),
 
   getVerificationDocument: () =>
     apiRequest<VerificationDocument | null>('/api/me/verification-document'),

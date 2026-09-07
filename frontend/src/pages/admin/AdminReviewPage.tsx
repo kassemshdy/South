@@ -14,6 +14,7 @@ import { Field } from '@/components/ui/Field'
 import { Textarea } from '@/components/ui/Input'
 import { ErrorState, InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
+import { OwnerIdentityCard } from '@/features/admin/OwnerIdentityCard'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
 import { useI18n, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
@@ -44,18 +45,31 @@ export function AdminReviewPage() {
     void queryClient.invalidateQueries({ queryKey: ['admin'] })
   }
 
+  const saveBlob = ({ blob, filename }: { blob: Blob; filename: string | null }) => {
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename ?? 'document'
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const onDownloadError = (error: unknown) =>
+    toast.error(
+      t('admin.downloadDocumentFailed'),
+      error instanceof ApiError ? error.message : undefined,
+    )
+
   const downloadDocument = useMutation({
     mutationFn: () => adminApi.downloadVerificationDocument(business.data?.owner_id ?? ''),
-    onSuccess: ({ blob, filename }) => {
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = filename ?? 'document'
-      link.click()
-      URL.revokeObjectURL(url)
-    },
-    onError: (error) =>
-      toast.error(t('admin.downloadDocumentFailed'), error instanceof ApiError ? error.message : undefined),
+    onSuccess: saveBlob,
+    onError: onDownloadError,
+  })
+
+  const downloadCv = useMutation({
+    mutationFn: () => adminApi.downloadCvDocument(business.data?.owner_id ?? ''),
+    onSuccess: saveBlob,
+    onError: onDownloadError,
   })
 
   const act = useMutation({
@@ -199,6 +213,12 @@ export function AdminReviewPage() {
               <Detail labelKey="admin.fieldWhatsapp" value={data.whatsapp} ltr />
               <Detail labelKey="admin.fieldEmail" value={data.email} ltr />
               <Detail labelKey="admin.fieldWebsite" value={data.website} ltr />
+              <Detail labelKey="business.institutionLabel" value={data.institution_name} />
+              <Detail
+                labelKey="business.foundingDateLabel"
+                value={data.founding_date ? formatDate(data.founding_date, locale) : null}
+              />
+              <Detail labelKey="business.productionLabel" value={data.production_nature} />
             </CardBody>
           </Card>
 
@@ -274,8 +294,25 @@ export function AdminReviewPage() {
               ) : (
                 <p className="text-sm text-ink-500">{t('admin.noDocument')}</p>
               )}
+
+              {data.owner_has_cv_document ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  loading={downloadCv.isPending}
+                  onClick={() => downloadCv.mutate()}
+                >
+                  <Download className="h-4 w-4" aria-hidden="true" />
+                  {t('admin.downloadCv')}
+                </Button>
+              ) : (
+                <p className="text-sm text-ink-500">{t('admin.noCv')}</p>
+              )}
             </CardBody>
           </Card>
+
+          <OwnerIdentityCard identity={data.owner_identity} />
 
           {data.social_links.length > 0 ? (
             <Card>

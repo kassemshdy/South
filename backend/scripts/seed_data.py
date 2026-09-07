@@ -41,6 +41,9 @@ class BusinessSeed(TypedDict, total=False):
     status: str
     short_description: str
     description: str
+    institution_name: str
+    founding_date: str
+    production_nature: str
     phone: str
     whatsapp: str
     address_text: str

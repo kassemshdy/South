@@ -2,21 +2,34 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { FileCheck2, FileText, Loader2, ShieldCheck, Upload } from 'lucide-react'
 import { useRef, type ReactNode } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody, CardHeader } from '@/components/ui/Card'
 import { Field } from '@/components/ui/Field'
 import { Input } from '@/components/ui/Input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/Select'
 import { InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
 import { useAuth } from '@/features/auth/AuthContext'
+import {
+  GENDERS,
+  GENDER_KEYS,
+  MARITAL_STATUSES,
+  MARITAL_STATUS_KEYS,
+} from '@/features/identity/labels'
 import { useSeo } from '@/hooks/useSeo'
 import { useI18n, useT, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { authApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import type { VerificationDocument } from '@/types/api'
+import type { User, VerificationDocument } from '@/types/api'
 import { formatDate } from '@/utils/format'
 import { accountSchema, type AccountValues } from '@/utils/validation'
 
@@ -65,13 +78,7 @@ export function AccountPage() {
   )
 }
 
-function ProfileCard({
-  user,
-  onSaved,
-}: {
-  user: { display_name: string | null; personal_phone_number: string | null }
-  onSaved: () => Promise<void>
-}) {
+function ProfileCard({ user, onSaved }: { user: User; onSaved: () => Promise<void> }) {
   const t = useT()
   const toast = useToast()
   const schema = accountSchema(t)
@@ -79,12 +86,19 @@ function ProfileCard({
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<AccountValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       display_name: user.display_name ?? '',
       personal_phone_number: user.personal_phone_number ?? '',
+      full_name: user.full_name ?? '',
+      birth_year: user.birth_year !== null ? String(user.birth_year) : '',
+      gender: user.gender ?? '',
+      marital_status: user.marital_status ?? '',
+      registration_place: user.registration_place ?? '',
+      residence_place: user.residence_place ?? '',
     },
   })
 
@@ -93,6 +107,12 @@ function ProfileCard({
       authApi.updateProfile({
         display_name: values.display_name || null,
         personal_phone_number: values.personal_phone_number || null,
+        full_name: values.full_name || null,
+        birth_year: values.birth_year ? Number(values.birth_year) : null,
+        gender: values.gender || null,
+        marital_status: values.marital_status || null,
+        registration_place: values.registration_place || null,
+        residence_place: values.residence_place || null,
       }),
     onSuccess: async () => {
       await onSaved()
@@ -142,6 +162,110 @@ function ProfileCard({
               />
             )}
           </Field>
+
+          {/* Identity: one copy per account, shared by every listing it owns
+              and shown to no visitor. */}
+          <fieldset className="space-y-5 border-t border-ink-100 pt-5">
+            <legend className="sr-only">{t('account.identityTitle')}</legend>
+            <div>
+              <h3 className="font-bold">{t('account.identityTitle')}</h3>
+              <p className="mt-1 text-sm text-ink-500">{t('account.identityHint')}</p>
+            </div>
+
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field label={t('account.fullNameLabel')} error={errors.full_name?.message}>
+                {(props) => (
+                  <Input
+                    {...props}
+                    {...register('full_name')}
+                    invalid={Boolean(errors.full_name)}
+                  />
+                )}
+              </Field>
+
+              <Field
+                label={t('account.birthYearLabel')}
+                error={errors.birth_year?.message}
+                hint={t('account.birthYearHint')}
+              >
+                {(props) => (
+                  <Input
+                    {...props}
+                    {...register('birth_year')}
+                    inputMode="numeric"
+                    dir="ltr"
+                    placeholder="1994"
+                    className="ltr-nums"
+                    invalid={Boolean(errors.birth_year)}
+                  />
+                )}
+              </Field>
+            </div>
+
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field label={t('account.genderLabel')}>
+                {(props) => (
+                  <Controller
+                    control={control}
+                    name="gender"
+                    render={({ field }) => (
+                      <Select value={field.value || ''} onValueChange={field.onChange}>
+                        <SelectTrigger id={props.id}>
+                          <SelectValue placeholder={t('account.notSpecified')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {GENDERS.map((value) => (
+                            <SelectItem key={value} value={value}>
+                              {t(GENDER_KEYS[value])}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                )}
+              </Field>
+
+              <Field label={t('account.maritalStatusLabel')}>
+                {(props) => (
+                  <Controller
+                    control={control}
+                    name="marital_status"
+                    render={({ field }) => (
+                      <Select value={field.value || ''} onValueChange={field.onChange}>
+                        <SelectTrigger id={props.id}>
+                          <SelectValue placeholder={t('account.notSpecified')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MARITAL_STATUSES.map((value) => (
+                            <SelectItem key={value} value={value}>
+                              {t(MARITAL_STATUS_KEYS[value])}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                )}
+              </Field>
+            </div>
+
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field
+                label={t('account.registrationPlaceLabel')}
+                error={errors.registration_place?.message}
+              >
+                {(props) => <Input {...props} {...register('registration_place')} />}
+              </Field>
+              <Field
+                label={t('account.residencePlaceLabel')}
+                error={errors.residence_place?.message}
+              >
+                {(props) => <Input {...props} {...register('residence_place')} />}
+              </Field>
+            </div>
+          </fieldset>
+
           <Button type="submit" loading={save.isPending}>
             {t('account.saveProfile')}
           </Button>
@@ -233,6 +357,9 @@ function DocumentCard({
         <input
           ref={inputRef}
           type="file"
+          // Named so a test (or a screen reader) can tell the two cards'
+          // inputs apart; both are visually hidden behind their own button.
+          aria-label={t(titleKey)}
           accept={ACCEPTED_DOCUMENT_TYPES}
           className="sr-only"
           onChange={(event) => {
