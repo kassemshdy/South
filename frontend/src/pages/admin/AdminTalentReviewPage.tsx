@@ -23,12 +23,9 @@ import { Field } from '@/components/ui/Field'
 import { Textarea } from '@/components/ui/Input'
 import { ErrorState, InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
+import { OwnerIdentityCard } from '@/features/admin/OwnerIdentityCard'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
-import {
-  GENDER_KEYS,
-  MARITAL_STATUS_KEYS,
-  PROFICIENCY_KEYS,
-} from '@/features/talent/labels'
+import { PROFICIENCY_KEYS } from '@/features/talent/labels'
 import { useI18n, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { adminApi } from '@/services/api/endpoints'
@@ -319,30 +316,7 @@ export function AdminTalentReviewPage() {
             </CardBody>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <h2 className="font-bold">{t('admin.talentIdentityHeading')}</h2>
-            </CardHeader>
-            <CardBody className="space-y-3">
-              <Detail labelKey="admin.fieldFullName" value={data.full_name} />
-              <Detail
-                labelKey="admin.fieldBirthYear"
-                value={data.birth_year !== null ? String(data.birth_year) : null}
-                ltr
-              />
-              <Detail
-                labelKey="admin.fieldGender"
-                value={data.gender ? t(GENDER_KEYS[data.gender]) : null}
-              />
-              <Detail
-                labelKey="admin.fieldMaritalStatus"
-                value={data.marital_status ? t(MARITAL_STATUS_KEYS[data.marital_status]) : null}
-              />
-              <Detail labelKey="admin.fieldRegistrationPlace" value={data.registration_place} />
-              <Detail labelKey="admin.fieldResidencePlace" value={data.residence_place} />
-              <p className="text-xs text-ink-300">{t('admin.talentIdentityHint')}</p>
-            </CardBody>
-          </Card>
+          <OwnerIdentityCard identity={data.owner_identity} />
 
           <Card>
             <CardHeader>

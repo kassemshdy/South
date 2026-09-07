@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
+import { OwnerIdentityCard } from '@/features/admin/OwnerIdentityCard'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
 import { useI18n } from '@/i18n'
 import { adminApi } from '@/services/api/endpoints'
@@ -142,6 +143,10 @@ export function AdminUserDetailPage() {
         ) : (
           <p className="text-sm text-ink-500">{t('admin.userNoBusinesses')}</p>
         )}
+      </section>
+
+      <section className="max-w-md">
+        <OwnerIdentityCard identity={data.identity} />
       </section>
 
       <section className="space-y-3">

@@ -7,8 +7,8 @@ from sqlalchemy import Boolean, Integer, String
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.database.base import Base, TimestampMixin, uuid_pk
-from app.models.enums import UserRole, VerificationDocumentKind
+from app.database.base import Base, TimestampMixin, pg_enum, uuid_pk
+from app.models.enums import Gender, MaritalStatus, UserRole, VerificationDocumentKind
 
 if TYPE_CHECKING:
     from app.models.business import Business
@@ -41,6 +41,27 @@ class User(Base, TimestampMixin):
     # Not unique: a shared family/business line could reasonably belong to
     # more than one account.
     personal_phone_number: Mapped[str | None] = mapped_column(String(20), nullable=True)
+
+    # --- Identity (never published) --------------------------------------
+    # Legal name, birth year, gender, marital status and the two civil-record
+    # places identify the *person* behind the account. They live here rather
+    # than on a listing because one person may hold a talent profile and
+    # several businesses, and their legal name cannot differ between them.
+    # Nothing here is ever serialized onto a public schema: the account sees
+    # its own via UserOut, administrators see it via the owner_identity block
+    # on a review payload, and an anonymous visitor never does. Publishing any
+    # one of them means adding it to a public Out class, which is the only
+    # thing standing between these columns and the open internet — so
+    # tests/test_identity.py pins it.
+    full_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    birth_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    gender: Mapped[Gender | None] = mapped_column(pg_enum(Gender, "gender"), nullable=True)
+    marital_status: Mapped[MaritalStatus | None] = mapped_column(
+        pg_enum(MaritalStatus, "marital_status"), nullable=True
+    )
+    registration_place: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    residence_place: Mapped[str | None] = mapped_column(String(200), nullable=True)
+
     role: Mapped[UserRole] = mapped_column(
         SAEnum(UserRole, name="user_role", values_callable=lambda e: [m.value for m in e]),
         default=UserRole.OWNER,

@@ -74,12 +74,6 @@ class TalentService:
             experience=payload.experience,
             skills_text=payload.skills_text,
             services_offered=payload.services_offered,
-            full_name=payload.full_name,
-            birth_year=payload.birth_year,
-            gender=payload.gender,
-            marital_status=payload.marital_status,
-            registration_place=payload.registration_place,
-            residence_place=payload.residence_place,
         )
         if payload.languages is not None:
             self._apply_languages(profile, payload.languages)

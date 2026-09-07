@@ -31,6 +31,7 @@ from app.schemas.feedback import (
     FeedbackTicketSummaryOut,
     FeedbackUserOut,
 )
+from app.schemas.identity import OwnerIdentityOut
 from app.schemas.item import BusinessItemOut
 from app.schemas.moderation import (
     AdminBusinessOut,
@@ -102,6 +103,9 @@ def business_detail(business: Business) -> BusinessDetailOut:
     return BusinessDetailOut(
         **business_summary(business).model_dump(),
         description=business.description,
+        institution_name=business.institution_name,
+        founding_date=business.founding_date,
+        production_nature=business.production_nature,
         email=business.email,
         website=business.website,
         address_text=business.address_text,
@@ -133,8 +137,12 @@ def admin_business(business: Business) -> AdminBusinessOut:
         owner_id=business.owner_id,
         owner_phone=business.owner.phone_number if business.owner else None,
         owner_personal_phone=business.owner.personal_phone_number if business.owner else None,
+        owner_identity=owner_identity(business.owner),
         owner_has_verification_document=bool(
             business.owner and business.owner.verification_document is not None
+        ),
+        owner_has_cv_document=bool(
+            business.owner and business.owner.cv_document is not None
         ),
         owner_display_name=business.owner.display_name if business.owner else None,
         moderation_actions=[
@@ -210,9 +218,10 @@ def talent_summary(profile: TalentProfile) -> TalentSummaryOut:
 def talent_detail(profile: TalentProfile) -> TalentDetailOut:
     """Public profile. Contains only what the person chose to publish.
 
-    Note what is *not* here: legal name, birth year, gender, marital status
-    and the civil-record places. Those describe the person rather than the
-    work and are added by :func:`owner_talent` instead.
+    Note what is *not* here: the owner's legal name, birth year, gender,
+    marital status and civil-record places. Those describe the person rather
+    than the work, belong to the account, and reach an administrator only
+    through :func:`owner_identity`.
     """
     return TalentDetailOut(
         **talent_summary(profile).model_dump(),
@@ -235,21 +244,28 @@ def talent_detail(profile: TalentProfile) -> TalentDetailOut:
 
 
 def owner_talent(profile: TalentProfile) -> OwnerTalentOut:
-    """Owner's own view — moderation state plus the identity fields that
-    never reach the public profile."""
+    """Owner's own view — the public profile plus its moderation state."""
     return OwnerTalentOut(
         **talent_detail(profile).model_dump(),
         status=profile.status,
         rejection_reason=profile.rejection_reason,
         submitted_at=profile.submitted_at,
         updated_at=profile.updated_at,
-        full_name=profile.full_name,
-        birth_year=profile.birth_year,
-        gender=profile.gender,
-        marital_status=profile.marital_status,
-        registration_place=profile.registration_place,
-        residence_place=profile.residence_place,
     )
+
+
+def owner_identity(user: User | None) -> OwnerIdentityOut | None:
+    """The account holder's identity, for a review payload.
+
+    Returns ``None`` rather than an all-null block when nothing has been
+    filled in, so a reviewer can tell "not provided" from "provided empty".
+    """
+    if user is None:
+        return None
+    identity = OwnerIdentityOut.model_validate(user)
+    if not identity.model_dump(exclude_none=True):
+        return None
+    return identity
 
 
 def admin_talent(profile: TalentProfile) -> AdminTalentOut:
@@ -259,6 +275,7 @@ def admin_talent(profile: TalentProfile) -> AdminTalentOut:
         owner_id=profile.owner_id,
         owner_phone=profile.owner.phone_number if profile.owner else None,
         owner_personal_phone=profile.owner.personal_phone_number if profile.owner else None,
+        owner_identity=owner_identity(profile.owner),
         owner_has_verification_document=bool(
             profile.owner and profile.owner.verification_document is not None
         ),
@@ -323,7 +340,11 @@ def feedback_ticket_detail(ticket: FeedbackTicket) -> FeedbackTicketDetailOut:
 
 def admin_user(user: User, *, business_count: int = 0) -> AdminUserOut:
     data = AdminUserOut.model_validate(user)
-    return data.model_copy(update={"business_count": business_count})
+    # Set explicitly: the identity columns sit on the user itself, so
+    # model_validate has no nested attribute to build the block from.
+    return data.model_copy(
+        update={"business_count": business_count, "identity": owner_identity(user)}
+    )
 
 
 def admin_user_detail(

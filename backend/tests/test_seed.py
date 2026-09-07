@@ -96,3 +96,35 @@ def test_seed_talents_backfills_detail_added_to_the_seed_file(db):
     # An owner's own edit is never overwritten — only empty columns are filled.
     assert healed.services_offered == owner_text
     assert build_search_text(healed.skills_text) in healed.search_text
+
+
+def test_seed_businesses_backfills_producer_detail(db):
+    """Same rule as the talent backfill: a redeploy brings existing listings
+    forward, without ever overwriting an owner's own edit."""
+    categories = seed_categories(db)
+    locations = seed_locations(db)
+    admin = seed_admin(db)
+    assert seed_businesses(db, categories, locations, admin) > 0
+    db.commit()
+
+    business = db.execute(
+        select(Business).where(Business.production_nature.is_not(None))
+    ).scalars().first()
+    assert business is not None
+    business_id = business.id
+
+    owner_text = ar("business.institution_name")
+    business.production_nature = None
+    business.founding_date = None
+    business.institution_name = owner_text
+    db.commit()
+
+    assert seed_businesses(db, categories, locations, admin) == 0
+    db.commit()
+
+    db.expire_all()
+    healed = db.get(Business, business_id)
+    assert healed.production_nature
+    assert healed.founding_date is not None
+    assert healed.institution_name == owner_text
+    assert build_search_text(healed.production_nature) in healed.search_text

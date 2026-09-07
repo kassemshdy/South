@@ -7,8 +7,9 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.core.i18n import translate
 from app.core.phone import normalize_optional_phone, normalize_phone
-from app.models.enums import UserRole
+from app.models.enums import Gender, MaritalStatus, UserRole
 from app.schemas.common import ORMModel
+from app.schemas.identity import IdentityFieldsIn
 
 
 class RequestOtpIn(BaseModel):
@@ -65,6 +66,15 @@ class UserOut(ORMModel):
     role: UserRole
     created_at: datetime
 
+    # Identity, returned only to the account itself. Every listing this
+    # account owns reads from this one copy.
+    full_name: str | None = None
+    birth_year: int | None = None
+    gender: Gender | None = None
+    marital_status: MaritalStatus | None = None
+    registration_place: str | None = None
+    residence_place: str | None = None
+
 
 class TokenOut(BaseModel):
     access_token: str
@@ -73,7 +83,7 @@ class TokenOut(BaseModel):
     user: UserOut
 
 
-class UpdateProfileIn(BaseModel):
+class UpdateProfileIn(IdentityFieldsIn):
     display_name: str | None = Field(default=None, max_length=120)
     personal_phone_number: str | None = Field(default=None, max_length=25)
 

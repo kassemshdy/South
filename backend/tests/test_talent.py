@@ -450,12 +450,6 @@ DETAIL_PAYLOAD = {
     "experience": ar("talent.experience"),
     "skills_text": ar("talent.skills_text"),
     "services_offered": ar("talent.services_offered"),
-    "full_name": ar("talent.full_name"),
-    "birth_year": 1994,
-    "gender": "FEMALE",
-    "marital_status": "SINGLE",
-    "registration_place": ar("talent.registration_place"),
-    "residence_place": ar("talent.residence_place"),
     "languages": [
         {"name": ar("talent.language_arabic"), "proficiency": "NATIVE"},
         {"name": ar("talent.language_english"), "proficiency": "GOOD"},
@@ -471,11 +465,18 @@ def test_public_profile_never_exposes_identity_fields(
     A directory publishes what someone can *do*. Their legal name, age,
     gender, marital status and civil-record places identify the person and
     must not reach an anonymous visitor — not through the profile, not
-    through the directory listing. Moving any of these onto TalentDetailOut
-    would publish them, and this is what would catch it.
+    through the directory listing, and not by being accepted as a profile
+    field in the first place. The identity itself is set on the account and
+    covered by tests/test_identity.py.
     """
     headers = sign_in(client, "03950301")
     profile = _create_profile(client, headers, skill, location)
+    identity = client.patch(
+        "/api/me",
+        headers=headers,
+        json={"full_name": ar("identity.full_name"), "birth_year": 1994},
+    )
+    assert identity.status_code == 200, identity.text
     saved = client.put("/api/my/talent", headers=headers, json=DETAIL_PAYLOAD)
     assert saved.status_code == 200, saved.text
     _approve(client, db, admin, profile["id"])
@@ -488,14 +489,16 @@ def test_public_profile_never_exposes_identity_fields(
     for field in IDENTITY_FIELDS:
         assert field not in listed, field
 
-    # The identity data is stored — it is withheld, not dropped.
+    # Not on the owner's own profile payload either — identity belongs to the
+    # account, so a profile response carrying it would be a second copy.
     owner_view = client.get("/api/my/talent", headers=headers).json()
-    assert owner_view["full_name"] == ar("talent.full_name")
-    assert owner_view["birth_year"] == 1994
-    assert owner_view["gender"] == "FEMALE"
-    assert owner_view["marital_status"] == "SINGLE"
-    assert owner_view["registration_place"] == ar("talent.registration_place")
-    assert owner_view["residence_place"] == ar("talent.residence_place")
+    for field in IDENTITY_FIELDS:
+        assert field not in owner_view, field
+
+    # It is stored, just elsewhere: on the account.
+    account = client.get("/api/me", headers=headers).json()
+    assert account["full_name"] == ar("identity.full_name")
+    assert account["birth_year"] == 1994
 
 
 def test_professional_detail_is_published(
@@ -556,11 +559,16 @@ def test_services_offered_is_searchable_but_identity_is_not(
     what the person offers is findable, who they are is not."""
     headers = sign_in(client, "03950304")
     profile = _create_profile(client, headers, skill, location)
+    client.patch(
+        "/api/me",
+        headers=headers,
+        json={"registration_place": ar("identity.registration_place")},
+    )
     client.put("/api/my/talent", headers=headers, json=DETAIL_PAYLOAD)
     _approve(client, db, admin, profile["id"])
 
     found = client.get("/api/talent", params={"q": ar("talent.services_offered")[:12]})
     assert found.json()["meta"]["total"] == 1
 
-    hidden = client.get("/api/talent", params={"q": ar("talent.registration_place")})
+    hidden = client.get("/api/talent", params={"q": ar("identity.registration_place")})
     assert hidden.json()["meta"]["total"] == 0

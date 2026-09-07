@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     Boolean,
+    Date,
     DateTime,
     ForeignKey,
     Index,
@@ -60,6 +61,18 @@ class Business(Base, TimestampMixin):
     slug: Mapped[str] = mapped_column(String(180), unique=True, index=True, nullable=False)
     short_description: Mapped[str | None] = mapped_column(String(300), nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # --- Producer detail (public) ----------------------------------------
+    # A goods producer is described by more than a trade name: the registered
+    # establishment name can differ from the name it trades under, and what it
+    # actually makes is what a buyer searches for. All three are published —
+    # unlike the owner's identity, which lives on User and never is.
+    institution_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # When the establishment was founded, or when it started producing. A date
+    # rather than a year: a workshop that opened last spring should be able to
+    # say so.
+    founding_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    production_nature: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Public contact details — deliberately separate from the owner's login
     # phone, which is never published.

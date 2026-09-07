@@ -10,10 +10,8 @@ from app.core.i18n import translate
 from app.core.phone import normalize_optional_phone
 from app.models.enums import (
     BusinessStatus,
-    Gender,
     ImageKind,
     LanguageProficiency,
-    MaritalStatus,
 )
 from app.schemas.common import ORMModel
 from app.schemas.taxonomy import LocationOut
@@ -108,26 +106,17 @@ class TalentDetailOut(TalentSummaryOut):
 
 
 class OwnerTalentOut(TalentDetailOut):
-    """Adds the moderation state and the identity fields only the owner
-    (and administrators) may see.
+    """Adds the moderation state only the owner (and administrators) see.
 
-    The identity fields live here rather than on TalentDetailOut on purpose:
-    a public directory should not publish someone's legal name, age, gender,
-    marital status or civil-record places. Anything added below is invisible
-    to an anonymous visitor; anything added above is published.
+    Anything added below is invisible to an anonymous visitor; anything added
+    above is published. The owner's identity is not here at all — it belongs
+    to the account, not the profile, and is read through ``UserOut``.
     """
 
     status: BusinessStatus
     rejection_reason: str | None = None
     submitted_at: datetime | None = None
     updated_at: datetime
-
-    full_name: str | None = None
-    birth_year: int | None = None
-    gender: Gender | None = None
-    marital_status: MaritalStatus | None = None
-    registration_place: str | None = None
-    residence_place: str | None = None
 
 
 class TalentLanguageIn(BaseModel):
@@ -144,10 +133,11 @@ class TalentLanguageIn(BaseModel):
 
 
 class TalentProfileFieldsIn(BaseModel):
-    """The detail fields shared by create and update.
+    """The professional detail shared by create and update.
 
-    Birth *year* rather than age: an age entered once is wrong a year later,
-    and the profile can derive it for display.
+    Identity is not part of this: it is set on the account
+    (``PATCH /api/me``), so a person who also owns a business enters their
+    legal name once rather than once per listing.
     """
 
     highest_degree: str | None = Field(default=None, max_length=160)
@@ -157,23 +147,9 @@ class TalentProfileFieldsIn(BaseModel):
     skills_text: str | None = Field(default=None, max_length=2000)
     services_offered: str | None = Field(default=None, max_length=2000)
 
-    full_name: str | None = Field(default=None, max_length=200)
-    birth_year: int | None = Field(default=None, ge=1900, le=2100)
-    gender: Gender | None = None
-    marital_status: MaritalStatus | None = None
-    registration_place: str | None = Field(default=None, max_length=160)
-    residence_place: str | None = Field(default=None, max_length=200)
-
     languages: list[TalentLanguageIn] | None = Field(default=None, max_length=20)
 
-    @field_validator(
-        "highest_degree",
-        "specialization",
-        "university",
-        "full_name",
-        "registration_place",
-        "residence_place",
-    )
+    @field_validator("highest_degree", "specialization", "university")
     @classmethod
     def _strip_short_text(cls, value: str | None) -> str | None:
         return _strip_or_none(value)

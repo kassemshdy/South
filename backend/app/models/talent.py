@@ -30,10 +30,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.base import Base, TimestampMixin, pg_enum, uuid_pk
 from app.models.enums import (
     BusinessStatus,
-    Gender,
     ImageKind,
     LanguageProficiency,
-    MaritalStatus,
     ModerationActionType,
 )
 
@@ -116,23 +114,10 @@ class TalentProfile(Base, TimestampMixin):
     skills_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     services_offered: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    # --- Identity (never published) --------------------------------------
-    # Legal name, age, gender, marital status and the two civil-record
-    # places identify the *person*, not the service they offer. A public
-    # directory has no business publishing them, so they are serialized
-    # from OwnerTalentOut up — the owner sees their own, administrators see
-    # them for verification, an anonymous visitor never does. Moving any
-    # one of them onto TalentDetailOut would publish it; that is the only
-    # thing standing between these columns and the open internet, so
-    # tests/test_talent.py pins it.
-    full_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
-    birth_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    gender: Mapped[Gender | None] = mapped_column(pg_enum(Gender, "gender"), nullable=True)
-    marital_status: Mapped[MaritalStatus | None] = mapped_column(
-        pg_enum(MaritalStatus, "marital_status"), nullable=True
-    )
-    registration_place: Mapped[str | None] = mapped_column(String(160), nullable=True)
-    residence_place: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # Identity — legal name, birth year, gender, marital status and the two
+    # civil-record places — lives on :class:`~app.models.user.User`, not
+    # here: it describes the person behind the account, who may own
+    # businesses too, so one account holds exactly one copy of it.
 
     status: Mapped[BusinessStatus] = mapped_column(
         pg_enum(BusinessStatus, "business_status"),

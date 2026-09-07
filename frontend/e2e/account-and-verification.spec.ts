@@ -12,9 +12,15 @@ const ar = load<Record<string, string>>('../src/i18n/locales/ar.json')
 const categories = load<{ slug: string; name_ar: string }[]>(
   '../../backend/scripts/data/categories.json',
 )
-const fixture = load<{ businessName: string; shortDescription: string }>(
-  './fixtures/account-verification-data.json',
-)
+const fixture = load<{
+  businessName: string
+  shortDescription: string
+  fullName: string
+  registrationPlace: string
+  residencePlace: string
+  institutionName: string
+  productionNature: string
+}>('./fixtures/account-verification-data.json')
 
 const t = (key: string): string => ar[key]!
 const categoryName = categories.find((c) => c.slug === 'restaurants')!.name_ar
@@ -32,9 +38,13 @@ function pdf(name = 'id.pdf'): { name: string; mimeType: string; buffer: Buffer 
 
 /**
  * The private owner-verification feature end to end: an owner sets a personal
- * phone number and uploads an ID document from the Account page, and an
- * administrator can see the phone and download the document from a business
- * review page — the two surfaces that never got a real browser check before.
+ * phone number, their identity details and an ID document from the Account
+ * page, and an administrator sees all three — plus the producer detail the
+ * listing itself publishes — from a business review page.
+ *
+ * The identity assertions are the point of the account-level split: the same
+ * legal name a reviewer reads here was typed once, on the account, and would
+ * be shared by every other listing this owner creates.
  */
 test.describe('Private owner verification', () => {
   test('owner sets personal info; admin views and downloads it', async ({ page }) => {
@@ -49,18 +59,34 @@ test.describe('Private owner verification', () => {
     await page.goto('/dashboard/account')
     await expect(page.getByRole('heading', { name: t('account.heading') })).toBeVisible()
 
-    // --- Personal phone number round-trips and persists ---------------------
+    // --- Personal phone and identity round-trip and persist ----------------
     await page.getByLabel(t('account.personalPhoneLabel')).fill(PERSONAL_PHONE)
+    await page.getByLabel(t('account.fullNameLabel')).fill(fixture.fullName)
+    await page.getByLabel(t('account.birthYearLabel')).fill('1985')
+    await page.getByLabel(t('account.registrationPlaceLabel')).fill(fixture.registrationPlace)
+    await page.getByLabel(t('account.residencePlaceLabel')).fill(fixture.residencePlace)
     await page.getByRole('button', { name: t('account.saveProfile') }).click()
     await expect(page.getByText(t('account.profileSaved'), { exact: true }).first()).toBeVisible()
 
     await page.reload()
     await expect(page.getByLabel(t('account.personalPhoneLabel'))).toHaveValue('+9613966102')
+    await expect(page.getByLabel(t('account.fullNameLabel'))).toHaveValue(fixture.fullName)
+    await expect(page.getByLabel(t('account.birthYearLabel'))).toHaveValue('1985')
 
-    // --- ID document upload (upload+replace covers a rerun where a document
-    // from a previous run of this same account already exists) ----------------
-    await page.locator('input[type="file"]').setInputFiles(pdf())
-    await expect(page.getByRole('button', { name: t('account.documentReplace') })).toBeVisible()
+    // --- Document uploads: the ID scan and the CV ---------------------------
+    // Each input is addressed by its own accessible name. A bare
+    // input[type="file"] matched both cards once the CV card arrived, and an
+    // index would silently target the wrong one again. Upload+replace also
+    // covers a rerun where this account already has documents.
+    const replaceButtons = page.getByRole('button', {
+      name: t('account.documentReplace'),
+    })
+
+    await page.getByLabel(t('account.documentTitle')).setInputFiles(pdf())
+    await expect(replaceButtons).toHaveCount(1)
+
+    await page.getByLabel(t('account.cvTitle')).setInputFiles(pdf('cv.pdf'))
+    await expect(replaceButtons).toHaveCount(2)
 
     // --- A minimal business so the admin has something to review -----------
     await page.goto('/dashboard/businesses/new')
@@ -69,6 +95,9 @@ test.describe('Private owner verification', () => {
     await page.getByRole('combobox').first().click()
     await page.getByRole('option', { name: categoryName }).click()
     await page.getByLabel(t('form.whatsapp')).fill(OWNER_PHONE)
+    await page.getByLabel(t('form.institutionName')).fill(fixture.institutionName)
+    await page.getByLabel(t('form.foundingDate')).fill('2004-03-15')
+    await page.getByLabel(t('form.productionNature')).fill(fixture.productionNature)
     await page.getByRole('button', { name: t('wizard.saveAndContinue') }).click()
     await expect(page.getByLabel(t('form.area'))).toBeVisible()
 
@@ -90,9 +119,20 @@ test.describe('Private owner verification', () => {
 
     await expect(page.getByText('+9613966102')).toBeVisible()
 
+    // The identity the owner typed on their account, read here on a listing.
+    await expect(page.getByText(fixture.fullName)).toBeVisible()
+    await expect(page.getByText(fixture.registrationPlace)).toBeVisible()
+
+    // Producer detail belongs to the listing, and is published.
+    await expect(page.getByText(fixture.institutionName)).toBeVisible()
+
     const downloadPromise = page.waitForEvent('download')
     await page.getByRole('button', { name: t('admin.downloadDocument') }).click()
     const download = await downloadPromise
     expect(download.suggestedFilename()).toBe('id.pdf')
+
+    const cvDownloadPromise = page.waitForEvent('download')
+    await page.getByRole('button', { name: t('admin.downloadCv') }).click()
+    expect((await cvDownloadPromise).suggestedFilename()).toBe('cv.pdf')
   })
 })

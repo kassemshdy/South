@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
@@ -65,6 +65,11 @@ class BusinessSummaryOut(ORMModel):
 
 class BusinessDetailOut(BusinessSummaryOut):
     description: str | None = None
+    # Producer detail — published, unlike the owner's own identity, which
+    # belongs to the account and never reaches a public payload.
+    institution_name: str | None = None
+    founding_date: date | None = None
+    production_nature: str | None = None
     email: str | None = None
     website: str | None = None
     address_text: str | None = None
@@ -90,6 +95,9 @@ class BusinessCreateIn(BaseModel):
     name: str = Field(min_length=2, max_length=160)
     short_description: str | None = Field(default=None, max_length=300)
     description: str | None = Field(default=None, max_length=5000)
+    institution_name: str | None = Field(default=None, max_length=200)
+    founding_date: date | None = None
+    production_nature: str | None = Field(default=None, max_length=5000)
     category_id: uuid.UUID | None = None
     custom_category_text: str | None = Field(default=None, max_length=120)
     location_id: uuid.UUID | None = None
@@ -116,7 +124,7 @@ class BusinessCreateIn(BaseModel):
     def _phones(cls, value: str | None) -> str | None:
         return normalize_optional_phone(value)
 
-    @field_validator("custom_category_text")
+    @field_validator("custom_category_text", "institution_name")
     @classmethod
     def _strip_custom_category(cls, value: str | None) -> str | None:
         return _strip_or_none(value)
@@ -128,6 +136,9 @@ class BusinessUpdateIn(BaseModel):
     name: str | None = Field(default=None, min_length=2, max_length=160)
     short_description: str | None = Field(default=None, max_length=300)
     description: str | None = Field(default=None, max_length=5000)
+    institution_name: str | None = Field(default=None, max_length=200)
+    founding_date: date | None = None
+    production_nature: str | None = Field(default=None, max_length=5000)
     category_id: uuid.UUID | None = None
     custom_category_text: str | None = Field(default=None, max_length=120)
     location_id: uuid.UUID | None = None
@@ -146,7 +157,7 @@ class BusinessUpdateIn(BaseModel):
     def _phones(cls, value: str | None) -> str | None:
         return normalize_optional_phone(value)
 
-    @field_validator("custom_category_text")
+    @field_validator("custom_category_text", "institution_name")
     @classmethod
     def _strip_custom_category(cls, value: str | None) -> str | None:
         return _strip_or_none(value)

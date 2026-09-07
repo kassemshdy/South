@@ -23,6 +23,7 @@ from app.schemas.auth import (
     UserOut,
     VerifyOtpIn,
 )
+from app.schemas.identity import IDENTITY_FIELDS
 from app.schemas.verification import VerificationDocumentOut
 from app.services.auth import AuthService
 from app.services.verification import VerificationDocumentService
@@ -95,6 +96,11 @@ def update_me(payload: UpdateProfileIn, user: CurrentUser, db: DbSession) -> Use
         user.display_name = (data["display_name"] or "").strip() or None
     if "personal_phone_number" in data:
         user.personal_phone_number = data["personal_phone_number"]
+    # The identity block is set here rather than per listing, so one account
+    # holds one legal name however many businesses it owns.
+    for field in IDENTITY_FIELDS:
+        if field in data:
+            setattr(user, field, data[field])
     db.commit()
     return UserOut.model_validate(user)
 
