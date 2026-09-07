@@ -24,6 +24,11 @@ import { Textarea } from '@/components/ui/Input'
 import { ErrorState, InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
+import {
+  GENDER_KEYS,
+  MARITAL_STATUS_KEYS,
+  PROFICIENCY_KEYS,
+} from '@/features/talent/labels'
 import { useI18n, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { adminApi } from '@/services/api/endpoints'
@@ -53,21 +58,31 @@ export function AdminTalentReviewPage() {
     void queryClient.invalidateQueries({ queryKey: ['admin'] })
   }
 
+  const saveBlob = ({ blob, filename }: { blob: Blob; filename: string | null }) => {
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename ?? 'document'
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const onDownloadError = (error: unknown) =>
+    toast.error(
+      t('admin.downloadDocumentFailed'),
+      error instanceof ApiError ? error.message : undefined,
+    )
+
   const downloadDocument = useMutation({
     mutationFn: () => adminApi.downloadVerificationDocument(talent.data?.owner_id ?? ''),
-    onSuccess: ({ blob, filename }) => {
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = filename ?? 'document'
-      link.click()
-      URL.revokeObjectURL(url)
-    },
-    onError: (error) =>
-      toast.error(
-        t('admin.downloadDocumentFailed'),
-        error instanceof ApiError ? error.message : undefined,
-      ),
+    onSuccess: saveBlob,
+    onError: onDownloadError,
+  })
+
+  const downloadCv = useMutation({
+    mutationFn: () => adminApi.downloadCvDocument(talent.data?.owner_id ?? ''),
+    onSuccess: saveBlob,
+    onError: onDownloadError,
   })
 
   const act = useMutation({
@@ -105,6 +120,15 @@ export function AdminTalentReviewPage() {
   }
 
   const data = talent.data
+
+  // A single Detail row rather than a chip list — the review page is a dense
+  // read-through, and every other field here is one label + one value.
+  const languages =
+    data && data.languages.length > 0
+      ? data.languages
+          .map((language) => `${language.name} — ${t(PROFICIENCY_KEYS[language.proficiency])}`)
+          .join('\n')
+      : null
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -223,6 +247,13 @@ export function AdminTalentReviewPage() {
               <Detail labelKey="admin.fieldWhatsapp" value={data.whatsapp} ltr />
               <Detail labelKey="admin.fieldEmail" value={data.email} ltr />
               <Detail labelKey="admin.fieldWebsite" value={data.website} ltr />
+              <Detail labelKey="talent.degreeLabel" value={data.highest_degree} />
+              <Detail labelKey="talent.specializationLabel" value={data.specialization} />
+              <Detail labelKey="talent.universityLabel" value={data.university} />
+              <Detail labelKey="talent.experienceLabel" value={data.experience} />
+              <Detail labelKey="talent.skillsLabel" value={data.skills_text} />
+              <Detail labelKey="talent.servicesLabel" value={data.services_offered} />
+              <Detail labelKey="talent.languagesLabel" value={languages} />
             </CardBody>
           </Card>
 
@@ -270,6 +301,46 @@ export function AdminTalentReviewPage() {
               ) : (
                 <p className="text-sm text-ink-500">{t('admin.noDocument')}</p>
               )}
+
+              {data.owner_has_cv_document ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  loading={downloadCv.isPending}
+                  onClick={() => downloadCv.mutate()}
+                >
+                  <Download className="h-4 w-4" aria-hidden="true" />
+                  {t('admin.downloadCv')}
+                </Button>
+              ) : (
+                <p className="text-sm text-ink-500">{t('admin.noCv')}</p>
+              )}
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <h2 className="font-bold">{t('admin.talentIdentityHeading')}</h2>
+            </CardHeader>
+            <CardBody className="space-y-3">
+              <Detail labelKey="admin.fieldFullName" value={data.full_name} />
+              <Detail
+                labelKey="admin.fieldBirthYear"
+                value={data.birth_year !== null ? String(data.birth_year) : null}
+                ltr
+              />
+              <Detail
+                labelKey="admin.fieldGender"
+                value={data.gender ? t(GENDER_KEYS[data.gender]) : null}
+              />
+              <Detail
+                labelKey="admin.fieldMaritalStatus"
+                value={data.marital_status ? t(MARITAL_STATUS_KEYS[data.marital_status]) : null}
+              />
+              <Detail labelKey="admin.fieldRegistrationPlace" value={data.registration_place} />
+              <Detail labelKey="admin.fieldResidencePlace" value={data.residence_place} />
+              <p className="text-xs text-ink-300">{t('admin.talentIdentityHint')}</p>
             </CardBody>
           </Card>
 

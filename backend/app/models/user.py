@@ -8,7 +8,7 @@ from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base, TimestampMixin, uuid_pk
-from app.models.enums import UserRole
+from app.models.enums import UserRole, VerificationDocumentKind
 
 if TYPE_CHECKING:
     from app.models.business import Business
@@ -62,11 +62,28 @@ class User(Base, TimestampMixin):
         cascade="all, delete-orphan",
         uselist=False,
     )
-    verification_document: Mapped[OwnerVerificationDocument | None] = relationship(
+    # One collection, not a relationship per kind: two writable relationships
+    # over the same rows would need `overlaps=` and still confuse the unit of
+    # work. The per-kind accessors below are what call sites actually use.
+    documents: Mapped[list[OwnerVerificationDocument]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
-        uselist=False,
     )
+
+    def document_of(
+        self, kind: VerificationDocumentKind
+    ) -> OwnerVerificationDocument | None:
+        return next((d for d in self.documents if d.kind is kind), None)
+
+    @property
+    def verification_document(self) -> OwnerVerificationDocument | None:
+        """The owner's ID scan, the document every account may upload."""
+        return self.document_of(VerificationDocumentKind.IDENTITY)
+
+    @property
+    def cv_document(self) -> OwnerVerificationDocument | None:
+        """The résumé a talent profile may attach. Admin-gated like the ID."""
+        return self.document_of(VerificationDocumentKind.CV)
 
     @property
     def is_admin(self) -> bool:

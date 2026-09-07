@@ -44,6 +44,7 @@ from app.schemas.talent import (
     OwnerTalentOut,
     TalentDetailOut,
     TalentImageOut,
+    TalentLanguageOut,
     TalentSkillOut,
     TalentSummaryOut,
 )
@@ -207,7 +208,12 @@ def talent_summary(profile: TalentProfile) -> TalentSummaryOut:
 
 
 def talent_detail(profile: TalentProfile) -> TalentDetailOut:
-    """Public profile. Contains only what the person chose to publish."""
+    """Public profile. Contains only what the person chose to publish.
+
+    Note what is *not* here: legal name, birth year, gender, marital status
+    and the civil-record places. Those describe the person rather than the
+    work and are added by :func:`owner_talent` instead.
+    """
     return TalentDetailOut(
         **talent_summary(profile).model_dump(),
         bio=profile.bio,
@@ -215,17 +221,34 @@ def talent_detail(profile: TalentProfile) -> TalentDetailOut:
         website=profile.website,
         images=_talent_gallery(profile),
         approved_at=profile.approved_at,
+        highest_degree=profile.highest_degree,
+        specialization=profile.specialization,
+        university=profile.university,
+        experience=profile.experience,
+        skills_text=profile.skills_text,
+        services_offered=profile.services_offered,
+        languages=[
+            TalentLanguageOut.model_validate(language)
+            for language in sorted(profile.languages, key=lambda item: item.sort_order)
+        ],
     )
 
 
 def owner_talent(profile: TalentProfile) -> OwnerTalentOut:
-    """Owner's own view — adds moderation state and the rejection reason."""
+    """Owner's own view — moderation state plus the identity fields that
+    never reach the public profile."""
     return OwnerTalentOut(
         **talent_detail(profile).model_dump(),
         status=profile.status,
         rejection_reason=profile.rejection_reason,
         submitted_at=profile.submitted_at,
         updated_at=profile.updated_at,
+        full_name=profile.full_name,
+        birth_year=profile.birth_year,
+        gender=profile.gender,
+        marital_status=profile.marital_status,
+        registration_place=profile.registration_place,
+        residence_place=profile.residence_place,
     )
 
 
@@ -238,6 +261,9 @@ def admin_talent(profile: TalentProfile) -> AdminTalentOut:
         owner_personal_phone=profile.owner.personal_phone_number if profile.owner else None,
         owner_has_verification_document=bool(
             profile.owner and profile.owner.verification_document is not None
+        ),
+        owner_has_cv_document=bool(
+            profile.owner and profile.owner.cv_document is not None
         ),
         owner_display_name=profile.owner.display_name if profile.owner else None,
         moderation_actions=[

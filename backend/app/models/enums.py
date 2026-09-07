@@ -53,6 +53,27 @@ class ModerationActionType(str, enum.Enum):
     REACTIVATE = "REACTIVATE"
 
 
+class Gender(str, enum.Enum):
+    MALE = "MALE"
+    FEMALE = "FEMALE"
+
+
+class MaritalStatus(str, enum.Enum):
+    SINGLE = "SINGLE"
+    MARRIED = "MARRIED"
+    DIVORCED = "DIVORCED"
+    WIDOWED = "WIDOWED"
+
+
+class LanguageProficiency(str, enum.Enum):
+    """Ordered weakest to strongest; the order is what the profile renders."""
+
+    BASIC = "BASIC"
+    GOOD = "GOOD"
+    FLUENT = "FLUENT"
+    NATIVE = "NATIVE"
+
+
 class FeedbackStatus(str, enum.Enum):
     """Kanban columns. Order matters for the board and for sensible sorting;
     keep new values here in the order they should appear left to right."""
@@ -74,3 +95,15 @@ class FeedbackAttachmentKind(str, enum.Enum):
     SCREENSHOT = "SCREENSHOT"
     PHOTO = "PHOTO"
     DOCUMENT = "DOCUMENT"
+
+
+class VerificationDocumentKind(str, enum.Enum):
+    """Which personal document a stored file is.
+
+    ``IDENTITY`` is the ID scan every owner uploads; ``CV`` is the résumé a
+    talent profile may attach. Both are admin-gated — the kind only says what
+    the reviewer is looking at, never who may look.
+    """
+
+    IDENTITY = "IDENTITY"
+    CV = "CV"

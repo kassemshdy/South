@@ -66,6 +66,7 @@ class AdminTalentOut(OwnerTalentOut):
     owner_phone: str | None = None
     owner_personal_phone: str | None = None
     owner_has_verification_document: bool = False
+    owner_has_cv_document: bool = False
     owner_display_name: str | None = None
     owner_id: uuid.UUID
     moderation_actions: list[ModerationActionOut] = Field(default_factory=list)

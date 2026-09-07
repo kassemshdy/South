@@ -8,7 +8,13 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.core.i18n import translate
 from app.core.phone import normalize_optional_phone
-from app.models.enums import BusinessStatus, ImageKind
+from app.models.enums import (
+    BusinessStatus,
+    Gender,
+    ImageKind,
+    LanguageProficiency,
+    MaritalStatus,
+)
 from app.schemas.common import ORMModel
 from app.schemas.taxonomy import LocationOut
 
@@ -76,6 +82,13 @@ class TalentSummaryOut(ORMModel):
     created_at: datetime
 
 
+class TalentLanguageOut(ORMModel):
+    id: uuid.UUID
+    name: str
+    proficiency: LanguageProficiency
+    sort_order: int
+
+
 class TalentDetailOut(TalentSummaryOut):
     bio: str | None = None
     email: str | None = None
@@ -83,17 +96,90 @@ class TalentDetailOut(TalentSummaryOut):
     images: list[TalentImageOut] = Field(default_factory=list)
     approved_at: datetime | None = None
 
+    # Professional detail: what the person can do, which is the whole point
+    # of publishing a profile.
+    highest_degree: str | None = None
+    specialization: str | None = None
+    university: str | None = None
+    experience: str | None = None
+    skills_text: str | None = None
+    services_offered: str | None = None
+    languages: list[TalentLanguageOut] = Field(default_factory=list)
+
 
 class OwnerTalentOut(TalentDetailOut):
-    """Adds moderation fields only the owner (and admins) may see."""
+    """Adds the moderation state and the identity fields only the owner
+    (and administrators) may see.
+
+    The identity fields live here rather than on TalentDetailOut on purpose:
+    a public directory should not publish someone's legal name, age, gender,
+    marital status or civil-record places. Anything added below is invisible
+    to an anonymous visitor; anything added above is published.
+    """
 
     status: BusinessStatus
     rejection_reason: str | None = None
     submitted_at: datetime | None = None
     updated_at: datetime
 
+    full_name: str | None = None
+    birth_year: int | None = None
+    gender: Gender | None = None
+    marital_status: MaritalStatus | None = None
+    registration_place: str | None = None
+    residence_place: str | None = None
 
-class TalentCreateIn(BaseModel):
+
+class TalentLanguageIn(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    proficiency: LanguageProficiency = LanguageProficiency.GOOD
+
+    @field_validator("name")
+    @classmethod
+    def _strip_name(cls, value: str) -> str:
+        cleaned = " ".join(value.split())
+        if not cleaned:
+            raise ValueError(translate("talent.language_name_required"))
+        return cleaned
+
+
+class TalentProfileFieldsIn(BaseModel):
+    """The detail fields shared by create and update.
+
+    Birth *year* rather than age: an age entered once is wrong a year later,
+    and the profile can derive it for display.
+    """
+
+    highest_degree: str | None = Field(default=None, max_length=160)
+    specialization: str | None = Field(default=None, max_length=160)
+    university: str | None = Field(default=None, max_length=200)
+    experience: str | None = Field(default=None, max_length=5000)
+    skills_text: str | None = Field(default=None, max_length=2000)
+    services_offered: str | None = Field(default=None, max_length=2000)
+
+    full_name: str | None = Field(default=None, max_length=200)
+    birth_year: int | None = Field(default=None, ge=1900, le=2100)
+    gender: Gender | None = None
+    marital_status: MaritalStatus | None = None
+    registration_place: str | None = Field(default=None, max_length=160)
+    residence_place: str | None = Field(default=None, max_length=200)
+
+    languages: list[TalentLanguageIn] | None = Field(default=None, max_length=20)
+
+    @field_validator(
+        "highest_degree",
+        "specialization",
+        "university",
+        "full_name",
+        "registration_place",
+        "residence_place",
+    )
+    @classmethod
+    def _strip_short_text(cls, value: str | None) -> str | None:
+        return _strip_or_none(value)
+
+
+class TalentCreateIn(TalentProfileFieldsIn):
     display_name: str = Field(min_length=2, max_length=160)
     headline: str | None = Field(default=None, max_length=300)
     bio: str | None = Field(default=None, max_length=5000)
@@ -125,7 +211,7 @@ class TalentCreateIn(BaseModel):
         return _strip_or_none(value)
 
 
-class TalentUpdateIn(BaseModel):
+class TalentUpdateIn(TalentProfileFieldsIn):
     """Every field optional: the profile editor saves one section at a time."""
 
     display_name: str | None = Field(default=None, min_length=2, max_length=160)

@@ -53,6 +53,7 @@ from app.models.enums import (
     BusinessStatus,
     Currency,
     ImageKind,
+    LanguageProficiency,
     LocationType,
     ModerationActionType,
     SocialPlatform,
@@ -60,6 +61,7 @@ from app.models.enums import (
 )
 from app.models.talent import (
     TalentImage,
+    TalentLanguage,
     TalentModerationAction,
     TalentProfile,
     TalentSkill,
@@ -341,6 +343,12 @@ def seed_talents(db, skills, locations, admin) -> int:  # type: ignore[no-untype
             headline=entry.get("headline"),
             bio=entry.get("bio"),
             years_experience=entry.get("years_experience"),
+            highest_degree=entry.get("highest_degree"),
+            specialization=entry.get("specialization"),
+            university=entry.get("university"),
+            experience=entry.get("experience"),
+            skills_text=entry.get("skills_text"),
+            services_offered=entry.get("services_offered"),
             phone=normalize_phone(entry["phone"]) if entry.get("phone") else None,
             whatsapp=normalize_phone(entry["whatsapp"]) if entry.get("whatsapp") else None,
             website=entry.get("website"),
@@ -354,6 +362,15 @@ def seed_talents(db, skills, locations, admin) -> int:  # type: ignore[no-untype
         if status in (BusinessStatus.APPROVED, BusinessStatus.SUSPENDED):
             profile.approved_at = created_at + timedelta(hours=6)
             profile.approved_by = admin.id if admin else None
+
+        for order, language in enumerate(entry.get("languages", [])):
+            profile.languages.append(
+                TalentLanguage(
+                    name=language["name"],
+                    proficiency=LanguageProficiency(language["proficiency"]),
+                    sort_order=order,
+                )
+            )
 
         db.add(profile)
         db.flush()

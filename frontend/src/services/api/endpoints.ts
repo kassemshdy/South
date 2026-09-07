@@ -19,8 +19,11 @@ import type {
   BusinessSummary,
   Category,
   Currency,
+  Gender,
   ImageKind,
+  LanguageProficiency,
   LocationNode,
+  MaritalStatus,
   OwnerBusiness,
   OwnerTalent,
   Paginated,
@@ -82,6 +85,23 @@ export interface TalentPayload {
   whatsapp?: string | null
   email?: string | null
   website?: string | null
+
+  // Published professional detail.
+  highest_degree?: string | null
+  specialization?: string | null
+  university?: string | null
+  experience?: string | null
+  skills_text?: string | null
+  services_offered?: string | null
+  languages?: { name: string; proficiency: LanguageProficiency }[]
+
+  // Verification detail; stored but never published.
+  full_name?: string | null
+  birth_year?: number | null
+  gender?: Gender | null
+  marital_status?: MaritalStatus | null
+  registration_place?: string | null
+  residence_place?: string | null
 }
 
 export const authApi = {
@@ -110,6 +130,16 @@ export const authApi = {
     const form = new FormData()
     form.append('file', file)
     return apiRequest<VerificationDocument>('/api/me/verification-document', {
+      method: 'POST',
+      formData: form,
+    })
+  },
+
+  getCvDocument: () => apiRequest<VerificationDocument | null>('/api/me/cv-document'),
+  uploadCvDocument: (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return apiRequest<VerificationDocument>('/api/me/cv-document', {
       method: 'POST',
       formData: form,
     })
@@ -259,6 +289,8 @@ export const adminApi = {
     apiRequest<VerificationDocument>(`/api/admin/users/${userId}/verification-document`),
   downloadVerificationDocument: (userId: string) =>
     apiDownload(`/api/admin/users/${userId}/verification-document/download`),
+  downloadCvDocument: (userId: string) =>
+    apiDownload(`/api/admin/users/${userId}/cv-document/download`),
 
   categories: () => apiRequest<Category[]>('/api/admin/categories'),
   createCategory: (body: Partial<Category> & { name_ar: string }) =>

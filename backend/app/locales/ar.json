@@ -105,6 +105,7 @@
   "talent.field.photo": "الصورة الشخصية",
   "talent.field.skill": "المهارة",
   "talent.incomplete": "لا يمكن إرسال ملف المواهب للمراجعة قبل إكمال البيانات التالية: {missing}",
+  "talent.language_name_required": "اسم اللغة مطلوب.",
   "talent.name_too_short": "الاسم المعروض قصير جداً.",
   "talent.not_found": "ملف المواهب غير موجود.",
   "talent.not_public": "ملف المواهب هذا غير متوفر أو لم تتم الموافقة عليه بعد.",

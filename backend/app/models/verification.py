@@ -4,29 +4,38 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.database.base import Base, uuid_pk
+from app.database.base import Base, pg_enum, uuid_pk
+from app.models.enums import VerificationDocumentKind
 
 if TYPE_CHECKING:
     from app.models.user import User
 
 
 class OwnerVerificationDocument(Base):
-    """Metadata for an owner's identity document; the bytes live in storage.
+    """Metadata for an owner's personal document; the bytes live in storage.
 
-    One per user (re-upload replaces the previous one). Deliberately has no
+    One row per user *per kind* — an ID scan and a CV are separate rows, and a
+    re-upload replaces the previous row of that kind. Deliberately has no
     public ``url`` column — unlike :class:`~app.models.business.BusinessImage`,
     this must never be reachable except through the admin-gated download
     endpoint.
     """
 
     __tablename__ = "owner_verification_documents"
+    __table_args__ = (UniqueConstraint("user_id", "kind", name="uq_owner_document_user_kind"),)
 
     id: Mapped[uuid.UUID] = uuid_pk()
     user_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True, index=True
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    kind: Mapped[VerificationDocumentKind] = mapped_column(
+        pg_enum(VerificationDocumentKind, "verification_document_kind"),
+        nullable=False,
+        default=VerificationDocumentKind.IDENTITY,
+        server_default=VerificationDocumentKind.IDENTITY.value,
     )
     storage_key: Mapped[str] = mapped_column(String(500), nullable=False)
     content_type: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -36,4 +45,4 @@ class OwnerVerificationDocument(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    user: Mapped[User] = relationship(back_populates="verification_document")
+    user: Mapped[User] = relationship(back_populates="documents")

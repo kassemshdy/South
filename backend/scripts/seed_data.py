@@ -68,6 +68,13 @@ class TalentSeed(TypedDict, total=False):
     headline: str
     bio: str
     years_experience: int
+    highest_degree: str
+    specialization: str
+    university: str
+    experience: str
+    skills_text: str
+    services_offered: str
+    languages: list[dict[str, str]]
     phone: str
     whatsapp: str
     website: str

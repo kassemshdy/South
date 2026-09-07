@@ -12,11 +12,11 @@ from app.core.errors import ConflictError, NotFoundError, ValidationError
 from app.core.i18n import LazyJoin
 from app.core.urls import normalize_url
 from app.models.enums import BusinessStatus
-from app.models.talent import TalentProfile
+from app.models.talent import TalentLanguage, TalentProfile
 from app.models.user import User
 from app.repositories.talent import TalentRepository, TalentSkillRepository
 from app.repositories.taxonomy import LocationRepository
-from app.schemas.talent import TalentCreateIn, TalentUpdateIn
+from app.schemas.talent import TalentCreateIn, TalentLanguageIn, TalentUpdateIn
 from app.services.slug import unique_slug
 
 logger = logging.getLogger(__name__)
@@ -68,7 +68,21 @@ class TalentService:
             email=payload.email,
             website=normalize_url(payload.website) if payload.website else None,
             status=BusinessStatus.DRAFT,
+            highest_degree=payload.highest_degree,
+            specialization=payload.specialization,
+            university=payload.university,
+            experience=payload.experience,
+            skills_text=payload.skills_text,
+            services_offered=payload.services_offered,
+            full_name=payload.full_name,
+            birth_year=payload.birth_year,
+            gender=payload.gender,
+            marital_status=payload.marital_status,
+            registration_place=payload.registration_place,
+            residence_place=payload.residence_place,
         )
+        if payload.languages is not None:
+            self._apply_languages(profile, payload.languages)
         # Add (and flush) before deriving the haystack: on a transient object
         # not yet attached to the session, relationship access (profile.skill,
         # profile.location) silently returns None regardless of the FK columns
@@ -96,8 +110,15 @@ class TalentService:
         if "website" in data:
             data["website"] = normalize_url(data["website"]) if data["website"] else None
 
+        # A relationship, not a column: model_dump turned it into a list of
+        # dicts, which setattr would happily assign and then fail on flush.
+        languages = data.pop("languages", None)
+
         for field, value in data.items():
             setattr(profile, field, value)
+
+        if languages is not None:
+            self._apply_languages(profile, payload.languages or [])
 
         # The slug is part of the public URL; renaming must not break links that
         # are already shared, so it is only derived once at creation.
@@ -165,6 +186,26 @@ class TalentService:
         if location_id is not None and self._locations.get(location_id) is None:
             raise ValidationError("talent.unknown_location", code="unknown_location")
 
+    def _apply_languages(
+        self, profile: TalentProfile, languages: list[TalentLanguageIn]
+    ) -> None:
+        """Replace the whole set rather than diffing it.
+
+        The editor submits the list it wants to end up with, and these rows
+        carry nothing worth preserving across an edit (no id the client
+        knows, no created_at anyone reads), so a wholesale replace is both
+        simpler and impossible to leave half-applied.
+        """
+        profile.languages.clear()
+        for index, language in enumerate(languages):
+            profile.languages.append(
+                TalentLanguage(
+                    name=language.name,
+                    proficiency=language.proficiency,
+                    sort_order=index,
+                )
+            )
+
     def _build_search_text(self, profile: TalentProfile) -> str:
         if profile.skill is None:
             skill = ""
@@ -175,10 +216,15 @@ class TalentService:
         else:
             skill = profile.skill.name_ar
         location = profile.location.name_ar if profile.location else ""
+        # The identity fields are deliberately absent: search is a public
+        # endpoint, so indexing a legal name or a civil-registration place
+        # would let anyone find a profile by data the profile never shows.
         return build_search_text(
             profile.display_name,
             profile.headline,
             profile.bio,
             skill,
             location,
+            profile.skills_text,
+            profile.services_offered,
         )

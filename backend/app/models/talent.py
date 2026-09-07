@@ -28,7 +28,14 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base, TimestampMixin, pg_enum, uuid_pk
-from app.models.enums import BusinessStatus, ImageKind, ModerationActionType
+from app.models.enums import (
+    BusinessStatus,
+    Gender,
+    ImageKind,
+    LanguageProficiency,
+    MaritalStatus,
+    ModerationActionType,
+)
 
 if TYPE_CHECKING:
     from app.models.taxonomy import Location
@@ -99,6 +106,34 @@ class TalentProfile(Base, TimestampMixin):
     photo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     photo_storage_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
+    # --- Professional detail (published) ---------------------------------
+    # These describe the work, so they belong on the public profile —
+    # serialized from TalentDetailOut down.
+    highest_degree: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    specialization: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    university: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    experience: Mapped[str | None] = mapped_column(Text, nullable=True)
+    skills_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    services_offered: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # --- Identity (never published) --------------------------------------
+    # Legal name, age, gender, marital status and the two civil-record
+    # places identify the *person*, not the service they offer. A public
+    # directory has no business publishing them, so they are serialized
+    # from OwnerTalentOut up — the owner sees their own, administrators see
+    # them for verification, an anonymous visitor never does. Moving any
+    # one of them onto TalentDetailOut would publish it; that is the only
+    # thing standing between these columns and the open internet, so
+    # tests/test_talent.py pins it.
+    full_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    birth_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    gender: Mapped[Gender | None] = mapped_column(pg_enum(Gender, "gender"), nullable=True)
+    marital_status: Mapped[MaritalStatus | None] = mapped_column(
+        pg_enum(MaritalStatus, "marital_status"), nullable=True
+    )
+    registration_place: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    residence_place: Mapped[str | None] = mapped_column(String(200), nullable=True)
+
     status: Mapped[BusinessStatus] = mapped_column(
         pg_enum(BusinessStatus, "business_status"),
         default=BusinessStatus.DRAFT,
@@ -126,6 +161,11 @@ class TalentProfile(Base, TimestampMixin):
         cascade="all, delete-orphan",
         order_by="TalentImage.sort_order",
     )
+    languages: Mapped[list[TalentLanguage]] = relationship(
+        back_populates="profile",
+        cascade="all, delete-orphan",
+        order_by="TalentLanguage.sort_order",
+    )
     moderation_actions: Mapped[list[TalentModerationAction]] = relationship(
         back_populates="profile",
         cascade="all, delete-orphan",
@@ -135,6 +175,33 @@ class TalentProfile(Base, TimestampMixin):
     @property
     def is_public(self) -> bool:
         return self.status is BusinessStatus.APPROVED
+
+
+class TalentLanguage(Base):
+    """A language the person works in, with how well they speak it.
+
+    A child table rather than a text column because "languages and level of
+    fluency" is two values per row — the same shape TalentImage and
+    SocialLink already use — and the directory will eventually want to
+    filter on the pair.
+    """
+
+    __tablename__ = "talent_languages"
+    __table_args__ = (Index("ix_talent_languages_profile_sort", "profile_id", "sort_order"),)
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    profile_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("talent_profiles.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(80), nullable=False)
+    proficiency: Mapped[LanguageProficiency] = mapped_column(
+        pg_enum(LanguageProficiency, "language_proficiency"),
+        default=LanguageProficiency.GOOD,
+        nullable=False,
+    )
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    profile: Mapped[TalentProfile] = relationship(back_populates="languages")
 
 
 class TalentImage(Base):

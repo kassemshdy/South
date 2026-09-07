@@ -4,6 +4,7 @@ import type { BusinessQuery, BusinessStatus, TalentQuery } from '@/types/api'
 export const queryKeys = {
   me: ['me'] as const,
   myVerificationDocument: ['me', 'verification-document'] as const,
+  myCvDocument: ['me', 'cv-document'] as const,
   categories: ['categories'] as const,
   locations: ['locations'] as const,
   talentSkills: ['talent-skills'] as const,
