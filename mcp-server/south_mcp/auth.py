@@ -19,7 +19,7 @@ import logging
 import os
 
 from mcp.server.auth.provider import AccessToken, TokenVerifier
-from mcp.server.auth.settings import AuthSettings
+from mcp.server.auth.settings import AuthSettings, ClientRegistrationOptions
 from pydantic import AnyHttpUrl
 
 logger = logging.getLogger(__name__)
@@ -114,4 +114,11 @@ def load_auth_settings(environ: dict[str, str] | None = None) -> AuthSettings:
         issuer_url=AnyHttpUrl(public_url),
         resource_server_url=AnyHttpUrl(public_url),
         validate_token_resource=False,
+        # Dynamic registration on, because claude.ai's connector flow starts
+        # by registering itself and fails at that step otherwise. Registering
+        # grants nothing: a registered client still cannot get a token
+        # without the shared secret at the consent step.
+        client_registration_options=ClientRegistrationOptions(enabled=True),
+        # No identity to assert -- the MCP acts as one administrator.
+        identity_assertion_enabled=False,
     )

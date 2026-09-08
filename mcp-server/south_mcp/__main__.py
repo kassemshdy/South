@@ -21,9 +21,10 @@ import logging
 import os
 import sys
 
-from south_mcp.auth import AuthError, load_auth_settings, load_verifier
+from south_mcp.auth import ENV_TOKEN, AuthError, load_auth_settings, load_verifier
 from south_mcp.client import SouthClient
 from south_mcp.config import ConfigError, load_config
+from south_mcp.oauth import SouthOAuthProvider
 from south_mcp.server import build_server
 
 ENV_TRANSPORT = "SOUTH_MCP_TRANSPORT"
@@ -58,7 +59,20 @@ def main() -> int:
 
     client = SouthClient(config)
     try:
-        server = build_server(config, client, token_verifier=verifier, auth=auth)
+        # Over HTTP the provider does double duty: it runs the OAuth flow a
+        # claude.ai connector needs, and its load_access_token still accepts
+        # the shared token directly, so scripts and routines keep working.
+        provider = (
+            SouthOAuthProvider(
+                shared_token=os.environ[ENV_TOKEN],
+                public_url=str(auth.issuer_url).rstrip("/"),
+            )
+            if transport == "http" and auth is not None
+            else None
+        )
+        server = build_server(
+            config, client, token_verifier=verifier, auth=auth, auth_provider=provider
+        )
         if transport == "stdio":
             server.run("stdio")
         else:

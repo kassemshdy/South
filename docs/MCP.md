@@ -59,16 +59,42 @@ correct token → **200** and twelve tools, with `platform_stats` returning real
 data. The `/.well-known/oauth-protected-resource` document stays public, as
 the protocol requires.
 
-### It is a pre-shared token, not OAuth
+### Two ways to present the same secret
 
-One token, compared with `hmac.compare_digest` so a `==` cannot leak its
-length and then its content through timing. That is enough for any client that
-can send an `Authorization` header — Claude Code, a script, a routine.
+**A bearer token**, compared with `hmac.compare_digest` so a `==` cannot leak
+its length and then its content through timing. Enough for anything that can
+send an `Authorization` header — Claude Code, a script, a routine.
 
-**A claude.ai custom connector expects an OAuth authorization server**, which
-this is not. If the connector UI rejects a bearer-only server, the next step is
-implementing an authorization server, and that belongs behind its own decision
-rather than arriving as a default.
+**Or the OAuth flow**, for a client that speaks only OAuth. claude.ai's
+connector setup begins with dynamic client registration and fails on a
+bearer-only server — *"Couldn't register with South MCP's sign-in service"* is
+what that looks like. So `south_mcp/oauth.py` implements the authorization
+server: `/register`, `/authorize`, `/token`, `/revoke` and the metadata
+documents.
+
+**What it is not.** There is no per-user identity. The MCP signs in to the
+directory as one administrator, so there is no second person for OAuth to
+identify. The authorization step checks that whoever is connecting holds
+`SOUTH_MCP_TOKEN`, via a consent page that asks for it. The security still
+rests on that one secret; the OAuth machinery exists so a client that speaks
+only OAuth can present it. **Do not read this as the directory having gained
+real user authentication.**
+
+Why the consent page is not skipped: having `authorize` redirect straight back
+with a code would hand a token to anyone who can reach the endpoint — which is
+the whole internet — and the shared secret would then protect nothing.
+
+**State lives in memory.** Registered clients, codes and tokens are lost on
+restart, so a redeploy of the service means re-authorising the connector. The
+service rebuilds only when `mcp-server/**` changes, which is rare. Persisting
+them would mean giving this service storage of its own, and storage holding
+OAuth tokens is a bigger commitment than the problem currently justifies.
+
+Verified end to end against a running server: registration 201, authorize 302
+to the consent page, **wrong token 400**, right token 302 with a code and the
+`state` echoed, token exchange 200 with access and refresh, **a replayed code
+400**, the issued token accepted, the shared token still accepted, and a bogus
+one 401.
 
 ## Configuration
 
