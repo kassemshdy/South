@@ -6,59 +6,26 @@ import { Button } from '@/components/ui/Button'
 import { useT, type TranslationKey } from '@/i18n'
 
 /**
- * The first question the site asks: which half of it is yours.
+ * The three ways into the site, always on the homepage.
  *
- * The homepage already triages *browsing* three ways further down. What was
- * missing is the split before that — an owner had to work out for themselves
- * that a header link was their way in. This is written for someone who is not
- * confident online: three large targets, one short line each, no jargon.
+ * It started as a first-visit question that remembered its answer and then got
+ * out of the way. That was the wrong instinct for this site: these three cards
+ * *are* the homepage's navigation for people who are not confident online, and
+ * something you only see once cannot be navigation. So it is permanent, and it
+ * carries no dismissal and no memory.
  *
- * Two rules it must not break. It is **never a wall**: everything below stays
- * reachable without answering, and skipping is one tap. And it is asked
- * **once** — the answer is remembered, so a returning visitor gets the site,
- * not the question again.
+ * Written for someone who is not confident online: three large targets, one
+ * short line each, no jargon. It is still never a wall — everything below it
+ * stays reachable, and nothing here has to be answered to use the site.
  *
- * Choosing to list something does not jump straight to a phone-number prompt.
- * It opens the three steps involved first, in place, because "sign in" as an
- * answer to "I have a shop" tells you nothing about what you are agreeing to.
+ * For a visitor who is not signed in, choosing to list something does not jump
+ * straight to a phone-number prompt: it opens the three steps involved first,
+ * in place, because "sign in" as an answer to "I have a shop" tells you
+ * nothing about what you are agreeing to. Someone already signed in has been
+ * through that, so their cards go straight to the real destination.
  */
-
-const STORAGE_KEY = 'south.audience'
 
 type Audience = 'owner' | 'talent' | 'visitor'
-
-/**
- * What we store is "this has been answered", and skipping counts.
- *
- * Reading back only the three audiences would let the dismissal fall through
- * the type guard and re-ask the question on the next visit — which is exactly
- * the nag this component is supposed not to be. The specific answer is kept
- * rather than a bare flag because it is the one signal we have about who is
- * arriving, and it costs nothing to keep.
- */
-type Answer = Audience | 'dismissed'
-
-const ANSWERS: readonly Answer[] = ['owner', 'talent', 'visitor', 'dismissed']
-
-function readAnswer(): Answer | null {
-  try {
-    const stored = window.localStorage.getItem(STORAGE_KEY)
-    if (stored !== null && (ANSWERS as readonly string[]).includes(stored)) {
-      return stored as Answer
-    }
-  } catch {
-    // Private browsing can throw on storage access; asking again is harmless.
-  }
-  return null
-}
-
-function remember(answer: Answer): void {
-  try {
-    window.localStorage.setItem(STORAGE_KEY, answer)
-  } catch {
-    // Non-fatal: the question simply comes back next visit.
-  }
-}
 
 interface Choice {
   audience: Audience
@@ -103,19 +70,9 @@ const STEP_KEYS: TranslationKey[] = [
   'onboarding.step3',
 ]
 
-export function AudienceChooser() {
+export function AudienceChooser({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
   const t = useT()
-  // Read once on mount: a visitor who answers should see the panel change, not
-  // the section vanish mid-tap.
-  const [hidden, setHidden] = useState(() => readAnswer() !== null)
   const [expanded, setExpanded] = useState<Choice | null>(null)
-
-  if (hidden) return null
-
-  const dismiss = () => {
-    remember('dismissed')
-    setHidden(true)
-  }
 
   return (
     <section
@@ -151,7 +108,7 @@ export function AudienceChooser() {
 
             <div className="mt-6 flex flex-wrap gap-3">
               <Button asChild size="lg">
-                <Link to="/login" onClick={() => remember(expanded.audience)}>
+                <Link to="/login">
                   <Check className="h-5 w-5" aria-hidden="true" />
                   {t('onboarding.start')}
                 </Link>
@@ -195,7 +152,10 @@ export function AudienceChooser() {
 
               return (
                 <li key={choice.audience}>
-                  {choice.needsAccount ? (
+                  {/* Only an anonymous visitor needs the explanation first;
+                      for someone signed in these are plain shortcuts to the
+                      part of their dashboard the card describes. */}
+                  {choice.needsAccount && !isAuthenticated ? (
                     <button
                       type="button"
                       className={shell}
@@ -205,11 +165,7 @@ export function AudienceChooser() {
                       {body}
                     </button>
                   ) : (
-                    <Link
-                      to={choice.href}
-                      className={shell}
-                      onClick={() => remember(choice.audience)}
-                    >
+                    <Link to={choice.href} className={shell}>
                       {body}
                     </Link>
                   )}
@@ -218,16 +174,6 @@ export function AudienceChooser() {
             })}
           </ul>
         )}
-
-        <div className="mt-6 text-center">
-          <button
-            type="button"
-            onClick={dismiss}
-            className="text-sm font-medium text-ink-500 underline decoration-ink-100 underline-offset-4 hover:text-ink-700"
-          >
-            {t('onboarding.dismiss')}
-          </button>
-        </div>
       </div>
     </section>
   )
