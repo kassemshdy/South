@@ -18,11 +18,23 @@ RUN npm ci --no-audit --no-fund
 
 COPY frontend/ ./
 
-# Vite inlines import.meta.env.VITE_* at build time, so the DSN must be a
+# Vite inlines import.meta.env.VITE_* at build time, so each one must be a
 # build arg, not just a runtime variable on the container — Railway's own
 # service variables aren't visible to `npm run build` otherwise.
+#
+# Keep this list in step with backend/Dockerfile, which builds the bundle that
+# is actually served; this image's build only has to stay consistent with it.
 ARG VITE_SENTRY_DSN
-ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN
+ARG VITE_GA_MEASUREMENT_ID
+ARG VITE_SOCIAL_INSTAGRAM
+ARG VITE_SOCIAL_FACEBOOK
+ARG VITE_SOCIAL_TIKTOK
+ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN \
+    VITE_GA_MEASUREMENT_ID=$VITE_GA_MEASUREMENT_ID \
+    VITE_SOCIAL_INSTAGRAM=$VITE_SOCIAL_INSTAGRAM \
+    VITE_SOCIAL_FACEBOOK=$VITE_SOCIAL_FACEBOOK \
+    VITE_SOCIAL_TIKTOK=$VITE_SOCIAL_TIKTOK
+
 RUN npm run build
 
 

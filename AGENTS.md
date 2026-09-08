@@ -109,6 +109,17 @@ script tag, no network request, no half-configured UI. Local development and the
 test suite therefore never phone home, and never pollute anyone's numbers with a
 developer's own clicks.
 
+**A `VITE_` variable is a build argument, not a runtime one.** Vite inlines
+`import.meta.env.VITE_*` when the bundle is compiled, so setting it as a Railway
+*service* variable does nothing on its own — `npm run build` never sees it, the
+value comes out undefined, and the feature looks simply "not configured" with
+nothing in the logs to say otherwise. Every such variable must therefore be
+declared as an `ARG`+`ENV` pair in **`backend/Dockerfile`**, whose Node stage
+builds the bundle the API actually serves (`frontend/Caddyfile` proxies
+`/assets/*` to the API rather than serving the web image's own copy), and kept in
+step in `frontend/Dockerfile`. Adding a new `VITE_` variable means editing both
+Dockerfiles, not just the Railway dashboard.
+
 | Variable | Effect when unset |
 |---|---|
 | `VITE_SENTRY_DSN` | The frontend SDK does not initialise. |
