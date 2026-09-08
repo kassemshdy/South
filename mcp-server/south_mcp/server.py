@@ -23,7 +23,7 @@ import logging
 from typing import Any, Literal
 
 from mcp.server import MCPServer
-from mcp.server.auth.provider import TokenVerifier
+from mcp.server.auth.provider import OAuthAuthorizationServerProvider, TokenVerifier
 from mcp.server.auth.settings import AuthSettings
 from mcp.types import ToolAnnotations
 
@@ -47,6 +47,7 @@ def build_server(
     client: SouthClient | None = None,
     token_verifier: TokenVerifier | None = None,
     auth: AuthSettings | None = None,
+    auth_provider: OAuthAuthorizationServerProvider | None = None,
 ) -> MCPServer:
     """Build the server.
 
@@ -59,7 +60,8 @@ def build_server(
     server: MCPServer = MCPServer(
         name="south-directory",
         version="1.0.0",
-        token_verifier=token_verifier,
+        token_verifier=token_verifier if auth_provider is None else None,
+        auth_server_provider=auth_provider,
         auth=auth,
         instructions=(
             "The South Lebanon business directory. Read any part of it; write only "
@@ -290,7 +292,87 @@ def build_server(
     def platform_stats() -> dict[str, Any]:
         return api.get("/api/admin/stats")
 
+    if auth_provider is not None:
+        _add_consent_route(server, auth_provider)
+
     return server
+
+
+def _add_consent_route(server: MCPServer, provider: Any) -> None:
+    """The page that turns "I hold the token" into an authorization code.
+
+    Plain HTML and no JavaScript: it is a text box and a button, shown once
+    when a connector is set up. The token is submitted as a POST body so it
+    does not land in a URL, a browser history, or an access log.
+    """
+    from starlette.requests import Request
+    from starlette.responses import HTMLResponse, RedirectResponse
+
+    @server.custom_route("/authorize/consent", methods=["GET"])
+    async def consent_form(request: Request) -> HTMLResponse:
+        pending = request.query_params.get("request", "")
+        return HTMLResponse(_CONSENT_HTML.replace("{{REQUEST}}", _escape(pending)))
+
+    @server.custom_route("/authorize/consent", methods=["POST"])
+    async def consent_submit(request: Request):  # type: ignore[no-untyped-def]
+        form = await request.form()
+        redirect = provider.approve(
+            str(form.get("request", "")), str(form.get("token", ""))
+        )
+        if redirect is None:
+            # One message for a wrong token, an expired request and a reused
+            # one alike: saying which would tell a guesser how close it got.
+            return HTMLResponse(
+                _CONSENT_HTML.replace("{{REQUEST}}", _escape(str(form.get("request", ""))))
+                .replace("<!--ERROR-->", '<p class="error">That did not work. '
+                         "Check the token, or start the connection again.</p>"),
+                status_code=400,
+            )
+        return RedirectResponse(redirect, status_code=302)
+
+
+def _escape(value: str) -> str:
+    """Minimal escaping for the one value echoed back into the page."""
+    return (
+        value.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
+
+
+_CONSENT_HTML = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connect to the South directory</title>
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; margin: 0; display: grid;
+         place-items: center; min-height: 100vh; background: #f7f5f0;
+         color: #1f2421; }
+  main { background: #fff; padding: 2rem; border-radius: 14px; max-width: 27rem;
+         box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  h1 { font-size: 1.25rem; margin: 0 0 .5rem; }
+  p { margin: 0 0 1rem; color: #4a524d; }
+  input { width: 100%; padding: .7rem; font: inherit; border: 1px solid #d5d8d4;
+          border-radius: 8px; box-sizing: border-box; }
+  button { margin-top: 1rem; width: 100%; padding: .7rem; font: inherit;
+           font-weight: 600; color: #fff; background: #114626; border: 0;
+           border-radius: 8px; cursor: pointer; }
+  .error { color: #a3341c; font-weight: 600; }
+</style></head>
+<body><main>
+  <h1>Connect to the South directory</h1>
+  <p>This grants read access to the whole directory and permission to write to
+     the support ticket board. Paste the server token to continue.</p>
+  <!--ERROR-->
+  <form method="post" action="/authorize/consent">
+    <input type="hidden" name="request" value="{{REQUEST}}">
+    <input type="password" name="token" autocomplete="off" autofocus
+           placeholder="Server token" aria-label="Server token">
+    <button type="submit">Connect</button>
+  </form>
+</main></body></html>
+"""
 
 
 def _matches(
