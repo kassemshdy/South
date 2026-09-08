@@ -1,0 +1,1206 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0d351d" />
+
+<title>جنوبنا — المشروع ومن نبني له</title>
+<meta name="description" content="عرض المشروع وشخصيتَي مستخدميه: أبو خليل صاحب المحل في الجنوب، ورنا التي تريد أن تدعم من بيروت." />
+
+<!--
+  A pitch page, not directory content: it is meant to be opened from a link
+  someone was given, not found in a search result. The sitemap deliberately
+  does not list it either.
+-->
+<meta name="robots" content="noindex, follow" />
+
+<meta property="og:title" content="جنوبنا — المشروع ومن نبني له" />
+<meta property="og:description" content="عرض المشروع وشخصيتَي مستخدميه: أبو خليل صاحب المحل في الجنوب، ورنا التي تريد أن تدعم من بيروت." />
+<meta property="og:type" content="article" />
+<meta property="og:locale" content="ar_LB" />
+<meta property="og:site_name" content="دليل الجنوب" />
+<meta property="og:image" content="/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="جنوبنا — المشروع ومن نبني له" />
+<meta name="twitter:description" content="عرض المشروع وشخصيتَي مستخدميه: أبو خليل صاحب المحل في الجنوب، ورنا التي تريد أن تدعم من بيروت." />
+<meta name="twitter:image" content="/og-image.png" />
+
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+<style>
+  /*
+   * The same two faces the app uses, served from this origin.
+   *
+   * `src/index.css` pulls Cairo and Tajawal in through @fontsource, so the
+   * site never makes an external font request — and a page *on* the site is
+   * not the place to start. These are the same woff2 files that package
+   * ships, copied into public/fonts/, with @fontsource's own unicode ranges
+   * so the Arabic subset is the only one a reader here actually downloads.
+   */
+
+  /* Arabic subset — the one that matters on this page. */
+  @font-face {
+    font-family: 'Cairo';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/fonts/cairo-arabic-400-normal.woff2') format('woff2');
+    unicode-range: U+0600-06FF,U+0750-077F,U+0870-088E,U+0890-0891,U+0897-08E1,U+08E3-08FF,U+200C-200E,U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE70-FE74,U+FE76-FEFC;
+  }
+  @font-face {
+    font-family: 'Cairo';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('/fonts/cairo-arabic-700-normal.woff2') format('woff2');
+    unicode-range: U+0600-06FF,U+0750-077F,U+0870-088E,U+0890-0891,U+0897-08E1,U+08E3-08FF,U+200C-200E,U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE70-FE74,U+FE76-FEFC;
+  }
+  @font-face {
+    font-family: 'Tajawal';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('/fonts/tajawal-arabic-500-normal.woff2') format('woff2');
+    unicode-range: U+0600-06FF,U+0750-077F,U+0870-088E,U+0890-0891,U+0897-08E1,U+08E3-08FF,U+200C-200E,U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE70-FE74,U+FE76-FEFC;
+  }
+  @font-face {
+    font-family: 'Tajawal';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('/fonts/tajawal-arabic-700-normal.woff2') format('woff2');
+    unicode-range: U+0600-06FF,U+0750-077F,U+0870-088E,U+0890-0891,U+0897-08E1,U+08E3-08FF,U+200C-200E,U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE70-FE74,U+FE76-FEFC;
+  }
+
+  /* Latin subset — for the few Latin words on the page (Google Analytics). */
+  @font-face {
+    font-family: 'Cairo';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/fonts/cairo-latin-400-normal.woff2') format('woff2');
+    unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+  }
+  @font-face {
+    font-family: 'Cairo';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('/fonts/cairo-latin-700-normal.woff2') format('woff2');
+    unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+  }
+  @font-face {
+    font-family: 'Tajawal';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('/fonts/tajawal-latin-500-normal.woff2') format('woff2');
+    unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+  }
+  @font-face {
+    font-family: 'Tajawal';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('/fonts/tajawal-latin-700-normal.woff2') format('woff2');
+    unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+  }
+
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<style>
+  /*
+   * Deliberately single-look: this deck exists to be screen-recorded, so it
+   * must render identically for whoever opens it. Every colour is painted
+   * from a token below rather than inherited from the host theme.
+   *
+   * The palette is the جنوبنا mark itself, same values the app ships with in
+   * frontend/tailwind.config.ts — forest green wordmark, wheat gold, sea blue,
+   * terracotta soil.
+   */
+  :root {
+    --ground:      #0d351d;
+    --ground-deep: #082312;
+    --panel:       #114626;
+    --panel-soft:  #155830;
+    --sand:        #faf3ea;
+    --sand-dim:    #e6dbca;
+    --wheat:       #e8ae1f;
+    --wheat-soft:  #f5d786;
+    --clay:        #e07c5c;
+    --sea:         #8fbcd9;
+    --leaf:        #a9d0b6;
+    --ink:         #1f1e1c;
+
+    --measure: 62ch;
+    --step-0: 1rem;
+    --step-1: 1.15rem;
+    --step-2: 1.45rem;
+    --step-3: 2rem;
+    --step-4: 2.6rem;
+    --step-5: 4.2rem;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--sand);
+    font-family: 'Cairo', system-ui, sans-serif;
+    font-size: var(--step-1);
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .deck {
+    scroll-snap-type: y proximity;
+    scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .deck { scroll-behavior: auto; }
+  }
+
+  h1, h2, h3 {
+    font-family: 'Tajawal', 'Cairo', system-ui, sans-serif;
+    font-weight: 800;
+    text-wrap: balance;
+    margin: 0;
+    line-height: 1.25;
+  }
+
+  p { margin: 0; }
+
+  /* ---------- top bar ---------- */
+
+  .bar {
+    position: fixed;
+    inset-block-start: 0;
+    inset-inline: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem clamp(0.9rem, 3vw, 2rem);
+    background: color-mix(in srgb, var(--ground-deep) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border-block-end: 1px solid color-mix(in srgb, var(--wheat) 22%, transparent);
+    font-size: 0.85rem;
+  }
+
+  .bar .mark {
+    font-family: 'Tajawal', sans-serif;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    color: var(--wheat);
+    font-size: 1.05rem;
+  }
+
+  .bar .runtime {
+    color: var(--sand-dim);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .bar .spacer { flex: 1; }
+
+  .ghost {
+    font-family: 'Cairo', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--sand);
+    background: transparent;
+    border: 1px solid color-mix(in srgb, var(--sand) 35%, transparent);
+    border-radius: 999px;
+    padding: 0.35rem 0.9rem;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background-color 140ms ease, border-color 140ms ease;
+  }
+
+  .ghost:hover { background: color-mix(in srgb, var(--sand) 12%, transparent); }
+  .ghost:focus-visible { outline: 2px solid var(--wheat); outline-offset: 2px; }
+
+  /* ---------- slide index rail ---------- */
+
+  .rail {
+    position: fixed;
+    inset-inline-start: clamp(0.5rem, 1.5vw, 1.2rem);
+    inset-block-start: 50%;
+    transform: translateY(-50%);
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .rail a {
+    display: block;
+    width: 1.7rem;
+    height: 1.7rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: color-mix(in srgb, var(--sand) 55%, transparent);
+    text-decoration: none;
+    transition: color 140ms ease, background-color 140ms ease;
+  }
+
+  .rail a:hover { color: var(--ground-deep); background: var(--wheat); }
+  .rail a:focus-visible { outline: 2px solid var(--wheat); outline-offset: 1px; }
+
+  @media (max-width: 900px) { .rail { display: none; } }
+
+  /* ---------- slides ---------- */
+
+  .slide {
+    scroll-snap-align: start;
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: clamp(0.85rem, 2vh, 1.5rem);
+    padding: clamp(4.2rem, 8vh, 5.5rem) clamp(1.1rem, 6vw, 5rem) clamp(1.5rem, 4vh, 2.5rem);
+    position: relative;
+  }
+
+  .slide.cover { min-height: 88svh; }
+  .slide + .slide { border-block-start: 1px solid color-mix(in srgb, var(--wheat) 16%, transparent); }
+  .slide.tinted { background: var(--ground-deep); }
+
+  .eyebrow {
+    display: flex;
+    align-items: baseline;
+    gap: 0.7rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: var(--wheat);
+  }
+
+  .eyebrow .num {
+    font-variant-numeric: tabular-nums;
+    color: var(--wheat);
+    border: 1px solid color-mix(in srgb, var(--wheat) 45%, transparent);
+    border-radius: 0.5rem;
+    padding: 0.05rem 0.5rem;
+    letter-spacing: 0;
+  }
+
+  .slide h2 { font-size: clamp(1.7rem, 4.4vw, var(--step-4)); }
+  .slide h3 { font-size: var(--step-2); font-weight: 700; }
+
+  .lede {
+    max-width: var(--measure);
+    font-size: clamp(1.05rem, 2.2vw, var(--step-2));
+    color: var(--sand);
+  }
+
+  .muted { color: var(--sand-dim); }
+
+  /* ---------- cover ---------- */
+
+  .cover h1 {
+    font-size: clamp(2.6rem, 11vw, var(--step-5));
+    letter-spacing: -0.01em;
+  }
+
+  .cover .slogan {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem 1rem;
+    font-family: 'Tajawal', sans-serif;
+    font-size: clamp(1.05rem, 3.2vw, 1.6rem);
+    font-weight: 500;
+    color: var(--wheat-soft);
+  }
+
+  .cover .slogan span:not(:last-child)::after {
+    content: '•';
+    color: color-mix(in srgb, var(--wheat) 60%, transparent);
+    margin-inline-start: 1rem;
+  }
+
+  .cover .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.75rem;
+    font-size: 0.95rem;
+    color: var(--sand-dim);
+    padding-block-start: 0.5rem;
+    border-block-start: 1px solid color-mix(in srgb, var(--sand) 18%, transparent);
+    max-width: 46rem;
+  }
+
+  /* the terraced hillsides of the South, as a hairline */
+  .terrace { display: block; width: min(100%, 26rem); height: auto; }
+  .terrace path { fill: none; stroke: var(--wheat); stroke-width: 1.5; opacity: 0.55; }
+  .terrace path.second { stroke: var(--leaf); opacity: 0.4; }
+
+  /* ---------- generic content blocks ---------- */
+
+  .cols {
+    display: grid;
+    gap: clamp(0.9rem, 2vw, 1.5rem);
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  }
+
+  .cols.three { grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); }
+  .cols.four  { grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid color-mix(in srgb, var(--leaf) 22%, transparent);
+    border-radius: 1rem;
+    padding: 0.85rem 1.1rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .panel .kicker {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--wheat);
+  }
+
+  .panel p { font-size: 0.95rem; color: var(--sand-dim); line-height: 1.65; }
+
+  /* numbers: only where the figure is the point */
+  .figures {
+    display: grid;
+    gap: 0.75rem clamp(1rem, 4vw, 3rem);
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    max-width: 60rem;
+  }
+
+  .fig b {
+    display: block;
+    font-family: 'Tajawal', sans-serif;
+    font-size: clamp(1.9rem, 5vw, 2.6rem);
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--wheat);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .fig span { font-size: 0.9rem; color: var(--sand-dim); }
+
+  /* the review pipeline: three states, one arrow each */
+  .pipeline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 0.6rem;
+  }
+
+  .stage {
+    flex: 1 1 12rem;
+    background: var(--panel);
+    border-inline-start: 4px solid var(--wheat);
+    border-radius: 0.6rem;
+    padding: 0.85rem 1rem;
+  }
+
+  .stage b { display: block; font-family: 'Tajawal', sans-serif; font-size: 1.15rem; }
+  .stage span { font-size: 0.9rem; color: var(--sand-dim); }
+  .stage.gate { border-inline-start-color: var(--sea); }
+  .stage.live { border-inline-start-color: var(--leaf); }
+
+  /* ---------- personas ---------- */
+
+  .persona {
+    display: grid;
+    gap: clamp(1rem, 3vw, 2.5rem);
+    grid-template-columns: minmax(0, 20rem) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  @media (max-width: 780px) { .persona { grid-template-columns: 1fr; } }
+
+  .card-person {
+    background: var(--panel);
+    border-radius: 1.1rem;
+    padding: 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  .card-person.rana { background: #14302a; }
+
+  .card-person .who {
+    font-family: 'Tajawal', sans-serif;
+    font-size: var(--step-3);
+    font-weight: 800;
+    color: var(--wheat);
+  }
+
+  .card-person dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.35rem 0.8rem;
+    font-size: 0.95rem;
+  }
+
+  .card-person dt { color: var(--sand-dim); }
+  .card-person dd { margin: 0; }
+
+  blockquote {
+    margin: 0;
+    font-family: 'Tajawal', sans-serif;
+    font-size: var(--step-2);
+    font-weight: 500;
+    line-height: 1.6;
+    color: var(--sand);
+    border-inline-start: 3px solid var(--wheat);
+    padding-inline-start: 0.9rem;
+  }
+
+  /* the journey: each step either holds or breaks */
+  ol.journey {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    counter-reset: step;
+  }
+
+  ol.journey li {
+    display: grid;
+    grid-template-columns: 1.6rem 1fr auto;
+    align-items: baseline;
+    gap: 0.75rem;
+    padding: 0.35rem 0.7rem;
+    border-radius: 0.55rem;
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+
+  ol.journey li::before {
+    counter-increment: step;
+    content: counter(step, arabic-indic);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    color: color-mix(in srgb, var(--sand) 50%, transparent);
+    font-size: 0.85rem;
+  }
+
+  ol.journey li.holds { background: color-mix(in srgb, var(--leaf) 10%, transparent); }
+  ol.journey li.fixed { background: color-mix(in srgb, var(--leaf) 16%, transparent); }
+  ol.journey li.breaks {
+    background: color-mix(in srgb, var(--clay) 18%, transparent);
+    /* the stripe sits on the reading-start edge, which is the right in RTL */
+    box-shadow: inset -3px 0 0 var(--clay);
+  }
+
+  ol.journey li.breaks::before { color: var(--clay); }
+
+  .tag {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    border-radius: 999px;
+    padding: 0.1rem 0.55rem;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tag.ok   { background: var(--leaf);  color: #0b2c18; }
+  .tag.gap  { background: var(--clay);  color: #40160c; }
+  .tag.soon { background: color-mix(in srgb, var(--wheat) 85%, transparent); color: #3a2a04; }
+
+  /* ---------- the finding ---------- */
+
+  .finding {
+    background: var(--panel-soft);
+    border: 1px solid var(--wheat);
+    border-radius: 1.1rem;
+    padding: clamp(1.2rem, 4vw, 2.2rem);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 56rem;
+  }
+
+  .finding .shout {
+    font-family: 'Tajawal', sans-serif;
+    font-size: clamp(1.5rem, 5.2vw, 2.6rem);
+    font-weight: 800;
+    color: var(--wheat-soft);
+    line-height: 1.35;
+  }
+
+  /* ---------- roadmap ---------- */
+
+  .phase {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    background: var(--panel);
+    border-radius: 0.9rem;
+    padding: 1rem 1.1rem 1.2rem;
+    border-block-start: 3px solid var(--sea);
+  }
+
+  .phase.done { border-block-start-color: var(--leaf); }
+  .phase.next { border-block-start-color: var(--wheat); }
+
+  .phase .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .phase .head b { font-family: 'Tajawal', sans-serif; font-size: 1.2rem; }
+
+  .phase ul {
+    margin: 0;
+    padding-inline-start: 1.1rem;
+    font-size: 0.95rem;
+    color: var(--sand-dim);
+    line-height: 1.7;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  /* ---------- asks ---------- */
+
+  ul.asks {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.55rem;
+    grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+    max-width: 74rem;
+  }
+
+  ul.asks li {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.7rem;
+    align-items: start;
+    background: var(--panel);
+    border-radius: 0.7rem;
+    padding: 0.8rem 1rem;
+    font-size: var(--step-0);
+    line-height: 1.65;
+  }
+
+  ul.asks li i {
+    font-style: normal;
+    color: var(--wheat);
+    font-weight: 700;
+  }
+
+  ul.asks li b { display: block; font-family: 'Tajawal', sans-serif; font-size: 1.1rem; }
+  ul.asks li span { color: var(--sand-dim); font-size: 0.92rem; }
+
+  /* ---------- narration script ---------- */
+
+  .script {
+    margin-block-start: auto;
+    background: var(--sand);
+    color: var(--ink);
+    border-radius: 0.9rem;
+    padding: 0.7rem 1.05rem 0.8rem;
+    border-inline-start: 5px solid var(--wheat);
+    max-width: 74rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .script .head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: #6d3020;
+  }
+
+  .script .head .dur {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+    color: #403f3c;
+  }
+
+  .script p {
+    font-size: 0.97rem;
+    line-height: 1.7;
+    max-width: var(--measure);
+  }
+
+  .scripts-off .script { display: none; }
+
+  /* ---------- end ---------- */
+
+  .end {
+    background: var(--ground-deep);
+    text-align: center;
+    align-items: center;
+  }
+
+  .end h2 { font-size: clamp(2rem, 7vw, var(--step-4)); }
+
+  /* ---------- print / PDF ---------- */
+
+  /*
+   * One slide per page at 16:9, so the exported PDF can be dropped straight
+   * into a video timeline. The bar and the index rail are screen controls and
+   * do not belong on a page; the narration scripts do — they are the reason
+   * the deck exists.
+   */
+  @media print {
+    :root { --measure: 78ch; }
+
+    @page { size: 1600px 900px; margin: 0; }
+
+    body {
+      background: var(--ground);
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .bar, .rail { display: none !important; }
+
+    .deck { scroll-snap-type: none; }
+
+    .slide {
+      height: 900px;
+      min-height: 0;
+      padding: 3rem 4.5rem 2.5rem;
+      break-inside: avoid;
+      break-after: page;
+      border-block-start: 0;
+    }
+
+    .slide:last-child { break-after: auto; }
+
+    /* Slide numbers carry the page order once the rail is gone. */
+    .eyebrow { font-size: 0.9rem; }
+
+    .script { break-inside: avoid; }
+  }
+</style>
+
+<div dir="rtl" lang="ar" id="root">
+
+  <div class="bar">
+    <span class="mark">جنوبنا</span>
+    <span class="runtime">نص التعليق: ١٢ لوحة · نحو ٧ دقائق</span>
+    <span class="spacer"></span>
+    <button class="ghost" type="button" id="toggle" aria-pressed="false">إخفاء نص التعليق</button>
+    <button class="ghost" type="button" id="print">طباعة</button>
+    <a class="ghost" href="/">الموقع</a>
+  </div>
+
+  <nav class="rail" aria-label="لوحات العرض">
+    <a href="#s1" title="الغلاف">٠١</a>
+    <a href="#s2" title="لماذا">٠٢</a>
+    <a href="#s3" title="ما هو">٠٣</a>
+    <a href="#s4" title="كيف يعمل">٠٤</a>
+    <a href="#s5" title="أين نحن">٠٥</a>
+    <a href="#s6" title="أبو خليل">٠٦</a>
+    <a href="#s7" title="رحلة أبو خليل">٠٧</a>
+    <a href="#s8" title="رنا">٠٨</a>
+    <a href="#s9" title="رحلة رنا">٠٩</a>
+    <a href="#s10" title="الخلاصة">١٠</a>
+    <a href="#s11" title="الخطة">١١</a>
+    <a href="#s12" title="ما نحتاجه">١٢</a>
+  </nav>
+
+  <main class="deck">
+
+    <!-- 01 ---------------------------------------------------------------- -->
+    <section class="slide cover" id="s1">
+      <div class="eyebrow"><span class="num">٠١</span><span>الغلاف</span></div>
+
+      <h1>جنوبنا</h1>
+
+      <p class="slogan">
+        <span>نصمد معًا</span><span>ننهض معًا</span><span>ويبقى عزيزًا</span>
+      </p>
+
+      <svg class="terrace" viewBox="0 0 440 34" role="img" aria-label="خطوط مصاطب زراعية">
+        <path d="M0 30 H60 V24 H120 V18 H190 V12 H260 V7 H340 V3 H440" />
+        <path class="second" d="M0 33 H92 V27 H152 V21 H226 V15 H300 V10 H380 V6 H440" />
+      </svg>
+
+      <p class="lede">دليل رقمي لأهل الجنوب: أعمالهم، منتجاتهم، وكفاءاتهم — بالعربية أولًا، وعلى الهاتف أولًا.</p>
+
+      <p class="meta">
+        <span>عرض المشروع والشخصيات</span>
+        <span>جاهز للتسجيل الصوتي</span>
+        <span>أيلول ٢٠٢٥</span>
+      </p>
+
+      <aside class="script">
+        <div class="head"><span>التعليق الصوتي</span><span class="dur">٢٠ ثانية</span></div>
+        <p>«جنوبنا» — نصمد معًا، ننهض معًا، ويبقى عزيزًا. في الدقائق القادمة سأعرض عليكم ما هو هذا المشروع، ولمن نبنيه بالتحديد، وما هي خطوتنا التالية.</p>
+      </aside>
+    </section>
+
+    <!-- 02 ---------------------------------------------------------------- -->
+    <section class="slide tinted" id="s2">
+      <div class="eyebrow"><span class="num">٠٢</span><span>لماذا</span></div>
+
+      <h2>صاحب المحل في الجنوب موجود. لكن لا أحد يجده.</h2>
+
+      <div class="cols three">
+        <div class="panel">
+          <span class="kicker">اليوم</span>
+          <h3>الزبون يسأل جاره</h3>
+          <p>من يصلّح البرّاد؟ من يبيع كبيسًا بلديًا؟ الجواب يمرّ من فم إلى فم، ولا يصل أبعد من الحي.</p>
+        </div>
+        <div class="panel">
+          <span class="kicker">النتيجة</span>
+          <h3>الرزق محدود بالمسافة</h3>
+          <p>محل في تبنين أو قانا لا يراه أحد في بيروت أو في الاغتراب، حتى لو كان ما يبيعه أفضل من أي بديل.</p>
+        </div>
+        <div class="panel">
+          <span class="kicker">والكفاءات</span>
+          <h3>الشباب يهاجر أو يقعد</h3>
+          <p>في الجنوب مصمّمون ومدرّسون ومبرمجون قادرون على العمل عن بُعد — ولا يجدون مكانًا يعرّفون فيه عن أنفسهم.</p>
+        </div>
+      </div>
+
+      <p class="lede muted">جنوبنا ما بيصنع لهم شغل. بيصنع لهم <strong>ظهور</strong>. وهذا الفرق كله.</p>
+
+      <aside class="script">
+        <div class="head"><span>التعليق الصوتي</span><span class="dur">٣٠ ثانية</span></div>
+        <p>المشكلة التي نعالجها بسيطة وقديمة: صاحب المحل في الجنوب موجود وعمله جيّد، لكن لا أحد يعرف كيف يصل إليه. سؤال «من يبيع» أو «من يصلّح» ينتقل من فم إلى فم ولا يخرج من حدود الحي. فيبقى الرزق محدودًا بالمسافة، وتبقى الكفاءات القادرة على العمل عن بُعد بلا مكان تعرّف فيه عن نفسها. جنوبنا لا يبيع بالنيابة عنهم — بل يمنحهم ظهورًا.</p>
+      </aside>
+    </section>
+
+    <!-- 03 ---------------------------------------------------------------- -->
+    <section class="slide" id="s3">
+      <div class="eyebrow"><span class="num">٠٣</span><span>ما هو</span></div>
+
+      <h2>ثلاثة أدلة في موقع واحد</h2>
+
+      <div class="cols three">
+        <div class="panel">
+          <span class="kicker">الدليل الأول</span>
+          <h3>الأعمال</h3>
+          <p>المحل أو المؤسسة: الاسم، الفئة، البلدة، الوصف، رقم الواتساب، الصور، ساعات العمل، وحسابات التواصل. ١٥ فئة، من المطاعم إلى الزراعة والحرف والتقنية.</p>
+        </div>
+        <div class="panel">
+          <span class="kicker">الدليل الثاني</span>
+          <h3>المنتجات</h3>
+          <p>كل نشاط يعرض منتجاته بصورة وسعر. هذه أكثر صفحة قابلة للمشاركة في الموقع: صورة وسعر يصلان بضغطة واحدة على واتساب.</p>
+        </div>
+        <div class="panel">
+          <span class="kicker">الدليل الثالث</span>
+          <h3>المواهب والكفاءات</h3>
+          <p>الشخص نفسه: مهاراته، خبرته، سيرته الذاتية، وجهوزيته للعمل عن بعد. ١٠ مجالات مهارات.</p>
+        </div>
+      </div>
+
+      <p class="lede">الموقع بالعربية أولًا واتجاهه من اليمين لليسار، مع نسخة إنكليزية كاملة — لأن جزءًا من جمهورنا في الاغتراب.</p>
+
+      <aside class="script">
+        <div class="head"><span>التعليق الصوتي</span><span class="dur">٣٥ ثانية</span></div>
+        <p>يضمّ الموقع ثلاثة أدلّة. الأول للأعمال: المحل، وفئته، وبلدته، وصوره، ورقم واتسابه — خمس عشرة فئة تمتدّ من المطاعم إلى الزراعة والحرف والتقنية. والثاني للمنتجات: كل نشاط يعرض منتجاته بصورة وسعر، وهذه أهمّ صفحة عندنا لأنها ما يشاركه الناس فعلًا. والثالث للمواهب: الشخص نفسه، مهاراته وسيرته الذاتية وجهوزيته للعمل عن بُعد. وكل ذلك بالعربية أولًا، مع نسخة إنكليزية كاملة للمغتربين.</p>
+      </aside>
+    </section>
+
+    <!-- 04 ---------------------------------------------------------------- -->
+    <section class="slide tinted" id="s4">
+      <div class="eyebrow"><span class="num">٠٤</span><span>كيف يعمل</span></div>
+
+      <h2>لا شيء يُنشر قبل أن نراجعه</h2>
+
+      <div class="pipeline">
+        <div class="stage">
+          <b>يسجّل صاحب العمل</b>
+          <span>برقم هاتفه ورمز تحقق. لا كلمة سر، لا بريد إلكتروني.</span>
+        </div>
+        <div class="stage gate">
+          <b>يراجع الفريق</b>
+          <span>موافقة أو رفض مع سبب. النشاط قيد المراجعة غير ظاهر للعالم إطلاقًا — لا في البحث ولا برابطه المباشر.</span>
+        </div>
+        <div class="stage live">
+          <b>يُنشر</b>
+          <span>يصير له صفحة عامة، ورابط يصلح للمشاركة، ومكان في خريطة الموقع لمحركات البحث.</span>
+        </div>
+      </div>
+
+      <div class="cols">
+        <div class="panel">
+          <span class="kicker">الثقة</span>
+          <p>المراجعة ليست بطئًا إداريًا — هي المنتج. ودليل بلا مراجعة يتحوّل إلى ساحة للإعلانات المزيّفة، فلا يستفيد منه صاحب المحل ولا الزبون.</p>
+        </div>
+        <div class="panel">
+          <span class="kicker">الخصوصية</span>
+          <p>هوية صاحب الحساب — اسمه القانوني، سجلّه، محل سكنه — محفوظة على حسابه ولا تُنشر في أي صفحة عامة. الظاهر للناس هو المحل، لا الشخص.</p>
+        </div>
+      </div>
+
+      <aside class="script">
+        <div class="head"><span>التعليق الصوتي</span><span class="dur">٣٠ ثانية</span></div>
+        <p>الطريق واضح: صاحب العمل يسجّل برقم هاتفه ورمز تحقّق، بلا كلمة سر ولا بريد إلكتروني. ثم يراجع الفريق طلبه فيوافق أو يرفض مع ذكر السبب. وقبل الموافقة يكون النشاط مخفيًا تمامًا، لا في البحث ولا حتى عبر رابطه المباشر. فالمراجعة هي المنتج نفسه، لأن دليلًا بلا مراجعة يتحوّل إلى ساحة للإعلانات المزيّفة. أما هوية صاحب الحساب — اسمه ومحل سكنه — فمحفوظة عندنا ولا تُنشر أبدًا. ما يظهر للناس هو المحل، لا الشخص.</p>
+      </aside>
+    </section>
+
+    <!-- 05 ---------------------------------------------------------------- -->
+    <section class="slide" id="s5">
+      <div class="eyebrow"><span class="num">٠٥</span><span>أين نحن اليوم</span></div>
+
+      <h2>الموقع يعمل. الأرقام التالية حقيقية، لا وعود.</h2>
+
+      <div class="figures">
+        <p class="fig"><b>١٥</b><span>فئة عمل</span></p>
+        <p class="fig"><b>٧</b><span>أقضية في محافظتَي الجنوب والنبطية</span></p>
+        <p class="fig"><b>١٠</b><span>مجالات مهارات للمواهب</span></p>
+        <p class="fig"><b>١٩٣</b><span>اختبارًا آليًا يمنع أي تسريب للبيانات</span></p>
+        <p class="fig"><b>٢</b><span>بيئتان: مباشرة وتجريبية</span></p>
+      </div>
+
+      <div class="cols">
+        <div class="panel">
+          <span class="kicker">جاهز ويعمل</span>
+          <p>تسجيل بالهاتف، معالج إدخال من خمسة حقول، رفع صور، لوحة لصاحب العمل، لوحة إدارة كاملة للمراجعة، بحث وتصفية بالفئة والبلدة، دليل منتجات، دليل مواهب، ونسختان عربية وإنكليزية.</p>
+        </div>
+        <div class="panel">
+          <span class="kicker">أُضيف هذا الأسبوع</span>
+          <p>زر مشاركة على صفحات المنتجات، إدراج المنتجات في خريطة الموقع لمحركات البحث، قياس الزيارات، روابط حساباتنا على التواصل، وزر «بلّغ عن مشكلة» صار متاحًا لأصحاب الأعمال لا للإدارة فقط.</p>
+        </div>
+        <div class="panel">
+          <span class="kicker">ملاحظة صريحة</span>
+          <p>الأعمال المعروضة حاليًا بيانات عرض للتجربة، ليست محالّ حقيقية. أول محل حقيقي هو المقياس الأول للنجاح، وهو ما يلي في هذا العرض.</p>
+        </div>
+      </div>
+
+      <aside class="script">
+        <div class="head"><span>التعليق الصوتي</span><span class="dur">٣٠ ثانية</span></div>
+        <p>أين نحن اليوم؟ الموقع يعمل فعلًا: خمس عشرة فئة، وسبعة أقضية في محافظتَي الجنوب والنبطية، وعشرة مجالات مهارات، ومئة وثلاثة وتسعون اختبارًا آليًا تحمي بيانات الناس مع كل تعديل. وأضفنا هذا الأسبوع زرّ المشاركة على المنتجات، وأدرجناها في خريطة الموقع لمحرّكات البحث، ووصلنا قياس الزيارات وحساباتنا على مواقع التواصل. وأكون صريحًا: الأعمال المعروضة حاليًا بيانات تجربة، وليست محالّ حقيقية — وأول محلّ حقيقي هو المقياس الأول للنجاح.</p>
+      </aside>
+    </section>
+
+    <!-- 06 ---------------------------------------------------------------- -->
+    <section class="slide tinted" id="s6">
+      <div class="eyebrow"><span class="num">٠٦</span><span>الشخصية الأولى</span></div>
+
+      <h2>أبو خليل — وهو من نبني له</h2>
+
+      <div class="persona">
+        <div class="card-person">
+          <span class="who">أبو خليل</span>
+          <dl>
+            <dt>المكان</dt><dd>محل صغير في تبنين</dd>
+            <dt>العمل</dt><dd>مواد غذائية وكبيس بلدي</dd>
+            <dt>الجهاز</dt><dd>هاتف أندرويد، وواتساب</dd>
+            <dt>الخبرة الرقمية</dt><dd>لا يملك بريدًا إلكترونيًا، ولا يثق بالنماذج الطويلة</dd>
+          </dl>
+          <blockquote>«لا أعرف كيف أُنشئ موقعًا. وإن أنشأته، فمن سيراه؟»</blockquote>
+        </div>
+
+        <div class="cols" style="grid-template-columns: 1fr;">
+          <div class="panel">
+            <span class="kicker">ماذا يريد فعلًا</span>
+            <p>ليس «حضورًا رقميًا». يريد أن يرنّ هاتفه. زبون جديد من صيدا، أو طلبية لعرس، أو مغترب يبعث لأهله. هذا هو المقياس عنده، وأي شيء آخر كلام.</p>
+          </div>
+          <div class="panel">
+            <span class="kicker">ماذا يوقفه</span>
+            <p>ثلاثة أشياء: نموذج طويل يخوّفه، خوف من أن يظهر شيء خطأ باسمه أمام الناس، وأنه لا يعرف إن كان هذا كله ينفع أو لا.</p>
+          </div>
+          <div class="panel">
+            <span class="kicker">من يقنعه</span>
+            <p>لا الإعلان ولا الموقع. بل جاره صاحب المحل المجاور، إن فتح له هاتفه وقال: «انظر، ٢٣ شخصًا شاهدوا صفحتي هذا الأسبوع».</p>
+          </div>
+        </div>
+      </div>
+
+      <aside class="script">
+        <div class="head"><span>التعليق الصوتي</span><span class="dur">٣٥ ثانية</span></div>
+        <p>دعوني أعرّفكم بالشخصية الأولى: أبو خليل. يملك محلًّا للمواد الغذائية والكبيس البلدي في تبنين، وجهازه هاتف أندرويد وواتساب، ولا يملك بريدًا إلكترونيًا ولا يثق بالنماذج الطويلة. أبو خليل لا يريد «حضورًا رقميًا» — يريد أن يرنّ هاتفه. زبون جديد من صيدا، أو طلبية لعرس، أو مغترب يبعث لأهله. هذا هو مقياسه، وما عدا ذلك كلام. ومن يقنعه ليس الإعلان، بل جاره حين يفتح له هاتفه ويقول: «انظر، ثلاثة وعشرون شخصًا شاهدوا صفحتي هذا الأسبوع».</p>
+      </aside>
+    </section>
+
+    <!-- 07 ---------------------------------------------------------------- -->
+    <section class="slide" id="s7">
+      <div class="eyebrow"><span class="num">٠٧</span><span>رحلة أبو خليل</span></div>
+
+      <h2>مشيتُ رحلته خطوة بخطوة. تنكسر في الخطوة الأخيرة.</h2>
+
+      <ol class="journey">
+        <li class="holds">سمع عن الدليل من جاره على واتساب <span class="tag ok">يعمل</span></li>
+        <li class="holds">فتح الموقع على هاتفه — الشاشة تسأله من هو: صاحب عمل، أو صاحب مهارة، أو زائر <span class="tag ok">يعمل</span></li>
+        <li class="holds">سجّل برقمه ورمز تحقق. بلا كلمة سر ولا بريد <span class="tag ok">يعمل</span></li>
+        <li class="fixed">خمسة حقول فقط: الاسم، الفئة، البلدة، الوصف، الهاتف — والتفاصيل الإضافية مطويّة تحت زر اختياري <span class="tag ok">حُسِّن</span></li>
+        <li class="holds">رفع شعارًا وصورة، فظهر له شريط: «صار جاهز للإرسال» <span class="tag ok">يعمل</span></li>
+        <li class="holds">أرسل، وراجعناه، ووافقنا. صفحته صارت على الإنترنت <span class="tag ok">يعمل</span></li>
+        <li class="breaks">ثم لا شيء. لا يعرف إن شاهده أحد، ولا كم، ولا من أي بلد. لا سبب يعيده إلى الموقع، ولا شيء يعرضه على جاره <span class="tag gap">الثغرة #٤٦</span></li>
+      </ol>
+
+      <div class="cols">
+        <div class="panel">
+          <span class="kicker">ما نبنيه لأجل ذلك</span>
+          <p>عدّاد مشاهدات يومي لكل صفحة، يظهر لصاحبها في لوحته مع رسم للأربعة عشر يومًا الأخيرة. بلا أي بيانات عن الزائر: لا عنوان، لا كوكيز، لا معرّف — مجرّد رقم صادق. ومشاهدات صاحب المحل نفسه لا تُحسب.</p>
+        </div>
+        <div class="panel">
+          <span class="kicker">ولمن لا يعبّئ نموذجًا أبدًا</span>
+          <p>مسار «اتصل بنا ونحن نُنجزها لك»: رقم واتساب ظاهر على الموقع، ونحن ندخل بياناته بدلًا منه. ثم مسار «الصور أولًا»: يرسل صورًا ورسالة صوتية، ونحن نحوّلها إلى صفحة.</p>
+        </div>
+      </div>
+
+      <aside class="script">
+        <div class="head"><span>التعليق الصوتي</span><span class="dur">٤٥ ثانية</span></div>
+        <p>مشيتُ رحلة أبو خليل خطوة بخطوة على الموقع. سمع من جاره، وفتح الموقع على هاتفه، فسألته الشاشة من هو. سجّل برقمه ورمز تحقّق، وعبّأ خمسة حقول فقط — والتفاصيل الإضافية مطويّة تحت زرّ اختياري — ورفع شعارًا وصورة، فظهر له شريط يقول: «صرتَ جاهزًا للإرسال». أرسل، فراجعناه ووافقنا، وصارت صفحته على الإنترنت. وبعد ذلك؟ لا شيء. لا يعرف إن شاهده أحد، ولا كم، ولا من أي بلد. فالشخص الذي بُني الظهور كلّه من أجله لا يستطيع أن يرى ظهوره. هذا أهمّ اكتشاف في هذا العرض، والحلّ التالي مباشرة: عدّاد مشاهدات يومي في لوحته، بلا أي بيانات عن الزائر.</p>
+      </aside>
+    </section>
+
+    <!-- 08 ---------------------------------------------------------------- -->
+    <section class="slide tinted" id="s8">
+      <div class="eyebrow"><span class="num">٠٨</span><span>الشخصية الثانية</span></div>
+
+      <h2>رنا — من بيروت، وتريد أن تدعم بقصد</h2>
+
+      <div class="persona">
+        <div class="card-person rana">
+          <span class="who">رنا</span>
+          <dl>
+            <dt>المكان</dt><dd>بيروت، وأصلها من الجنوب</dd>
+            <dt>العمل</dt><dd>موظفة، تشتري من الإنترنت باستمرار</dd>
+            <dt>الجهاز</dt><dd>هاتف، وإنستغرام قبل أي شيء</dd>
+            <dt>الدافع</dt><dd>تريد أن يذهب مالها إلى الجنوب، لا إلى متجر كبير</dd>
+          </dl>
+          <blockquote>«أريد أن أشتري من هنا بالتحديد. دلّوني كيف.»</blockquote>
+        </div>
+
+        <div class="cols" style="grid-template-columns: 1fr;">
+          <div class="panel">
+            <span class="kicker">ما تريده فعلًا</span>
+            <p>أن يكون الشراء سهلًا كأي متجر تعرفه، وأن تشعر أنها ساعدت شخصًا باسمه. ثم — وهذا الأهمّ — أن تُخبر صديقاتها.</p>
+          </div>
+          <div class="panel">
+            <span class="kicker">قيمتها الحقيقية للمشروع</span>
+            <p>رنا ليست زبونة فقط. هي قناة التوزيع. زبون واحد راضٍ يشارك صفحة منتج على مجموعة عائلية = عشرات الزيارات المجانية، وهذا أرخص من أي إعلان مدفوع نقدر عليه.</p>
+          </div>
+          <div class="panel">
+            <span class="kicker">ما يخسّرنا إياها</span>
+            <p>ثانيتان من الحيرة. إن لم تجد زرّ مشاركة، أو لم تفهم كيف تشتري، أو لم تستطع أن تحفظ الصفحة لوقت لاحق — أغلقت الصفحة ولم تعد.</p>
+          </div>
+        </div>
+      </div>
+
+      <aside class="script">
+        <div class="head"><span>التعليق الصوتي</span><span class="dur">٣٥ ثانية</span></div>
+        <p>الشخصية الثانية رنا. من بيروت وأصلها من الجنوب، موظفة، تشتري من الإنترنت كل أسبوع، وتصل إلى كل شيء عبر إنستغرام. ترغب رنا أن يذهب مالها إلى الجنوب بقصد، لا إلى متجر كبير. والأهمّ عندنا: رنا ليست زبونة فحسب — هي قناة التوزيع. زبونة واحدة راضية تشارك صفحة منتج في مجموعة عائلية، فتصير عشرات الزيارات بلا مقابل، وهذا أرخص من أي إعلان مدفوع نقدر عليه. والذي يُخسِّرنا رنا ثانيتان من الحيرة: إن لم تجد كيف تشارك أو كيف تشتري، أغلقت الصفحة ولم تعد.</p>
+      </aside>
+    </section>
+
+    <!-- 09 ---------------------------------------------------------------- -->
+    <section class="slide" id="s9">
+      <div class="eyebrow"><span class="num">٠٩</span><span>رحلة رنا</span></div>
+
+      <h2>ورحلتها؟ تصطدم بثلاثة جدران — وقد أسقطنا الأول</h2>
+
+      <ol class="journey">
+        <li class="holds">رأت منشورًا على إنستغرام ودخلت الموقع من الهاتف <span class="tag ok">يعمل</span></li>
+        <li class="holds">فتحت «المنتجات»، ووجدت كبيس زيتون بلدي بسبعة دولارات، بصورة واضحة <span class="tag ok">يعمل</span></li>
+        <li class="fixed">أرادت أن ترسله إلى أختها — وصار على صفحة المنتج زرّ مشاركة يحمل اسمه وسعره <span class="tag ok">أُنجز #٤٣</span></li>
+        <li class="breaks">أرادت أن تشتري — والطريق الوحيد رسالة واتساب تكتبها بنفسها. لا سلّة، ولا طلبية يراها صاحب المحل في لوحته <span class="tag soon">قادم #٣٩</span></li>
+        <li class="breaks">أرادت أن تحفظ الصفحة وتعود إليها لاحقًا — لا مفضّلات <span class="tag gap">ثغرة</span></li>
+        <li class="breaks">أرادت أن تشهد للبائع لتشجّع غيرها — لا شهادات ولا تقييم <span class="tag soon">قادم #٤٨</span></li>
+      </ol>
+
+      <div class="cols">
+        <div class="panel">
+          <span class="kicker">القرار في السلّة</span>
+          <p>ليست تجارة إلكترونية، ولا دفعًا إلكترونيًا. سلّة تُحوَّل إلى طلبية <strong>محفوظة وظاهرة في لوحة صاحب المحل</strong>، ثم يُكمل الحديث على واتساب. والفرق أن الطلبية لا تضيع في محادثة.</p>
+        </div>
+        <div class="panel">
+          <span class="kicker">القرار في الشهادات</span>
+          <p>الزائر يكتب شهادته، وصاحب المحل يقرّر إن كانت تُنشر. فرنا تشهد لمن أحبّت، ولا تدخل على صفحته شكوى علنية تكسر رزقه.</p>
+        </div>
+      </div>
+
+      <aside class="script">
+        <div class="head"><span>التعليق الصوتي</span><span class="dur">٤٥ ثانية</span></div>
+        <p>تصطدم رحلة رنا بثلاثة جدران، أسقطنا أوّلها هذا الأسبوع. رأت منشورًا على إنستغرام، ففتحت المنتجات، فوجدت كبيس زيتون بسبعة دولارات بصورة واضحة، وأرادت أن ترسله إلى أختها — وقد صار على صفحة المنتج زرّ مشاركة يحمل اسمه وسعره. الجدار الثاني: أرادت أن تشتري، والطريق الوحيد رسالة واتساب تكتبها بنفسها. والحلّ القادم سلّة — وأكون واضحًا، ليست تجارة إلكترونية ولا دفعًا إلكترونيًا — سلّة تتحوّل إلى طلبية محفوظة ظاهرة في لوحة صاحب المحل، ثم يكملان الحديث على واتساب، لكنّ الطلبية لا تضيع. والجدار الثالث: أرادت أن تشهد للبائع، ولا وجود للشهادات. والحلّ: الزائر يكتب، وصاحب المحل يقرّر إن كانت تُنشر.</p>
+      </aside>
+    </section>
+
+    <!-- 10 --------------------------------------------------------------- -->
+    <section class="slide tinted" id="s10">
+      <div class="eyebrow"><span class="num">١٠</span><span>الخلاصة من الرحلتين</span></div>
+
+      <h2>الرحلتان تقودان إلى الجملة نفسها</h2>
+
+      <div class="finding">
+        <p class="shout">«٢٣ شخصًا شاهدوا صفحتك هذا الأسبوع.»</p>
+        <p>هذه الجملة هي التي تُرجع أبو خليل إلى الموقع، وتجعله يحدّث صفحته، ويحكي عنها لصاحب المحل المجاور. وهي نفسها التي تُثبت لرنا أن مشاركتها وصلت. مقياس واحد يخدم الاثنين.</p>
+        <p class="muted">ولهذا صار العدّاد اليومي أول ما نبنيه بعد هذا الأسبوع، لا الدفع ولا المدوّنة ولا مولّد الفيديو.</p>
+      </div>
+
+      <div class="cols">
+        <div class="panel">
+          <span class="kicker">المبدأ الأول</span>
+          <p>لا ندّعي ما لا نقيس. نسمّيه «مشاهدات» لا «زوّار»، لأننا لا نحتفظ بمعرّف لأي زائر — فالرقم عدد مشاهدات صادق، والتسمية تقول ذلك.</p>
+        </div>
+        <div class="panel">
+          <span class="kicker">المبدأ الثاني</span>
+          <p>أرخص قناة توزيع عندنا هي أصحاب المحال أنفسهم وزبائنهم الراضون. كل قرار في الخطة يخدم واحدًا من هذين.</p>
+        </div>
+      </div>
+
+      <aside class="script">
+        <div class="head"><span>التعليق الصوتي</span><span class="dur">٣٥ ثانية</span></div>
+        <p>الرحلتان، رحلة أبو خليل ورحلة رنا، تنتهيان إلى الجملة نفسها: «ثلاثة وعشرون شخصًا شاهدوا صفحتك هذا الأسبوع». هذه الجملة هي التي تُعيد أبو خليل إلى الموقع وتدفعه إلى تحديث صفحته والحديث عنها لجاره، وهي نفسها التي تُثبت لرنا أن مشاركتها قد وصلت. مقياس واحد يخدم الاثنين. ولذلك صار العدّاد أول ما نبنيه — قبل الدفع وقبل المدوّنة وقبل مولّد الفيديو. ونسمّيه «مشاهدات» لا «زوّارًا»، لأننا لا نحتفظ بأي معرّف للزائر، والتسمية يجب أن تقول الحقيقة.</p>
+      </aside>
+    </section>
+
+    <!-- 11 --------------------------------------------------------------- -->
+    <section class="slide" id="s11">
+      <div class="eyebrow"><span class="num">١١</span><span>خطة الوصول</span></div>
+
+      <h2>أربع مراحل، مرتّبة بالأثر لا بالسهولة</h2>
+
+      <div class="cols four">
+        <div class="phase done">
+          <div class="head"><b>الأساس</b><span class="tag ok">أُنجز</span></div>
+          <ul>
+            <li>مشاركة المنتجات</li>
+            <li>المنتجات في خريطة الموقع</li>
+            <li>قياس الزيارات</li>
+            <li>روابط حساباتنا</li>
+            <li>«بلّغ عن مشكلة» لأصحاب الأعمال</li>
+          </ul>
+        </div>
+        <div class="phase next">
+          <div class="head"><b>حلقة صاحب العمل</b><span class="tag soon">التالي</span></div>
+          <ul>
+            <li>عدّاد مشاهدات يومي لكل صفحة</li>
+            <li>رسم لآخر ١٤ يومًا في اللوحة</li>
+            <li>لحظة «صرت منشورًا»: لوحة مشاركة جاهزة لواتساب وفيسبوك عند الموافقة</li>
+          </ul>
+        </div>
+        <div class="phase">
+          <div class="head"><b>الطريق المساند والزبون</b></div>
+          <ul>
+            <li>«اتصل بنا ونحن نُنجزها لك» على واتساب</li>
+            <li>شهادات بموافقة صاحب المحل</li>
+            <li>سلّة تصير طلبية في اللوحة</li>
+            <li>مفضّلات بلا حساب</li>
+          </ul>
+        </div>
+        <div class="phase">
+          <div class="head"><b>الوصول</b></div>
+          <ul>
+            <li>مدوّنة وأدلّة — مثلًا «١٠ مواقع عمل عن بعد لشاب من الجنوب»</li>
+            <li>فيديو ترحيب مصوّر احترافيًا</li>
+            <li>دروس: تصوير، مونتاج، نشر</li>
+            <li>مولّد فيديو للمنتج: صور وسعر تصير مقطعًا للنشر</li>
+          </ul>
+        </div>
+      </div>
+
+      <p class="lede muted">الترتيب هذا سيُراجَع بعد أول شهر من الأرقام — لأن الأرقام تحسم النقاش أفضل من الذوق.</p>
+
+      <aside class="script">
+        <div class="head"><span>التعليق الصوتي</span><span class="dur">٤٠ ثانية</span></div>
+        <p>الخطة أربع مراحل، مرتّبة بالأثر لا بالسهولة. الأساس أنجزناه: مشاركة المنتجات، وإدراجها في محرّكات البحث، وقياس الزيارات، وحساباتنا على التواصل، وزرّ التبليغ عن مشكلة. ويليه مباشرة حلقة صاحب العمل: عدّاد المشاهدات، ورسم لآخر أربعة عشر يومًا، ولحظة «صرتَ منشورًا» — لوحة مشاركة جاهزة تظهر له حين نوافق عليه. ثم الطريق المساند: واتساب لمن لا يعبّئ نموذجًا، والشهادات، والسلّة، والمفضّلات. وآخر مرحلة هي الوصول: المدوّنة، وفيديو الترحيب المصوّر، والدروس، ومولّد فيديو المنتج. وسنراجع هذا الترتيب بعد أول شهر من الأرقام.</p>
+      </aside>
+    </section>
+
+    <!-- 12 --------------------------------------------------------------- -->
+    <section class="slide end" id="s12">
+      <div class="eyebrow" style="justify-content: center;"><span class="num">١٢</span><span>ما نحتاجه منكم</span></div>
+
+      <h2>ستة أشياء، وكل واحد منها يفتح شيئًا جاهزًا بانتظاره</h2>
+
+      <ul class="asks" style="text-align: start;">
+        <li><i>١</i><span><b>حسابات إنستغرام وفيسبوك وتيك توك</b><span>الروابط في الموقع مبنية ومختبَرة، ولا تظهر إلا عند وضع الرابط. أعطونا الحسابات وتظهر في نفس اليوم.</span></span></li>
+        <li><i>٢</i><span><b>معرّف Google Analytics</b><span>القياس مبنيّ وخامل بانتظار المعرّف. ومن دونه نسير على التخمين.</span></span></li>
+        <li><i>٣</i><span><b>ملف الشعار</b><span>بصيغة PNG أو SVG. الصورة الملصقة في المحادثة لا تُحفظ في المشروع، فالرأس ما زال يعرض أيقونة مؤقتة.</span></span></li>
+        <li><i>٤</i><span><b>تسجيل الدكتور حسام</b><span>مكان الفيديو جاهز على الصفحة الرئيسية، وفيه مقطع مؤقت اليوم. التسجيل الحقيقي يستبدله بسطر واحد.</span></span></li>
+        <li><i>٥</i><span><b>قرار الاسم</b><span>«جنوبنا» أم «دليل الجنوب»؟ الشعار يقول جنوبنا، والموقع يقول دليل الجنوب. الاثنان لا يجتمعان.</span></span></li>
+        <li><i>٦</i><span><b>رقم واتساب للدعم</b><span>يفتح مسار «اتصل بنا ونحن نُنجزها لك» — وهو على الأغلب أقوى تحسين متاح لجمهور أبو خليل، بأقلّ قدر من الكود.</span></span></li>
+      </ul>
+
+      <p class="lede" style="margin-inline: auto;">أول محلّ حقيقي منشور، وأول صاحب محلّ يفتح هاتفه ويقول «انظر كم شخصًا شاهدني» — هذا مقياس النجاح، وكل ما سبق موجود لأجله.</p>
+
+      <aside class="script" style="text-align: start; margin-inline: auto;">
+        <div class="head"><span>التعليق الصوتي</span><span class="dur">٣٥ ثانية</span></div>
+        <p>وأختم بستة أمور نحتاجها منكم، كلٌّ منها يفتح شيئًا جاهزًا في الانتظار. أولًا حسابات إنستغرام وفيسبوك وتيك توك — الروابط مبنية ومختبَرة وتظهر في اليوم نفسه. ثانيًا معرّف التحليلات، لأننا من دونه نسير على التخمين. ثالثًا ملف الشعار بصيغة ملف، لأن الصورة الملصقة في المحادثة لا تُحفظ. رابعًا تسجيل الدكتور حسام، ومكانه جاهز في الصفحة الرئيسية. خامسًا قرار الاسم: جنوبنا أم دليل الجنوب. وسادسًا رقم واتساب للدعم، وهو على الأغلب أقوى تحسين متاح لجمهور أبو خليل بأقلّ قدر من الكود. ومقياس النجاح عندي واحد: أول صاحب محلّ حقيقي يفتح هاتفه ويقول: «انظر كم شخصًا شاهدني».</p>
+      </aside>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  (function () {
+    var root = document.getElementById('root')
+    var toggle = document.getElementById('toggle')
+
+    toggle.addEventListener('click', function () {
+      var off = root.classList.toggle('scripts-off')
+      toggle.textContent = off ? 'إظهار نص التعليق' : 'إخفاء نص التعليق'
+      toggle.setAttribute('aria-pressed', String(off))
+    })
+
+    // The print stylesheet lays each slide out as one 16:9 page, so "print"
+    // here is really "save as PDF" — which is how this gets forwarded on.
+    document.getElementById('print').addEventListener('click', function () {
+      window.print()
+    })
+
+    // Arrow keys move between slides — the deck is meant to be driven while
+    // recording, and reaching for the scrollbar shows up on camera.
+    var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'))
+
+    document.addEventListener('keydown', function (event) {
+      if (event.metaKey || event.ctrlKey || event.altKey) return
+      var forward = event.key === 'ArrowDown' || event.key === 'PageDown' || event.key === 'ArrowLeft'
+      var back = event.key === 'ArrowUp' || event.key === 'PageUp' || event.key === 'ArrowRight'
+      if (!forward && !back) return
+
+      var target = document.activeElement
+      if (target && /^(input|textarea|select)$/i.test(target.tagName)) return
+
+      event.preventDefault()
+
+      // The slide whose top is closest to the viewport top is the current one.
+      var current = 0
+      var best = Infinity
+      slides.forEach(function (slide, index) {
+        var distance = Math.abs(slide.getBoundingClientRect().top)
+        if (distance < best) {
+          best = distance
+          current = index
+        }
+      })
+
+      var next = Math.min(slides.length - 1, Math.max(0, current + (forward ? 1 : -1)))
+      slides[next].scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  })()
+</script>
+
+</body>
+</html>

@@ -170,3 +170,37 @@ def test_static_files_are_served_with_their_real_content(spa_client: TestClient)
     assert response.status_code == 200
     assert response.content.startswith(b"<svg")
     assert "svg" in response.headers["content-type"]
+
+
+def test_standalone_page_is_reachable_without_its_extension(spa_client: TestClient) -> None:
+    """The presentation is a plain file in ``public/``, and the link people
+    forward is ``/presentation``. Both spellings must reach the same document
+    rather than falling through to the SPA shell."""
+    with_extension = spa_client.get("/presentation.html")
+    without = spa_client.get("/presentation")
+
+    assert with_extension.status_code == 200
+    assert without.status_code == 200
+    assert without.content == with_extension.content
+    # The SPA shell would have this; the deck is its own document.
+    assert '<div id="root">' not in without.text
+
+
+def test_extensionless_paths_without_a_file_still_serve_the_spa(spa_client: TestClient) -> None:
+    """The ``.html`` lookup is a fallback, not a redirect: a client-side route
+    that happens to have no file behind it must keep reaching the app."""
+    response = spa_client.get("/businesses")
+
+    assert response.status_code == 200
+    assert '<div id="root">' in response.text
+
+
+def test_a_traversal_path_cannot_escape_the_build_directory(spa_client: TestClient) -> None:
+    """Both lookups resolve the path and then check containment. A request
+    that climbs out of ``dist`` gets the SPA shell, never a file from the
+    image — the API's own source sits a few directories up from the build."""
+    for path in ("/../backend/app/main.py", "/../../etc/passwd", "/..%2f..%2fetc%2fpasswd"):
+        response = spa_client.get(path)
+        assert response.status_code in {200, 404}, path
+        assert "create_app" not in response.text, path
+        assert "root:" not in response.text, path
