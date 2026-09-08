@@ -51,13 +51,6 @@ export function HomePage() {
     .sort((a, b) => b.district.business_count - a.district.business_count)
     .slice(0, 6)
 
-  // Busiest first, and only a handful: these are a shortcut in the hero, not
-  // the full grid further down the page.
-  const topCategories = (categories.data ?? [])
-    .slice()
-    .sort((a, b) => b.business_count - a.business_count)
-    .slice(0, 6)
-
   return (
     <>
       {/* The hero is a split, not a cover: the words on the reading-start
@@ -69,8 +62,14 @@ export function HomePage() {
           decoration above the fold, and a visitor's first screen said nothing
           about what the site is or what they can do here. */}
       <section className="border-b border-ink-100 bg-gradient-to-b from-sand-100 to-sand-50">
-        <div className="container-page grid items-center gap-10 py-10 sm:py-14 lg:grid-cols-2 lg:gap-14 lg:py-20">
-          <div>
+        {/* One grid, three children, and `order` doing the work: on a phone
+            the copy comes first, then the two choices, and the video last —
+            the choices are what someone is here to make, and a 16:9 player
+            above them would push both below the fold. From `lg` up the copy
+            and the player share the first row and the cards take the whole
+            width of the second, which is the only way they are big. */}
+        <div className="container-page grid items-center gap-10 py-10 sm:py-14 lg:grid-cols-2 lg:gap-x-14 lg:py-20">
+          <div className="order-1">
             <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-clay-700 shadow-card">
               <ShieldCheck className="h-4 w-4" aria-hidden="true" />
               {t('home.reviewBadge')}
@@ -82,70 +81,79 @@ export function HomePage() {
             <p className="mt-4 max-w-xl text-lg leading-relaxed text-ink-500">
               {t('home.heroSubtitle')}
             </p>
-
-            {/* The two reasons anybody is on this page, in the visitor's own
-                words rather than ours — offering something, or looking for
-                something. Which of the two someone is decides the whole rest
-                of their visit, so the page asks it first and asks it once. */}
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <Button asChild size="lg">
-                <Link to={isAuthenticated ? '/dashboard/businesses/new' : '/login'}>
-                  <Store className="h-5 w-5" aria-hidden="true" />
-                  {t('home.actionOffer')}
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="lg">
-                <Link to="/products">
-                  <ShoppingBag className="h-5 w-5" aria-hidden="true" />
-                  {t('home.actionBrowse')}
-                </Link>
-              </Button>
-            </div>
-
-            {/* The busiest categories, as a shortcut past both buttons for
-                someone who already knows what they came for. Rendered only
-                once the taxonomy has loaded: a row of empty pills that then
-                shift the buttons is worse than a row that simply arrives. */}
-            {topCategories.length > 0 ? (
-              <nav className="mt-7" aria-label={t('home.topCategoriesLabel')}>
-                <ul className="flex flex-wrap gap-2">
-                  {topCategories.map((category) => (
-                    <li key={category.id}>
-                      <Link
-                        to={`/businesses?category=${encodeURIComponent(category.slug)}`}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-ink-100 bg-white px-4 py-2 text-sm font-semibold shadow-card transition-colors hover:border-clay-300 hover:text-clay-600"
-                      >
-                        {category.name_ar}
-                        <ArrowLeft className="h-3.5 w-3.5 ltr:rotate-180" aria-hidden="true" />
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </nav>
-            ) : null}
           </div>
 
-          <div>
+          <div className="order-3 lg:order-2">
             <WelcomeVideoPlayer />
             <p className="mt-3 text-center text-sm font-semibold text-ink-500">
               {t('home.videoHeading')}
             </p>
           </div>
+
+          {/* The two reasons anybody is on this page, in the visitor's own
+              words rather than ours — offering something, or looking for
+              something. Which of the two someone is decides the whole rest of
+              their visit, so the page asks it first and asks it once.
+
+              Cards rather than buttons, and identical weight: these are two
+              halves of one question, not a call to action and its
+              afterthought. Each is one whole-card target, laid out sideways so
+              the width goes into the words instead of into empty card.
+
+              Kept to the copy column rather than stretched across the row: as
+              one pair sitting together under the heading they read as two
+              answers to the same question, where two slabs a page apart read
+              as two unrelated banners. */}
+          <ul className="order-2 grid max-w-2xl gap-4 sm:grid-cols-2 lg:order-3 lg:col-start-1">
+            {[
+              {
+                key: 'offer' as const,
+                icon: Store,
+                href: isAuthenticated ? '/dashboard/businesses/new' : '/login',
+                titleKey: 'home.actionOffer' as const,
+                descriptionKey: 'home.actionOfferDescription' as const,
+              },
+              {
+                key: 'browse' as const,
+                icon: ShoppingBag,
+                href: '/products',
+                titleKey: 'home.actionBrowse' as const,
+                descriptionKey: 'home.actionBrowseDescription' as const,
+              },
+            ].map((action) => {
+              const Icon = action.icon
+              return (
+                <li key={action.key}>
+                  <Link
+                    to={action.href}
+                    className="group flex h-full items-start gap-4 rounded-2xl border-2 border-ink-100 bg-white p-5 text-start shadow-card transition-all hover:-translate-y-0.5 hover:border-clay-300 hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 focus-visible:ring-offset-2"
+                  >
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-sand-100 text-clay-600 transition-colors group-hover:bg-clay-500 group-hover:text-white">
+                      <Icon className="h-6 w-6" aria-hidden="true" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-bold leading-snug text-ink-900 sm:text-lg">
+                        {t(action.titleKey)}
+                      </span>
+                      <span className="mt-1.5 block text-sm leading-relaxed text-ink-500">
+                        {t(action.descriptionKey)}
+                      </span>
+                      <span className="mt-3 flex items-center gap-1.5 text-sm font-semibold text-clay-600">
+                        {t('onboarding.choose')}
+                        <ArrowLeft className="h-4 w-4 ltr:rotate-180" aria-hidden="true" />
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
         </div>
       </section>
 
-      {/* Under the hero, permanently. These three cards are the homepage's
-          navigation for anyone not confident online, and navigation you see
-          once is not navigation. They overlap the hero's two buttons on
-          purpose: the buttons are the fast path, these name the third
-          audience — someone offering a skill rather than a shop — and spell
-          out what signing up involves before asking for a phone number. */}
-      <AudienceChooser isAuthenticated={isAuthenticated} />
-
-      {/* The four words carry the weight of the whole project, and they were
-          set in the same small type as a filter label. On the mark's deep
-          green, given room and a gold rule, they read as a statement rather
-          than a decoration. */}
+      {/* Straight under the hero, against it. The four words carry the weight
+          of the whole project, so the mark's deep green closes the first
+          screen rather than turning up somewhere down the page. */}
       <section
         className="border-y-4 border-wheat-500 bg-brand-700 py-10 sm:py-14"
         aria-label={t('home.sloganTitle')}
@@ -171,6 +179,14 @@ export function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* These three cards are the homepage's navigation for anyone not
+          confident online, and navigation you see once is not navigation.
+          They overlap the hero's two cards on purpose: the hero asks the
+          question in two halves, these name the third audience — someone
+          offering a skill rather than a shop — and spell out what signing up
+          involves before anyone is asked for a phone number. */}
+      <AudienceChooser isAuthenticated={isAuthenticated} />
 
       {/* The video used to have a section of its own here. It is in the hero
           now, and one recording twice on one page is one too many. */}
