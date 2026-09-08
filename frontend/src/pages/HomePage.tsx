@@ -97,28 +97,27 @@ export function HomePage() {
 
               Cards rather than buttons, and identical weight: these are two
               halves of one question, not a call to action and its
-              afterthought. Each is one whole-card target, laid out sideways so
-              the width goes into the words instead of into empty card.
+              afterthought. Each is one whole-card target, and it carries the
+              choice and nothing else — a line of explanation under each was
+              answering a question nobody had yet asked.
 
-              Kept to the copy column rather than stretched across the row: as
-              one pair sitting together under the heading they read as two
-              answers to the same question, where two slabs a page apart read
-              as two unrelated banners. */}
-          <ul className="order-2 grid max-w-2xl gap-4 sm:grid-cols-2 lg:order-3 lg:col-start-1">
+              Centred as a pair across the row rather than tucked under one
+              column: with only a line of type in each, two cards hugging the
+              heading looked like an accident, and the row they sit under is
+              the full width of the hero. */}
+          <ul className="order-2 mx-auto grid w-full max-w-2xl gap-4 sm:grid-cols-2 lg:order-3 lg:col-span-2">
             {[
               {
                 key: 'offer' as const,
                 icon: Store,
                 href: isAuthenticated ? '/dashboard/businesses/new' : '/login',
                 titleKey: 'home.actionOffer' as const,
-                descriptionKey: 'home.actionOfferDescription' as const,
               },
               {
                 key: 'browse' as const,
                 icon: ShoppingBag,
                 href: '/products',
                 titleKey: 'home.actionBrowse' as const,
-                descriptionKey: 'home.actionBrowseDescription' as const,
               },
             ].map((action) => {
               const Icon = action.icon
@@ -126,22 +125,17 @@ export function HomePage() {
                 <li key={action.key}>
                   <Link
                     to={action.href}
-                    className="group flex h-full items-start gap-4 rounded-2xl border-2 border-ink-100 bg-white p-5 text-start shadow-card transition-all hover:-translate-y-0.5 hover:border-clay-300 hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 focus-visible:ring-offset-2"
+                    className="group flex h-full flex-col items-center gap-3 rounded-2xl border-2 border-ink-100 bg-white p-6 text-center shadow-card transition-all hover:-translate-y-0.5 hover:border-clay-300 hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 focus-visible:ring-offset-2"
                   >
-                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-sand-100 text-clay-600 transition-colors group-hover:bg-clay-500 group-hover:text-white">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-sand-100 text-clay-600 transition-colors group-hover:bg-clay-500 group-hover:text-white">
                       <Icon className="h-6 w-6" aria-hidden="true" />
                     </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block font-bold leading-snug text-ink-900 sm:text-lg">
-                        {t(action.titleKey)}
-                      </span>
-                      <span className="mt-1.5 block text-sm leading-relaxed text-ink-500">
-                        {t(action.descriptionKey)}
-                      </span>
-                      <span className="mt-3 flex items-center gap-1.5 text-sm font-semibold text-clay-600">
-                        {t('onboarding.choose')}
-                        <ArrowLeft className="h-4 w-4 ltr:rotate-180" aria-hidden="true" />
-                      </span>
+                    <span className="text-lg font-bold leading-snug text-ink-900">
+                      {t(action.titleKey)}
+                    </span>
+                    <span className="flex items-center gap-1.5 text-sm font-semibold text-clay-600">
+                      {t('onboarding.choose')}
+                      <ArrowLeft className="h-4 w-4 ltr:rotate-180" aria-hidden="true" />
                     </span>
                   </Link>
                 </li>
