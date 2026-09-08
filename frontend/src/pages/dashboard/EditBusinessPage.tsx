@@ -14,6 +14,7 @@ import { LocationForm } from '@/features/businesses/LocationForm'
 import { SocialForm } from '@/features/businesses/SocialForm'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
 import { ImageManager } from '@/features/images/ImageManager'
+import { OwnerTestimonials } from '@/features/testimonials/OwnerTestimonials'
 import { useSeo } from '@/hooks/useSeo'
 import { useT, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
@@ -26,6 +27,7 @@ const TABS: { value: string; labelKey: TranslationKey }[] = [
   { value: 'location', labelKey: 'wizard.stepLocation' },
   { value: 'images', labelKey: 'wizard.stepImages' },
   { value: 'social', labelKey: 'wizard.stepSocial' },
+  { value: 'testimonials', labelKey: 'wizard.stepTestimonials' },
 ]
 
 export function EditBusinessPage() {
@@ -185,6 +187,9 @@ export function EditBusinessPage() {
                 pending={update.isPending}
                 onSubmit={(payload) => update.mutate(payload)}
               />
+            </Tabs.Content>
+            <Tabs.Content value="testimonials">
+              <OwnerTestimonials businessId={data.id} />
             </Tabs.Content>
           </CardBody>
         </Tabs.Root>

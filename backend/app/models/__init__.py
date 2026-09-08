@@ -19,6 +19,7 @@ from app.models.enums import (
     LocationType,
     ModerationActionType,
     SocialPlatform,
+    TestimonialStatus,
     UserRole,
     ViewSubject,
 )
@@ -30,6 +31,7 @@ from app.models.talent import (
     TalentSkill,
 )
 from app.models.taxonomy import Category, Location
+from app.models.testimonial import Testimonial
 from app.models.user import User
 from app.models.verification import OwnerVerificationDocument
 
@@ -61,6 +63,8 @@ __all__ = [
     "TalentModerationAction",
     "TalentProfile",
     "TalentSkill",
+    "Testimonial",
+    "TestimonialStatus",
     "User",
     "UserRole",
     "ViewSubject",

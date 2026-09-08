@@ -18,6 +18,8 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
 import { ShareButton } from '@/components/ui/ShareButton'
+import { TestimonialForm } from '@/features/testimonials/TestimonialForm'
+import { TestimonialList } from '@/features/testimonials/TestimonialList'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { publicBusinessApi } from '@/services/api/endpoints'
@@ -303,6 +305,13 @@ export function BusinessProfilePage() {
                 </div>
               </section>
             ) : null}
+
+            {/* Always rendered, unlike the gallery and item sections above:
+                the form is the point, and hiding the whole block when a
+                listing has no testimonials yet would mean the first person
+                who wanted to leave one had nowhere to do it. */}
+            <TestimonialList testimonials={data.testimonials} />
+            <TestimonialForm slug={data.slug} />
           </div>
 
           <aside className="space-y-4">

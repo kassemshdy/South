@@ -12,6 +12,7 @@ from app.models.enums import BusinessStatus, ImageKind, SocialPlatform
 from app.schemas.common import ORMModel
 from app.schemas.item import BusinessItemOut
 from app.schemas.taxonomy import CategoryOut, LocationOut
+from app.schemas.testimonial import TestimonialOut
 
 OptionalPhone = Annotated[str | None, Field(default=None, max_length=25)]
 
@@ -79,6 +80,10 @@ class BusinessDetailOut(BusinessSummaryOut):
     images: list[BusinessImageOut] = Field(default_factory=list)
     social_links: list[SocialLinkOut] = Field(default_factory=list)
     items: list[BusinessItemOut] = Field(default_factory=list)
+    # Owner-selected praise, never a review. Only APPROVED ones ever arrive
+    # here -- see business_detail's docstring for why they are passed in
+    # rather than read off the relationship.
+    testimonials: list[TestimonialOut] = Field(default_factory=list)
     approved_at: datetime | None = None
 
 
