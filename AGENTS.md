@@ -61,6 +61,53 @@ if the suite fails on stale state rather than a real regression.
 and fails the build if it finds one. That test is the actual guard — treat any Arabic
 literal outside `locales/`, `scripts/data/`, or a fixture file as a bug, not a style nit.
 
+## Agent Configuration
+
+Everything an agent needs to work here is version-controlled, so it is
+reviewed like code and improves when someone fixes it rather than living in
+one person's head.
+
+| Path | What it is |
+|---|---|
+| `AGENTS.md` (this file) | The source of truth. `CLAUDE.md` imports it; editor-specific files should too, never duplicate it. |
+| `REVIEW.md` | What a review looks for, in tiers. The blocking tier is the Security Musts below, each with the test that pins it. |
+| `.claude/skills/verify-gate/` | The full local gate, plus the traps that have actually cost time here. |
+| `.claude/skills/steward/` | How to drive a PR on this repo: branch base, the three CI jobs, red checks, review comments. |
+| `.claude/skills/ship-release/` | Promoting `develop-claude` to `master-claude`, with the pre-flight that establishes no data is lost. |
+| `.claude/commands/verify.md` | Slash command; it invokes the skill rather than restating it, so there is one copy to keep correct. |
+| `.claude/settings.json` | Pre-approved tools. Read-only commands and MCP reads are allowed; anything that writes still prompts. |
+| `docs/MCP.md` | The agent-facing MCP server: read the whole directory, write only to the ticket board. |
+
+**When a mistake repeats, fix the artifact rather than the instance.** A skill
+or a line in this file is worth more than a correction in one conversation,
+which is gone next session. Three of the traps in `verify-gate` are there
+because an agent hit them in this repo, not because they were predicted.
+
+### Patterns borrowed from elsewhere
+
+The skills here follow the open Agent Skills format and take their structure
+from [getsentry/skills](https://github.com/getsentry/skills), which is worth
+reading before writing a new one. Borrowed deliberately:
+
+- **`SKILL.md` is a router, not an encyclopedia.** Checklists, tables and
+  commands in the skill; deep knowledge in `references/`, and every reference
+  named with an explicit "open when ..." reason so it is fetched on purpose
+  rather than by default.
+- **A `SPEC.md` next to each skill states its maintenance contract** — what
+  the skill must stay in step with, and what would make it wrong. These files
+  describe commands and CI jobs, so they go stale silently; the contract says
+  where to look.
+- **A description written for routing**, dense with the words someone would
+  actually use, because it is the only thing read when deciding whether the
+  skill applies.
+- **An explicit stopping condition on any loop.** `steward` takes its
+  state-to-action table and its two-attempts-then-ask rule from that repo's
+  `iterate-pr`.
+
+Not adopted: its Django access and performance review skills, which do not
+apply — this backend is FastAPI and SQLAlchemy, so a Django-shaped review
+would mislead rather than help.
+
 ## Security Musts
 
 - **Never commit secrets.** `SECRET_KEY`, `ADMIN_PASSWORD`, Twilio credentials, and the
@@ -100,6 +147,33 @@ service in Railway — `SENTRY_DSN` on `api`/`api-develop`, `VITE_SENTRY_DSN` on
 never leave the machine and the test suite never touches the network.
 `SENTRY_RELEASE` is set to `${{RAILWAY_GIT_COMMIT_SHA}}` so an error points at the
 deploy that introduced it.
+
+## Agent-Facing MCP Server
+
+`mcp-server/` exposes the directory over MCP: **read all of it, write only to
+the support ticket board.** Full detail in `docs/MCP.md`; the parts that
+constrain how you work on it:
+
+- It is an **HTTP client of the API**, holds no database connection, and
+  imports nothing from `backend/app`. Writes therefore land on a service, which
+  calls a repository — there is no second path into the database, and no
+  database credential to leak. Keep it that way: a direct session here would
+  bypass every rule the service layer enforces.
+- It has **its own virtualenv**, because `mcp` requires `pydantic>=2.12` and
+  the backend pins `pydantic==2.10.4`. Never install `mcp` into
+  `backend/.venv`.
+- **Owner identity is redacted in `south_mcp/redaction.py`** before any tool
+  returns. `AdminBusinessOut`/`AdminTalentOut` carry `owner_identity` and the
+  owner's personal phone for a human reviewer; an agent never needs them, and
+  ticket text is written by other people. Widen `REDACTED_KEYS` rather than
+  loosening the strip — `mcp-server/tests/test_redaction.py` is the guard,
+  the counterpart to `backend/tests/test_identity.py`.
+- **No tool moderates a listing or reads a personal document.** Approving,
+  rejecting, suspending and the verification/CV downloads are deliberately
+  absent, and a test asserts no tool name matches them.
+- `update_ticket` is **one** tool that routes `status` to `/move` and
+  everything else to the edit route, because the edit route silently ignores a
+  status and answers 200.
 
 ## Optional Integrations Are Inert Without Their Variable
 

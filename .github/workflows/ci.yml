@@ -93,16 +93,56 @@ jobs:
         working-directory: frontend
         run: npm run build
 
+  mcp:
+    name: MCP server (pytest, ruff, mypy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # Its own virtualenv, not the backend's: mcp requires pydantic>=2.12
+      # while the backend pins 2.10.4, so a shared environment would upgrade
+      # the API's own validation library. See docs/MCP.md.
+      - name: Install dependencies
+        working-directory: mcp-server
+        run: |
+          python -m venv .venv
+          ./.venv/bin/pip install --no-cache-dir -r requirements.txt
+          ./.venv/bin/pip install --no-cache-dir ruff==0.8.4 mypy==1.14.0
+
+      # No database and no API: the suite drives the tools through a mock
+      # transport, so it needs no service container and no credentials.
+      - name: pytest
+        working-directory: mcp-server
+        run: ./.venv/bin/pytest tests -q
+
+      - name: ruff
+        if: always()
+        working-directory: mcp-server
+        run: ./.venv/bin/ruff check .
+
+      - name: mypy
+        if: always()
+        working-directory: mcp-server
+        run: ./.venv/bin/mypy south_mcp
+
   comment:
     name: Post PR status comment
-    needs: [backend, frontend]
+    needs: [backend, frontend, mcp]
     if: always() && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/github-script@v7
         with:
           script: |
-            const results = { backend: '${{ needs.backend.result }}', frontend: '${{ needs.frontend.result }}' }
+            const results = {
+              backend: '${{ needs.backend.result }}',
+              frontend: '${{ needs.frontend.result }}',
+              mcp: '${{ needs.mcp.result }}',
+            }
             const icon = (r) => (r === 'success' ? '✅' : r === 'skipped' ? '⏭️' : '❌')
             const allGreen = Object.values(results).every((r) => r === 'success')
             const marker = '<!-- ci-status-comment -->'
@@ -115,6 +155,7 @@ jobs:
               '|---|---|',
               `| Backend (pytest, ruff, mypy) | ${icon(results.backend)} ${results.backend} |`,
               `| Frontend (tsc, build) | ${icon(results.frontend)} ${results.frontend} |`,
+              `| MCP server (pytest, ruff, mypy) | ${icon(results.mcp)} ${results.mcp} |`,
               '',
               `[View run](${runUrl})`,
             ].join('\n')
