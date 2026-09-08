@@ -244,6 +244,7 @@ Dockerfiles, not just the Railway dashboard.
 | `VITE_SENTRY_DSN` | The frontend SDK does not initialise. |
 | `VITE_GA_MEASUREMENT_ID` | No analytics script is injected and no page view is sent (`src/services/analytics.ts`). |
 | `VITE_SOCIAL_INSTAGRAM` / `_FACEBOOK` / `_TIKTOK` | That link is not rendered; with none set the whole footer block disappears (`src/components/layout/SocialLinks.tsx`). |
+| `VITE_SUPPORT_WHATSAPP` | The assisted-listing offer — "contact us and we will list it for you" — is not rendered anywhere (`src/features/onboarding/AssistedListing.tsx`). A number with no digits in it counts as unset, because the guard is `whatsappHref` itself. |
 
 Analytics additionally **drops the query string and skips `/dashboard` and
 `/admin`**: `?q=…` carries whatever someone typed into search, which can be a
