@@ -9,11 +9,11 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, File, Path, Query, UploadFile, status
 
 from app.api.serializers import item_out, paginate, product_detail, product_summary
-from app.core.dependencies import AppSettings, DbSession, OwnedBusiness
+from app.core.dependencies import AppSettings, DbSession, OwnedBusiness, Viewer
 from app.core.errors import NotFoundError, PayloadTooLargeError
 from app.core.i18n import translate
 from app.core.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
-from app.models.enums import ImageKind
+from app.models.enums import ImageKind, ViewSubject
 from app.repositories.item import ItemRepository
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.item import (
@@ -23,6 +23,7 @@ from app.schemas.item import (
     ItemReorderIn,
 )
 from app.schemas.product import ProductDetailOut, ProductSummaryOut
+from app.services.analytics import ViewCounterService
 from app.services.business import BusinessService
 from app.services.images import ImageService
 from app.services.items import BusinessItemService
@@ -61,11 +62,23 @@ def search_products(
 
 
 @public_router.get("/items/{slug}", response_model=ProductDetailOut)
-def get_product(slug: Annotated[str, Path(max_length=200)], db: DbSession) -> ProductDetailOut:
+def get_product(
+    slug: Annotated[str, Path(max_length=200)], db: DbSession, viewer: Viewer
+) -> ProductDetailOut:
     item = ItemRepository(db).get_by_slug(slug)
     if item is None:
         raise NotFoundError("item.not_found")
-    return product_detail(item)
+    payload = product_detail(item)
+    # Nothing surfaces product views yet. They are counted anyway because a
+    # view cannot be backfilled: the history has to start before the screen
+    # that reads it exists.
+    ViewCounterService(db).record(
+        ViewSubject.PRODUCT,
+        item.id,
+        owner_id=item.business.owner_id,
+        viewer=viewer,
+    )
+    return payload
 
 
 @router.get("/businesses/{business_id}/items", response_model=list[BusinessItemOut])

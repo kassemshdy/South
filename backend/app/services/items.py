@@ -11,8 +11,10 @@ from sqlalchemy.orm import Session
 from app.core.arabic import build_search_text
 from app.core.errors import NotFoundError, ValidationError
 from app.models.business import Business, BusinessItem
+from app.models.enums import ViewSubject
 from app.repositories.item import ItemRepository
 from app.schemas.item import BusinessItemIn, BusinessItemUpdateIn
+from app.services.analytics import ViewCounterService
 from app.services.slug import unique_slug
 
 logger = logging.getLogger(__name__)
@@ -98,6 +100,8 @@ class BusinessItemService:
     def delete(self, item: BusinessItem) -> str | None:
         """Remove the item, returning its storage key so the caller can clean up."""
         storage_key = item.image_storage_key
+        # View counters do not cascade -- see ViewSubject.
+        ViewCounterService(self._db).forget(ViewSubject.PRODUCT, item.id)
         self._db.delete(item)
         self._db.commit()
         return storage_key

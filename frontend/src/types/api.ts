@@ -451,3 +451,26 @@ export interface ProductDetail extends ProductSummary {
   description: string | null
   created_at: string
 }
+
+/**
+ * How often a listing was looked at.
+ *
+ * `series` is one integer per day of the window, oldest first, zeroes
+ * included — a sparkline drawn from only the busy days shows a busier
+ * listing than the one that exists.
+ */
+export interface ListingViews {
+  subject_type: 'BUSINESS' | 'TALENT' | 'PRODUCT'
+  subject_id: string
+  views_recent: number
+  views_window: number
+  series: number[]
+  series_start: string
+}
+
+export interface OwnerViews {
+  /** Returned rather than assumed, so the wording and the span cannot drift. */
+  window_days: number
+  recent_days: number
+  listings: ListingViews[]
+}

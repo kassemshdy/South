@@ -1,5 +1,6 @@
 """SQLAlchemy models. Importing this package registers every table on Base."""
 
+from app.models.analytics import ListingViewDaily
 from app.models.auth import OtpRequest, RateLimitEvent
 from app.models.business import (
     Business,
@@ -19,6 +20,7 @@ from app.models.enums import (
     ModerationActionType,
     SocialPlatform,
     UserRole,
+    ViewSubject,
 )
 from app.models.feedback import FeedbackAttachment, FeedbackComment, FeedbackTicket
 from app.models.talent import (
@@ -46,6 +48,7 @@ __all__ = [
     "FeedbackStatus",
     "FeedbackTicket",
     "ImageKind",
+    "ListingViewDaily",
     "Location",
     "LocationType",
     "ModerationAction",
@@ -60,4 +63,5 @@ __all__ = [
     "TalentSkill",
     "User",
     "UserRole",
+    "ViewSubject",
 ]

@@ -21,12 +21,19 @@ import { useT } from '@/i18n'
 export function ShareButton({
   title,
   text,
+  url,
   block = false,
   variant = 'outline',
   className,
 }: {
   title: string
   text?: string | undefined
+  /**
+   * What to share. Defaults to the page the button is on, which is right on
+   * a public profile and wrong on the dashboard — sharing a listing from
+   * there must pass the listing's own public URL, not `/dashboard`.
+   */
+  url?: string | undefined
   block?: boolean
   variant?: 'outline' | 'ghost'
   className?: string
@@ -40,11 +47,11 @@ export function ShareButton({
   useEffect(() => () => window.clearTimeout(timer.current), [])
 
   const share = async () => {
-    const url = window.location.href
+    const target = url ?? window.location.href
 
     if (navigator.share) {
       try {
-        await navigator.share({ title, text: text ?? '', url })
+        await navigator.share({ title, text: text ?? '', url: target })
         return
       } catch {
         /* the sheet was dismissed — fall through and copy instead */
@@ -52,7 +59,7 @@ export function ShareButton({
     }
 
     try {
-      await navigator.clipboard.writeText(url)
+      await navigator.clipboard.writeText(target)
       setCopied(true)
       window.clearTimeout(timer.current)
       timer.current = window.setTimeout(() => setCopied(false), 2500)
