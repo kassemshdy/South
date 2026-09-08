@@ -10,6 +10,7 @@ import { Field } from '@/components/ui/Field'
 import { Input, Textarea } from '@/components/ui/Input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 import { useToast } from '@/components/ui/Toast'
+import { useAuth } from '@/features/auth/AuthContext'
 import { useT } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { feedbackApi } from '@/services/api/endpoints'
@@ -39,6 +40,7 @@ function kindFor(file: File): FeedbackAttachmentKind {
  * cover the very thing being reported) ever renders.
  */
 export function FeedbackWidget() {
+  const { isAdmin } = useAuth()
   const t = useT()
   const toast = useToast()
   const queryClient = useQueryClient()
@@ -192,28 +194,35 @@ export function FeedbackWidget() {
               )}
             </Field>
 
-            <Field label={t('feedback.priorityLabel')}>
-              {(props) => (
-                <Controller
-                  control={control}
-                  name="priority"
-                  render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger id={props.id}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PRIORITIES.map((priority) => (
-                          <SelectItem key={priority} value={priority}>
-                            {t(FEEDBACK_PRIORITY_KEYS[priority])}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              )}
-            </Field>
+            {/* Only an admin picks a priority. Asked to rank their own
+                problem, everyone reasonably answers "urgent", which makes the
+                field carry no information and the board harder to triage —
+                so a reporter's ticket comes in at the default and an admin
+                decides. */}
+            {isAdmin ? (
+              <Field label={t('feedback.priorityLabel')}>
+                {(props) => (
+                  <Controller
+                    control={control}
+                    name="priority"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger id={props.id}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PRIORITIES.map((priority) => (
+                            <SelectItem key={priority} value={priority}>
+                              {t(FEEDBACK_PRIORITY_KEYS[priority])}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                )}
+              </Field>
+            ) : null}
 
             <div>
               <p className="mb-1.5 text-sm font-semibold text-ink-700">

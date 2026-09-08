@@ -101,6 +101,26 @@ never leave the machine and the test suite never touches the network.
 `SENTRY_RELEASE` is set to `${{RAILWAY_GIT_COMMIT_SHA}}` so an error points at the
 deploy that introduced it.
 
+## Optional Integrations Are Inert Without Their Variable
+
+Every third-party integration follows the Sentry pattern above: a `VITE_`-prefixed
+variable set per service in Railway, and **nothing at all when it is unset** — no
+script tag, no network request, no half-configured UI. Local development and the
+test suite therefore never phone home, and never pollute anyone's numbers with a
+developer's own clicks.
+
+| Variable | Effect when unset |
+|---|---|
+| `VITE_SENTRY_DSN` | The frontend SDK does not initialise. |
+| `VITE_GA_MEASUREMENT_ID` | No analytics script is injected and no page view is sent (`src/services/analytics.ts`). |
+| `VITE_SOCIAL_INSTAGRAM` / `_FACEBOOK` / `_TIKTOK` | That link is not rendered; with none set the whole footer block disappears (`src/components/layout/SocialLinks.tsx`). |
+
+Analytics additionally **drops the query string and skips `/dashboard` and
+`/admin`**: `?q=…` carries whatever someone typed into search, which can be a
+person's or a shop's name, and counting our own moderation clicks would corrupt
+the only question analytics exists to answer. Widen those exclusions rather than
+narrowing them.
+
 ## Deploy Gotchas (learned the hard way)
 
 - **Anything that writes to `/app/var/media` must run in the container that actually has

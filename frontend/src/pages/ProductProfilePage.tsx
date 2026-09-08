@@ -5,6 +5,7 @@ import { Link, useParams } from 'react-router-dom'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
+import { ShareButton } from '@/components/ui/ShareButton'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { useSeo } from '@/hooks/useSeo'
@@ -61,6 +62,9 @@ export function ProductProfilePage() {
   )
   const phone = telHref(data.business.phone)
   const price = formatPrice(data.price, data.currency)
+  const shareText = price
+    ? t('products.shareText', { name: data.title, price, business: data.business.name })
+    : t('products.shareTextNoPrice', { name: data.title, business: data.business.name })
 
   return (
     <article className="container-page py-10">
@@ -84,6 +88,14 @@ export function ProductProfilePage() {
                 {price}
               </Badge>
             ) : null}
+          </div>
+
+          {/* A photo, a name and a price is the most passed-around thing this
+              site has, and until now it was the one page with no way to pass
+              it. The share text carries the price, because that is what makes
+              a stranger open the link. */}
+          <div className="mt-5">
+            <ShareButton title={data.title} text={shareText} />
           </div>
 
           {data.description ? (
