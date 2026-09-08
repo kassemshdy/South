@@ -101,6 +101,33 @@ never leave the machine and the test suite never touches the network.
 `SENTRY_RELEASE` is set to `${{RAILWAY_GIT_COMMIT_SHA}}` so an error points at the
 deploy that introduced it.
 
+## Agent-Facing MCP Server
+
+`mcp-server/` exposes the directory over MCP: **read all of it, write only to
+the support ticket board.** Full detail in `docs/MCP.md`; the parts that
+constrain how you work on it:
+
+- It is an **HTTP client of the API**, holds no database connection, and
+  imports nothing from `backend/app`. Writes therefore land on a service, which
+  calls a repository — there is no second path into the database, and no
+  database credential to leak. Keep it that way: a direct session here would
+  bypass every rule the service layer enforces.
+- It has **its own virtualenv**, because `mcp` requires `pydantic>=2.12` and
+  the backend pins `pydantic==2.10.4`. Never install `mcp` into
+  `backend/.venv`.
+- **Owner identity is redacted in `south_mcp/redaction.py`** before any tool
+  returns. `AdminBusinessOut`/`AdminTalentOut` carry `owner_identity` and the
+  owner's personal phone for a human reviewer; an agent never needs them, and
+  ticket text is written by other people. Widen `REDACTED_KEYS` rather than
+  loosening the strip — `mcp-server/tests/test_redaction.py` is the guard,
+  the counterpart to `backend/tests/test_identity.py`.
+- **No tool moderates a listing or reads a personal document.** Approving,
+  rejecting, suspending and the verification/CV downloads are deliberately
+  absent, and a test asserts no tool name matches them.
+- `update_ticket` is **one** tool that routes `status` to `/move` and
+  everything else to the edit route, because the edit route silently ignores a
+  status and answers 200.
+
 ## Optional Integrations Are Inert Without Their Variable
 
 Every third-party integration follows the Sentry pattern above: a `VITE_`-prefixed

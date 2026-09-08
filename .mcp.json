@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "south": {
+      "command": "mcp-server/.venv/bin/python",
+      "args": ["-m", "south_mcp"],
+      "cwd": "mcp-server",
+      "env": {
+        "SOUTH_API_URL": "${SOUTH_API_URL:-http://127.0.0.1:8000}",
+        "SOUTH_AGENT_EMAIL": "${SOUTH_AGENT_EMAIL}",
+        "SOUTH_AGENT_PASSWORD": "${SOUTH_AGENT_PASSWORD}"
+      }
+    }
+  }
+}
