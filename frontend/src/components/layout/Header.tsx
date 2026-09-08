@@ -1,4 +1,17 @@
-import { LayoutDashboard, LogOut, Menu, Plus, Search, Shield, Store, User, UserCog, X } from 'lucide-react'
+import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu'
+import {
+  ChevronDown,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Plus,
+  Search,
+  Shield,
+  Store,
+  User,
+  UserCog,
+  X,
+} from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -7,6 +20,27 @@ import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useT } from '@/i18n'
 import { cn } from '@/utils/cn'
+
+/**
+ * The header holds the same number of things whether or not anybody is signed
+ * in.
+ *
+ * It used to grow: signing in appended `nav.myBusinesses`, `nav.account` and
+ * a sign-out button, plus `nav.adminPanel` for an admin, so the people who use
+ * the site most got the most crowded bar — eight items and a call to action
+ * competing on one line. The public links stay three, and everything personal
+ * now lives behind one account menu. The `nav.addBusiness` button keeps its
+ * place whether or not anybody is signed in; only where it leads changes.
+ *
+ * (Key names rather than the strings themselves: `tests/test_i18n.py` scans
+ * this directory for Arabic codepoints, comments included.)
+ */
+
+const NAV_LINK =
+  'rounded-lg px-3 py-2 text-[15px] font-medium text-ink-700 transition-colors hover:bg-sand-100 hover:text-ink-900'
+
+const MENU_ITEM =
+  'flex cursor-pointer select-none items-center gap-2.5 rounded-lg px-3 py-2.5 text-[15px] text-ink-700 outline-none data-[highlighted]:bg-sand-100 data-[highlighted]:text-ink-900'
 
 export function Header() {
   const { isAuthenticated, isAdmin, user, signOut } = useAuth()
@@ -21,6 +55,7 @@ export function Header() {
   }
 
   const addBusinessTarget = isAuthenticated ? '/dashboard/businesses/new' : '/login'
+  const account = user?.phone_number ?? user?.email
 
   return (
     <header className="sticky top-0 z-40 border-b border-ink-100 bg-sand-50/95 backdrop-blur">
@@ -33,56 +68,76 @@ export function Header() {
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex" aria-label={t('nav.mainAria')}>
-          <Link
-            to="/businesses"
-            className="rounded-lg px-3 py-2 text-[15px] font-medium text-ink-700 transition-colors hover:bg-sand-100 hover:text-ink-900"
-          >
+          <Link to="/businesses" className={NAV_LINK}>
             {t('nav.directory')}
           </Link>
-          <Link
-            to="/products"
-            className="rounded-lg px-3 py-2 text-[15px] font-medium text-ink-700 transition-colors hover:bg-sand-100 hover:text-ink-900"
-          >
+          <Link to="/products" className={NAV_LINK}>
             {t('nav.products')}
           </Link>
-          <Link
-            to="/talent"
-            className="rounded-lg px-3 py-2 text-[15px] font-medium text-ink-700 transition-colors hover:bg-sand-100 hover:text-ink-900"
-          >
+          <Link to="/talent" className={NAV_LINK}>
             {t('nav.talent')}
           </Link>
 
-          {isAdmin ? (
-            <Link
-              to="/admin"
-              className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-[15px] font-medium text-ink-700 transition-colors hover:bg-sand-100"
-            >
-              <Shield className="h-4 w-4" aria-hidden="true" />
-              {t('nav.adminPanel')}
-            </Link>
-          ) : null}
+          <LocaleToggle />
 
+          {/* One control, either way: a sign-in link or the account menu. The
+              row never gains an item for being signed in. */}
           {isAuthenticated ? (
-            <>
-              <Link
-                to="/dashboard"
-                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-[15px] font-medium text-ink-700 transition-colors hover:bg-sand-100"
-              >
-                <LayoutDashboard className="h-4 w-4" aria-hidden="true" />
-                {t('nav.myBusinesses')}
-              </Link>
-              <Link
-                to="/dashboard/account"
-                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-[15px] font-medium text-ink-700 transition-colors hover:bg-sand-100"
-              >
-                <UserCog className="h-4 w-4" aria-hidden="true" />
-                {t('nav.account')}
-              </Link>
-              <Button variant="ghost" size="sm" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4" aria-hidden="true" />
-                {t('nav.signOutShort')}
-              </Button>
-            </>
+            <DropdownMenuPrimitive.Root>
+              <DropdownMenuPrimitive.Trigger asChild>
+                <Button variant="ghost" size="sm" aria-label={t('nav.accountMenuAria')}>
+                  <User className="h-4 w-4" aria-hidden="true" />
+                  <ChevronDown className="h-3.5 w-3.5 text-ink-500" aria-hidden="true" />
+                </Button>
+              </DropdownMenuPrimitive.Trigger>
+
+              <DropdownMenuPrimitive.Portal>
+                <DropdownMenuPrimitive.Content
+                  align="end"
+                  sideOffset={6}
+                  className="z-50 min-w-56 overflow-hidden rounded-xl border border-ink-100 bg-white p-1 shadow-lift"
+                >
+                  {account ? (
+                    <DropdownMenuPrimitive.Label className="px-3 pb-1.5 pt-2 text-xs text-ink-500">
+                      <span className="ltr-nums inline-block">{account}</span>
+                    </DropdownMenuPrimitive.Label>
+                  ) : null}
+
+                  <DropdownMenuPrimitive.Item asChild className={MENU_ITEM}>
+                    <Link to="/dashboard">
+                      <LayoutDashboard className="h-4 w-4 text-ink-500" aria-hidden="true" />
+                      {t('nav.myBusinesses')}
+                    </Link>
+                  </DropdownMenuPrimitive.Item>
+
+                  <DropdownMenuPrimitive.Item asChild className={MENU_ITEM}>
+                    <Link to="/dashboard/account">
+                      <UserCog className="h-4 w-4 text-ink-500" aria-hidden="true" />
+                      {t('nav.account')}
+                    </Link>
+                  </DropdownMenuPrimitive.Item>
+
+                  {isAdmin ? (
+                    <DropdownMenuPrimitive.Item asChild className={MENU_ITEM}>
+                      <Link to="/admin">
+                        <Shield className="h-4 w-4 text-ink-500" aria-hidden="true" />
+                        {t('nav.adminPanel')}
+                      </Link>
+                    </DropdownMenuPrimitive.Item>
+                  ) : null}
+
+                  <DropdownMenuPrimitive.Separator className="my-1 h-px bg-ink-100" />
+
+                  <DropdownMenuPrimitive.Item
+                    onSelect={handleSignOut}
+                    className={cn(MENU_ITEM, 'text-clay-600 data-[highlighted]:bg-clay-50 data-[highlighted]:text-clay-700')}
+                  >
+                    <LogOut className="h-4 w-4" aria-hidden="true" />
+                    {t('nav.signOut')}
+                  </DropdownMenuPrimitive.Item>
+                </DropdownMenuPrimitive.Content>
+              </DropdownMenuPrimitive.Portal>
+            </DropdownMenuPrimitive.Root>
           ) : (
             <Button asChild variant="ghost" size="sm">
               <Link to="/login">
@@ -91,8 +146,6 @@ export function Header() {
               </Link>
             </Button>
           )}
-
-          <LocaleToggle />
 
           <Button asChild size="sm" className="ms-2">
             <Link to={addBusinessTarget}>
@@ -136,22 +189,30 @@ export function Header() {
           <Link to="/talent" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">
             {t('nav.talent')}
           </Link>
-          {isAdmin ? (
-            <Link to="/admin" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">
-              {t('nav.adminPanel')}
-            </Link>
-          ) : null}
+
+          {/* The drawer is already a submenu, so the personal links sit here
+              under their own heading rather than behind a second tap. */}
           {isAuthenticated ? (
             <>
+              <p className="mt-2 border-t border-ink-100 px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-ink-500">
+                {t('nav.accountSection')}
+              </p>
+              {account ? (
+                <p className="px-3 pb-1 text-xs text-ink-500">
+                  <span className="ltr-nums inline-block">{account}</span>
+                </p>
+              ) : null}
               <Link to="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">
                 {t('nav.myBusinesses')}
               </Link>
               <Link to="/dashboard/account" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">
                 {t('nav.account')}
               </Link>
-              <p className="px-3 pt-2 text-xs text-ink-500">
-                <span className="ltr-nums inline-block">{user?.phone_number ?? user?.email}</span>
-              </p>
+              {isAdmin ? (
+                <Link to="/admin" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">
+                  {t('nav.adminPanel')}
+                </Link>
+              ) : null}
               <button
                 type="button"
                 onClick={handleSignOut}
@@ -165,6 +226,7 @@ export function Header() {
               {t('nav.login')}
             </Link>
           )}
+
           <Button asChild block className="mt-2">
             <Link to={addBusinessTarget} onClick={() => setMenuOpen(false)}>
               <Plus className="h-4 w-4" aria-hidden="true" />
