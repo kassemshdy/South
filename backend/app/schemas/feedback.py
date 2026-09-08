@@ -70,6 +70,36 @@ class FeedbackTicketCreateIn(BaseModel):
     client_context: str | None = Field(default=None, max_length=500)
 
 
+class FeedbackSubmissionIn(BaseModel):
+    """What a business or talent owner may report.
+
+    Deliberately narrower than :class:`FeedbackTicketCreateIn`: there is no
+    ``priority``. Asked to rank their own problem everybody reasonably answers
+    "urgent", which makes the field carry no information and the board harder
+    to triage -- so a reporter's ticket comes in at the default and an
+    administrator decides. The widget already hides the picker; this is the
+    half that cannot be bypassed by posting directly.
+    """
+
+    title: str = Field(min_length=2, max_length=200)
+    description: str | None = Field(default=None, max_length=5000)
+    page_path: str | None = Field(default=None, max_length=500)
+    client_context: str | None = Field(default=None, max_length=500)
+
+
+class FeedbackSubmissionOut(ORMModel):
+    """The receipt a reporter gets back.
+
+    Just enough to attach a screenshot to what was filed. It carries none of
+    the board's internal state -- status, position, assignee, or who else has
+    commented -- because a reporter is not a participant in triage.
+    """
+
+    id: uuid.UUID
+    title: str
+    created_at: datetime
+
+
 class FeedbackTicketUpdateIn(BaseModel):
     title: str | None = Field(default=None, min_length=2, max_length=200)
     description: str | None = Field(default=None, max_length=5000)

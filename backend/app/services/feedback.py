@@ -1,8 +1,11 @@
 """Feedback ticket lifecycle: create, edit, move across the board, comment.
 
-There is no moderation state machine here — every ticket is created by an
-administrator and only ever seen by administrators, so unlike
-:mod:`app.services.moderation` there is nothing to gate from the public.
+A ticket is raised by an administrator or reported by an owner, and either
+way only administrators ever see the board. There is no moderation state
+machine as in :mod:`app.services.moderation`, because nothing here is
+published -- but a reporter's submission still goes through ``submit`` rather
+than ``create``, so what an owner may set is decided here and not by the
+shape of a request.
 """
 
 from __future__ import annotations
@@ -19,7 +22,12 @@ from app.models.feedback import FeedbackComment, FeedbackTicket
 from app.models.user import User
 from app.repositories.feedback import FeedbackTicketRepository
 from app.repositories.user import UserRepository
-from app.schemas.feedback import FeedbackMoveIn, FeedbackTicketCreateIn, FeedbackTicketUpdateIn
+from app.schemas.feedback import (
+    FeedbackMoveIn,
+    FeedbackSubmissionIn,
+    FeedbackTicketCreateIn,
+    FeedbackTicketUpdateIn,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +56,25 @@ class FeedbackService:
             extra={"ticket_id": str(ticket.id), "reporter_id": str(reporter.id)},
         )
         return self._reload(ticket.id)
+
+    def submit(self, reporter: User, payload: FeedbackSubmissionIn) -> FeedbackTicket:
+        """A ticket reported by an owner rather than raised by an admin.
+
+        Routed through the same creation path so a reported bug and a raised
+        one are the same row on the same board. The priority is set here and
+        not taken from the request: the decision that a reporter does not rank
+        their own problem belongs in the service, where posting directly to
+        the API cannot get around it.
+        """
+        return self.create(
+            reporter,
+            FeedbackTicketCreateIn(
+                title=payload.title,
+                description=payload.description,
+                page_path=payload.page_path,
+                client_context=payload.client_context,
+            ),
+        )
 
     def update(self, ticket: FeedbackTicket, payload: FeedbackTicketUpdateIn) -> FeedbackTicket:
         data = payload.model_dump(exclude_unset=True)
