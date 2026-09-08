@@ -21,6 +21,17 @@ jobs:
   backend:
     name: Backend (pytest, ruff, mypy)
     runs-on: ubuntu-latest
+    # tests/test_spa.py skips itself unless frontend/dist/index.html exists,
+    # so nine tests -- including the one asserting a traversal path cannot
+    # escape the build directory -- never ran here at all. The backend job
+    # does not build the frontend, so the guard was permanently inert.
+    #
+    # `needs` costs the frontend job's wall clock, and `always()` keeps a
+    # frontend failure from silently cancelling the entire backend suite:
+    # this job still runs, the download below is allowed to fail, and
+    # test_spa returns to skipping rather than reporting a false red.
+    needs: frontend
+    if: always()
     # Surfaced in the pull request comment, so a reviewer sees the counts
     # without opening the run. See the `comment` job.
     outputs:
@@ -53,6 +64,16 @@ jobs:
         run: |
           python -m venv .venv
           ./.venv/bin/pip install --no-cache-dir -r requirements-dev.txt
+
+      # Where test_spa.py looks for it: frontend/dist, relative to the repo
+      # root. Allowed to fail -- if the frontend job did not produce a
+      # bundle, those tests skip exactly as they did before.
+      - name: Download the built frontend
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
 
       - name: pytest
         id: pytest
@@ -98,6 +119,18 @@ jobs:
         if: always()
         working-directory: frontend
         run: npm run build
+
+      # The backend suite consumes this: see the `needs` comment above.
+      # `always()` so a bundle that built despite a type error is still
+      # available -- tsc failing already fails this job on its own.
+      - name: Upload the built frontend
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 1
+          if-no-files-found: warn
 
   mcp:
     name: MCP server (pytest, ruff, mypy)
