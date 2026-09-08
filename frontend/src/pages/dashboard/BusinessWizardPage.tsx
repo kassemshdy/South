@@ -12,6 +12,7 @@ import { BasicsForm } from '@/features/businesses/BasicsForm'
 import { LocationForm } from '@/features/businesses/LocationForm'
 import { SocialForm } from '@/features/businesses/SocialForm'
 import { ImageManager } from '@/features/images/ImageManager'
+import { AssistedListing } from '@/features/onboarding/AssistedListing'
 import { ItemManager } from '@/features/items/ItemManager'
 import { useSeo } from '@/hooks/useSeo'
 import { useT, type TranslationKey } from '@/i18n'
@@ -294,6 +295,10 @@ export function BusinessWizardPage() {
           </Link>
         </p>
       ) : null}
+
+      {/* Below the wizard rather than inside a step, so it is reachable from
+          whichever step someone stalled on. */}
+      <AssistedListing contextKey="assisted.contextWizard" />
     </div>
   )
 }
