@@ -38,16 +38,42 @@ Railway table is not CI, and a red one is not a CI failure.
 Run the `verify-gate` skill. A push that turns CI red costs a cycle and the
 reviewers' trust, and the backend job takes about four minutes to tell you.
 
-## When a check is red
+## State to action
 
-Root-cause it. On this repo specifically:
+Read the PR's current head every time — CI, mergeability, open threads — and
+act on the first row that matches.
 
-- **A failing Playwright assertion is a stale database far more often than a
-  flake.** Reset and re-run rather than re-running alone. Never skip, disable,
-  or relax a test to get green.
-- **A no-Arabic guard failure is usually a comment**, not a string — including
-  a comment in a file you wrote to explain a translation key.
-- Never push an empty commit or close and reopen a PR to kick CI.
+| State | Action |
+|---|---|
+| Merge conflict | Merge the base branch in and resolve. Never rebase or force-push a branch someone may have checked out. |
+| A CI job failed | Root-cause and fix. See below. |
+| A CI job still running | Wait. Meanwhile read any review threads. |
+| Only a human approval is outstanding | Report and stop. Approval is not yours to give. |
+| No checks after a few minutes | Report that no checks registered rather than assuming green. |
+| All three jobs green, no threads, mergeable | Say it is ready to merge, and stop. |
+
+**Actionable** here means the three CI jobs. The Railway preview comment is
+not a check: it edits itself repeatedly as four services build, an all-green
+table is not CI, and a red one is not a CI failure.
+
+## When a job fails
+
+Fix the cause, not the symptom. Read the whole log, trace from the error to
+the source, and reproduce it locally before pushing — the backend job takes
+about four minutes to tell you that a guess was wrong.
+
+Two rules with teeth:
+
+- **After the same failure twice, stop and ask** rather than trying a third
+  variation. Two identical failures mean the diagnosis is wrong, and further
+  attempts spend CI time to confirm it.
+- **"Flake" is not a root cause.** On this repo a failing acceptance
+  assertion is a stale database far more often than a flake — reset and
+  re-run, do not re-run alone. Never skip, disable, or relax a test to reach
+  green; never push an empty commit or close and reopen a PR to kick CI.
+
+A no-Arabic guard failure is usually a *comment*, not a string — including a
+comment written to explain a translation key.
 
 ## When a review comment arrives
 

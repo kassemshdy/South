@@ -83,24 +83,30 @@ or a line in this file is worth more than a correction in one conversation,
 which is gone next session. Three of the traps in `verify-gate` are there
 because an agent hit them in this repo, not because they were predicted.
 
-### Borrowing skills rather than writing them
+### Patterns borrowed from elsewhere
 
-Sentry publishes a set of general engineering skills in the Agent Skills
-format that this repo's files follow
-([getsentry/skills](https://github.com/getsentry/skills)):
+The skills here follow the open Agent Skills format and take their structure
+from [getsentry/skills](https://github.com/getsentry/skills), which is worth
+reading before writing a new one. Borrowed deliberately:
 
-```bash
-claude plugin marketplace add getsentry/skills
-claude plugin install sentry-skills@sentry-skills
-```
+- **`SKILL.md` is a router, not an encyclopedia.** Checklists, tables and
+  commands in the skill; deep knowledge in `references/`, and every reference
+  named with an explicit "open when ..." reason so it is fetched on purpose
+  rather than by default.
+- **A `SPEC.md` next to each skill states its maintenance contract** — what
+  the skill must stay in step with, and what would make it wrong. These files
+  describe commands and CI jobs, so they go stale silently; the contract says
+  where to look.
+- **A description written for routing**, dense with the words someone would
+  actually use, because it is the only thing read when deciding whether the
+  skill applies.
+- **An explicit stopping condition on any loop.** `steward` takes its
+  state-to-action table and its two-attempts-then-ask rule from that repo's
+  `iterate-pr`.
 
-Worth having here: `iterate-pr`, `pr-writer`, `pr-link-issue`, `code-review`,
-`find-bugs`, `security-review`, `code-simplifier`, `skill-writer`,
-`claude-settings-audit`, `agents-md`. The `django-access-review` and
-`django-perf-review` skills do not apply — this backend is FastAPI and
-SQLAlchemy, and a Django-shaped review would mislead. Repo-specific rules in
-`.claude/skills/` take precedence over a borrowed skill wherever the two
-disagree.
+Not adopted: its Django access and performance review skills, which do not
+apply — this backend is FastAPI and SQLAlchemy, so a Django-shaped review
+would mislead rather than help.
 
 ## Security Musts
 
