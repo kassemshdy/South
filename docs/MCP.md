@@ -28,6 +28,48 @@ Three consequences worth knowing:
   backend pins `pydantic==2.10.4`; a shared environment would silently
   upgrade the API's own validation library.
 
+## Two transports
+
+**stdio is the default, and the safe one.** The client is the process that
+spawned the server, nothing listens on a port, and the credentials never leave
+the machine. This is what `.mcp.json` uses and what Claude Code runs locally.
+
+**HTTP is for a client that cannot spawn a process** — a claude.ai connector, a
+scheduled routine on someone else's machine. It reaches further, so it costs
+more:
+
+```bash
+SOUTH_MCP_TRANSPORT=http
+SOUTH_MCP_TOKEN=<32+ chars>          # required; no token, no server
+SOUTH_MCP_PUBLIC_URL=https://…       # the URL clients actually reach
+```
+
+`SOUTH_MCP_TOKEN` is not optional and there is no flag to make it optional.
+What the HTTP transport exposes is the whole directory — **including listings
+no visitor may see** — plus the power to write to the ticket board. So the
+process exits 2 with a message rather than serving that to whoever finds the
+URL. A token under 32 characters is refused for the same reason: a guessed
+token is full read access.
+
+`SOUTH_MCP_PUBLIC_URL` must be `https://` outside localhost. A bearer token
+sent over plain HTTP is a token anyone on the path can copy.
+
+Verified against a running server: no header → **401**, wrong token → **401**,
+correct token → **200** and twelve tools, with `platform_stats` returning real
+data. The `/.well-known/oauth-protected-resource` document stays public, as
+the protocol requires.
+
+### It is a pre-shared token, not OAuth
+
+One token, compared with `hmac.compare_digest` so a `==` cannot leak its
+length and then its content through timing. That is enough for any client that
+can send an `Authorization` header — Claude Code, a script, a routine.
+
+**A claude.ai custom connector expects an OAuth authorization server**, which
+this is not. If the connector UI rejects a bearer-only server, the next step is
+implementing an authorization server, and that belongs behind its own decision
+rather than arriving as a default.
+
 ## Configuration
 
 | Variable | Meaning |
