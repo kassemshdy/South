@@ -9,6 +9,7 @@ import { App } from '@/App'
 import { ToastProvider } from '@/components/ui/Toast'
 import { AuthProvider } from '@/features/auth/AuthContext'
 import { I18nProvider } from '@/i18n'
+import { initAnalytics } from '@/services/analytics'
 import { ApiError } from '@/services/api/client'
 import '@/index.css'
 
@@ -25,6 +26,9 @@ if (sentryDsn) {
     integrations: [],
   })
 }
+
+// Same discipline as the DSN above: no measurement id, no script, no request.
+initAnalytics()
 
 const queryClient = new QueryClient({
   defaultOptions: {

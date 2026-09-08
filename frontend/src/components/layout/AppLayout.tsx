@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom'
 
 import { Footer } from '@/components/layout/Footer'
 import { Header } from '@/components/layout/Header'
+import { RouteAnalytics } from '@/components/layout/RouteAnalytics'
 import { ScrollToTop } from '@/components/layout/ScrollToTop'
 import { useAuth } from '@/features/auth/AuthContext'
 import { FeedbackWidget } from '@/features/feedback/FeedbackWidget'
@@ -14,6 +15,7 @@ export function AppLayout() {
   return (
     <div className="flex min-h-screen flex-col">
       <ScrollToTop />
+      <RouteAnalytics />
       {/* Skip link: the first tab stop on every page. */}
       <a
         href="#main"

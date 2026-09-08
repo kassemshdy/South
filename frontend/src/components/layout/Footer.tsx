@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Store } from 'lucide-react'
 
+import { SocialLinks } from '@/components/layout/SocialLinks'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useT } from '@/i18n'
 
@@ -50,11 +51,15 @@ export function Footer() {
           </ul>
         </nav>
 
-        <div>
-          <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-700">
-            {t('footer.about')}
-          </h2>
-          <p className="leading-relaxed text-ink-500">{t('footer.aboutBody')}</p>
+        <div className="space-y-8">
+          <div>
+            <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-700">
+              {t('footer.about')}
+            </h2>
+            <p className="leading-relaxed text-ink-500">{t('footer.aboutBody')}</p>
+          </div>
+
+          <SocialLinks />
         </div>
       </div>
 
