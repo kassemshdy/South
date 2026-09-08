@@ -333,6 +333,7 @@ def feedback_ticket_summary(ticket: FeedbackTicket) -> FeedbackTicketSummaryOut:
         sort_order=ticket.sort_order,
         reporter=FeedbackUserOut.model_validate(ticket.reporter),
         assignee=feedback_user_out(ticket.assignee),
+        github_issue_number=ticket.github_issue_number,
         attachment_count=len(ticket.attachments),
         comment_count=len(ticket.comments),
         created_at=ticket.created_at,

@@ -82,6 +82,12 @@ else to the edit route — cannot. `backend/tests/test_feedback.py::
 test_update_edits_fields_without_touching_status` pins the API side;
 `mcp-server/tests/test_tools.py` pins the routing.
 
+`github_issue_number` links a ticket to the roadmap issue serving it. Pass a
+number to link, `0` to unlink — `None` already means "leave this field alone"
+for every other argument, so it could not also mean "remove". The API rejects
+anything below 1, since GitHub numbers issues from 1 and a 0 would arrive as a
+card linking nowhere.
+
 `resolved_at` is stamped and cleared by the server when a ticket enters and
 leaves `DONE`. `index` is the position in the destination column; every other
 card in both affected columns is renumbered server-side.
@@ -115,10 +121,6 @@ process never holds cannot be talked out of it.
   seen. Needs an admin endpoint.
 - **No server-side ticket filtering.** `list_board()` returns every ticket
   with every relation eagerly loaded; the filters here run on the result.
-- **No link between a ticket and a GitHub issue.** Nothing joins the board to
-  the roadmap, so a routine cannot tell which issue serves which ticket
-  without matching on title text. A nullable `github_issue_number` on
-  `feedback_tickets` would close this.
 - **Attachment bytes are not exposed.** A bug screenshot can show anything
   that was on the reporter's screen.
 

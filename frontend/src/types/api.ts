@@ -377,6 +377,9 @@ export interface FeedbackTicketSummary {
   sort_order: number
   reporter: FeedbackUser
   assignee: FeedbackUser | null
+  /** The roadmap issue serving this ticket, when one does. A number, not a
+   *  URL: GitHub owns the issue, the board only records which one. */
+  github_issue_number: number | null
   attachment_count: number
   comment_count: number
   created_at: string
