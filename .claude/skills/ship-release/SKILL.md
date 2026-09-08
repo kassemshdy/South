@@ -52,12 +52,12 @@ drives `api-develop` and `web-develop`. A release is a PR from
 
 ## After the deploy
 
-Verify against the **real live host**, not the one written in a doc.
-`docs/RAILWAY.md` line 3 records `web-production-b8196.up.railway.app`, which
-returns Railway's "Application not found"; the live host is
-`janoubona.up.railway.app` and staging is
-`web-develop-production-bce3.up.railway.app`. Confirm the current hosts from
-the Railway API rather than from the doc.
+Verify against the **real live host**. `docs/RAILWAY.md` now records it
+correctly -- live is `janoubona.up.railway.app`, staging is
+`web-develop-production-bce3.up.railway.app` -- but it recorded a host that
+returned "Application not found" for long enough to be worth one check: if a
+probe 404s, confirm the current hosts from the Railway API rather than
+assuming the deploy failed.
 
 Check, and report the actual numbers:
 
