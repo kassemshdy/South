@@ -20,14 +20,22 @@ import { ownerApi, type BusinessPayload } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import { cn } from '@/utils/cn'
 
+// `optional` marks the steps nothing in `SUBMISSION_REQUIREMENTS` depends on.
+// Six unlabelled chips read as six obligations; two of them are not, and an
+// owner who does not sell individual products or keep a social page should be
+// able to see that at a glance rather than walking through to find out.
 const STEPS = [
   { key: 'basics', labelKey: 'wizard.stepBasics' },
   { key: 'location', labelKey: 'wizard.stepLocation' },
   { key: 'images', labelKey: 'wizard.stepImages' },
-  { key: 'social', labelKey: 'wizard.stepSocial' },
-  { key: 'items', labelKey: 'wizard.stepItems' },
+  { key: 'social', labelKey: 'wizard.stepSocial', optional: true },
+  { key: 'items', labelKey: 'wizard.stepItems', optional: true },
   { key: 'review', labelKey: 'wizard.stepReview' },
-] as const satisfies readonly { key: string; labelKey: TranslationKey }[]
+] as const satisfies readonly {
+  key: string
+  labelKey: TranslationKey
+  optional?: boolean
+}[]
 
 type StepKey = (typeof STEPS)[number]['key']
 
@@ -54,7 +62,12 @@ export function BusinessWizardPage() {
   })
 
   const invalidate = () => {
-    if (businessId) void queryClient.invalidateQueries({ queryKey: queryKeys.myBusiness(businessId) })
+    if (businessId) {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.myBusiness(businessId) })
+      // Readiness changes with almost every save — a logo upload alone can
+      // complete the listing — so the shortcut below has to be re-checked.
+      void queryClient.invalidateQueries({ queryKey: queryKeys.readiness(businessId) })
+    }
     void queryClient.invalidateQueries({ queryKey: queryKeys.myBusinesses })
   }
 
@@ -101,6 +114,15 @@ export function BusinessWizardPage() {
   const currentIndex = STEPS.findIndex((item) => item.key === step)
   const data = business.data
 
+  // The backend owns the definition of "complete", so the shortcut asks it
+  // rather than re-deriving the rule here.
+  const readiness = useQuery({
+    queryKey: queryKeys.readiness(businessId ?? ''),
+    queryFn: () => ownerApi.readiness(businessId as string),
+    enabled: businessId !== null,
+  })
+  const readyToSubmit = readiness.isSuccess && readiness.data.length === 0
+
   return (
     <div className="container-page max-w-3xl py-10">
       <header className="mb-8">
@@ -135,11 +157,43 @@ export function BusinessWizardPage() {
                   <span>{index + 1}</span>
                 )}
                 {t(item.labelKey)}
+                {'optional' in item && item.optional ? (
+                  <span
+                    className={cn(
+                      'text-xs font-normal',
+                      isCurrent ? 'text-white/80' : 'text-ink-300',
+                    )}
+                  >
+                    {t('wizard.optionalStep')}
+                  </span>
+                ) : null}
               </button>
             </li>
           )
         })}
       </ol>
+
+      {/* The whole point of #34: once the required six are in, stop walking
+          the owner through steps that cannot block them. The banner appears
+          the moment the listing is submittable and stays out of the way
+          otherwise. */}
+      {readyToSubmit && step !== 'review' ? (
+        <div className="mb-6 rounded-2xl border-2 border-olive-200 bg-olive-50 p-5">
+          <p className="font-bold text-olive-900">{t('wizard.readyTitle')}</p>
+          <p className="mt-1 text-sm leading-relaxed text-olive-800">
+            {t('wizard.readyBody')}
+          </p>
+          <Button
+            type="button"
+            variant="secondary"
+            className="mt-4"
+            onClick={() => setStep('review')}
+          >
+            <Send className="h-4 w-4" aria-hidden="true" />
+            {t('wizard.readyCta')}
+          </Button>
+        </div>
+      ) : null}
 
       <Card>
         <CardBody>

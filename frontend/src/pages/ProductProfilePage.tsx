@@ -77,7 +77,8 @@ export function ProductProfilePage() {
           </div>
 
           <div className="mt-6 flex flex-wrap items-start justify-between gap-3">
-            <h1 className="text-2xl sm:text-3xl">{data.title}</h1>
+            {/* Owner-authored text carries its own direction — see BusinessCard. */}
+            <h1 className="text-2xl sm:text-3xl" dir="auto">{data.title}</h1>
             {price ? (
               <Badge className="ltr-nums bg-sand-100 px-3 py-1.5 text-base font-bold text-clay-700">
                 {price}
@@ -86,7 +87,9 @@ export function ProductProfilePage() {
           </div>
 
           {data.description ? (
-            <p className="mt-4 whitespace-pre-line leading-loose text-ink-700">{data.description}</p>
+            <p className="mt-4 whitespace-pre-line leading-loose text-ink-700" dir="auto">
+              {data.description}
+            </p>
           ) : null}
         </div>
 

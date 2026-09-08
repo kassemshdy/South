@@ -158,7 +158,8 @@ export function BusinessProfilePage() {
             )}
           </div>
 
-          <div className="min-w-0 flex-1">
+          {/* Owner-authored text carries its own direction — see BusinessCard. */}
+          <div className="min-w-0 flex-1" dir="auto">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl sm:text-3xl">{data.name}</h1>
               <Badge className="bg-olive-100 text-olive-700">
@@ -218,7 +219,7 @@ export function BusinessProfilePage() {
                 </h2>
                 <Card>
                   <CardBody>
-                    <p className="whitespace-pre-line leading-loose text-ink-700">
+                    <p className="whitespace-pre-line leading-loose text-ink-700" dir="auto">
                       {data.description || data.short_description}
                     </p>
                   </CardBody>
@@ -258,7 +259,7 @@ export function BusinessProfilePage() {
                           <dt className="text-sm font-semibold text-ink-500">
                             {t('business.productionLabel')}
                           </dt>
-                          <dd className="mt-1 whitespace-pre-line leading-relaxed text-ink-700">
+                          <dd className="mt-1 whitespace-pre-line leading-relaxed text-ink-700" dir="auto">
                             {data.production_nature}
                           </dd>
                         </div>

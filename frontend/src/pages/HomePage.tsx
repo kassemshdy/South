@@ -17,8 +17,9 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
 import { BusinessCardSkeleton, Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/States'
-import { BusinessCard } from '@/features/businesses/BusinessCard'
 import { useAuth } from '@/features/auth/AuthContext'
+import { BusinessCard } from '@/features/businesses/BusinessCard'
+import { AudienceChooser } from '@/features/onboarding/AudienceChooser'
 import { useCategories, useLocationGroups } from '@/hooks/useTaxonomy'
 import { useT } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
@@ -53,6 +54,12 @@ export function HomePage() {
       <section className="overflow-hidden bg-sand-100" aria-hidden="true">
         <img src="/home-cover.png" alt="" className="h-auto w-full" loading="eager" />
       </section>
+
+      {/* Directly under the cover, before anything else asks for attention —
+          but only for a visitor who has not answered yet, and only when they
+          are not already signed in. An owner with a dashboard has answered
+          this question by existing. */}
+      {isAuthenticated ? null : <AudienceChooser />}
 
       <section className="relative overflow-hidden border-b border-ink-100 bg-gradient-to-b from-sand-100 to-sand-50">
         <div className="container-page py-14 text-center sm:py-20">

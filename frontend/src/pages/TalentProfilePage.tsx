@@ -139,7 +139,8 @@ export function TalentProfilePage() {
             )}
           </div>
 
-          <div className="min-w-0 flex-1">
+          {/* Owner-authored text carries its own direction — see BusinessCard. */}
+          <div className="min-w-0 flex-1" dir="auto">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl sm:text-3xl">{data.display_name}</h1>
               <Badge className="bg-olive-100 text-olive-700">
@@ -195,7 +196,9 @@ export function TalentProfilePage() {
                 <h2 id="bio-heading" className="mb-3 text-xl">
                   {t('talent.aboutHeading')}
                 </h2>
-                <p className="whitespace-pre-line leading-relaxed text-ink-700">{data.bio}</p>
+                <p className="whitespace-pre-line leading-relaxed text-ink-700" dir="auto">
+                  {data.bio}
+                </p>
               </section>
             ) : null}
 
@@ -208,7 +211,7 @@ export function TalentProfilePage() {
                   {professional.map(({ key, label, value }) => (
                     <div key={key}>
                       <dt className="text-sm font-semibold text-ink-500">{label}</dt>
-                      <dd className="mt-1 whitespace-pre-line leading-relaxed text-ink-700">
+                      <dd className="mt-1 whitespace-pre-line leading-relaxed text-ink-700" dir="auto">
                         {value}
                       </dd>
                     </div>
