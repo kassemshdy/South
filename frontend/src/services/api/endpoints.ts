@@ -362,6 +362,23 @@ export interface FeedbackTicketPayload {
   client_context?: string | null
 }
 
+/** What an owner reporting a problem may send. No priority: an administrator
+ *  decides that, and the API drops it rather than trusting the client. */
+export interface FeedbackSubmissionPayload {
+  title: string
+  description?: string | null
+  page_path?: string | null
+  client_context?: string | null
+}
+
+/** The receipt a reporter gets back — enough to attach a screenshot to what
+ *  was filed, and nothing about the board's own state. */
+export interface FeedbackSubmission {
+  id: string
+  title: string
+  created_at: string
+}
+
 export interface FeedbackTicketUpdatePayload {
   title?: string
   description?: string | null
@@ -370,13 +387,30 @@ export interface FeedbackTicketUpdatePayload {
 }
 
 /**
- * Every route here is admin-only — there is no owner- or public-facing
- * counterpart to any of this, unlike ownerApi/adminApi's business split.
+ * Mostly admin-only. The exception is the reporting pair — `submit` and
+ * `submitAttachment` — which any signed-in account may call: an owner reports
+ * a problem, an administrator triages it. Reporting returns a receipt and no
+ * view of the board.
  */
 export const feedbackApi = {
   list: () => apiRequest<FeedbackTicketSummary[]>('/api/admin/feedback/tickets'),
   assignees: () => apiRequest<FeedbackUser[]>('/api/admin/feedback/assignees'),
   get: (id: string) => apiRequest<FeedbackTicketDetail>(`/api/admin/feedback/tickets/${id}`),
+  // Reporting and triaging are different jobs on different routes. An
+  // administrator raising a ticket uses `create` and may set a priority; an
+  // owner reporting a problem uses `submit`, which returns a receipt and no
+  // view of the board. See docs and backend/app/api/v1/feedback.py.
+  submit: (payload: FeedbackSubmissionPayload) =>
+    apiRequest<FeedbackSubmission>('/api/feedback', { method: 'POST', body: payload }),
+  submitAttachment: (id: string, file: File, kind: FeedbackAttachmentKind) => {
+    const form = new FormData()
+    form.append('file', file)
+    form.append('kind', kind)
+    return apiRequest<FeedbackSubmission>(`/api/feedback/${id}/attachments`, {
+      method: 'POST',
+      body: form,
+    })
+  },
   create: (payload: FeedbackTicketPayload) =>
     apiRequest<FeedbackTicketDetail>('/api/admin/feedback/tickets', {
       method: 'POST',
