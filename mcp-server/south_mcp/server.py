@@ -134,7 +134,10 @@ def build_server(config: Config, client: SouthClient | None = None) -> MCPServer
             "destination column and defaults to the top; every other card in both "
             "affected columns is renumbered by the server. Do not move a ticket to "
             "DONE to mean 'a fix is written' -- DONE means shipped, and a person "
-            "decides that."
+            "decides that.\n\n"
+            "Set github_issue_number to the roadmap issue that serves this ticket, "
+            "so the board and the tracker are joined by a number rather than by a "
+            "guess about matching titles. Pass 0 to unlink."
         ),
         annotations=WRITES,
     )
@@ -146,14 +149,21 @@ def build_server(config: Config, client: SouthClient | None = None) -> MCPServer
         assignee_id: str | None = None,
         status: TicketStatus | None = None,
         index: int = 0,
+        github_issue_number: int | None = None,
     ) -> dict[str, Any]:
-        edits = {
+        edits: dict[str, Any] = {
             "title": title,
             "description": description,
             "priority": priority,
             "assignee_id": assignee_id,
         }
         edits = {key: value for key, value in edits.items() if value is not None}
+
+        # A sentinel, because None already means "leave alone" for every other
+        # field here and the API needs an explicit null to unlink. Without it
+        # there would be no way to say "remove the link" through this tool.
+        if github_issue_number is not None:
+            edits["github_issue_number"] = github_issue_number or None
 
         if edits:
             api.put(f"{TICKETS}/{ticket_id}", edits)

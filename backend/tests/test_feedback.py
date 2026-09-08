@@ -495,3 +495,104 @@ def test_a_reporters_attachment_bytes_stay_admin_gated(
     )
 
     assert response.status_code == 403
+
+
+# --- The link to the roadmap ---------------------------------------------
+#
+# Without this column a triage agent can only guess which issue serves which
+# ticket by comparing titles, which is exactly the guess it should not make.
+
+
+def test_a_ticket_starts_with_no_linked_issue(client: TestClient, admin: User) -> None:
+    assert _create(client, admin_headers(client))["github_issue_number"] is None
+
+
+def test_a_ticket_can_be_linked_to_an_issue_and_unlinked_again(
+    client: TestClient, admin: User
+) -> None:
+    headers = admin_headers(client)
+    ticket = _create(client, headers)
+
+    linked = client.put(
+        f"/api/admin/feedback/tickets/{ticket['id']}",
+        headers=headers,
+        json={"github_issue_number": 46},
+    )
+    assert linked.status_code == 200, linked.text
+    assert linked.json()["github_issue_number"] == 46
+
+    unlinked = client.put(
+        f"/api/admin/feedback/tickets/{ticket['id']}",
+        headers=headers,
+        json={"github_issue_number": None},
+    )
+    assert unlinked.status_code == 200, unlinked.text
+    assert unlinked.json()["github_issue_number"] is None
+
+
+def test_editing_something_else_leaves_the_link_alone(client: TestClient, admin: User) -> None:
+    """`exclude_unset` is what makes this true, and it is the property the
+    board relies on every time a card is edited."""
+    headers = admin_headers(client)
+    ticket = _create(client, headers)
+    client.put(
+        f"/api/admin/feedback/tickets/{ticket['id']}",
+        headers=headers,
+        json={"github_issue_number": 46},
+    )
+
+    edited = client.put(
+        f"/api/admin/feedback/tickets/{ticket['id']}",
+        headers=headers,
+        json={"priority": "URGENT"},
+    )
+
+    assert edited.json()["github_issue_number"] == 46
+
+
+def test_an_issue_number_below_one_is_rejected(client: TestClient, admin: User) -> None:
+    """GitHub numbers issues from 1, so a 0 is a caller's bug. Better a 422
+    than a card carrying a link that goes nowhere."""
+    headers = admin_headers(client)
+    ticket = _create(client, headers)
+
+    response = client.put(
+        f"/api/admin/feedback/tickets/{ticket['id']}",
+        headers=headers,
+        json={"github_issue_number": 0},
+    )
+
+    assert response.status_code == 422
+
+
+def test_the_link_survives_a_move_across_the_board(client: TestClient, admin: User) -> None:
+    headers = admin_headers(client)
+    ticket = _create(client, headers)
+    client.put(
+        f"/api/admin/feedback/tickets/{ticket['id']}",
+        headers=headers,
+        json={"github_issue_number": 46},
+    )
+
+    board = client.post(
+        f"/api/admin/feedback/tickets/{ticket['id']}/move",
+        headers=headers,
+        json={"status": "IN_PROGRESS", "index": 0},
+    ).json()
+
+    assert board[0]["github_issue_number"] == 46
+
+
+def test_a_reporter_cannot_link_an_issue(client: TestClient) -> None:
+    """The submission schema has no such field, so it is dropped rather than
+    refused -- the ticket is still filed, just not linked."""
+    headers = sign_in(client, "03960001")
+
+    response = client.post(
+        "/api/feedback",
+        headers=headers,
+        json={"title": ar("feedback.bug_title"), "github_issue_number": 46},
+    )
+
+    assert response.status_code == 201
+    assert "github_issue_number" not in response.json()

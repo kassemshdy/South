@@ -46,6 +46,7 @@ class FeedbackTicketSummaryOut(ORMModel):
     sort_order: int
     reporter: FeedbackUserOut
     assignee: FeedbackUserOut | None = None
+    github_issue_number: int | None = None
     attachment_count: int = 0
     comment_count: int = 0
     created_at: datetime
@@ -105,6 +106,10 @@ class FeedbackTicketUpdateIn(BaseModel):
     description: str | None = Field(default=None, max_length=5000)
     priority: FeedbackPriority | None = None
     assignee_id: uuid.UUID | None = None
+    # Explicit null unlinks. `ge=1` because GitHub numbers issues from 1, so a
+    # 0 or a negative would be a caller's bug arriving as a broken link rather
+    # than as an error.
+    github_issue_number: int | None = Field(default=None, ge=1)
 
 
 class FeedbackMoveIn(BaseModel):

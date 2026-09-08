@@ -104,6 +104,35 @@ def test_an_update_with_nothing_to_change_makes_no_write_call(stub: StubApi) -> 
     assert stub.paths("POST") == []
 
 
+def test_linking_a_roadmap_issue_goes_through_the_edit_route(stub: StubApi) -> None:
+    stub.on("PUT", f"{TICKETS}/t1", a_ticket())
+    stub.on("GET", f"{TICKETS}/t1", a_ticket())
+
+    call(stub, "update_ticket", ticket_id="t1", github_issue_number=46)
+
+    assert stub.bodies[0] == {"github_issue_number": 46}
+
+
+def test_zero_unlinks_rather_than_being_sent_as_zero(stub: StubApi) -> None:
+    """The API rejects anything below 1, and None already means "leave this
+    field alone" for every other argument, so 0 is the way to say "remove"."""
+    stub.on("PUT", f"{TICKETS}/t1", a_ticket())
+    stub.on("GET", f"{TICKETS}/t1", a_ticket())
+
+    call(stub, "update_ticket", ticket_id="t1", github_issue_number=0)
+
+    assert stub.bodies[0] == {"github_issue_number": None}
+
+
+def test_omitting_the_issue_number_does_not_touch_the_link(stub: StubApi) -> None:
+    stub.on("PUT", f"{TICKETS}/t1", a_ticket())
+    stub.on("GET", f"{TICKETS}/t1", a_ticket())
+
+    call(stub, "update_ticket", ticket_id="t1", priority="LOW")
+
+    assert stub.bodies[0] == {"priority": "LOW"}
+
+
 # --- creation and comments ------------------------------------------------
 
 

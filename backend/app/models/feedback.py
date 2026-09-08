@@ -59,6 +59,18 @@ class FeedbackTicket(Base, TimestampMixin):
     page_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     client_context: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
+    # The roadmap issue that serves this ticket, when one does.
+    #
+    # A number rather than a URL, and no foreign key: GitHub owns the issue,
+    # this column only records which one. It exists so a triage agent can tell
+    # which issue serves which ticket without matching on title text, which is
+    # the one thing it should not be guessing at. Nullable because most
+    # tickets never get an issue, and unique-less because two tickets can
+    # reasonably be served by one issue.
+    github_issue_number: Mapped[int | None] = mapped_column(
+        Integer, nullable=True, index=True
+    )
+
     # Manual order within a status column; the board writes this on every drag.
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
