@@ -19,6 +19,7 @@ import { BusinessCardSkeleton, Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 import { useAuth } from '@/features/auth/AuthContext'
 import { BusinessCard } from '@/features/businesses/BusinessCard'
+import { WelcomeVideo } from '@/features/home/WelcomeVideo'
 import { AudienceChooser } from '@/features/onboarding/AudienceChooser'
 import { useCategories, useLocationGroups } from '@/hooks/useTaxonomy'
 import { useT } from '@/i18n'
@@ -52,14 +53,24 @@ export function HomePage() {
   return (
     <>
       <section className="overflow-hidden bg-sand-100" aria-hidden="true">
-        <img src="/home-cover.png" alt="" className="h-auto w-full" loading="eager" />
+        {/* Vector, and wordless: the slogan band below carries the words where
+            they can be translated and read aloud. Fixed aspect ratio so the
+            page does not jump while it loads. */}
+        <img
+          src="/home-cover.svg"
+          alt=""
+          width={2000}
+          height={650}
+          className="h-auto w-full"
+          loading="eager"
+        />
       </section>
 
-      {/* Directly under the cover, before anything else asks for attention —
-          but only for a visitor who has not answered yet, and only when they
-          are not already signed in. An owner with a dashboard has answered
-          this question by existing. */}
-      {isAuthenticated ? null : <AudienceChooser />}
+      {/* Directly under the cover, permanently. These three cards are the
+          homepage's navigation for anyone not confident online, and navigation
+          you see once is not navigation. Someone signed in gets the same three
+          routes pointing straight at their dashboard. */}
+      <AudienceChooser isAuthenticated={isAuthenticated} />
 
       <section className="relative overflow-hidden border-b border-ink-100 bg-gradient-to-b from-sand-100 to-sand-50">
         <div className="container-page py-14 text-center sm:py-20">
@@ -86,19 +97,37 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="border-y border-olive-200 bg-olive-50 py-5" aria-label={t('home.sloganTitle')}>
-        <div className="container-page flex flex-col items-center justify-center gap-2 text-center sm:flex-row sm:gap-4">
-          <span className="text-sm font-bold text-olive-700">{t('home.sloganTitle')}</span>
-          <span className="hidden text-olive-300 sm:inline">•</span>
-          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm font-semibold text-olive-800">
+      {/* The four words carry the weight of the whole project, and they were
+          set in the same small type as a filter label. On the mark's deep
+          green, given room and a gold rule, they read as a statement rather
+          than a decoration. */}
+      <section
+        className="border-y-4 border-wheat-500 bg-brand-700 py-10 sm:py-14"
+        aria-label={t('home.sloganTitle')}
+      >
+        <div className="container-page text-center">
+          <p className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
+            {t('home.sloganTitle')}
+          </p>
+          <span
+            className="mx-auto mt-5 block h-px w-24 bg-wheat-500/70"
+            aria-hidden="true"
+          />
+          <div className="mt-5 flex flex-col items-center justify-center gap-2 text-lg font-semibold text-brand-100 sm:flex-row sm:gap-5 sm:text-xl lg:text-2xl">
             <span>{t('home.sloganLine1')}</span>
-            <span className="text-olive-300">•</span>
+            <span className="hidden text-wheat-500 sm:inline" aria-hidden="true">
+              •
+            </span>
             <span>{t('home.sloganLine2')}</span>
-            <span className="text-olive-300">•</span>
+            <span className="hidden text-wheat-500 sm:inline" aria-hidden="true">
+              •
+            </span>
             <span>{t('home.sloganLine3')}</span>
           </div>
         </div>
       </section>
+
+      <WelcomeVideo />
 
       <section className="container-page py-14" aria-labelledby="discover-heading">
         <h2 id="discover-heading" className="mb-6 text-center text-2xl">

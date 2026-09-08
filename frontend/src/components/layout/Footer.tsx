@@ -13,7 +13,7 @@ export function Footer() {
       <div className="container-page grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-3">
         <div>
           <div className="flex items-center gap-2.5 font-display text-lg font-bold">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-clay-500 text-white">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-700 text-white">
               <Store className="h-5 w-5" aria-hidden="true" />
             </span>
             {t('app.name')}

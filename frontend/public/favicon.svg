@@ -1,5 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#c65d3b"/>
-  <path d="M20 42V28l12-9 12 9v14a2 2 0 0 1-2 2H22a2 2 0 0 1-2-2z" fill="#faf3ea"/>
-  <path d="M28 44v-8h8v8" fill="#c65d3b"/>
+  <!--
+    Reduced from the جنوبنا mark to what survives at 16px: the deep green
+    ring and one olive sprig. Not the mark itself — that file belongs in the
+    repo and should replace this — but the same colour and the same motif, so
+    the browser tab stops showing a terracotta shop that shares nothing with
+    the brand.
+  -->
+  <rect width="64" height="64" rx="14" fill="#114626"/>
+  <circle cx="32" cy="32" r="20" fill="none" stroke="#3d9460" stroke-width="3"/>
+  <g stroke="#e8ae1f" stroke-width="3" stroke-linecap="round" fill="none">
+    <path d="M20 40 C 28 30 38 24 46 22"/>
+  </g>
+  <g fill="#6fb287">
+    <ellipse cx="27" cy="33" rx="7" ry="3.6" transform="rotate(-38 27 33)"/>
+    <ellipse cx="36" cy="26" rx="7" ry="3.6" transform="rotate(-24 36 26)"/>
+    <ellipse cx="33" cy="38" rx="6.4" ry="3.3" transform="rotate(18 33 38)"/>
+  </g>
+  <circle cx="41" cy="31" r="4.4" fill="#e8ae1f"/>
 </svg>

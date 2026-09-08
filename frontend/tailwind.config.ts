@@ -3,6 +3,12 @@ import type { Config } from 'tailwindcss'
 /**
  * Warm, local, community palette — terracotta and olive drawn from southern
  * Lebanese soil and olive groves, deliberately not corporate-SaaS blue.
+ *
+ * `brand`, `wheat` and `sea` are read off the جنوبنا mark: the deep forest
+ * green of the wordmark and ring, the gold of the wheat ears, and the blue of
+ * the sea below the hills. `clay` and `olive` were already close to the mark's
+ * terracotta and foliage, so they are left alone — the new scales are what the
+ * logo adds, not a repaint of what was there.
  */
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
@@ -26,6 +32,19 @@ export default {
           50: '#f4f7f2', 100: '#e6ede1', 200: '#cddbc4',
           300: '#a9c199', 400: '#7fa06b', 500: '#5d8049',
           600: '#476638', 700: '#3a512f', 800: '#2f4127', 900: '#233019',
+        },
+        brand: {
+          50: '#eef6f0', 100: '#d6e9dc', 200: '#a9d0b6',
+          300: '#6fb287', 400: '#3d9460', 500: '#1b6b3a',
+          600: '#155830', 700: '#114626', 800: '#0d351d', 900: '#082312',
+        },
+        wheat: {
+          100: '#fdf3d8', 200: '#fae7ae', 300: '#f5d786',
+          500: '#e8ae1f', 600: '#c9911a', 700: '#9a6f14',
+        },
+        sea: {
+          100: '#dceaf4', 300: '#8fbcd9', 500: '#1c6ea4',
+          600: '#175c8a', 700: '#124e75',
         },
         ink: {
           50: '#f6f6f5', 100: '#e7e7e5', 300: '#b9b8b4',

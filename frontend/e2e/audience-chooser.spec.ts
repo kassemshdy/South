@@ -15,16 +15,21 @@ const OWNER_PHONE = '03966401'
 const DEV_OTP = '123456'
 
 /**
- * The first question the site asks.
+ * The three ways into the site.
  *
- * The two rules it must not break are behavioural, not visual, so they are
- * pinned here: it never blocks the content behind it, and it is asked once.
- * The third is that choosing to list something explains the three steps before
- * asking for a phone number — the point of the whole issue was that "sign in"
- * is not an answer to "I have a shop".
+ * These cards are the homepage's navigation for anyone not confident online,
+ * so the rule pinned here is that they are **always** there — no dismissal, no
+ * memory, present on a return visit and present when signed in. It started out
+ * as a once-only question; navigation you see once is not navigation.
+ *
+ * The other rule: choosing to list something explains the three steps before
+ * asking for a phone number, because "sign in" is not an answer to "I have a
+ * shop".
  */
 test.describe('Audience chooser', () => {
-  test('asks once, explains before signing in, and never blocks the page', async ({ page }) => {
+  test('is always there, explains before signing in, and never blocks the page', async ({
+    page,
+  }) => {
     await page.goto('/')
 
     const question = page.getByRole('heading', { name: t('onboarding.heading') })
@@ -45,27 +50,15 @@ test.describe('Audience chooser', () => {
     await page.getByRole('link', { name: t('onboarding.start') }).click()
     await expect(page).toHaveURL(/\/login/)
 
-    // Answering is remembered, so a returning visitor gets the site rather
-    // than the question again.
+    // Still there on the way back — permanent navigation, not a prompt that
+    // spends itself on first use.
     await page.goto('/')
-    await expect(question).toHaveCount(0)
+    await expect(question).toBeVisible()
   })
 
-  test('skipping is one tap and it stays skipped', async ({ page }) => {
-    await page.goto('/')
-    await page.getByRole('button', { name: t('onboarding.dismiss') }).click()
-
-    const question = page.getByRole('heading', { name: t('onboarding.heading') })
-    await expect(question).toHaveCount(0)
-
-    // The regression this catches: a dismissal that does not round-trip
-    // through storage turns a one-time question into a nag on every visit.
-    await page.reload()
-    await expect(question).toHaveCount(0)
-    await expect(page.getByRole('heading', { name: t('home.heroTitle') })).toBeVisible()
-  })
-
-  test('someone already signed in is never asked', async ({ page }) => {
+  test('someone signed in gets the same three routes, pointing at their dashboard', async ({
+    page,
+  }) => {
     await page.goto('/login')
     await page.getByLabel(t('login.phoneLabel')).fill(OWNER_PHONE)
     await page.getByRole('button', { name: t('login.sendCode') }).click()
@@ -74,7 +67,11 @@ test.describe('Audience chooser', () => {
     await expect(page).toHaveURL(/\/dashboard/)
 
     await page.goto('/')
-    // Having an account answers the question by existing.
-    await expect(page.getByRole('heading', { name: t('onboarding.heading') })).toHaveCount(0)
+    await expect(page.getByRole('heading', { name: t('onboarding.heading') })).toBeVisible()
+
+    // No steps panel for someone who has already been through it: the card is
+    // a link straight to the thing it describes.
+    await page.getByRole('link', { name: new RegExp(t('onboarding.ownerTitle')) }).click()
+    await expect(page).toHaveURL(/\/dashboard\/businesses\/new/)
   })
 })

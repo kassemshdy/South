@@ -26,7 +26,7 @@ export function Header() {
     <header className="sticky top-0 z-40 border-b border-ink-100 bg-sand-50/95 backdrop-blur">
       <div className="container-page flex h-16 items-center justify-between gap-4">
         <Link to="/" className="flex items-center gap-2.5 font-display text-lg font-bold text-ink-900">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-clay-500 text-white">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-700 text-white">
             <Store className="h-5 w-5" aria-hidden="true" />
           </span>
           {t('app.name')}
