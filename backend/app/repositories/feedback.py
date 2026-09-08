@@ -41,6 +41,24 @@ class FeedbackTicketRepository(BaseRepository[FeedbackTicket]):
             self._with_relations(select(FeedbackTicket).where(FeedbackTicket.id == ticket_id))
         ).unique().scalar_one_or_none()
 
+    def get_for_reporter(
+        self, ticket_id: uuid.UUID, reporter_id: uuid.UUID
+    ) -> FeedbackTicket | None:
+        """A ticket the given account reported, or None.
+
+        Scoped by reporter rather than looked up by id alone, the same way the
+        business repository scopes an owner's listing: the id in the request is
+        never enough on its own.
+        """
+        return self.db.execute(
+            self._with_relations(
+                select(FeedbackTicket).where(
+                    FeedbackTicket.id == ticket_id,
+                    FeedbackTicket.reporter_id == reporter_id,
+                )
+            )
+        ).unique().scalar_one_or_none()
+
     def list_board(self) -> list[FeedbackTicket]:
         """Every ticket, ordered the way the board renders a column."""
         stmt = self._with_relations(select(FeedbackTicket)).order_by(

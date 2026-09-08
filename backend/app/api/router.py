@@ -4,7 +4,16 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from app.api.v1 import auth, businesses, images, items, talent, talent_images, taxonomy
+from app.api.v1 import (
+    auth,
+    businesses,
+    feedback,
+    images,
+    items,
+    talent,
+    talent_images,
+    taxonomy,
+)
 from app.api.v1.admin import businesses as admin_businesses
 from app.api.v1.admin import feedback as admin_feedback
 from app.api.v1.admin import stats as admin_stats
@@ -26,6 +35,7 @@ api_router.include_router(admin_taxonomy.router)
 api_router.include_router(admin_stats.router)
 api_router.include_router(admin_users.router)
 
+api_router.include_router(feedback.router)
 api_router.include_router(businesses.owner_router)
 api_router.include_router(images.router)
 api_router.include_router(items.router)

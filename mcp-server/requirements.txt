@@ -1,0 +1,10 @@
+# The MCP server is a *client* of the directory's HTTP API and imports nothing
+# from backend/app, so it keeps its own environment. That is not tidiness: mcp
+# requires pydantic>=2.12 while the backend pins pydantic==2.10.4, so a shared
+# virtualenv would silently upgrade the API's own validation library.
+mcp==2.2.0
+# Pulled in by mcp, pinned here because this package imports it directly.
+httpx2==2.12.0
+
+# Development only.
+pytest==8.3.4

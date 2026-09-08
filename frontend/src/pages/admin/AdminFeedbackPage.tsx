@@ -15,7 +15,7 @@ import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } 
 import { CSS } from '@dnd-kit/utilities'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { MessageSquare, Paperclip, Plus, Trash2, UserRound } from 'lucide-react'
+import { GitBranch, MessageSquare, Paperclip, Plus, Trash2, UserRound } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 
@@ -272,6 +272,16 @@ function TicketCardBody({
         </Badge>
       </div>
       <div className="flex flex-wrap items-center gap-3 text-xs text-ink-500">
+        {/* Shown as plain text rather than a link: the repository is not
+            configured anywhere the frontend can see, and a card that silently
+            linked to the wrong repo would be worse than one that does not
+            link at all. */}
+        {ticket.github_issue_number !== null ? (
+          <span className="inline-flex items-center gap-1 font-medium text-ink-700">
+            <GitBranch className="h-3.5 w-3.5" aria-hidden="true" />#
+            {ticket.github_issue_number}
+          </span>
+        ) : null}
         {ticket.attachment_count > 0 ? (
           <span className="inline-flex items-center gap-1">
             <Paperclip className="h-3.5 w-3.5" aria-hidden="true" />

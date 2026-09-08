@@ -27,6 +27,7 @@ from app.schemas.common import PageMeta, PaginatedResponse
 from app.schemas.feedback import (
     FeedbackAttachmentOut,
     FeedbackCommentOut,
+    FeedbackSubmissionOut,
     FeedbackTicketDetailOut,
     FeedbackTicketSummaryOut,
     FeedbackUserOut,
@@ -310,6 +311,19 @@ def feedback_comment_out(comment: FeedbackComment) -> FeedbackCommentOut:
     )
 
 
+def feedback_submission(ticket: FeedbackTicket) -> FeedbackSubmissionOut:
+    """The receipt for a reported problem -- and nothing else about the board.
+
+    Built field by field rather than from the model, so adding a column to
+    FeedbackTicket can never quietly widen what a reporter is shown.
+    """
+    return FeedbackSubmissionOut(
+        id=ticket.id,
+        title=ticket.title,
+        created_at=ticket.created_at,
+    )
+
+
 def feedback_ticket_summary(ticket: FeedbackTicket) -> FeedbackTicketSummaryOut:
     return FeedbackTicketSummaryOut(
         id=ticket.id,
@@ -319,6 +333,7 @@ def feedback_ticket_summary(ticket: FeedbackTicket) -> FeedbackTicketSummaryOut:
         sort_order=ticket.sort_order,
         reporter=FeedbackUserOut.model_validate(ticket.reporter),
         assignee=feedback_user_out(ticket.assignee),
+        github_issue_number=ticket.github_issue_number,
         attachment_count=len(ticket.attachments),
         comment_count=len(ticket.comments),
         created_at=ticket.created_at,

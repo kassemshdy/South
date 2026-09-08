@@ -1,0 +1,27 @@
+[project]
+name = "south-directory-mcp"
+version = "1.0.0"
+description = "MCP server exposing the South Lebanon directory to an agent"
+requires-python = ">=3.11"
+
+# Mirrors backend/pyproject.toml so both halves of the repo are held to the
+# same standard, and so `ruff`/`mypy` from the backend venv can be pointed
+# here without a second config to keep in step.
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = [".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "C4", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+exclude = [".venv/"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

@@ -33,11 +33,18 @@ function kindFor(file: File): FeedbackAttachmentKind {
 }
 
 /**
- * Floating "report a bug" button, visible only to signed-in administrators,
- * on every page — public or admin. It replaces messaging a bug over
- * WhatsApp: a screenshot of the current page is captured automatically the
- * moment the button is pressed, before the dialog (which would otherwise
- * cover the very thing being reported) ever renders.
+ * Floating "report a bug" button on every page, for any signed-in account.
+ * It replaces messaging a bug over WhatsApp: a screenshot of the current page
+ * is captured automatically the moment the button is pressed, before the
+ * dialog (which would otherwise cover the very thing being reported) ever
+ * renders.
+ *
+ * An owner and an administrator press the same button and reach different
+ * routes. An administrator raising a ticket for triage posts to the admin
+ * board and picks a priority; an owner reporting a problem posts to
+ * `/api/feedback`, which returns a receipt and grants no view of the board.
+ * Sending an owner's report to the admin route is what used to happen, and it
+ * failed with a permission error after the form was filled in.
  */
 export function FeedbackWidget() {
   const { isAdmin } = useAuth()
@@ -125,18 +132,21 @@ export function FeedbackWidget() {
 
   const submit = useMutation({
     mutationFn: async (values: FeedbackTicketValues) => {
-      const ticket = await feedbackApi.create({
+      const common = {
         title: values.title,
         description: values.description || null,
-        priority: values.priority,
         page_path: window.location.pathname + window.location.search,
         client_context: `${navigator.userAgent} · ${window.innerWidth}×${window.innerHeight}`,
-      })
+      }
+      const ticket = isAdmin
+        ? await feedbackApi.create({ ...common, priority: values.priority })
+        : await feedbackApi.submit(common)
+      const attach = isAdmin ? feedbackApi.uploadAttachment : feedbackApi.submitAttachment
       if (screenshot) {
-        await feedbackApi.uploadAttachment(ticket.id, screenshot, 'SCREENSHOT')
+        await attach(ticket.id, screenshot, 'SCREENSHOT')
       }
       for (const pending of files) {
-        await feedbackApi.uploadAttachment(ticket.id, pending.file, pending.kind)
+        await attach(ticket.id, pending.file, pending.kind)
       }
       return ticket
     },
