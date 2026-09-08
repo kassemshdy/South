@@ -171,6 +171,13 @@ export function HomePage() {
             </span>
             <span>{t('home.sloganLine3')}</span>
           </div>
+
+          {/* Last, and in gold, because it is the line that asks something of
+              the reader rather than describing us. Kept smaller than the mark
+              above it so the band still reads name first, claim second. */}
+          <p className="mx-auto mt-7 max-w-3xl font-display text-xl font-bold leading-snug text-wheat-500 sm:text-2xl lg:text-3xl">
+            {t('home.sloganCall')}
+          </p>
         </div>
       </section>
 
