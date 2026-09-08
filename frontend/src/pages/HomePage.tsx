@@ -5,6 +5,7 @@ import {
   Package,
   Plus,
   ShieldCheck,
+  ShoppingBag,
   Store,
   Users,
   type LucideIcon,
@@ -19,7 +20,7 @@ import { BusinessCardSkeleton, Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 import { useAuth } from '@/features/auth/AuthContext'
 import { BusinessCard } from '@/features/businesses/BusinessCard'
-import { WelcomeVideo } from '@/features/home/WelcomeVideo'
+import { WelcomeVideoPlayer } from '@/features/home/WelcomeVideo'
 import { AudienceChooser } from '@/features/onboarding/AudienceChooser'
 import { useCategories, useLocationGroups } from '@/hooks/useTaxonomy'
 import { useT } from '@/i18n'
@@ -50,52 +51,96 @@ export function HomePage() {
     .sort((a, b) => b.district.business_count - a.district.business_count)
     .slice(0, 6)
 
+  // Busiest first, and only a handful: these are a shortcut in the hero, not
+  // the full grid further down the page.
+  const topCategories = (categories.data ?? [])
+    .slice()
+    .sort((a, b) => b.business_count - a.business_count)
+    .slice(0, 6)
+
   return (
     <>
-      <section className="overflow-hidden bg-sand-100" aria-hidden="true">
-        {/* Vector, and wordless: the slogan band below carries the words where
-            they can be translated and read aloud. Fixed aspect ratio so the
-            page does not jump while it loads. */}
-        <img
-          src="/home-cover.svg"
-          alt=""
-          width={2000}
-          height={650}
-          className="h-auto w-full"
-          loading="eager"
-        />
-      </section>
+      {/* The hero is a split, not a cover: the words on the reading-start
+          side, Dr Hossam on the other. DOM order does the mirroring — the copy
+          comes first, so it lands on the right in Arabic and on the left in
+          English without one directional class between them.
 
-      {/* Directly under the cover, permanently. These three cards are the
-          homepage's navigation for anyone not confident online, and navigation
-          you see once is not navigation. Someone signed in gets the same three
-          routes pointing straight at their dashboard. */}
-      <AudienceChooser isAuthenticated={isAuthenticated} />
+          It replaces a wordless cover illustration. That image was 2000px of
+          decoration above the fold, and a visitor's first screen said nothing
+          about what the site is or what they can do here. */}
+      <section className="border-b border-ink-100 bg-gradient-to-b from-sand-100 to-sand-50">
+        <div className="container-page grid items-center gap-10 py-10 sm:py-14 lg:grid-cols-2 lg:gap-14 lg:py-20">
+          <div>
+            <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-clay-700 shadow-card">
+              <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+              {t('home.reviewBadge')}
+            </p>
 
-      <section className="relative overflow-hidden border-b border-ink-100 bg-gradient-to-b from-sand-100 to-sand-50">
-        <div className="container-page py-14 text-center sm:py-20">
-          <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-clay-700 shadow-card">
-            <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-            {t('home.reviewBadge')}
-          </p>
+            <h1 className="text-3xl leading-tight sm:text-4xl lg:text-5xl">
+              {t('home.heroTitle')}
+            </h1>
+            <p className="mt-4 max-w-xl text-lg leading-relaxed text-ink-500">
+              {t('home.heroSubtitle')}
+            </p>
 
-          <h1 className="mx-auto max-w-3xl text-3xl leading-tight sm:text-4xl lg:text-5xl">
-            {t('home.heroTitle')}
-          </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-ink-500">
-            {t('home.heroSubtitle')}
-          </p>
+            {/* The two reasons anybody is on this page, in the visitor's own
+                words rather than ours — offering something, or looking for
+                something. Which of the two someone is decides the whole rest
+                of their visit, so the page asks it first and asks it once. */}
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <Button asChild size="lg">
+                <Link to={isAuthenticated ? '/dashboard/businesses/new' : '/login'}>
+                  <Store className="h-5 w-5" aria-hidden="true" />
+                  {t('home.actionOffer')}
+                </Link>
+              </Button>
+              <Button asChild variant="outline" size="lg">
+                <Link to="/products">
+                  <ShoppingBag className="h-5 w-5" aria-hidden="true" />
+                  {t('home.actionBrowse')}
+                </Link>
+              </Button>
+            </div>
 
-          <div className="mt-8">
-            <Button asChild variant="outline" size="lg">
-              <Link to={isAuthenticated ? '/dashboard/businesses/new' : '/login'}>
-                <Plus className="h-5 w-5" aria-hidden="true" />
-                {t('home.addBusiness')}
-              </Link>
-            </Button>
+            {/* The busiest categories, as a shortcut past both buttons for
+                someone who already knows what they came for. Rendered only
+                once the taxonomy has loaded: a row of empty pills that then
+                shift the buttons is worse than a row that simply arrives. */}
+            {topCategories.length > 0 ? (
+              <nav className="mt-7" aria-label={t('home.topCategoriesLabel')}>
+                <ul className="flex flex-wrap gap-2">
+                  {topCategories.map((category) => (
+                    <li key={category.id}>
+                      <Link
+                        to={`/businesses?category=${encodeURIComponent(category.slug)}`}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-ink-100 bg-white px-4 py-2 text-sm font-semibold shadow-card transition-colors hover:border-clay-300 hover:text-clay-600"
+                      >
+                        {category.name_ar}
+                        <ArrowLeft className="h-3.5 w-3.5 ltr:rotate-180" aria-hidden="true" />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            ) : null}
+          </div>
+
+          <div>
+            <WelcomeVideoPlayer />
+            <p className="mt-3 text-center text-sm font-semibold text-ink-500">
+              {t('home.videoHeading')}
+            </p>
           </div>
         </div>
       </section>
+
+      {/* Under the hero, permanently. These three cards are the homepage's
+          navigation for anyone not confident online, and navigation you see
+          once is not navigation. They overlap the hero's two buttons on
+          purpose: the buttons are the fast path, these name the third
+          audience — someone offering a skill rather than a shop — and spell
+          out what signing up involves before asking for a phone number. */}
+      <AudienceChooser isAuthenticated={isAuthenticated} />
 
       {/* The four words carry the weight of the whole project, and they were
           set in the same small type as a filter label. On the mark's deep
@@ -127,7 +172,8 @@ export function HomePage() {
         </div>
       </section>
 
-      <WelcomeVideo />
+      {/* The video used to have a section of its own here. It is in the hero
+          now, and one recording twice on one page is one too many. */}
 
       <section className="container-page py-14" aria-labelledby="discover-heading">
         <h2 id="discover-heading" className="mb-6 text-center text-2xl">
