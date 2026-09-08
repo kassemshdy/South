@@ -9,7 +9,7 @@ import { useT } from '@/i18n'
 
 export function AppLayout() {
   const t = useT()
-  const { isAdmin } = useAuth()
+  const { isAuthenticated } = useAuth()
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -26,7 +26,12 @@ export function AppLayout() {
         <Outlet />
       </main>
       <Footer />
-      {isAdmin ? <FeedbackWidget /> : null}
+      {/* Anyone signed in, not just admins. The whole reporting pipeline —
+          screenshot, ticket, board — existed and was reachable only by the
+          people who built it, so an owner whose upload failed had no way to
+          say so. Anonymous reporting is a larger change (a nullable reporter
+          and rate limiting) and is tracked separately. */}
+      {isAuthenticated ? <FeedbackWidget /> : null}
     </div>
   )
 }

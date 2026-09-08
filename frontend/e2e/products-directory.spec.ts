@@ -156,6 +156,10 @@ test.describe('Products directory', () => {
     ).toBeVisible()
     await expect(page.getByRole('link', { name: fixture.businessName })).toBeVisible()
 
+    // A product is the most passed-around thing on this site — a photo, a name
+    // and a price — and it was the one public page with no way to pass it on.
+    await expect(page.getByRole('button', { name: t('business.share') })).toBeVisible()
+
     await page.getByRole('link', { name: fixture.businessName }).click()
     await expect(
       page.getByRole('heading', { name: fixture.businessName, level: 1 }),

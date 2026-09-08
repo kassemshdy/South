@@ -1,8 +1,10 @@
 """Sitemap and robots.txt.
 
-Only APPROVED businesses and talent profiles are ever listed: draft, pending,
-rejected and suspended entries must not be discoverable, and the sitemap is the
-easiest place to leak them by accident.
+Only what a visitor may already see is ever listed: draft, pending, rejected
+and suspended listings must not be discoverable, nor an unavailable product,
+and the sitemap is the easiest place to leak one by accident. Every loop below
+draws its rows from the same repository helper the public endpoints use, so
+there is no second definition of "public" here to drift from the first.
 """
 
 from __future__ import annotations
@@ -13,6 +15,7 @@ from fastapi import APIRouter, Response
 
 from app.core.dependencies import AppSettings, DbSession
 from app.repositories.business import BusinessRepository
+from app.repositories.item import ItemRepository
 from app.repositories.talent import TalentRepository, TalentSkillRepository
 from app.repositories.taxonomy import CategoryRepository
 
@@ -40,6 +43,15 @@ def sitemap(db: DbSession, settings: AppSettings) -> Response:
 
     for slug, updated_at in BusinessRepository(db).approved_slugs():
         add(f"/business/{slug}", changefreq="weekly", priority="0.8", lastmod=updated_at)
+
+    # Products were missing entirely: they have public pages and a directory,
+    # and a product is the most shareable thing here — a photo, a name and a
+    # price — so it is the last thing that should have been invisible to a
+    # crawler.
+    add("/products", changefreq="daily", priority="0.9")
+
+    for slug, updated_at in ItemRepository(db).public_slugs():
+        add(f"/product/{slug}", changefreq="weekly", priority="0.7", lastmod=updated_at)
 
     add("/talent", changefreq="daily", priority="0.9")
 

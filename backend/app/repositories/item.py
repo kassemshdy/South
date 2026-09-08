@@ -56,6 +56,24 @@ class ItemRepository(BaseRepository[BusinessItem]):
         stmt = self._with_relations(self.public_query().where(BusinessItem.slug == slug))
         return self.db.execute(stmt).unique().scalar_one_or_none()
 
+    def public_slugs(self) -> list[tuple[str, object]]:
+        """(slug, updated_at) pairs for the sitemap.
+
+        Built on ``public_query`` rather than its own WHERE clause: the rule
+        for what a visitor may see lives in one place, so a product that is
+        unavailable or whose business is not approved cannot be advertised to
+        a crawler by a predicate that drifted.
+        """
+        # Columns come off the subquery itself. Selecting
+        # ``BusinessItem.slug`` while merely adding the subquery to FROM is a
+        # cartesian product, which SQLAlchemy warns about and which quietly
+        # multiplied every product by every other one.
+        public = self.public_query().subquery()
+        rows = self.db.execute(
+            select(public.c.slug, public.c.updated_at).order_by(public.c.updated_at.desc())
+        ).all()
+        return [(row[0], row[1]) for row in rows]
+
     def _apply_filters(
         self,
         stmt: Select[tuple[BusinessItem]],
