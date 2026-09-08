@@ -74,6 +74,7 @@ one person's head.
 | `.claude/skills/verify-gate/` | The full local gate, plus the traps that have actually cost time here. |
 | `.claude/skills/steward/` | How to drive a PR on this repo: branch base, the three CI jobs, red checks, review comments. |
 | `.claude/skills/ship-release/` | Promoting `develop-claude` to `master-claude`, with the pre-flight that establishes no data is lost. |
+| `.claude/skills/triage-loop/` | One pass of the ticket board: pick a ticket, fix it, open a PR, record it. What the scheduled routine runs. |
 | `.claude/commands/verify.md` | Slash command; it invokes the skill rather than restating it, so there is one copy to keep correct. |
 | `.claude/settings.json` | Pre-approved tools. Read-only commands and MCP reads are allowed; anything that writes still prompts. |
 | `docs/MCP.md` | The agent-facing MCP server: read the whole directory, write only to the ticket board. |
@@ -82,6 +83,25 @@ one person's head.
 or a line in this file is worth more than a correction in one conversation,
 which is gone next session. Three of the traps in `verify-gate` are there
 because an agent hit them in this repo, not because they were predicted.
+
+### The scheduled triage routine
+
+A Routine runs `triage-loop` on a schedule: one ticket per pass, a pull
+request, and a comment on the ticket saying what happened. It needs
+`SOUTH_API_URL`, `SOUTH_AGENT_EMAIL` and `SOUTH_AGENT_PASSWORD` on the
+execution environment, and **stops and says so when they are absent** rather
+than finding something else to do — an unconfigured pass that improvises is
+how invented work becomes a pull request.
+
+Three things it is not allowed to do, and none of them are oversights:
+approve or suspend a listing (the MCP server has no such tool), merge, or move
+a ticket to `DONE`. `DONE` means shipped, which a person decides after a
+merge.
+
+The agent signs in as the existing administrator account, so the board cannot
+tell the routine's tickets and comments apart from that person's own. That is
+a legibility cost rather than a security one, and a second admin row fixes it
+whenever it starts to matter — nothing in the design assumes one.
 
 ### Patterns borrowed from elsewhere
 
