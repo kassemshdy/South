@@ -61,6 +61,47 @@ if the suite fails on stale state rather than a real regression.
 and fails the build if it finds one. That test is the actual guard — treat any Arabic
 literal outside `locales/`, `scripts/data/`, or a fixture file as a bug, not a style nit.
 
+## Agent Configuration
+
+Everything an agent needs to work here is version-controlled, so it is
+reviewed like code and improves when someone fixes it rather than living in
+one person's head.
+
+| Path | What it is |
+|---|---|
+| `AGENTS.md` (this file) | The source of truth. `CLAUDE.md` imports it; editor-specific files should too, never duplicate it. |
+| `REVIEW.md` | What a review looks for, in tiers. The blocking tier is the Security Musts below, each with the test that pins it. |
+| `.claude/skills/verify-gate/` | The full local gate, plus the traps that have actually cost time here. |
+| `.claude/skills/steward/` | How to drive a PR on this repo: branch base, the three CI jobs, red checks, review comments. |
+| `.claude/skills/ship-release/` | Promoting `develop-claude` to `master-claude`, with the pre-flight that establishes no data is lost. |
+| `.claude/commands/verify.md` | Slash command; it invokes the skill rather than restating it, so there is one copy to keep correct. |
+| `.claude/settings.json` | Pre-approved tools. Read-only commands and MCP reads are allowed; anything that writes still prompts. |
+| `docs/MCP.md` | The agent-facing MCP server: read the whole directory, write only to the ticket board. |
+
+**When a mistake repeats, fix the artifact rather than the instance.** A skill
+or a line in this file is worth more than a correction in one conversation,
+which is gone next session. Three of the traps in `verify-gate` are there
+because an agent hit them in this repo, not because they were predicted.
+
+### Borrowing skills rather than writing them
+
+Sentry publishes a set of general engineering skills in the Agent Skills
+format that this repo's files follow
+([getsentry/skills](https://github.com/getsentry/skills)):
+
+```bash
+claude plugin marketplace add getsentry/skills
+claude plugin install sentry-skills@sentry-skills
+```
+
+Worth having here: `iterate-pr`, `pr-writer`, `pr-link-issue`, `code-review`,
+`find-bugs`, `security-review`, `code-simplifier`, `skill-writer`,
+`claude-settings-audit`, `agents-md`. The `django-access-review` and
+`django-perf-review` skills do not apply — this backend is FastAPI and
+SQLAlchemy, and a Django-shaped review would mislead. Repo-specific rules in
+`.claude/skills/` take precedence over a borrowed skill wherever the two
+disagree.
+
 ## Security Musts
 
 - **Never commit secrets.** `SECRET_KEY`, `ADMIN_PASSWORD`, Twilio credentials, and the
