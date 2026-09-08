@@ -11,12 +11,13 @@ from app.core.arabic import build_search_text
 from app.core.errors import ConflictError, NotFoundError, ValidationError
 from app.core.i18n import LazyJoin
 from app.core.urls import normalize_url
-from app.models.enums import BusinessStatus
+from app.models.enums import BusinessStatus, ViewSubject
 from app.models.talent import TalentLanguage, TalentProfile
 from app.models.user import User
 from app.repositories.talent import TalentRepository, TalentSkillRepository
 from app.repositories.taxonomy import LocationRepository
 from app.schemas.talent import TalentCreateIn, TalentLanguageIn, TalentUpdateIn
+from app.services.analytics import ViewCounterService
 from app.services.slug import unique_slug
 
 logger = logging.getLogger(__name__)
@@ -126,6 +127,9 @@ class TalentService:
         # Images cascade at the database level; storage objects are cleaned up
         # by the caller, which holds the storage backend.
         profile_id = profile.id
+        # View counters do not cascade -- see ViewSubject for why there is no
+        # foreign key to hang ON DELETE off.
+        ViewCounterService(self._db).forget(ViewSubject.TALENT, profile_id)
         self._repo.delete(profile)
         self._db.commit()
         logger.info("Talent profile deleted", extra={"profile_id": str(profile_id)})

@@ -10,12 +10,14 @@ import { EmptyState, ErrorState } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
 import { useAuth } from '@/features/auth/AuthContext'
+import { LiveSharePanel } from '@/features/insights/LiveSharePanel'
+import { ViewsPanel } from '@/features/insights/ViewsPanel'
 import { useSeo } from '@/hooks/useSeo'
 import { useI18n, useT, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
-import { ownerApi } from '@/services/api/endpoints'
+import { insightsApi, ownerApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import type { OwnerBusiness } from '@/types/api'
+import type { ListingViews, OwnerBusiness } from '@/types/api'
 import { formatRelativeDate } from '@/utils/format'
 
 export function DashboardPage() {
@@ -24,6 +26,13 @@ export function DashboardPage() {
   useSeo({ title: t('dashboard.seoTitle'), noIndex: true })
 
   const businesses = useQuery({ queryKey: queryKeys.myBusinesses, queryFn: ownerApi.list })
+  // One request for every card, rather than one per card. It is allowed to
+  // fail quietly: a dashboard without its numbers is still a dashboard, and
+  // the panel renders its "no views yet" state.
+  const views = useQuery({ queryKey: queryKeys.myViews, queryFn: insightsApi.myViews })
+  const viewsById = new Map<string, ListingViews>(
+    (views.data?.listings ?? []).map((entry) => [entry.subject_id, entry]),
+  )
 
   return (
     <div className="container-page py-10">
@@ -63,7 +72,12 @@ export function DashboardPage() {
       ) : businesses.data && businesses.data.length > 0 ? (
         <div className="grid gap-5 md:grid-cols-2">
           {businesses.data.map((business) => (
-            <OwnerBusinessCard key={business.id} business={business} />
+            <OwnerBusinessCard
+              key={business.id}
+              business={business}
+              views={viewsById.get(business.id)}
+              windowDays={views.data?.window_days ?? 14}
+            />
           ))}
         </div>
       ) : (
@@ -82,7 +96,15 @@ export function DashboardPage() {
   )
 }
 
-function OwnerBusinessCard({ business }: { business: OwnerBusiness }) {
+function OwnerBusinessCard({
+  business,
+  views,
+  windowDays,
+}: {
+  business: OwnerBusiness
+  views: ListingViews | undefined
+  windowDays: number
+}) {
   const queryClient = useQueryClient()
   const toast = useToast()
   const { t, locale } = useI18n()
@@ -153,6 +175,16 @@ function OwnerBusinessCard({ business }: { business: OwnerBusiness }) {
           <p className="mt-4 rounded-xl bg-ink-100 p-3.5 text-sm text-ink-700">
             {t('dashboard.suspendedNotice')}
           </p>
+        ) : null}
+
+        {business.status === 'APPROVED' ? (
+          <>
+            <LiveSharePanel
+              name={business.name}
+              path={`/business/${encodeURIComponent(business.slug)}`}
+            />
+            <ViewsPanel views={views} windowDays={windowDays} />
+          </>
         ) : null}
 
         <div className="mt-5 flex flex-wrap gap-2 pt-1">

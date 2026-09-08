@@ -9,12 +9,14 @@ import { Card, CardBody } from '@/components/ui/Card'
 import { ErrorState, InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
+import { LiveSharePanel } from '@/features/insights/LiveSharePanel'
+import { ViewsPanel } from '@/features/insights/ViewsPanel'
 import { TalentForm } from '@/features/talent/TalentForm'
 import { TalentImageManager } from '@/features/talent/TalentImageManager'
 import { useSeo } from '@/hooks/useSeo'
 import { useT, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
-import { ownerTalentApi, type TalentPayload } from '@/services/api/endpoints'
+import { insightsApi, ownerTalentApi, type TalentPayload } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 
 /**
@@ -40,6 +42,9 @@ export function TalentDashboardPage() {
     retry: false,
   })
 
+  // Hooks cannot sit below the early returns further down, so the counts
+  // are fetched here and read after the profile is known to exist.
+  const views = useQuery({ queryKey: queryKeys.myViews, queryFn: insightsApi.myViews })
   const readiness = useQuery({
     queryKey: queryKeys.myTalentReadiness,
     queryFn: ownerTalentApi.readiness,
@@ -168,6 +173,19 @@ export function TalentDashboardPage() {
           </Button>
         ) : null}
       </header>
+
+      {data.status === 'APPROVED' ? (
+        <>
+          <LiveSharePanel
+            name={data.display_name}
+            path={`/talent/${encodeURIComponent(data.slug)}`}
+          />
+          <ViewsPanel
+            views={views.data?.listings.find((entry) => entry.subject_id === data.id)}
+            windowDays={views.data?.window_days ?? 14}
+          />
+        </>
+      ) : null}
 
       {data.status === 'REJECTED' && data.rejection_reason ? (
         <div className="mb-6 flex gap-2.5 rounded-xl border-2 border-clay-200 bg-clay-50 p-4">

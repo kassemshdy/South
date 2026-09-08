@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from app.api.v1 import (
+    analytics,
     auth,
     businesses,
     feedback,
@@ -36,6 +37,7 @@ api_router.include_router(admin_stats.router)
 api_router.include_router(admin_users.router)
 
 api_router.include_router(feedback.router)
+api_router.include_router(analytics.owner_router)
 api_router.include_router(businesses.owner_router)
 api_router.include_router(images.router)
 api_router.include_router(items.router)

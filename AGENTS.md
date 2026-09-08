@@ -148,6 +148,21 @@ would mislead rather than help.
   standing between those columns and the open internet: read it back through
   `OwnerIdentityOut` on a review payload instead. `tests/test_identity.py` pins that
   boundary, so treat a failure there as a disclosure bug rather than a stale assertion.
+- **The view counter stores nothing about a visitor.** `listing_view_daily`
+  holds a listing id, a UTC date and an integer — no address, cookie, session
+  id, user agent or fingerprint. That is what made per-listing analytics
+  acceptable here at all, so it is pinned by
+  `tests/test_views.py::test_the_counter_table_stores_nothing_about_a_visitor`,
+  which asserts the exact column set. A visitor-identifying column is a
+  design change to argue for, not a convenience to add while debugging. The
+  consequence is a labelling rule with teeth: without a per-visitor
+  identifier the number is a count of **views**, never of visitors or
+  people, and every string that renders it must say so.
+- **A public route reads the caller through `Viewer`, never `OptionalUser`.**
+  `OptionalUser` returns None only for a request with no token and raises 401
+  for a bad one, and the frontend attaches whatever token is in local storage
+  to every request — so an expired session would 401 the public listing pages.
+  `Viewer` degrades to anonymous. See `app/core/dependencies.py`.
 - Production refuses to boot with the mock OTP provider or a weak `SECRET_KEY` — see
   `Settings.enforce_production_safety()` in `app/core/config.py`. Don't weaken this to
   make a deploy easier; fix the underlying config instead.

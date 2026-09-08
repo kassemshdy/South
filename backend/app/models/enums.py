@@ -107,3 +107,20 @@ class VerificationDocumentKind(str, enum.Enum):
 
     IDENTITY = "IDENTITY"
     CV = "CV"
+
+
+class ViewSubject(str, enum.Enum):
+    """What a counted view was a view *of*.
+
+    The view counter is one table for all three, keyed by this plus an id,
+    so a new surface needs no migration. The trade is that ``subject_id``
+    carries no foreign key and cannot: it points at three different tables.
+    Deletion therefore has to purge counters explicitly -- see
+    ``ViewCounterService.forget`` -- rather than relying on ``ON DELETE``.
+    Ids are UUIDv4, so a purge that is missed leaves dead rows and never
+    misattributes a count to a later listing.
+    """
+
+    BUSINESS = "BUSINESS"
+    TALENT = "TALENT"
+    PRODUCT = "PRODUCT"

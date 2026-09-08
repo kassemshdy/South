@@ -26,6 +26,7 @@ import type {
   MaritalStatus,
   OwnerBusiness,
   OwnerTalent,
+  OwnerViews,
   Paginated,
   PlatformStats,
   ProductDetail,
@@ -221,6 +222,16 @@ export const ownerTalentApi = {
       method: 'PUT',
       body: { image_ids },
     }),
+}
+
+/**
+ * What an owner can see about their own listings being looked at.
+ *
+ * One request for the whole dashboard rather than one per card, so a page
+ * with several listings does not fan out.
+ */
+export const insightsApi = {
+  myViews: () => apiRequest<OwnerViews>('/api/my/views'),
 }
 
 export const ownerApi = {

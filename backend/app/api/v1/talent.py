@@ -12,10 +12,11 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Path, Query, status
 
 from app.api.serializers import owner_talent, paginate, talent_detail, talent_summary
-from app.core.dependencies import CurrentUser, DbSession, OwnTalentProfile
+from app.core.dependencies import CurrentUser, DbSession, OwnTalentProfile, Viewer
 from app.core.errors import NotFoundError
 from app.core.i18n import translate
 from app.core.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from app.models.enums import ViewSubject
 from app.repositories.talent import TalentRepository
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.talent import (
@@ -25,6 +26,7 @@ from app.schemas.talent import (
     TalentSummaryOut,
     TalentUpdateIn,
 )
+from app.services.analytics import ViewCounterService
 from app.services.talent import TalentService
 from app.services.talent_moderation import TalentModerationService
 
@@ -69,11 +71,17 @@ def latest_talent(
 
 
 @public_router.get("/talent/{slug}", response_model=TalentDetailOut)
-def get_talent(slug: Annotated[str, Path(max_length=200)], db: DbSession) -> TalentDetailOut:
+def get_talent(
+    slug: Annotated[str, Path(max_length=200)], db: DbSession, viewer: Viewer
+) -> TalentDetailOut:
     profile = TalentRepository(db).get_by_slug(slug, public_only=True)
     if profile is None:
         raise NotFoundError("talent.not_public")
-    return talent_detail(profile)
+    payload = talent_detail(profile)
+    ViewCounterService(db).record(
+        ViewSubject.TALENT, profile.id, owner_id=profile.owner_id, viewer=viewer
+    )
+    return payload
 
 
 # --- Owner -----------------------------------------------------------------
