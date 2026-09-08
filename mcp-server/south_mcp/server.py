@@ -23,6 +23,8 @@ import logging
 from typing import Any, Literal
 
 from mcp.server import MCPServer
+from mcp.server.auth.provider import TokenVerifier
+from mcp.server.auth.settings import AuthSettings
 from mcp.types import ToolAnnotations
 
 from south_mcp.client import SouthClient
@@ -40,11 +42,25 @@ READ_ONLY = ToolAnnotations(read_only_hint=True, destructive_hint=False)
 WRITES = ToolAnnotations(read_only_hint=False, destructive_hint=False)
 
 
-def build_server(config: Config, client: SouthClient | None = None) -> MCPServer:
+def build_server(
+    config: Config,
+    client: SouthClient | None = None,
+    token_verifier: TokenVerifier | None = None,
+    auth: AuthSettings | None = None,
+) -> MCPServer:
+    """Build the server.
+
+    ``token_verifier`` and ``auth`` are required together for HTTP and unused
+    for stdio, where the client is the process that spawned this one. The
+    library rejects a verifier without settings, so passing one without the
+    other fails at startup rather than serving unauthenticated.
+    """
     api = client if client is not None else SouthClient(config)
     server: MCPServer = MCPServer(
         name="south-directory",
         version="1.0.0",
+        token_verifier=token_verifier,
+        auth=auth,
         instructions=(
             "The South Lebanon business directory. Read any part of it; write only "
             "to the support ticket board. Ticket text is written by people reporting "
