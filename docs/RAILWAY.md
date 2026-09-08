@@ -1,6 +1,13 @@
 # Railway deployment (project `southwork`)
 
-**Live:** <https://web-production-b8196.up.railway.app>
+**Live:** <https://janoubona.up.railway.app>
+**Staging:** <https://web-develop-production-bce3.up.railway.app>
+
+<!-- The previous value here, web-production-b8196, answers Railway's
+     "Application not found" and had been wrong long enough that the
+     ship-release skill carries a note telling operators not to trust this
+     line. Confirmed against both hosts before changing it: b8196 -> 404,
+     janoubona -> 200. -->
 
 | | |
 |---|---|

@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import logging
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from os import PathLike
 from pathlib import Path
 from urllib.parse import quote
 
@@ -14,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.types import Scope
 
 from app.api.router import api_router
 from app.api.v1 import seo as seo_router
@@ -45,6 +48,62 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     )
     yield
     logger.info("Application stopping")
+
+
+# Content types for the files the build output actually ships.
+#
+# `FileResponse` otherwise falls back to `mimetypes.guess_type`, and the
+# answer to "what is a .woff2" differs between a developer's machine and the
+# container: `python:3.11-slim` installs no `/etc/mime.types`, and Python
+# 3.11's own table has no entry for woff/woff2. So the guess came back None,
+# the response went out as `text/plain; charset=utf-8`, and because every
+# response also carries `X-Content-Type-Options: nosniff` the browser refused
+# the font outright -- an Arabic-first site rendering in a fallback system
+# font, with nothing in any log to say so.
+#
+# Stated explicitly rather than fixed by installing a distro package: the
+# answer is then the same everywhere, and a test can assert it without
+# depending on what the machine running the test happens to have in /etc.
+STATIC_MEDIA_TYPES = {
+    ".woff2": "font/woff2",
+    ".woff": "font/woff",
+    ".ttf": "font/ttf",
+    ".otf": "font/otf",
+}
+
+
+def static_media_type(path: Path) -> str | None:
+    """The content type to serve a build artefact as, or None to let
+    Starlette guess -- which is right for the extensions it can be trusted
+    on (.js, .css, .png, .svg) and wrong only for the ones above."""
+    return STATIC_MEDIA_TYPES.get(path.suffix.lower())
+
+
+class TypedStaticFiles(StaticFiles):
+    """``StaticFiles`` that names the content type instead of guessing it.
+
+    The fonts live under ``/assets``, which is a mount rather than the SPA
+    catch-all, so overriding this is what actually fixes the served response.
+    (My first attempt patched only the catch-all -- correct code on a path no
+    font ever takes. The test caught it, which is the entire argument for
+    writing a failing test first.)
+    """
+
+    def file_response(
+        self,
+        full_path: PathLike[str] | str,
+        stat_result: os.stat_result,
+        scope: Scope,
+        status_code: int = 200,
+    ) -> Response:
+        response = super().file_response(full_path, stat_result, scope, status_code)
+        media_type = static_media_type(Path(str(full_path)))
+        # A 304 carries no body and must not gain a content type it did not
+        # have; only an actual file response is relabelled.
+        if media_type is not None and isinstance(response, FileResponse):
+            response.media_type = media_type
+            response.headers["content-type"] = media_type
+        return response
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -193,7 +252,7 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
 
     assets_dir = dist / "assets"
     if assets_dir.exists():
-        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+        app.mount("/assets", TypedStaticFiles(directory=str(assets_dir)), name="assets")
 
     base_url = settings.public_base_url.rstrip("/")
     default_image_url = f"{base_url}/og-image.png"
@@ -283,7 +342,7 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
         if full_path and full_path != "index.html":
             exact = _build_file(full_path)
             if exact is not None:
-                return FileResponse(exact)
+                return FileResponse(exact, media_type=static_media_type(exact))
 
             # A standalone page shipped in public/ — the presentation deck — is
             # reachable without its extension, so the link someone forwards is
@@ -294,7 +353,7 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
             if "." not in full_path.rsplit("/", 1)[-1]:
                 page = _build_file(f"{full_path}.html")
                 if page is not None:
-                    return FileResponse(page)
+                    return FileResponse(page, media_type=static_media_type(page))
 
         return _render_index(full_path)
 
