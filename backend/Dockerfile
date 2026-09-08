@@ -9,6 +9,26 @@ WORKDIR /build
 COPY frontend/package.json frontend/package-lock.json* ./
 RUN npm ci --no-audit --no-fund
 COPY frontend/ ./
+
+# Vite inlines import.meta.env.VITE_* at build time, so every one of these has
+# to arrive as a build arg. A Railway *service* variable is invisible to
+# `npm run build` and the value silently ends up undefined — which for these
+# looks exactly like "not configured": no Sentry, no analytics, no social row,
+# with nothing in the logs to say why. This stage builds the bundle the API
+# actually serves (see frontend/Caddyfile: the web service proxies /assets/*
+# here rather than serving its own copy), so an argument missing here is
+# missing in production no matter what the web service was given.
+ARG VITE_SENTRY_DSN
+ARG VITE_GA_MEASUREMENT_ID
+ARG VITE_SOCIAL_INSTAGRAM
+ARG VITE_SOCIAL_FACEBOOK
+ARG VITE_SOCIAL_TIKTOK
+ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN \
+    VITE_GA_MEASUREMENT_ID=$VITE_GA_MEASUREMENT_ID \
+    VITE_SOCIAL_INSTAGRAM=$VITE_SOCIAL_INSTAGRAM \
+    VITE_SOCIAL_FACEBOOK=$VITE_SOCIAL_FACEBOOK \
+    VITE_SOCIAL_TIKTOK=$VITE_SOCIAL_TIKTOK
+
 RUN npm run build
 
 

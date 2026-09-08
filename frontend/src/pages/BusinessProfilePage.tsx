@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import {
   BadgeCheck,
-  Check,
   Facebook,
   Globe,
   Instagram,
@@ -10,16 +9,15 @@ import {
   MessageCircle,
   Music2,
   Phone,
-  Share2,
   Store,
   Youtube,
 } from 'lucide-react'
-import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
+import { ShareButton } from '@/components/ui/ShareButton'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { publicBusinessApi } from '@/services/api/endpoints'
@@ -40,7 +38,6 @@ const PLATFORM_ICONS: Record<SocialPlatform, typeof Instagram> = {
 
 export function BusinessProfilePage() {
   const { slug = '' } = useParams()
-  const [copied, setCopied] = useState(false)
   const t = useT()
   const { locale } = useI18n()
 
@@ -61,31 +58,6 @@ export function BusinessProfilePage() {
     image: data?.cover_url ?? data?.logo_url ?? null,
     canonicalPath: `/business/${encodeURIComponent(slug)}`,
   })
-
-  const handleShare = async () => {
-    const url = window.location.href
-    const shareData = {
-      title: data?.name ?? t('app.name'),
-      text: data?.short_description ?? '',
-      url,
-    }
-    // Native share on phones; clipboard elsewhere.
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData)
-        return
-      } catch {
-        /* user dismissed the sheet — fall through to copying */
-      }
-    }
-    try {
-      await navigator.clipboard.writeText(url)
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 2500)
-    } catch {
-      /* clipboard unavailable; nothing further we can do */
-    }
-  }
 
   if (business.isLoading) {
     return (
@@ -158,7 +130,8 @@ export function BusinessProfilePage() {
             )}
           </div>
 
-          <div className="min-w-0 flex-1">
+          {/* Owner-authored text carries its own direction — see BusinessCard. */}
+          <div className="min-w-0 flex-1" dir="auto">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl sm:text-3xl">{data.name}</h1>
               <Badge className="bg-olive-100 text-olive-700">
@@ -182,10 +155,11 @@ export function BusinessProfilePage() {
             </div>
           </div>
 
-          <Button variant="outline" onClick={() => void handleShare()} className="shrink-0">
-            {copied ? <Check className="h-4 w-4" aria-hidden="true" /> : <Share2 className="h-4 w-4" aria-hidden="true" />}
-            {copied ? t('business.linkCopied') : t('business.share')}
-          </Button>
+          <ShareButton
+            title={data.name}
+            text={data.short_description ?? undefined}
+            className="shrink-0"
+          />
         </div>
 
         {/* Contact CTAs sit directly under the header: on a phone this is the
@@ -218,7 +192,7 @@ export function BusinessProfilePage() {
                 </h2>
                 <Card>
                   <CardBody>
-                    <p className="whitespace-pre-line leading-loose text-ink-700">
+                    <p className="whitespace-pre-line leading-loose text-ink-700" dir="auto">
                       {data.description || data.short_description}
                     </p>
                   </CardBody>
@@ -258,7 +232,7 @@ export function BusinessProfilePage() {
                           <dt className="text-sm font-semibold text-ink-500">
                             {t('business.productionLabel')}
                           </dt>
-                          <dd className="mt-1 whitespace-pre-line leading-relaxed text-ink-700">
+                          <dd className="mt-1 whitespace-pre-line leading-relaxed text-ink-700" dir="auto">
                             {data.production_nature}
                           </dd>
                         </div>

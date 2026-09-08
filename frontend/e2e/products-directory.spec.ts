@@ -75,6 +75,9 @@ test.describe('Products directory', () => {
     await page.goto('/dashboard/businesses/new')
     await page.getByLabel(t('form.name')).fill(fixture.businessName)
     await page.getByLabel(t('form.shortDescription')).fill(fixture.shortDescription)
+    // Producer detail and the long description are optional at submission, so
+    // they sit behind a disclosure (#34); open it before filling them.
+    await page.getByText(t('form.optionalSectionTitle')).click()
     await page.getByLabel(t('form.description')).fill(fixture.description)
     await page.getByRole('combobox').first().click()
     await page.getByRole('option', { name: categoryName }).click()
@@ -152,6 +155,10 @@ test.describe('Products directory', () => {
       page.getByRole('heading', { name: fixture.availableItem.title, level: 1 }),
     ).toBeVisible()
     await expect(page.getByRole('link', { name: fixture.businessName })).toBeVisible()
+
+    // A product is the most passed-around thing on this site — a photo, a name
+    // and a price — and it was the one public page with no way to pass it on.
+    await expect(page.getByRole('button', { name: t('business.share') })).toBeVisible()
 
     await page.getByRole('link', { name: fixture.businessName }).click()
     await expect(

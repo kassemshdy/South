@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Store } from 'lucide-react'
 
+import { SocialLinks } from '@/components/layout/SocialLinks'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useT } from '@/i18n'
 
@@ -13,7 +14,7 @@ export function Footer() {
       <div className="container-page grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-3">
         <div>
           <div className="flex items-center gap-2.5 font-display text-lg font-bold">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-clay-500 text-white">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-700 text-white">
               <Store className="h-5 w-5" aria-hidden="true" />
             </span>
             {t('app.name')}
@@ -50,11 +51,15 @@ export function Footer() {
           </ul>
         </nav>
 
-        <div>
-          <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-700">
-            {t('footer.about')}
-          </h2>
-          <p className="leading-relaxed text-ink-500">{t('footer.aboutBody')}</p>
+        <div className="space-y-8">
+          <div>
+            <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-700">
+              {t('footer.about')}
+            </h2>
+            <p className="leading-relaxed text-ink-500">{t('footer.aboutBody')}</p>
+          </div>
+
+          <SocialLinks />
         </div>
       </div>
 

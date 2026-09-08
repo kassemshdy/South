@@ -1,21 +1,19 @@
 import { useQuery } from '@tanstack/react-query'
 import {
   BadgeCheck,
-  Check,
   Globe,
   Mail,
   MapPin,
   MessageCircle,
   Phone,
-  Share2,
   UserRound,
 } from 'lucide-react'
-import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
+import { ShareButton } from '@/components/ui/ShareButton'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { useSeo } from '@/hooks/useSeo'
@@ -27,7 +25,6 @@ import { telHref, whatsappHref } from '@/utils/format'
 
 export function TalentProfilePage() {
   const { slug = '' } = useParams()
-  const [copied, setCopied] = useState(false)
   const t = useT()
 
   const talent = useQuery({
@@ -47,31 +44,6 @@ export function TalentProfilePage() {
     image: data?.photo_url ?? null,
     canonicalPath: `/talent/${encodeURIComponent(slug)}`,
   })
-
-  const handleShare = async () => {
-    const url = window.location.href
-    const shareData = {
-      title: data?.display_name ?? t('app.name'),
-      text: data?.headline ?? '',
-      url,
-    }
-    // Native share on phones; clipboard elsewhere.
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData)
-        return
-      } catch {
-        /* user dismissed the sheet — fall through to copying */
-      }
-    }
-    try {
-      await navigator.clipboard.writeText(url)
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 2000)
-    } catch {
-      /* clipboard unavailable — the URL is in the address bar anyway */
-    }
-  }
 
   if (talent.isLoading) {
     return (
@@ -139,7 +111,8 @@ export function TalentProfilePage() {
             )}
           </div>
 
-          <div className="min-w-0 flex-1">
+          {/* Owner-authored text carries its own direction — see BusinessCard. */}
+          <div className="min-w-0 flex-1" dir="auto">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl sm:text-3xl">{data.display_name}</h1>
               <Badge className="bg-olive-100 text-olive-700">
@@ -173,19 +146,7 @@ export function TalentProfilePage() {
             </div>
           </div>
 
-          <Button type="button" variant="outline" size="sm" onClick={() => void handleShare()}>
-            {copied ? (
-              <>
-                <Check className="h-4 w-4" aria-hidden="true" />
-                {t('business.linkCopied')}
-              </>
-            ) : (
-              <>
-                <Share2 className="h-4 w-4" aria-hidden="true" />
-                {t('business.share')}
-              </>
-            )}
-          </Button>
+          <ShareButton title={data.display_name} text={data.headline ?? undefined} />
         </div>
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_20rem]">
@@ -195,7 +156,9 @@ export function TalentProfilePage() {
                 <h2 id="bio-heading" className="mb-3 text-xl">
                   {t('talent.aboutHeading')}
                 </h2>
-                <p className="whitespace-pre-line leading-relaxed text-ink-700">{data.bio}</p>
+                <p className="whitespace-pre-line leading-relaxed text-ink-700" dir="auto">
+                  {data.bio}
+                </p>
               </section>
             ) : null}
 
@@ -208,7 +171,7 @@ export function TalentProfilePage() {
                   {professional.map(({ key, label, value }) => (
                     <div key={key}>
                       <dt className="text-sm font-semibold text-ink-500">{label}</dt>
-                      <dd className="mt-1 whitespace-pre-line leading-relaxed text-ink-700">
+                      <dd className="mt-1 whitespace-pre-line leading-relaxed text-ink-700" dir="auto">
                         {value}
                       </dd>
                     </div>

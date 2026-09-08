@@ -188,3 +188,40 @@ def test_two_items_with_the_same_title_get_distinct_slugs(
         ).scalars()
     }
     assert len(slugs) == 2
+
+
+# --- Sitemap ---------------------------------------------------------------
+#
+# Products had public pages and a directory and appeared in neither the
+# sitemap nor robots' view of the site, so nothing told a crawler they
+# existed. Advertising them means the two visibility rules above now have a
+# second audience, and a crawler is the one visitor who will follow every URL
+# it is handed — so both rules are asserted here from that direction too.
+
+
+def test_sitemap_lists_an_available_product(
+    client: TestClient, db: Session, approved_business_with_items: str
+) -> None:
+    sitemap = client.get("/sitemap.xml")
+    assert sitemap.status_code == 200
+
+    assert "/products" in sitemap.text
+    slug = _item_slug(db, ar("item.zaatar_local"))
+    assert f"/product/{slug}" in sitemap.text
+
+
+def test_sitemap_hides_an_unavailable_product(
+    client: TestClient, db: Session, approved_business_with_items: str
+) -> None:
+    """An owner marking a product unavailable must not leave it advertised."""
+    slug = _item_slug(db, ar("item.generic"))
+    assert client.get(f"/api/items/{slug}").status_code == 404
+    assert f"/product/{slug}" not in client.get("/sitemap.xml").text
+
+
+def test_sitemap_hides_a_product_whose_business_is_not_approved(
+    client: TestClient, db: Session, draft_business_with_item: str
+) -> None:
+    """The rule that matters most: a draft listing's products stay invisible."""
+    slug = _item_slug(db, ar("item.zaatar_local"))
+    assert f"/product/{slug}" not in client.get("/sitemap.xml").text

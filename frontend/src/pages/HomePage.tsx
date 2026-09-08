@@ -5,6 +5,7 @@ import {
   Package,
   Plus,
   ShieldCheck,
+  ShoppingBag,
   Store,
   Users,
   type LucideIcon,
@@ -17,8 +18,10 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
 import { BusinessCardSkeleton, Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/States'
-import { BusinessCard } from '@/features/businesses/BusinessCard'
 import { useAuth } from '@/features/auth/AuthContext'
+import { BusinessCard } from '@/features/businesses/BusinessCard'
+import { WelcomeVideoPlayer } from '@/features/home/WelcomeVideo'
+import { AudienceChooser } from '@/features/onboarding/AudienceChooser'
 import { useCategories, useLocationGroups } from '@/hooks/useTaxonomy'
 import { useT } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
@@ -50,48 +53,144 @@ export function HomePage() {
 
   return (
     <>
-      <section className="overflow-hidden bg-sand-100" aria-hidden="true">
-        <img src="/home-cover.png" alt="" className="h-auto w-full" loading="eager" />
-      </section>
+      {/* The hero is a split, not a cover: the words on the reading-start
+          side, Dr Hossam on the other. DOM order does the mirroring — the copy
+          comes first, so it lands on the right in Arabic and on the left in
+          English without one directional class between them.
 
-      <section className="relative overflow-hidden border-b border-ink-100 bg-gradient-to-b from-sand-100 to-sand-50">
-        <div className="container-page py-14 text-center sm:py-20">
-          <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-clay-700 shadow-card">
-            <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-            {t('home.reviewBadge')}
-          </p>
+          It replaces a wordless cover illustration. That image was 2000px of
+          decoration above the fold, and a visitor's first screen said nothing
+          about what the site is or what they can do here. */}
+      <section className="border-b border-ink-100 bg-gradient-to-b from-sand-100 to-sand-50">
+        {/* One grid, three children, and `order` doing the work: on a phone
+            the copy comes first, then the two choices, and the video last —
+            the choices are what someone is here to make, and a 16:9 player
+            above them would push both below the fold. From `lg` up the copy
+            and the player share the first row and the cards take the whole
+            width of the second, which is the only way they are big. */}
+        <div className="container-page grid items-center gap-10 py-10 sm:py-14 lg:grid-cols-2 lg:gap-x-14 lg:py-20">
+          <div className="order-1">
+            <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-clay-700 shadow-card">
+              <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+              {t('home.reviewBadge')}
+            </p>
 
-          <h1 className="mx-auto max-w-3xl text-3xl leading-tight sm:text-4xl lg:text-5xl">
-            {t('home.heroTitle')}
-          </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-ink-500">
-            {t('home.heroSubtitle')}
-          </p>
-
-          <div className="mt-8">
-            <Button asChild variant="outline" size="lg">
-              <Link to={isAuthenticated ? '/dashboard/businesses/new' : '/login'}>
-                <Plus className="h-5 w-5" aria-hidden="true" />
-                {t('home.addBusiness')}
-              </Link>
-            </Button>
+            <h1 className="text-3xl leading-tight sm:text-4xl lg:text-5xl">
+              {t('home.heroTitle')}
+            </h1>
+            <p className="mt-4 max-w-xl text-lg leading-relaxed text-ink-500">
+              {t('home.heroSubtitle')}
+            </p>
           </div>
+
+          <div className="order-3 lg:order-2">
+            <WelcomeVideoPlayer />
+            <p className="mt-3 text-center text-sm font-semibold text-ink-500">
+              {t('home.videoHeading')}
+            </p>
+          </div>
+
+          {/* The two reasons anybody is on this page, in the visitor's own
+              words rather than ours — offering something, or looking for
+              something. Which of the two someone is decides the whole rest of
+              their visit, so the page asks it first and asks it once.
+
+              Cards rather than buttons, and identical weight: these are two
+              halves of one question, not a call to action and its
+              afterthought. Each is one whole-card target, and it carries the
+              choice and nothing else — a line of explanation under each was
+              answering a question nobody had yet asked.
+
+              Centred as a pair across the row rather than tucked under one
+              column: with only a line of type in each, two cards hugging the
+              heading looked like an accident, and the row they sit under is
+              the full width of the hero. */}
+          <ul className="order-2 mx-auto grid w-full max-w-2xl gap-4 sm:grid-cols-2 lg:order-3 lg:col-span-2">
+            {[
+              {
+                key: 'offer' as const,
+                icon: Store,
+                href: isAuthenticated ? '/dashboard/businesses/new' : '/login',
+                titleKey: 'home.actionOffer' as const,
+              },
+              {
+                key: 'browse' as const,
+                icon: ShoppingBag,
+                href: '/products',
+                titleKey: 'home.actionBrowse' as const,
+              },
+            ].map((action) => {
+              const Icon = action.icon
+              return (
+                <li key={action.key}>
+                  <Link
+                    to={action.href}
+                    className="group flex h-full flex-col items-center gap-3 rounded-2xl border-2 border-ink-100 bg-white p-6 text-center shadow-card transition-all hover:-translate-y-0.5 hover:border-clay-300 hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 focus-visible:ring-offset-2"
+                  >
+                    <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-sand-100 text-clay-600 transition-colors group-hover:bg-clay-500 group-hover:text-white">
+                      <Icon className="h-6 w-6" aria-hidden="true" />
+                    </span>
+                    <span className="text-lg font-bold leading-snug text-ink-900">
+                      {t(action.titleKey)}
+                    </span>
+                    <span className="flex items-center gap-1.5 text-sm font-semibold text-clay-600">
+                      {t('onboarding.choose')}
+                      <ArrowLeft className="h-4 w-4 ltr:rotate-180" aria-hidden="true" />
+                    </span>
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
         </div>
       </section>
 
-      <section className="border-y border-olive-200 bg-olive-50 py-5" aria-label={t('home.sloganTitle')}>
-        <div className="container-page flex flex-col items-center justify-center gap-2 text-center sm:flex-row sm:gap-4">
-          <span className="text-sm font-bold text-olive-700">{t('home.sloganTitle')}</span>
-          <span className="hidden text-olive-300 sm:inline">•</span>
-          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm font-semibold text-olive-800">
+      {/* Straight under the hero, against it. The four words carry the weight
+          of the whole project, so the mark's deep green closes the first
+          screen rather than turning up somewhere down the page. */}
+      <section
+        className="border-y-4 border-wheat-500 bg-brand-700 py-10 sm:py-14"
+        aria-label={t('home.sloganTitle')}
+      >
+        <div className="container-page text-center">
+          <p className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
+            {t('home.sloganTitle')}
+          </p>
+          <span
+            className="mx-auto mt-5 block h-px w-24 bg-wheat-500/70"
+            aria-hidden="true"
+          />
+          <div className="mt-5 flex flex-col items-center justify-center gap-2 text-lg font-semibold text-brand-100 sm:flex-row sm:gap-5 sm:text-xl lg:text-2xl">
             <span>{t('home.sloganLine1')}</span>
-            <span className="text-olive-300">•</span>
+            <span className="hidden text-wheat-500 sm:inline" aria-hidden="true">
+              •
+            </span>
             <span>{t('home.sloganLine2')}</span>
-            <span className="text-olive-300">•</span>
+            <span className="hidden text-wheat-500 sm:inline" aria-hidden="true">
+              •
+            </span>
             <span>{t('home.sloganLine3')}</span>
           </div>
+
+          {/* Last, and in gold, because it is the line that asks something of
+              the reader rather than describing us. Kept smaller than the mark
+              above it so the band still reads name first, claim second. */}
+          <p className="mx-auto mt-7 max-w-3xl font-display text-xl font-bold leading-snug text-wheat-500 sm:text-2xl lg:text-3xl">
+            {t('home.sloganCall')}
+          </p>
         </div>
       </section>
+
+      {/* These three cards are the homepage's navigation for anyone not
+          confident online, and navigation you see once is not navigation.
+          They overlap the hero's two cards on purpose: the hero asks the
+          question in two halves, these name the third audience — someone
+          offering a skill rather than a shop — and spell out what signing up
+          involves before anyone is asked for a phone number. */}
+      <AudienceChooser isAuthenticated={isAuthenticated} />
+
+      {/* The video used to have a section of its own here. It is in the hero
+          now, and one recording twice on one page is one too many. */}
 
       <section className="container-page py-14" aria-labelledby="discover-heading">
         <h2 id="discover-heading" className="mb-6 text-center text-2xl">

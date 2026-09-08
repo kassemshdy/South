@@ -264,15 +264,38 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
             headers={"Cache-Control": "no-store, must-revalidate"},
         )
 
+    def _build_file(relative: str) -> Path | None:
+        """A real file in the build output, or None.
+
+        Resolved and then checked against ``dist`` so a crafted path can't
+        escape it — the containment check is the point, not the existence one.
+        """
+        candidate = (dist / relative).resolve()
+        if candidate.is_file() and candidate.is_relative_to(dist):
+            return candidate
+        return None
+
     @app.get("/{full_path:path}", include_in_schema=False)
     def spa(full_path: str) -> Response:
         # Real files in the build output (favicon, manifest, images) are served
         # as-is; everything else falls through to index.html so client-side
         # routing survives a hard refresh or a shared deep link.
         if full_path and full_path != "index.html":
-            candidate = (dist / full_path).resolve()
-            if candidate.is_file() and candidate.is_relative_to(dist):
-                return FileResponse(candidate)
+            exact = _build_file(full_path)
+            if exact is not None:
+                return FileResponse(exact)
+
+            # A standalone page shipped in public/ — the presentation deck — is
+            # reachable without its extension, so the link someone forwards is
+            # `/presentation` rather than `/presentation.html`. Only ever a
+            # fallback: an extensionless path that matches no file is still a
+            # client-side route, and a real SPA route always wins because the
+            # exact lookup above ran first.
+            if "." not in full_path.rsplit("/", 1)[-1]:
+                page = _build_file(f"{full_path}.html")
+                if page is not None:
+                    return FileResponse(page)
+
         return _render_index(full_path)
 
 
