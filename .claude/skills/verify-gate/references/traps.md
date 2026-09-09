@@ -30,6 +30,27 @@ these ways is not telling you what it appears to.
   check onto the kill, because the chained check dies with the shell. This has
   now cost time three times, twice *after* being written down: an unbracketed
   literal anywhere on the command line is enough.
+- **`pgrep -f` lies the same way, and reading state is where it does damage.**
+  The `pkill` entry above is about killing the wrong process; this is about
+  *believing* the wrong answer. `pgrep -f "[s]cripts.seed"` matched its own
+  Bash wrapper, whose command line contains that text, so a progress check
+  reported "still seeding" for thirteen minutes while nothing was seeding at
+  all. Bracketing does not help here — the wrapper carries the bracketed
+  pattern *and* the command it wraps. Check for the thing itself instead of
+  for a process name: a row count, a port answering, a file appearing. If a
+  process check is unavoidable, match on the interpreter path
+  (`pgrep -f '\.venv/bin/python -m scripts\.seed'`) and confirm against
+  something the process actually produced.
+- **A multi-line Bash command can arrive flattened onto one line.** The same
+  session ran `cd backend`, `dropdb`, `createdb`, `alembic upgrade head` and
+  `seed --ensure` as five lines and they were delivered as
+  `cd /home/user/South/backend dropdb --if-exists … createdb … alembic …` —
+  one `cd` with a pile of arguments, no separators. Nothing ran, and it then
+  hung on a password prompt with `< /dev/null`. **Chain steps with explicit
+  `&&`** rather than newlines whenever a later step depends on an earlier one,
+  so a flattened delivery fails loudly instead of silently doing nothing. The
+  local Postgres also needs `PGPASSWORD=postgres` for `dropdb`/`createdb`/
+  `psql`, which is what the prompt was waiting on.
 - **Read a commit SHA, never reconstruct one.** `git rev-parse HEAD`. A
   hand-typed SHA produces `409 Head branch was modified` or "must be exactly 40
   characters".

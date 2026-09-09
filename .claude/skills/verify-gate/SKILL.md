@@ -55,6 +55,29 @@ CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npx playwright 
 
 Needs the API on `:8000`, Vite on `:5173`, and a **clean database**.
 
+## 6. Look at it, from `frontend/`
+
+Only for a change that alters something a visitor or owner sees. Everything
+above passes happily while a layout is unusable, and the exposure plan asks
+for a walk through both journeys at 420px after each slice.
+
+```bash
+NO_PROXY='localhost,127.0.0.1' HTTP_PROXY= HTTPS_PROXY= \
+  node scripts/shoot-mobile.mjs /tmp/shots
+```
+
+Same prerequisites as Playwright. It writes nine PNGs and asserts nothing —
+**open them.** An agent session can read the files directly, which is the one
+way to see a phone layout from here: a browser in this sandbox cannot reach a
+deployed host (`ERR_CONNECTION_RESET`), so a claim about how staging looks is
+not available, but a claim about how the local build looks is.
+
+Two things it handles that cost time when done by hand: it picks the *oldest*
+public listing, because the newest is whatever the acceptance spec just made
+and its logo is a 10x10 black test fixture that reads as a broken image; and
+it clears the proxy variables, without which Node's `fetch` sends
+localhost requests to an outbound proxy that never answers.
+
 ## When a step fails
 
 Read `references/traps.md` **before** concluding a failure is real. It lists
