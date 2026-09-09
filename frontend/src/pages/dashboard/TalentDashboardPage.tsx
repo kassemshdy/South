@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/Toast'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
 import { LiveSharePanel } from '@/features/insights/LiveSharePanel'
 import { ViewsPanel } from '@/features/insights/ViewsPanel'
+import { OwnerServiceRequests } from '@/features/talent/OwnerServiceRequests'
 import { TalentForm } from '@/features/talent/TalentForm'
 import { TalentImageManager } from '@/features/talent/TalentImageManager'
 import { useSeo } from '@/hooks/useSeo'
@@ -217,6 +218,7 @@ export function TalentDashboardPage() {
           >
             <TabTrigger value="details">{t('talentDashboard.tabDetails')}</TabTrigger>
             <TabTrigger value="images">{t('talentDashboard.tabImages')}</TabTrigger>
+            <TabTrigger value="requests">{t('serviceRequests.ownerTab')}</TabTrigger>
           </Tabs.List>
 
           <CardBody>
@@ -244,6 +246,10 @@ export function TalentDashboardPage() {
 
             <Tabs.Content value="images">
               <TalentImageManager profile={data} />
+            </Tabs.Content>
+
+            <Tabs.Content value="requests">
+              <OwnerServiceRequests />
             </Tabs.Content>
           </CardBody>
         </Tabs.Root>

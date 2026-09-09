@@ -12,6 +12,7 @@ from app.api.v1 import (
     images,
     items,
     orders,
+    service_requests,
     talent,
     talent_images,
     taxonomy,
@@ -50,12 +51,14 @@ api_router.include_router(businesses.owner_router)
 api_router.include_router(images.router)
 api_router.include_router(items.router)
 # Likewise "/api/my/talent/..." before "/api/talent/{slug}".
+api_router.include_router(service_requests.owner_router)
 api_router.include_router(talent.owner_router)
 api_router.include_router(talent_images.router)
 api_router.include_router(testimonials.public_router)
 api_router.include_router(orders.public_router)
 api_router.include_router(businesses.public_router)
 api_router.include_router(items.public_router)
+api_router.include_router(service_requests.public_router)
 api_router.include_router(talent.public_router)
 
 __all__ = ["api_router"]

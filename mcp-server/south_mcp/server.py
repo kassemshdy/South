@@ -248,7 +248,11 @@ def build_server(
             "Search products and services. This reads the public catalogue, so it "
             "returns only available items belonging to approved businesses -- there is "
             "no admin-wide product endpoint yet, so a pending shop's products are not "
-            "reachable from here."
+            "reachable from here. Price filtering needs `currency` alongside either "
+            "bound: the directory lists in USD and in LBP and holds no exchange rate, "
+            "so a range spanning both is refused rather than guessed. Items whose "
+            "owner stated no price are returned alongside the matches unless "
+            "`include_unpriced` is set false."
         ),
         annotations=READ_ONLY,
     )
@@ -256,6 +260,10 @@ def build_server(
         query: str | None = None,
         category: str | None = None,
         location: str | None = None,
+        currency: str | None = None,
+        min_price: str | None = None,
+        max_price: str | None = None,
+        include_unpriced: bool = True,
         page: int = 1,
         page_size: int = 20,
     ) -> dict[str, Any]:
@@ -264,6 +272,10 @@ def build_server(
             q=query,
             category=category,
             location=location,
+            currency=currency,
+            min_price=min_price,
+            max_price=max_price,
+            include_unpriced=include_unpriced,
             page=page,
             page_size=page_size,
         )

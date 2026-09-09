@@ -225,3 +225,134 @@ def test_sitemap_hides_a_product_whose_business_is_not_approved(
     """The rule that matters most: a draft listing's products stay invisible."""
     slug = _item_slug(db, ar("item.zaatar_local"))
     assert f"/product/{slug}" not in client.get("/sitemap.xml").text
+
+
+# --- Price filter ----------------------------------------------------------
+#
+# The two decisions inside this filter are the ones asserted here, because
+# both are ways it could quietly lie to somebody:
+#
+# - a range across USD and LBP is meaningless, so a bound without a currency
+#   is refused rather than guessed;
+# - a product whose owner left the price blank is kept unless the *visitor*
+#   says otherwise. Dropping it silently would penalise an owner for leaving
+#   a field empty, which is exactly the listing this directory exists to
+#   carry.
+
+
+@pytest.fixture
+def priced_catalogue(client: TestClient, db: Session, category: Category, location: Location) -> str:
+    """One approved listing with a cheap item, a dear one, one priced in lira
+    and one with no price at all."""
+    headers = sign_in(client, "03950010")
+    business = client.post(
+        "/api/businesses",
+        headers=headers,
+        json={
+            "name": ar("business.manakish"),
+            "short_description": ar("business.manakish_short"),
+            "category_id": str(category.id),
+            "location_id": str(location.id),
+        },
+    ).json()
+
+    for payload in (
+        {"title": ar("item.cheap"), "price": "2.00", "currency": "USD"},
+        {"title": ar("item.dear"), "price": "45.00", "currency": "USD"},
+        {"title": ar("item.lira_priced"), "price": "300000.00", "currency": "LBP"},
+        {"title": ar("item.unpriced"), "currency": "USD"},
+    ):
+        created = client.post(
+            f"/api/businesses/{business['id']}/items", headers=headers, json=payload
+        )
+        assert created.status_code == 201, created.text
+
+    record = db.get(Business, business["id"])
+    assert record is not None
+    record.status = BusinessStatus.APPROVED
+    db.commit()
+    return business["id"]
+
+
+def _titles(client: TestClient, **params: object) -> set[str]:
+    response = client.get("/api/items", params=params)
+    assert response.status_code == 200, response.text
+    return {item["title"] for item in response.json()["items"]}
+
+
+def test_a_price_bound_without_a_currency_is_refused(
+    client: TestClient, priced_catalogue: str
+) -> None:
+    response = client.get("/api/items", params={"max_price": "20"})
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "price_currency_required"
+
+
+def test_an_inverted_range_is_refused(client: TestClient, priced_catalogue: str) -> None:
+    response = client.get(
+        "/api/items", params={"currency": "USD", "min_price": "50", "max_price": "10"}
+    )
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "price_range_invalid"
+
+
+def test_a_range_only_matches_prices_in_the_named_currency(
+    client: TestClient, priced_catalogue: str
+) -> None:
+    # 300000 LBP is inside 0-100 only if the two currencies are compared as
+    # bare numbers, which is the bug this filter must not have.
+    matches = _titles(client, currency="USD", min_price="0", max_price="100")
+    assert ar("item.lira_priced") not in matches
+    assert {ar("item.cheap"), ar("item.dear")} <= matches
+
+    lira = _titles(client, currency="LBP", min_price="100000", max_price="500000")
+    assert ar("item.lira_priced") in lira
+    assert ar("item.cheap") not in lira
+
+
+def test_a_range_narrows_within_one_currency(client: TestClient, priced_catalogue: str) -> None:
+    matches = _titles(client, currency="USD", max_price="10")
+    assert ar("item.cheap") in matches
+    assert ar("item.dear") not in matches
+
+
+def test_a_product_with_no_price_survives_the_filter_by_default(
+    client: TestClient, priced_catalogue: str
+) -> None:
+    matches = _titles(client, currency="USD", max_price="10")
+    assert ar("item.unpriced") in matches
+
+
+def test_the_visitor_can_drop_products_with_no_price(
+    client: TestClient, priced_catalogue: str
+) -> None:
+    matches = _titles(client, currency="USD", max_price="10", include_unpriced="false")
+    assert matches == {ar("item.cheap")}
+
+
+def test_currency_alone_filters_without_a_range(client: TestClient, priced_catalogue: str) -> None:
+    matches = _titles(client, currency="LBP", include_unpriced="false")
+    assert matches == {ar("item.lira_priced")}
+
+
+def test_no_price_filter_returns_everything_available(
+    client: TestClient, priced_catalogue: str
+) -> None:
+    assert _titles(client) == {
+        ar("item.cheap"),
+        ar("item.dear"),
+        ar("item.lira_priced"),
+        ar("item.unpriced"),
+    }
+
+
+def test_the_price_filter_still_hides_what_a_visitor_may_not_see(
+    client: TestClient, db: Session, priced_catalogue: str
+) -> None:
+    """A filter is a narrowing, never a way round ``public_query``."""
+    record = db.get(Business, priced_catalogue)
+    assert record is not None
+    record.status = BusinessStatus.SUSPENDED
+    db.commit()
+
+    assert _titles(client, currency="USD", max_price="100") == set()
