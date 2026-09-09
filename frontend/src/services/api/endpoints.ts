@@ -26,6 +26,8 @@ import type {
   MaritalStatus,
   OwnerBusiness,
   OwnerTalent,
+  Order,
+  OrderStatus,
   OwnerTestimonial,
   OwnerViews,
   Paginated,
@@ -262,6 +264,32 @@ export const testimonialApi = {
       `/api/businesses/${businessId}/testimonials/${id}/hide`,
       { method: 'POST' },
     ),
+}
+
+export interface OrderPayload {
+  customer_name: string
+  customer_phone: string
+  note?: string | undefined
+  lines: { item_id: string; quantity: number }[]
+}
+
+/**
+ * Placing an order needs no account; reading one is the owner's alone.
+ * Nothing here can fetch an order publicly, which is the point.
+ */
+export const orderApi = {
+  place: (slug: string, payload: OrderPayload) =>
+    apiRequest<{ message: string }>(`/api/businesses/${encodeURIComponent(slug)}/orders`, {
+      method: 'POST',
+      body: payload,
+    }),
+  listMine: (businessId: string) =>
+    apiRequest<Order[]>(`/api/businesses/${businessId}/orders`),
+  setStatus: (businessId: string, orderId: string, status: OrderStatus) =>
+    apiRequest<Order>(`/api/businesses/${businessId}/orders/${orderId}/status`, {
+      method: 'POST',
+      body: { status },
+    }),
 }
 
 export const ownerApi = {

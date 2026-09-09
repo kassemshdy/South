@@ -6,6 +6,7 @@ import {
   Menu,
   Plus,
   Search,
+  ShoppingBag,
   Shield,
   Store,
   User,
@@ -18,6 +19,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { LocaleToggle } from '@/components/layout/LocaleToggle'
 import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/features/auth/AuthContext'
+import { useCart } from '@/features/cart/CartContext'
 import { useT } from '@/i18n'
 import { cn } from '@/utils/cn'
 
@@ -41,6 +43,28 @@ const NAV_LINK =
 
 const MENU_ITEM =
   'flex cursor-pointer select-none items-center gap-2.5 rounded-lg px-3 py-2.5 text-[15px] text-ink-700 outline-none data-[highlighted]:bg-sand-100 data-[highlighted]:text-ink-900'
+
+function CartLink({ compact = false }: { compact?: boolean }) {
+  const t = useT()
+  const { count } = useCart()
+
+  // Absent when empty rather than showing a zero: a permanent cart icon on a
+  // directory suggests a shop, and this is only a shop once someone has put
+  // something in it.
+  if (count === 0) return null
+
+  return (
+    <Button asChild variant="ghost" size={compact ? 'icon' : 'sm'} aria-label={t('cart.link')}>
+      <Link to="/cart" className="relative">
+        <ShoppingBag className="h-5 w-5" aria-hidden="true" />
+        <span className="absolute -end-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-clay-500 px-1 text-[10px] font-bold text-white ltr-nums">
+          {count}
+        </span>
+        {compact ? null : <span className="ms-1.5">{t('cart.link')}</span>}
+      </Link>
+    </Button>
+  )
+}
 
 export function Header() {
   const { isAuthenticated, isAdmin, user, signOut } = useAuth()
@@ -147,6 +171,8 @@ export function Header() {
             </Button>
           )}
 
+          <CartLink />
+
           <Button asChild size="sm" className="ms-2">
             <Link to={addBusinessTarget}>
               <Plus className="h-4 w-4" aria-hidden="true" />
@@ -156,6 +182,7 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-1 md:hidden">
+          <CartLink compact />
           <LocaleToggle compact />
           <Button asChild variant="ghost" size="icon" aria-label={t('nav.searchAria')}>
             <Link to="/businesses">

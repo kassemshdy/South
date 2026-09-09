@@ -74,6 +74,16 @@ class Settings(BaseSettings):
     testimonial_per_business_limit: int = 20
     testimonial_per_business_window_seconds: int = 86400
 
+    # Same two-rule shape as testimonials, and for the same reason: one
+    # sender spraying the directory and one listing being buried are
+    # different problems. Orders are allowed to be more frequent per
+    # address, because a household or a shared connection ordering twice is
+    # ordinary.
+    order_per_ip_limit: int = 10
+    order_per_ip_window_seconds: int = 3600
+    order_per_business_limit: int = 40
+    order_per_business_window_seconds: int = 86400
+
     twilio_account_sid: str | None = None
     twilio_auth_token: str | None = None
     twilio_from_number: str | None = None

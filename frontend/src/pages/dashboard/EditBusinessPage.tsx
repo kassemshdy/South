@@ -14,6 +14,7 @@ import { LocationForm } from '@/features/businesses/LocationForm'
 import { SocialForm } from '@/features/businesses/SocialForm'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
 import { ImageManager } from '@/features/images/ImageManager'
+import { OwnerOrders } from '@/features/cart/OwnerOrders'
 import { OwnerTestimonials } from '@/features/testimonials/OwnerTestimonials'
 import { useSeo } from '@/hooks/useSeo'
 import { useT, type TranslationKey } from '@/i18n'
@@ -28,6 +29,7 @@ const TABS: { value: string; labelKey: TranslationKey }[] = [
   { value: 'images', labelKey: 'wizard.stepImages' },
   { value: 'social', labelKey: 'wizard.stepSocial' },
   { value: 'testimonials', labelKey: 'wizard.stepTestimonials' },
+  { value: 'orders', labelKey: 'wizard.stepOrders' },
 ]
 
 export function EditBusinessPage() {
@@ -190,6 +192,9 @@ export function EditBusinessPage() {
             </Tabs.Content>
             <Tabs.Content value="testimonials">
               <OwnerTestimonials businessId={data.id} />
+            </Tabs.Content>
+            <Tabs.Content value="orders">
+              <OwnerOrders businessId={data.id} businessName={data.name} />
             </Tabs.Content>
           </CardBody>
         </Tabs.Root>

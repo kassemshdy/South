@@ -8,6 +8,7 @@ its parent business is approved *and* the item itself is available.
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence
 from typing import Literal
 
 from sqlalchemy import Select, func, or_, select
@@ -55,6 +56,25 @@ class ItemRepository(BaseRepository[BusinessItem]):
     def get_by_slug(self, slug: str) -> BusinessItem | None:
         stmt = self._with_relations(self.public_query().where(BusinessItem.slug == slug))
         return self.db.execute(stmt).unique().scalar_one_or_none()
+
+    def public_by_ids(
+        self, business_id: uuid.UUID, item_ids: Sequence[uuid.UUID]
+    ) -> list[BusinessItem]:
+        """Items a visitor may order: publicly visible *and* on this listing.
+
+        Built on ``public_query`` so "what a visitor may see" keeps one
+        definition. Both halves matter -- without the business_id an order
+        could name another shop's product, and without public_query it could
+        name an unavailable one or one belonging to a listing that is not
+        approved.
+        """
+        ids = list(item_ids)
+        if not ids:
+            return []
+        stmt = self.public_query().where(
+            BusinessItem.business_id == business_id, BusinessItem.id.in_(ids)
+        )
+        return list(self.db.execute(stmt).unique().scalars().all())
 
     def public_slugs(self) -> list[tuple[str, object]]:
         """(slug, updated_at) pairs for the sitemap.
