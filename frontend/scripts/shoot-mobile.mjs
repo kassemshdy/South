@@ -14,6 +14,12 @@
  *   NO_PROXY='localhost,127.0.0.1' HTTP_PROXY= HTTPS_PROXY= \
  *     node scripts/shoot-mobile.mjs [outDir]
  *
+ * The plan asks for *both* journeys. Set `SHOOT_OWNER_PHONE` to a seeded
+ * owner's phone (`backend/scripts/data/businesses.json`) to add the owner
+ * pass — the dashboard, its views panel, and the account screens. Without it
+ * the visitor pass runs alone and says so, rather than quietly covering half
+ * of what this script claims to cover.
+ *
  * The proxy variables matter in a sandbox: without them Node's `fetch` sends
  * requests for localhost to an outbound proxy and they never arrive.
  *
@@ -31,6 +37,7 @@ const BASE = process.env.SHOOT_BASE ?? 'http://localhost:5173'
 const API = process.env.SHOOT_API ?? 'http://localhost:8000'
 const CHROMIUM =
   process.env.CHROMIUM_PATH ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
+const OWNER_PHONE = process.env.SHOOT_OWNER_PHONE
 
 await mkdir(OUT, { recursive: true })
 
@@ -62,6 +69,42 @@ const json = async (path) => {
 const oldest = (items) => {
   if (!items?.length) throw new Error('no public listings — is the database seeded?')
   return items[items.length - 1]
+}
+
+const post = async (path, body) => {
+  const response = await fetch(API + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const payload = await response.json()
+  if (!response.ok) {
+    throw new Error(`${path} answered ${response.status}: ${JSON.stringify(payload)}`)
+  }
+  return payload
+}
+
+/**
+ * Sign in as a seeded owner and return the bearer token.
+ *
+ * This works only because a development API returns the OTP in the response
+ * body — `allows_mock_otp` in `app/core/config.py`, which is false under
+ * `APP_ENV=production`. So the owner pass is local-only by construction,
+ * which is the right shape for it: pointing this script at a deployed host
+ * would be both impossible and wrong.
+ */
+const signInAsOwner = async (phone) => {
+  const { debug_code: code } = await post('/api/auth/request-otp', { phone_number: phone })
+  if (!code) {
+    throw new Error(
+      'the API returned no development OTP — the owner pass needs a local, non-production API',
+    )
+  }
+  const { access_token: token } = await post('/api/auth/verify-otp', {
+    phone_number: phone,
+    code,
+  })
+  return token
 }
 
 const browser = await chromium.launch({ executablePath: CHROMIUM })
@@ -110,6 +153,25 @@ try {
   await shot('favourites', '/favourites')
   await shot('product-saved', url.item)
   await shot('cart', '/cart')
+
+  if (!OWNER_PHONE) {
+    console.log(
+      '\nSHOOT_OWNER_PHONE unset — visitor pass only.' +
+        '\nSet it to a seeded owner phone from backend/scripts/data/businesses.json' +
+        '\nto also shoot the dashboard and the owner account screens.',
+    )
+  } else {
+    const token = await signInAsOwner(OWNER_PHONE)
+    // The token is the whole session: AuthProvider fetches /api/me from it on
+    // load, so there is no other state worth faking.
+    await page.goto(BASE, { waitUntil: 'domcontentloaded' })
+    await page.evaluate((value) => {
+      window.localStorage.setItem('south.auth.token', value)
+    }, token)
+
+    await shot('owner-dashboard', '/dashboard')
+    await shot('owner-account', '/dashboard/account')
+  }
 
   console.log(`\n${n} shots in ${OUT} — open them.`)
 } finally {
