@@ -170,6 +170,8 @@ export interface BusinessDetail extends BusinessSummary {
   images: BusinessImage[]
   social_links: SocialLink[]
   items: BusinessItem[]
+  /** Approved only. The API never sends a pending or hidden one here. */
+  testimonials: Testimonial[]
   approved_at: string | null
 }
 
@@ -473,4 +475,22 @@ export interface OwnerViews {
   window_days: number
   recent_days: number
   listings: ListingViews[]
+}
+
+export type TestimonialStatus = 'PENDING' | 'APPROVED' | 'HIDDEN'
+
+/**
+ * Owner-selected praise, never a review — the owner decides what appears, so
+ * a testimonial is not independent evidence and no surface may imply it is.
+ */
+export interface Testimonial {
+  id: string
+  author_name: string
+  body: string
+  created_at: string
+}
+
+export interface OwnerTestimonial extends Testimonial {
+  status: TestimonialStatus
+  approved_at: string | null
 }

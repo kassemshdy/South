@@ -26,6 +26,7 @@ import type {
   MaritalStatus,
   OwnerBusiness,
   OwnerTalent,
+  OwnerTestimonial,
   OwnerViews,
   Paginated,
   PlatformStats,
@@ -232,6 +233,35 @@ export const ownerTalentApi = {
  */
 export const insightsApi = {
   myViews: () => apiRequest<OwnerViews>('/api/my/views'),
+}
+
+export interface TestimonialPayload {
+  author_name: string
+  body: string
+}
+
+/**
+ * Submitting is anonymous and rate limited; reading a testimonial publicly
+ * happens through the business profile, which carries approved ones only.
+ */
+export const testimonialApi = {
+  submit: (slug: string, payload: TestimonialPayload) =>
+    apiRequest<{ message: string }>(
+      `/api/businesses/${encodeURIComponent(slug)}/testimonials`,
+      { method: 'POST', body: payload },
+    ),
+  listMine: (businessId: string) =>
+    apiRequest<OwnerTestimonial[]>(`/api/businesses/${businessId}/testimonials`),
+  approve: (businessId: string, id: string) =>
+    apiRequest<OwnerTestimonial>(
+      `/api/businesses/${businessId}/testimonials/${id}/approve`,
+      { method: 'POST' },
+    ),
+  hide: (businessId: string, id: string) =>
+    apiRequest<OwnerTestimonial>(
+      `/api/businesses/${businessId}/testimonials/${id}/hide`,
+      { method: 'POST' },
+    ),
 }
 
 export const ownerApi = {

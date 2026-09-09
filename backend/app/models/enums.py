@@ -124,3 +124,18 @@ class ViewSubject(str, enum.Enum):
     BUSINESS = "BUSINESS"
     TALENT = "TALENT"
     PRODUCT = "PRODUCT"
+
+
+class TestimonialStatus(str, enum.Enum):
+    """Where a piece of submitted praise is in the owner's hands.
+
+    ``PENDING`` is invisible to everyone but the owner and an administrator.
+    ``APPROVED`` is the only state a public payload may carry. ``HIDDEN`` is
+    an owner taking one down again -- kept rather than deleted so the same
+    text cannot be resubmitted and re-approved by accident, and so an
+    administrator can still see what was published.
+    """
+
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    HIDDEN = "HIDDEN"
