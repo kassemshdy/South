@@ -71,12 +71,18 @@ def sitemap(db: DbSession, settings: AppSettings) -> Response:
 def robots(settings: AppSettings) -> Response:
     base = settings.public_base_url.rstrip("/")
     # Owner and admin areas hold private data and have no search value.
+    #
+    # The cart and the saved list are neither: they are one visitor's own
+    # browser state, so they are identical for nobody else and a search
+    # result leading to either would be empty for whoever clicked it.
     body = (
         "User-agent: *\n"
         "Allow: /\n"
         "Disallow: /dashboard\n"
         "Disallow: /admin\n"
         "Disallow: /login\n"
+        "Disallow: /cart\n"
+        "Disallow: /favourites\n"
         "Disallow: /api/\n"
         f"\nSitemap: {base}/sitemap.xml\n"
     )
