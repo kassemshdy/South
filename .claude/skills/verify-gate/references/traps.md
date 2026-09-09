@@ -30,6 +30,25 @@ these ways is not telling you what it appears to.
   check onto the kill, because the chained check dies with the shell. This has
   now cost time three times, twice *after* being written down: an unbracketed
   literal anywhere on the command line is enough.
+- **Running the Playwright suite twice breaks it two different ways, and
+  neither looks like what it is.** Both bit in one session.
+  1. **The per-IP OTP limiter.** Every owner/admin spec signs in, and
+     `OTP_SEND_PER_IP_LIMIT` counts them all against one address. Past the
+     limit `request-otp` answers `rate_limited` with a `retry_after_seconds`
+     near an hour, the code field never appears, and the failure reads as
+     `locator.fill: Test timeout ... waiting for getByLabel('رمز التحقق')`
+     — broken auth, apparently. Probe it directly to be sure:
+     `curl -s -X POST localhost:8000/api/auth/request-otp -H 'Content-Type:
+     application/json' -d '{"phone_number":"03911223"}'`. `TRUNCATE
+     rate_limit_events` clears it without waiting.
+  2. **Duplicate rows.** Each run creates its listings again, so the second
+     run fails with a Playwright *strict mode violation* — "resolved to 3
+     elements" for one business name. Nothing is broken; the same shop exists
+     three times.
+
+  So a repeated run proves nothing either way. **One run on a freshly reset
+  database is the evidence**; if a spec fails on a second pass, reset before
+  reading anything into it.
 - **`pgrep -f` lies the same way, and reading state is where it does damage.**
   The `pkill` entry above is about killing the wrong process; this is about
   *believing* the wrong answer. `pgrep -f "[s]cripts.seed"` matched its own
