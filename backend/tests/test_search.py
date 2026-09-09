@@ -195,6 +195,10 @@ def test_robots_disallows_private_areas(client: TestClient) -> None:
     robots = client.get("/robots.txt").text
     assert "Disallow: /admin" in robots
     assert "Disallow: /dashboard" in robots
+    # Per-browser state, not private data, but just as useless in a search
+    # result: whoever clicked it would arrive at an empty page.
+    assert "Disallow: /cart" in robots
+    assert "Disallow: /favourites" in robots
     assert "Sitemap:" in robots
 
 

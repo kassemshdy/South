@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
 import { ShareButton } from '@/components/ui/ShareButton'
 import { AddToCartButton } from '@/features/cart/AddToCartButton'
+import { FavouriteButton } from '@/features/favourites/FavouriteButton'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { useSeo } from '@/hooks/useSeo'
@@ -114,6 +115,12 @@ export function ProductProfilePage() {
               }}
             />
             <ShareButton title={data.title} text={shareText} />
+            <FavouriteButton
+              subject="PRODUCT"
+              slug={data.slug}
+              title={data.title}
+              imageUrl={data.image_url}
+            />
           </div>
 
           {data.description ? (

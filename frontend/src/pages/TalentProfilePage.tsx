@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
 import { ShareButton } from '@/components/ui/ShareButton'
+import { FavouriteButton } from '@/features/favourites/FavouriteButton'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { useSeo } from '@/hooks/useSeo'
@@ -146,7 +147,15 @@ export function TalentProfilePage() {
             </div>
           </div>
 
-          <ShareButton title={data.display_name} text={data.headline ?? undefined} />
+          <div className="flex shrink-0 gap-2">
+            <ShareButton title={data.display_name} text={data.headline ?? undefined} />
+            <FavouriteButton
+              subject="TALENT"
+              slug={data.slug}
+              title={data.display_name}
+              imageUrl={data.photo_url}
+            />
+          </div>
         </div>
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_20rem]">

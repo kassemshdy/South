@@ -71,6 +71,9 @@ const BusinessWizardPage = lazy(() =>
 const CartPage = lazy(() =>
   import('@/pages/CartPage').then((m) => ({ default: m.CartPage })),
 )
+const FavouritesPage = lazy(() =>
+  import('@/pages/FavouritesPage').then((m) => ({ default: m.FavouritesPage })),
+)
 const DashboardPage = lazy(() =>
   import('@/pages/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })),
 )
@@ -97,6 +100,7 @@ export function App() {
           <Route path="business/:slug" element={<BusinessProfilePage />} />
           <Route path="products" element={<ProductsDirectoryPage />} />
           <Route path="cart" element={<CartPage />} />
+          <Route path="favourites" element={<FavouritesPage />} />
           <Route path="product/:slug" element={<ProductProfilePage />} />
           <Route path="talent" element={<TalentDirectoryPage />} />
           <Route path="talent/:slug" element={<TalentProfilePage />} />
