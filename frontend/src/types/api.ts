@@ -494,3 +494,29 @@ export interface OwnerTestimonial extends Testimonial {
   status: TestimonialStatus
   approved_at: string | null
 }
+
+export type OrderStatus = 'NEW' | 'CONTACTED' | 'DONE'
+
+/** A line as it was when the order was placed, not as the product is now. */
+export interface OrderLine {
+  title: string
+  price: string | null
+  currency: Currency
+  quantity: number
+}
+
+/**
+ * An order request. Only ever the owner's — a customer's name and phone
+ * reach the owner who has to reply and nobody else, so there is no public
+ * and no admin counterpart to this type.
+ */
+export interface Order {
+  id: string
+  customer_name: string
+  customer_phone: string
+  note: string | null
+  status: OrderStatus
+  lines: OrderLine[]
+  created_at: string
+  updated_at: string
+}

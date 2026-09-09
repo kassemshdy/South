@@ -8,6 +8,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { App } from '@/App'
 import { ToastProvider } from '@/components/ui/Toast'
 import { AuthProvider } from '@/features/auth/AuthContext'
+import { CartProvider } from '@/features/cart/CartContext'
 import { I18nProvider, useI18n } from '@/i18n'
 import { initAnalytics } from '@/services/analytics'
 import { ApiError } from '@/services/api/client'
@@ -66,7 +67,11 @@ createRoot(container).render(
           <BrowserRouter>
             <AuthProvider>
               <ToastProvider>
-                <App />
+                {/* Above the router so a cart survives navigation, and
+                    inside ToastProvider so adding to it can confirm. */}
+                <CartProvider>
+                  <App />
+                </CartProvider>
               </ToastProvider>
             </AuthProvider>
           </BrowserRouter>

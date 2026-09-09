@@ -18,12 +18,14 @@ from app.models.enums import (
     ImageKind,
     LocationType,
     ModerationActionType,
+    OrderStatus,
     SocialPlatform,
     TestimonialStatus,
     UserRole,
     ViewSubject,
 )
 from app.models.feedback import FeedbackAttachment, FeedbackComment, FeedbackTicket
+from app.models.order import Order, OrderLine
 from app.models.talent import (
     TalentImage,
     TalentModerationAction,
@@ -55,6 +57,9 @@ __all__ = [
     "LocationType",
     "ModerationAction",
     "ModerationActionType",
+    "Order",
+    "OrderLine",
+    "OrderStatus",
     "OtpRequest",
     "OwnerVerificationDocument",
     "RateLimitEvent",

@@ -139,3 +139,18 @@ class TestimonialStatus(str, enum.Enum):
     PENDING = "PENDING"
     APPROVED = "APPROVED"
     HIDDEN = "HIDDEN"
+
+
+class OrderStatus(str, enum.Enum):
+    """How far the owner has got with an order request.
+
+    Deliberately three states and no payment or fulfilment vocabulary: this
+    is a request to be contacted, not a checkout. ``DONE`` means the owner
+    is finished with the row, whatever happened -- sold, declined or the
+    customer went quiet -- because a directory has no way to know which and
+    should not pretend to.
+    """
+
+    NEW = "NEW"
+    CONTACTED = "CONTACTED"
+    DONE = "DONE"

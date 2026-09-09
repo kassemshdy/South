@@ -23,6 +23,7 @@ export const queryKeys = {
   readiness: (id: string) => ['my-business', id, 'readiness'] as const,
   myViews: ['my-views'] as const,
   myTestimonials: (id: string) => ['my-business', id, 'testimonials'] as const,
+  myOrders: (id: string) => ['my-business', id, 'orders'] as const,
   myTalent: ['my-talent'] as const,
   myTalentReadiness: ['my-talent', 'readiness'] as const,
   adminStats: ['admin', 'stats'] as const,
