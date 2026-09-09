@@ -6,7 +6,7 @@ or the owner's login phone" is visible in a single place.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import TypeVar
 
 from app.core.pagination import Page
@@ -15,6 +15,7 @@ from app.models.enums import ImageKind
 from app.models.feedback import FeedbackAttachment, FeedbackComment, FeedbackTicket
 from app.models.talent import TalentProfile, TalentSkill
 from app.models.taxonomy import Category, Location
+from app.models.testimonial import Testimonial
 from app.models.user import User
 from app.schemas.business import (
     BusinessDetailOut,
@@ -51,6 +52,7 @@ from app.schemas.talent import (
     TalentSummaryOut,
 )
 from app.schemas.taxonomy import CategoryOut, LocationOut
+from app.schemas.testimonial import OwnerTestimonialOut, TestimonialOut
 
 RecordT = TypeVar("RecordT")
 SchemaT = TypeVar("SchemaT")
@@ -99,10 +101,23 @@ def business_summary(business: Business) -> BusinessSummaryOut:
     )
 
 
-def business_detail(business: Business) -> BusinessDetailOut:
-    """Public profile. Contains only what the owner chose to publish."""
+def business_detail(
+    business: Business, testimonials: Sequence[Testimonial] | None = None
+) -> BusinessDetailOut:
+    """Public profile. Contains only what the owner chose to publish.
+
+    ``testimonials`` is an explicit argument rather than read off
+    ``business.testimonials`` on purpose. Reading the relationship would put
+    every status one forgotten filter away from the public payload; requiring
+    the caller to pass a list means the only way to publish one is to fetch
+    it from ``TestimonialService.public_for``, whose name says what it
+    returns. Default empty, so a new call site publishes nothing by omission.
+    """
     return BusinessDetailOut(
         **business_summary(business).model_dump(),
+        testimonials=[
+            TestimonialOut.model_validate(entry) for entry in (testimonials or [])
+        ],
         description=business.description,
         institution_name=business.institution_name,
         founding_date=business.founding_date,
@@ -118,6 +133,10 @@ def business_detail(business: Business) -> BusinessDetailOut:
         items=[item_out(item) for item in sorted(business.items, key=lambda i: i.sort_order)],
         approved_at=business.approved_at,
     )
+
+
+def owner_testimonial(testimonial: Testimonial) -> OwnerTestimonialOut:
+    return OwnerTestimonialOut.model_validate(testimonial)
 
 
 def owner_business(business: Business) -> OwnerBusinessOut:

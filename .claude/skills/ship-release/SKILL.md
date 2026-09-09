@@ -26,11 +26,21 @@ drives `api-develop` and `web-develop`. A release is a PR from
 2. **Check nothing exists on production that is not on staging.**
 
    ```bash
-   git log --oneline origin/develop-claude..origin/master-claude
+   git log --oneline --no-merges origin/develop-claude..origin/master-claude
    ```
 
-   Output here means production carries commits staging does not — stop and
-   ask before merging.
+   Output here means production carries real commits staging does not — stop
+   and ask before merging.
+
+   **`--no-merges` is load-bearing, not tidying.** A release is a merge of
+   `develop-claude` into `master-claude`, and that merge commit exists only on
+   master — so without the flag this check reports every release ever made and
+   always tells you to stop. It listed four such commits the last time it ran,
+   one per release, and the list only grows. A check that always says "stop"
+   is a check people learn to wave through, which is worse than not having it:
+   the one time production really does carry a hotfix that never reached
+   staging, it will look exactly like the noise. With the flag it comes back
+   empty, so anything it prints is worth reading.
 
 3. **Read the actual diff**, at least `--stat`, and say how large it is.
 
@@ -42,12 +52,12 @@ drives `api-develop` and `web-develop`. A release is a PR from
 
 ## After the deploy
 
-Verify against the **real live host**, not the one written in a doc.
-`docs/RAILWAY.md` line 3 records `web-production-b8196.up.railway.app`, which
-returns Railway's "Application not found"; the live host is
-`janoubona.up.railway.app` and staging is
-`web-develop-production-bce3.up.railway.app`. Confirm the current hosts from
-the Railway API rather than from the doc.
+Verify against the **real live host**. `docs/RAILWAY.md` now records it
+correctly -- live is `janoubona.up.railway.app`, staging is
+`web-develop-production-bce3.up.railway.app` -- but it recorded a host that
+returned "Application not found" for long enough to be worth one check: if a
+probe 404s, confirm the current hosts from the Railway API rather than
+assuming the deploy failed.
 
 Check, and report the actual numbers:
 

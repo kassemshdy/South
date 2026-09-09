@@ -18,6 +18,9 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
 import { ShareButton } from '@/components/ui/ShareButton'
+import { AddToCartButton } from '@/features/cart/AddToCartButton'
+import { TestimonialForm } from '@/features/testimonials/TestimonialForm'
+import { TestimonialList } from '@/features/testimonials/TestimonialList'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { publicBusinessApi } from '@/services/api/endpoints'
@@ -266,11 +269,30 @@ export function BusinessProfilePage() {
                         {item.description ? (
                           <p className="mt-1.5 text-sm leading-relaxed text-ink-500">{item.description}</p>
                         ) : null}
-                        {!item.is_available ? (
+                        {item.is_available ? (
+                          <div className="mt-3">
+                            <AddToCartButton
+                              block
+                              target={{
+                                businessSlug: data.slug,
+                                businessName: data.name,
+                                whatsapp: data.whatsapp,
+                              }}
+                              line={{
+                                itemId: item.id,
+                                title: item.title,
+                                price: item.price,
+                                currency: item.currency,
+                                imageUrl: item.image_url,
+                                quantity: 1,
+                              }}
+                            />
+                          </div>
+                        ) : (
                           <Badge className="mt-3 bg-ink-100 text-ink-700">
                             {t('business.itemUnavailable')}
                           </Badge>
-                        ) : null}
+                        )}
                       </CardBody>
                     </Card>
                   ))}
@@ -303,6 +325,13 @@ export function BusinessProfilePage() {
                 </div>
               </section>
             ) : null}
+
+            {/* Always rendered, unlike the gallery and item sections above:
+                the form is the point, and hiding the whole block when a
+                listing has no testimonials yet would mean the first person
+                who wanted to leave one had nowhere to do it. */}
+            <TestimonialList testimonials={data.testimonials} />
+            <TestimonialForm slug={data.slug} />
           </div>
 
           <aside className="space-y-4">

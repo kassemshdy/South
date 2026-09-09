@@ -170,6 +170,8 @@ export interface BusinessDetail extends BusinessSummary {
   images: BusinessImage[]
   social_links: SocialLink[]
   items: BusinessItem[]
+  /** Approved only. The API never sends a pending or hidden one here. */
+  testimonials: Testimonial[]
   approved_at: string | null
 }
 
@@ -450,4 +452,71 @@ export interface ProductSummary {
 export interface ProductDetail extends ProductSummary {
   description: string | null
   created_at: string
+}
+
+/**
+ * How often a listing was looked at.
+ *
+ * `series` is one integer per day of the window, oldest first, zeroes
+ * included — a sparkline drawn from only the busy days shows a busier
+ * listing than the one that exists.
+ */
+export interface ListingViews {
+  subject_type: 'BUSINESS' | 'TALENT' | 'PRODUCT'
+  subject_id: string
+  views_recent: number
+  views_window: number
+  series: number[]
+  series_start: string
+}
+
+export interface OwnerViews {
+  /** Returned rather than assumed, so the wording and the span cannot drift. */
+  window_days: number
+  recent_days: number
+  listings: ListingViews[]
+}
+
+export type TestimonialStatus = 'PENDING' | 'APPROVED' | 'HIDDEN'
+
+/**
+ * Owner-selected praise, never a review — the owner decides what appears, so
+ * a testimonial is not independent evidence and no surface may imply it is.
+ */
+export interface Testimonial {
+  id: string
+  author_name: string
+  body: string
+  created_at: string
+}
+
+export interface OwnerTestimonial extends Testimonial {
+  status: TestimonialStatus
+  approved_at: string | null
+}
+
+export type OrderStatus = 'NEW' | 'CONTACTED' | 'DONE'
+
+/** A line as it was when the order was placed, not as the product is now. */
+export interface OrderLine {
+  title: string
+  price: string | null
+  currency: Currency
+  quantity: number
+}
+
+/**
+ * An order request. Only ever the owner's — a customer's name and phone
+ * reach the owner who has to reply and nobody else, so there is no public
+ * and no admin counterpart to this type.
+ */
+export interface Order {
+  id: string
+  customer_name: string
+  customer_phone: string
+  note: string | null
+  status: OrderStatus
+  lines: OrderLine[]
+  created_at: string
+  updated_at: string
 }

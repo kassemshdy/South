@@ -52,6 +52,8 @@
   "normalize.restaurant_and_city": "مطعم صور",
   "normalize.sweets_expected": "حلويات",
   "normalize.sweets_shadda": "حلويّات",
+  "order.customer": "هدى شرف الدين",
+  "order.note": "أرجو التوصيل بعد الرابعة عصراً إن أمكن.",
   "phone.arabic_indic": "٧١٢٣٤٥٦٧",
   "search.abu_ali_hamza": "أبو علي",
   "search.abu_ali_plain": "ابو علي",
@@ -87,5 +89,9 @@
   "talent.specialization": "تصميم الهويات البصرية",
   "talent.stolen": "محاولة سرقة ملف",
   "talent.university": "الجامعة اللبنانية — كلية الفنون",
+  "testimonial.author": "سميرة الحسن",
+  "testimonial.body": "خدمة ممتازة وتعامل راقٍ، والمنتجات طازجة دائماً. أنصح بها بشدة.",
+  "testimonial.second_author": "علي منصور",
+  "testimonial.second_body": "طلبت منهم مرتين ووصل الطلب في الوقت المحدد وبجودة عالية.",
   "user.admin_name": "مشرف"
 }

@@ -26,6 +26,10 @@ import type {
   MaritalStatus,
   OwnerBusiness,
   OwnerTalent,
+  Order,
+  OrderStatus,
+  OwnerTestimonial,
+  OwnerViews,
   Paginated,
   PlatformStats,
   ProductDetail,
@@ -220,6 +224,71 @@ export const ownerTalentApi = {
     apiRequest<OwnerTalent>('/api/my/talent/images/order', {
       method: 'PUT',
       body: { image_ids },
+    }),
+}
+
+/**
+ * What an owner can see about their own listings being looked at.
+ *
+ * One request for the whole dashboard rather than one per card, so a page
+ * with several listings does not fan out.
+ */
+export const insightsApi = {
+  myViews: () => apiRequest<OwnerViews>('/api/my/views'),
+}
+
+export interface TestimonialPayload {
+  author_name: string
+  body: string
+}
+
+/**
+ * Submitting is anonymous and rate limited; reading a testimonial publicly
+ * happens through the business profile, which carries approved ones only.
+ */
+export const testimonialApi = {
+  submit: (slug: string, payload: TestimonialPayload) =>
+    apiRequest<{ message: string }>(
+      `/api/businesses/${encodeURIComponent(slug)}/testimonials`,
+      { method: 'POST', body: payload },
+    ),
+  listMine: (businessId: string) =>
+    apiRequest<OwnerTestimonial[]>(`/api/businesses/${businessId}/testimonials`),
+  approve: (businessId: string, id: string) =>
+    apiRequest<OwnerTestimonial>(
+      `/api/businesses/${businessId}/testimonials/${id}/approve`,
+      { method: 'POST' },
+    ),
+  hide: (businessId: string, id: string) =>
+    apiRequest<OwnerTestimonial>(
+      `/api/businesses/${businessId}/testimonials/${id}/hide`,
+      { method: 'POST' },
+    ),
+}
+
+export interface OrderPayload {
+  customer_name: string
+  customer_phone: string
+  note?: string | undefined
+  lines: { item_id: string; quantity: number }[]
+}
+
+/**
+ * Placing an order needs no account; reading one is the owner's alone.
+ * Nothing here can fetch an order publicly, which is the point.
+ */
+export const orderApi = {
+  place: (slug: string, payload: OrderPayload) =>
+    apiRequest<{ message: string }>(`/api/businesses/${encodeURIComponent(slug)}/orders`, {
+      method: 'POST',
+      body: payload,
+    }),
+  listMine: (businessId: string) =>
+    apiRequest<Order[]>(`/api/businesses/${businessId}/orders`),
+  setStatus: (businessId: string, orderId: string, status: OrderStatus) =>
+    apiRequest<Order>(`/api/businesses/${businessId}/orders/${orderId}/status`, {
+      method: 'POST',
+      body: { status },
     }),
 }
 

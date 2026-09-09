@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
 import { ShareButton } from '@/components/ui/ShareButton'
+import { AddToCartButton } from '@/features/cart/AddToCartButton'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { useSeo } from '@/hooks/useSeo'
@@ -94,7 +95,24 @@ export function ProductProfilePage() {
               site has, and until now it was the one page with no way to pass
               it. The share text carries the price, because that is what makes
               a stranger open the link. */}
-          <div className="mt-5">
+          <div className="mt-5 flex flex-wrap gap-2">
+            {/* Only for something actually orderable: a product page reached
+                while unavailable has nothing to add. */}
+            <AddToCartButton
+              target={{
+                businessSlug: data.business.slug,
+                businessName: data.business.name,
+                whatsapp: data.business.whatsapp,
+              }}
+              line={{
+                itemId: data.id,
+                title: data.title,
+                price: data.price,
+                currency: data.currency,
+                imageUrl: data.image_url,
+                quantity: 1,
+              }}
+            />
             <ShareButton title={data.title} text={shareText} />
           </div>
 

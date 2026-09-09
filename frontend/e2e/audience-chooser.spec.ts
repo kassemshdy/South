@@ -56,6 +56,25 @@ test.describe('Audience chooser', () => {
     await expect(question).toBeVisible()
   })
 
+  test('the assisted-listing offer is absent until a support number is configured', async ({
+    page,
+  }) => {
+    // The rule every optional integration here follows: nothing at all when
+    // its variable is unset -- no link, no half-configured block. This suite
+    // runs without VITE_SUPPORT_WHATSAPP, which is exactly the state that
+    // needs guarding: a "contact us" pointing nowhere is worse than none,
+    // because it spends the one attempt a hesitant person was willing to
+    // make. The positive case cannot be asserted here -- Vite inlines the
+    // value at build time, so it would need a second build -- but the
+    // failure that actually costs someone a listing is this one.
+    await page.goto('/')
+    await page.getByRole('button', { name: new RegExp(t('onboarding.ownerTitle')) }).click()
+
+    await expect(page.getByText(t('onboarding.step1'))).toBeVisible()
+    await expect(page.getByText(t('assisted.title'))).toHaveCount(0)
+    await expect(page.getByRole('link', { name: t('assisted.cta') })).toHaveCount(0)
+  })
+
   test('someone signed in gets the same three routes, pointing at their dashboard', async ({
     page,
   }) => {

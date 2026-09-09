@@ -24,7 +24,31 @@ these ways is not telling you what it appears to.
   command line. Bracket the pattern *and* keep the kill in a command that does
   not also contain the literal process string:
   `pkill -f 'uvi[c]orn app.main:app'` on its own line, then start the server in
-  a separate call.
+  a separate call. Exit code **144** is this happening, not the kill failing —
+  the processes usually did die. Verify with a `curl` in a *separate* call
+  (connection refused shows as `%{http_code}` 000) rather than chaining the
+  check onto the kill, because the chained check dies with the shell. This has
+  now cost time three times, twice *after* being written down: an unbracketed
+  literal anywhere on the command line is enough.
 - **Read a commit SHA, never reconstruct one.** `git rev-parse HEAD`. A
   hand-typed SHA produces `409 Head branch was modified` or "must be exactly 40
   characters".
+- **`OptionalUser` returns 401 for a *bad* token, not None.** It answers None
+  only when a request carries no `Authorization` header at all; a malformed,
+  expired or revoked token raises. That is right wherever a supplied token has
+  to be honest and wrong on any public route, because
+  `frontend/src/services/api/client.ts` attaches whatever token is in local
+  storage to **every** request — so reading the caller's identity on a public
+  page turns it into a 401 for a visitor whose session merely expired. Use
+  `Viewer` (`app/core/dependencies.py`), which degrades to anonymous. Found by
+  probing a public listing with `Bearer not-a-real-token` and getting 401;
+  `backend/tests/test_views.py` now pins it. Unit tests over the new code all
+  passed while this was broken — the bug lived in a dependency nobody had
+  used on a public route before.
+- **`create_type=False` is ignored by `sa.Enum`.** In a migration it is a
+  postgresql-dialect option: `sa.Enum(..., create_type=False)` swallows it, so
+  `op.create_table` emits a second `CREATE TYPE` and the migration dies on
+  `DuplicateObject` after the explicit `.create()` already succeeded. Use
+  `sqlalchemy.dialects.postgresql.ENUM` for the column and a separate
+  `postgresql.ENUM(...).create(bind, checkfirst=True)` / `.drop(...)` pair so
+  the downgrade is complete.

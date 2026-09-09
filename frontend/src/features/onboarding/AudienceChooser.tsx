@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { Button } from '@/components/ui/Button'
+import { AssistedListing } from '@/features/onboarding/AssistedListing'
 import { useT, type TranslationKey } from '@/i18n'
 
 /**
@@ -117,6 +118,15 @@ export function AudienceChooser({ isAuthenticated = false }: { isAuthenticated?:
                 {t('onboarding.back')}
               </Button>
             </div>
+
+            {/* Offered here, next to the three steps, rather than after a
+                failed attempt: someone who reads "register with your phone
+                number" and decides it is not for them never reaches a later
+                screen to be rescued on. Absent for the visitor card, which
+                needs no account and no help. */}
+            {expanded.needsAccount ? (
+              <AssistedListing contextKey="assisted.contextHome" />
+            ) : null}
           </div>
         ) : (
           <ul className="mt-8 grid gap-4 sm:grid-cols-3">

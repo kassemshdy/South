@@ -68,6 +68,9 @@ const AccountPage = lazy(() =>
 const BusinessWizardPage = lazy(() =>
   import('@/pages/dashboard/BusinessWizardPage').then((m) => ({ default: m.BusinessWizardPage })),
 )
+const CartPage = lazy(() =>
+  import('@/pages/CartPage').then((m) => ({ default: m.CartPage })),
+)
 const DashboardPage = lazy(() =>
   import('@/pages/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })),
 )
@@ -93,6 +96,7 @@ export function App() {
           <Route path="businesses" element={<DirectoryPage />} />
           <Route path="business/:slug" element={<BusinessProfilePage />} />
           <Route path="products" element={<ProductsDirectoryPage />} />
+          <Route path="cart" element={<CartPage />} />
           <Route path="product/:slug" element={<ProductProfilePage />} />
           <Route path="talent" element={<TalentDirectoryPage />} />
           <Route path="talent/:slug" element={<TalentProfilePage />} />

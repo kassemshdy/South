@@ -34,3 +34,9 @@ exclude = ["alembic/", ".venv/"]
 testpaths = ["tests"]
 pythonpath = ["."]
 filterwarnings = ["ignore::DeprecationWarning"]
+# Every test here is a plain function, and the default `Test*` pattern makes
+# pytest try to collect any imported model whose name happens to start with
+# "Test" -- `Testimonial` and `TestimonialStatus` each produced a
+# PytestCollectionWarning. Disabling class collection removes the noise
+# rather than renaming domain objects around the test runner.
+python_classes = []

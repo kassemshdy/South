@@ -104,6 +104,17 @@ export function whatsappHref(number: string | null, message?: string): string | 
   return `https://wa.me/${digits}${suffix}`
 }
 
+/**
+ * A WhatsApp link with no recipient: the app asks who to send it to.
+ *
+ * Distinct from `whatsappHref`, which opens a chat with a specific number.
+ * Sharing a listing has no fixed recipient — the owner picks a contact or a
+ * group, which is exactly the point.
+ */
+export function whatsappShareHref(message: string): string {
+  return `https://wa.me/?text=${encodeURIComponent(message)}`
+}
+
 export function telHref(number: string | null): string | null {
   return number ? `tel:${number.replace(/\s/g, '')}` : null
 }

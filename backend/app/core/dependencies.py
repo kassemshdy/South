@@ -85,6 +85,32 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 OptionalUser = Annotated[User | None, Depends(get_current_user_optional)]
 
 
+def get_viewer(request: Request, db: DbSession) -> User | None:
+    """The caller if they can be identified, and None if they cannot.
+
+    Distinct from ``get_current_user_optional``, which returns None only for
+    a request carrying *no* token and raises 401 for one carrying a bad one.
+    That is right wherever a supplied token has to be honest, and wrong on a
+    public page: the frontend attaches whatever token is in local storage to
+    every request, so an expired or revoked session would turn the public
+    business, talent and product pages into 401s for a visitor who is simply
+    browsing. Verified before this existed -- a public listing answered 401
+    to `Bearer not-a-real-token`.
+
+    So identity here is a nicety, not a credential. It is used for one
+    thing: not counting a view when the person looking is the listing's own
+    owner. A token we cannot make sense of means we do not know who this
+    is, which is exactly what None says.
+    """
+    try:
+        return get_current_user_optional(request, db)
+    except AuthenticationError:
+        return None
+
+
+Viewer = Annotated[User | None, Depends(get_viewer)]
+
+
 def require_admin(user: CurrentUser) -> User:
     if user.role is not UserRole.ADMIN:
         raise PermissionDeniedError("auth.admin_only")

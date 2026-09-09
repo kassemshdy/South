@@ -30,7 +30,9 @@ from app.models.enums import (
 )
 
 if TYPE_CHECKING:
+    from app.models.order import Order
     from app.models.taxonomy import Category, Location
+    from app.models.testimonial import Testimonial
     from app.models.user import User
 
 
@@ -130,6 +132,16 @@ class Business(Base, TimestampMixin):
         back_populates="business",
         cascade="all, delete-orphan",
         order_by="ModerationAction.created_at",
+    )
+    testimonials: Mapped[list[Testimonial]] = relationship(
+        back_populates="business",
+        cascade="all, delete-orphan",
+        order_by="Testimonial.created_at.desc()",
+    )
+    orders: Mapped[list[Order]] = relationship(
+        back_populates="business",
+        cascade="all, delete-orphan",
+        order_by="Order.created_at.desc()",
     )
 
     @property

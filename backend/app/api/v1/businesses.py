@@ -7,10 +7,17 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Path, Query, status
 
 from app.api.serializers import business_detail, business_summary, owner_business, paginate
-from app.core.dependencies import CurrentUser, DbSession, OwnedBusiness
+from app.core.dependencies import (
+    AppSettings,
+    CurrentUser,
+    DbSession,
+    OwnedBusiness,
+    Viewer,
+)
 from app.core.errors import NotFoundError
 from app.core.i18n import translate
 from app.core.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from app.models.enums import ViewSubject
 from app.repositories.business import BusinessRepository
 from app.repositories.talent import TalentRepository
 from app.schemas.business import (
@@ -21,8 +28,10 @@ from app.schemas.business import (
     OwnerBusinessOut,
 )
 from app.schemas.common import MessageResponse, PaginatedResponse, PublicStatsOut
+from app.services.analytics import ViewCounterService
 from app.services.business import BusinessService
 from app.services.moderation import ModerationService
+from app.services.testimonial import TestimonialService
 
 public_router = APIRouter(tags=["businesses"])
 owner_router = APIRouter(tags=["my-businesses"])
@@ -76,11 +85,27 @@ def public_stats(db: DbSession) -> PublicStatsOut:
 
 
 @public_router.get("/businesses/{slug}", response_model=BusinessDetailOut)
-def get_business(slug: Annotated[str, Path(max_length=200)], db: DbSession) -> BusinessDetailOut:
+def get_business(
+    slug: Annotated[str, Path(max_length=200)],
+    db: DbSession,
+    viewer: Viewer,
+    settings: AppSettings,
+) -> BusinessDetailOut:
     business = BusinessRepository(db).get_by_slug(slug, public_only=True)
     if business is None:
         raise NotFoundError("business.not_public")
-    return business_detail(business)
+    # Serialised before the counter is touched, so nothing about counting a
+    # view can change or delay what the visitor gets back.
+    # Approved only, and fetched through the service rather than read off the
+    # relationship -- see business_detail's docstring.
+    payload = business_detail(business, TestimonialService(db, settings).public_for(business))
+    ViewCounterService(db).record(
+        ViewSubject.BUSINESS,
+        business.id,
+        owner_id=business.owner_id,
+        viewer=viewer,
+    )
+    return payload
 
 
 # --- Owner -----------------------------------------------------------------

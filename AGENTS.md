@@ -56,6 +56,16 @@ if the suite fails on stale state rather than a real regression.
 - Test fixtures: `backend/tests/fixtures/arabic_samples.json` + `tests/samples.py::ar()`,
   and `frontend/e2e/fixtures/*.json` — never a hardcoded Arabic literal in a test file.
 
+**Arabic copy is Modern Standard Arabic (فصحى), not Lebanese colloquial.**
+The catalogs are read by people across the region and by search engines, and
+mixed registers read as carelessness — one screen addressing someone as
+«شو بدّك تعمل؟» beside another saying «نشاطك قيد المراجعة» is two different
+voices. Write «ماذا تريد أن تفعل؟». This is a convention no test can catch,
+because colloquial Arabic is still Arabic: the no-Arabic-in-source guard
+below has nothing to say about register, so it is on the author and the
+reviewer. Markers to watch for: مش، هون، هلق، بعدين، فيك، بدّك، شو، هيك،
+عم + verb، يلّا، and the ب- present tense (بتعمل، بيصير).
+
 `backend/tests/test_i18n.py` scans `backend/app`, `backend/scripts`, `backend/tests` and
 `frontend/src`/`frontend/e2e` for Arabic codepoints outside the catalogs and fixture files
 and fails the build if it finds one. That test is the actual guard — treat any Arabic
@@ -148,6 +158,21 @@ would mislead rather than help.
   standing between those columns and the open internet: read it back through
   `OwnerIdentityOut` on a review payload instead. `tests/test_identity.py` pins that
   boundary, so treat a failure there as a disclosure bug rather than a stale assertion.
+- **The view counter stores nothing about a visitor.** `listing_view_daily`
+  holds a listing id, a UTC date and an integer — no address, cookie, session
+  id, user agent or fingerprint. That is what made per-listing analytics
+  acceptable here at all, so it is pinned by
+  `tests/test_views.py::test_the_counter_table_stores_nothing_about_a_visitor`,
+  which asserts the exact column set. A visitor-identifying column is a
+  design change to argue for, not a convenience to add while debugging. The
+  consequence is a labelling rule with teeth: without a per-visitor
+  identifier the number is a count of **views**, never of visitors or
+  people, and every string that renders it must say so.
+- **A public route reads the caller through `Viewer`, never `OptionalUser`.**
+  `OptionalUser` returns None only for a request with no token and raises 401
+  for a bad one, and the frontend attaches whatever token is in local storage
+  to every request — so an expired session would 401 the public listing pages.
+  `Viewer` degrades to anonymous. See `app/core/dependencies.py`.
 - Production refuses to boot with the mock OTP provider or a weak `SECRET_KEY` — see
   `Settings.enforce_production_safety()` in `app/core/config.py`. Don't weaken this to
   make a deploy easier; fix the underlying config instead.
@@ -219,6 +244,7 @@ Dockerfiles, not just the Railway dashboard.
 | `VITE_SENTRY_DSN` | The frontend SDK does not initialise. |
 | `VITE_GA_MEASUREMENT_ID` | No analytics script is injected and no page view is sent (`src/services/analytics.ts`). |
 | `VITE_SOCIAL_INSTAGRAM` / `_FACEBOOK` / `_TIKTOK` | That link is not rendered; with none set the whole footer block disappears (`src/components/layout/SocialLinks.tsx`). |
+| `VITE_SUPPORT_WHATSAPP` | The assisted-listing offer — "contact us and we will list it for you" — is not rendered anywhere (`src/features/onboarding/AssistedListing.tsx`). A number with no digits in it counts as unset, because the guard is `whatsappHref` itself. |
 
 Analytics additionally **drops the query string and skips `/dashboard` and
 `/admin`**: `?q=…` carries whatever someone typed into search, which can be a

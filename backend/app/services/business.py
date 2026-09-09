@@ -12,11 +12,12 @@ from app.core.errors import ConflictError, NotFoundError, ValidationError
 from app.core.i18n import LazyJoin
 from app.core.urls import normalize_maps_url, normalize_social_url, normalize_url
 from app.models.business import Business, BusinessSocialLink
-from app.models.enums import BusinessStatus, ImageKind
+from app.models.enums import BusinessStatus, ImageKind, ViewSubject
 from app.models.user import User
 from app.repositories.business import BusinessRepository
 from app.repositories.taxonomy import CategoryRepository, LocationRepository
 from app.schemas.business import BusinessCreateIn, BusinessUpdateIn, SocialLinkIn
+from app.services.analytics import ViewCounterService
 from app.services.slug import unique_slug
 
 logger = logging.getLogger(__name__)
@@ -119,6 +120,11 @@ class BusinessService:
         # Images cascade at the database level; storage objects are cleaned up
         # by the caller, which holds the storage backend.
         business_id = business.id
+        # View counters do not cascade -- their subject_id carries no foreign
+        # key, because it points at one of three tables. See ViewSubject.
+        ViewCounterService(self._db).forget(ViewSubject.BUSINESS, business_id)
+        for item in list(business.items):
+            ViewCounterService(self._db).forget(ViewSubject.PRODUCT, item.id)
         self._repo.delete(business)
         self._db.commit()
         logger.info("Business deleted", extra={"business_id": str(business_id)})

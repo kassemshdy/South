@@ -5,12 +5,13 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+import starlette.responses
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings, get_settings
 from app.core.i18n import translate
-from app.main import create_app
+from app.main import create_app, static_media_type
 from app.models.business import Business
 from app.models.enums import BusinessStatus
 from app.models.talent import TalentProfile, TalentSkill
@@ -204,3 +205,74 @@ def test_a_traversal_path_cannot_escape_the_build_directory(spa_client: TestClie
         assert response.status_code in {200, 404}, path
         assert "create_app" not in response.text, path
         assert "root:" not in response.text, path
+
+
+# --- Content types for build artefacts -------------------------------------
+
+
+def test_a_font_is_served_as_a_font_and_not_as_text(spa_client: TestClient) -> None:
+    """A live bug, reproduced from the direction a browser sees it.
+
+    Every response carries ``X-Content-Type-Options: nosniff``, so a font
+    served as ``text/plain`` is not merely mislabelled -- the browser refuses
+    it, and an Arabic-first site silently renders in a fallback system font.
+
+    That is what production was doing: ``FileResponse`` falls back to
+    ``mimetypes.guess_type``, ``python:3.11-slim`` ships no ``/etc/mime.types``
+    and Python 3.11's own table has no woff2 entry, so the guess was None.
+    It worked on a developer's machine for the one reason that makes this
+    class of bug expensive -- the machine had the system file the container
+    lacks.
+    """
+    fonts = sorted(DIST.glob("assets/*.woff2"))
+    assert fonts, "the build output ships no woff2; this test has stopped testing anything"
+
+    response = spa_client.get(f"/assets/{fonts[0].name}")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "font/woff2"
+
+
+def test_a_font_is_still_a_font_on_a_machine_with_no_mime_database(
+    spa_client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The container's conditions, reproduced, because that is where it broke.
+
+    Starlette computes ``guess_type(path)[0] or "text/plain"``. Remove the
+    entry the host system supplies and the guess is None, which is how a font
+    went out as text/plain in production while every test here passed. With
+    the entry gone this must still answer ``font/woff2`` -- otherwise the fix
+    only works on machines that never needed it.
+    """
+    fonts = sorted(DIST.glob("assets/*.woff2"))
+    assert fonts, "the build output ships no woff2; this test has stopped testing anything"
+
+    # Patched on ``starlette.responses``, not on ``mimetypes``: Starlette does
+    # ``from mimetypes import guess_type``, so the name is bound at import and
+    # patching the mimetypes module leaves it untouched. My first version of
+    # this test did exactly that and passed with the fix reverted -- a guard
+    # that proves nothing, which is worse than no guard.
+    monkeypatch.setattr(
+        starlette.responses, "guess_type", lambda *args, **kwargs: (None, None)
+    )
+
+    response = spa_client.get(f"/assets/{fonts[0].name}")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "font/woff2"
+
+
+def test_the_media_type_table_does_not_depend_on_the_host_system() -> None:
+    """The reason the table is explicit rather than a distro package.
+
+    ``mimetypes`` would answer this correctly on a machine with
+    ``/etc/mime.types`` and incorrectly in the container, which is exactly the
+    situation that let the bug ship. Asserting our own mapping keeps the test
+    meaningful wherever it runs.
+    """
+    assert static_media_type(Path("x.woff2")) == "font/woff2"
+    assert static_media_type(Path("x.WOFF2")) == "font/woff2"
+    assert static_media_type(Path("x.woff")) == "font/woff"
+    # Left to Starlette, which is reliable for these.
+    assert static_media_type(Path("x.js")) is None
+    assert static_media_type(Path("x.css")) is None
