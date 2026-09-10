@@ -9,15 +9,17 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Sequence
+from decimal import Decimal
 from typing import Literal
 
-from sqlalchemy import Select, func, or_, select
+from sqlalchemy import Select, and_, func, or_, select
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.sql.elements import ColumnElement
 
 from app.core.arabic import normalize_arabic
 from app.core.pagination import Page
 from app.models.business import Business, BusinessItem
-from app.models.enums import BusinessStatus
+from app.models.enums import BusinessStatus, Currency
 from app.models.taxonomy import Category, Location
 from app.repositories.base import BaseRepository
 
@@ -76,6 +78,18 @@ class ItemRepository(BaseRepository[BusinessItem]):
         )
         return list(self.db.execute(stmt).unique().scalars().all())
 
+    def public_product_count(self) -> int:
+        """How many products a visitor can actually reach.
+
+        Built on ``public_query`` like everything else here, so the number on
+        the homepage counts exactly the rows the directory would list — an
+        unavailable item, or one belonging to a listing that is not approved,
+        is not advertised in a total a visitor cannot then find.
+        """
+        return self.db.execute(
+            select(func.count()).select_from(self.public_query().subquery())
+        ).scalar_one()
+
     def public_slugs(self) -> list[tuple[str, object]]:
         """(slug, updated_at) pairs for the sitemap.
 
@@ -101,6 +115,10 @@ class ItemRepository(BaseRepository[BusinessItem]):
         q: str | None,
         category_slug: str | None,
         location_slug: str | None,
+        currency: Currency | None = None,
+        min_price: Decimal | None = None,
+        max_price: Decimal | None = None,
+        include_unpriced: bool = True,
     ) -> Select[tuple[BusinessItem]]:
         if category_slug:
             stmt = stmt.join(Category, Business.category_id == Category.id).where(
@@ -126,7 +144,53 @@ class ItemRepository(BaseRepository[BusinessItem]):
             needle = f"%{normalize_arabic(q)}%"
             stmt = stmt.where(BusinessItem.search_text.like(needle))
 
-        return stmt
+        return self._apply_price(
+            stmt,
+            currency=currency,
+            min_price=min_price,
+            max_price=max_price,
+            include_unpriced=include_unpriced,
+        )
+
+    def _apply_price(
+        self,
+        stmt: Select[tuple[BusinessItem]],
+        *,
+        currency: Currency | None,
+        min_price: Decimal | None,
+        max_price: Decimal | None,
+        include_unpriced: bool,
+    ) -> Select[tuple[BusinessItem]]:
+        """Narrow by price, which is only ever meaningful inside one currency.
+
+        ``5 <= price <= 20`` says nothing until it is told whether those are
+        dollars or lira, so a bound without a currency is rejected before it
+        reaches here (see ``app/api/v1/items.py``) rather than silently
+        compared across both.
+
+        A product whose owner left the price blank matches **no** bound, so
+        ``include_unpriced`` decides whether it is kept alongside the matches
+        or dropped. It defaults to keeping: a blank price is a very common
+        state here, and dropping those rows would quietly punish an owner for
+        not naming a number -- exactly the kind of listing this directory
+        exists to carry. The visitor can drop them, but the filter never does
+        it behind their back.
+        """
+        if currency is None and min_price is None and max_price is None:
+            return stmt
+
+        priced: list[ColumnElement[bool]] = [BusinessItem.price.is_not(None)]
+        if currency is not None:
+            priced.append(BusinessItem.currency == currency)
+        if min_price is not None:
+            priced.append(BusinessItem.price >= min_price)
+        if max_price is not None:
+            priced.append(BusinessItem.price <= max_price)
+
+        matches = and_(*priced)
+        if include_unpriced:
+            return stmt.where(or_(matches, BusinessItem.price.is_(None)))
+        return stmt.where(matches)
 
     def _apply_sort(
         self, stmt: Select[tuple[BusinessItem]], sort: SortOption
@@ -143,13 +207,24 @@ class ItemRepository(BaseRepository[BusinessItem]):
         q: str | None = None,
         category_slug: str | None = None,
         location_slug: str | None = None,
+        currency: Currency | None = None,
+        min_price: Decimal | None = None,
+        max_price: Decimal | None = None,
+        include_unpriced: bool = True,
         sort: SortOption = "newest",
         page: int = 1,
         page_size: int = 12,
     ) -> Page[BusinessItem]:
         """Paginated public search. Never returns an unreachable product."""
         filtered = self._apply_filters(
-            self.public_query(), q=q, category_slug=category_slug, location_slug=location_slug
+            self.public_query(),
+            q=q,
+            category_slug=category_slug,
+            location_slug=location_slug,
+            currency=currency,
+            min_price=min_price,
+            max_price=max_price,
+            include_unpriced=include_unpriced,
         )
 
         total = int(

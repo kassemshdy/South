@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from pydantic import ValidationError as PydanticValidationError
 
 from app.core.config import Settings
 from app.core.errors import NotFoundError, ValidationError
@@ -20,7 +21,11 @@ from app.core.i18n import (
     translate,
 )
 from app.core.urls import normalize_social_url
+from app.core.validation_messages import _PARAMS as VALIDATION_TYPES
+from app.core.validation_messages import field_errors
 from app.models.enums import SocialPlatform
+from app.schemas.item import BusinessItemIn
+from tests.samples import ar
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = BACKEND_ROOT.parent
@@ -123,15 +128,94 @@ def test_error_messages_follow_the_accept_language_header(
     assert not ARABIC.search(english.json()["error"]["message"])
 
 
+def _field_messages(response) -> list[str]:
+    return [field["message"] for field in response.json()["error"]["details"]["fields"]]
+
+
 def test_validation_errors_are_translated(client: TestClient) -> None:
-    response = client.post(
+    """Both halves, because for a long time only one was checked.
+
+    The original version of this test asserted that the *English* response
+    carried no Arabic -- which passed while every field message was pydantic's
+    own untranslated English, in both languages. An Arabic reader filling in
+    a form was told "String should have at least 6 characters".
+    """
+    arabic = client.post("/api/auth/request-otp", json={"phone_number": "12"})
+    english = client.post(
         "/api/auth/request-otp",
         json={"phone_number": "12"},
         headers={"Accept-Language": "en"},
     )
 
+    assert arabic.status_code == english.status_code == 422
+    # The envelope *and* the per-field sentence, which is the part that broke.
+    assert ARABIC.search(arabic.json()["error"]["message"])
+    assert all(ARABIC.search(message) for message in _field_messages(arabic))
+    assert not ARABIC.search(json.dumps(english.json(), ensure_ascii=False))
+    # The field name is an identifier the form matches inputs on, so it stays
+    # the same in both languages.
+    assert (
+        arabic.json()["error"]["details"]["fields"][0]["field"]
+        == english.json()["error"]["details"]["fields"][0]["field"]
+        == "phone_number"
+    )
+
+
+def test_a_missing_field_is_reported_in_the_readers_language(client: TestClient) -> None:
+    arabic = client.post("/api/auth/request-otp", json={})
+    assert arabic.status_code == 422
+    assert all(ARABIC.search(message) for message in _field_messages(arabic))
+
+
+def test_a_parse_failure_never_leaks_pydantics_own_explanation(
+    client: TestClient,
+) -> None:
+    """pydantic puts an English sentence in ``ctx['error']`` for a failed
+    parse -- the UUID one explains ``urn:uuid:`` prefixes. A mapping that
+    passed the whole context through would smuggle back exactly the English
+    this is meant to remove."""
+    response = client.post(
+        "/api/businesses/does-not-exist/orders",
+        json={
+            "customer_name": ar("order.customer"),
+            "customer_phone": "03990100",
+            "lines": [{"item_id": "not-a-uuid", "quantity": 1}],
+        },
+    )
+
     assert response.status_code == 422
-    assert not ARABIC.search(json.dumps(response.json(), ensure_ascii=False))
+    messages = _field_messages(response)
+    assert all(ARABIC.search(message) for message in messages)
+    assert not any("urn:uuid" in message for message in messages)
+
+
+def test_a_message_raised_by_our_own_validator_survives_intact() -> None:
+    """Several ``@field_validator``s here raise ``ValueError(translate(...))``,
+    so the sentence is already in the reader's language and must be passed
+    through rather than replaced. Only pydantic's "Value error, " prefix has
+    to come off.
+
+    Asserted against ``BusinessItemIn`` directly: the alternative is a whole
+    owned-business fixture to reach one branch of a pure function.
+    """
+    expected = translate("item.title_required")
+
+    with pytest.raises(PydanticValidationError) as raised:
+        BusinessItemIn(title="   ")
+
+    messages = [field["message"] for field in field_errors(raised.value.errors())]
+    assert expected in messages
+    assert not any(message.startswith("Value error") for message in messages)
+
+
+def test_every_mapped_validation_type_has_a_sentence_in_every_locale() -> None:
+    """The mapping and the catalogs have to move together: adding a pydantic
+    error type without wording for it silently reintroduces the generic
+    fallback for a case somebody bothered to enumerate."""
+    for kind in VALIDATION_TYPES:
+        key = f"validation.{kind}"
+        for locale in SUPPORTED_LOCALES:
+            assert key in _catalog(locale), f"{key} missing from {locale}.json"
 
 
 def _arabic_offenders(root: Path, suffixes: set[str], exempt: set[Path]) -> list[str]:

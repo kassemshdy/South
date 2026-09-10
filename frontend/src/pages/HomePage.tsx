@@ -9,18 +9,24 @@ import {
 import { Link } from 'react-router-dom'
 
 import { Button } from '@/components/ui/Button'
-import { Card, CardBody } from '@/components/ui/Card'
 import { BusinessCardSkeleton, Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 import { useAuth } from '@/features/auth/AuthContext'
 import { BusinessCard } from '@/features/businesses/BusinessCard'
 import { WelcomeVideoPlayer } from '@/features/home/WelcomeVideo'
 import { AudienceChooser } from '@/features/onboarding/AudienceChooser'
+import { DoorStrip } from '@/features/onboarding/DoorStrip'
+import { BROWSE_DOORS } from '@/features/onboarding/destinations'
 import { useCategories, useLocationGroups } from '@/hooks/useTaxonomy'
 import { useT } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
 import { publicBusinessApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
+
+/** The route behind a door, by key — see `destinations.ts`. */
+function doorHref(key: string): string {
+  return BROWSE_DOORS.find((door) => door.key === key)!.href
+}
 
 export function HomePage() {
   const { isAuthenticated } = useAuth()
@@ -57,11 +63,17 @@ export function HomePage() {
           about what the site is or what they can do here. */}
       <section className="border-b border-ink-100 bg-gradient-to-b from-sand-100 to-sand-50">
         {/* One grid, three children, and `order` doing the work: on a phone
-            the copy comes first, then the two choices, and the video last —
-            the choices are what someone is here to make, and a 16:9 player
-            above them would push both below the fold. From `lg` up the copy
-            and the player share the first row and the cards take the whole
-            width of the second, which is the only way they are big. */}
+            the copy comes first, then the video, then the two choices. From
+            `lg` up the copy and the player share the first row and the cards
+            take the whole width of the second, which is the only way they
+            are big — so the two layouts now agree, where they used to
+            disagree about which of the video and the cards came first.
+
+            The cards were second here on the argument that they are what
+            someone came to make and a 16:9 player above them pushes them
+            below the fold. That is still true and is the cost of this
+            order: the video is the pitch, and it only works if it is the
+            thing you meet before being asked to choose. */}
         <div className="container-page grid items-center gap-10 py-10 sm:py-14 lg:grid-cols-2 lg:gap-x-14 lg:py-20">
           <div className="order-1">
             <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-clay-700 shadow-card">
@@ -77,7 +89,7 @@ export function HomePage() {
             </p>
           </div>
 
-          <div className="order-3 lg:order-2">
+          <div className="order-2">
             <WelcomeVideoPlayer />
             <p className="mt-3 text-center text-sm font-semibold text-ink-500">
               {t('home.videoHeading')}
@@ -93,7 +105,7 @@ export function HomePage() {
               repeating the question further down and a third section
               repeating the looking half again. See AudienceChooser for what
               that cost. */}
-          <div className="order-2 w-full lg:order-3 lg:col-span-2">
+          <div className="order-3 w-full lg:col-span-2">
             <AudienceChooser isAuthenticated={isAuthenticated} />
           </div>
         </div>
@@ -150,9 +162,24 @@ export function HomePage() {
             </>
           ) : stats.data ? (
             <>
-              <StatTile value={stats.data.total_businesses} label={t('home.statsBusinesses')} />
-              <StatTile value={stats.data.total_talents} label={t('home.statsTalents')} />
-              <StatTile value={stats.data.total_towns} label={t('home.statsTowns')} />
+              {/* The three directories, in the order the browse strip lists
+                  them. Towns used to be the third number, which measured the
+                  map rather than what is in here. */}
+              <StatTile
+                value={stats.data.total_businesses}
+                label={t('home.statsBusinesses')}
+                href={doorHref('businesses')}
+              />
+              <StatTile
+                value={stats.data.total_products}
+                label={t('home.statsProducts')}
+                href={doorHref('products')}
+              />
+              <StatTile
+                value={stats.data.total_talents}
+                label={t('home.statsTalents')}
+                href={doorHref('talent')}
+              />
             </>
           ) : null}
           {/* A failed fetch renders nothing here: this is a decorative strip, not
@@ -235,6 +262,29 @@ export function HomePage() {
         )}
       </section>
 
+      {/* The same three doors again, for someone who scrolled past the hero
+          without answering it —— and they do. This is the one repetition on
+          the page that earns its place: the hero asks a question, this offers
+          a way in to somebody who has just been reading listings and has now
+          decided what they want.
+
+          Deliberately the compact strip and not a second set of the cards the
+          chooser shows. Rendering both meant the identical three cards
+          appeared twice on one screen the moment someone opened the looking
+          half —— which is the duplication this whole rework exists to remove,
+          reintroduced two sections lower. A row of pills reads as "jump
+          straight there", which is what it is for. It still renders
+          `BROWSE_DOORS`, so it cannot drift from the chooser. */}
+      <section className="container-page pb-14" aria-labelledby="browse-heading">
+        <h2 id="browse-heading" className="mb-1 text-center text-2xl">
+          {t('browse.heading')}
+        </h2>
+        <p className="mx-auto mb-6 max-w-md text-center text-sm text-ink-500">
+          {t('browse.subtitle')}
+        </p>
+        <DoorStrip doors={BROWSE_DOORS} label="browse.switcherLabel" />
+      </section>
+
       {popularDistricts.length > 0 ? (
         <section className="container-page pb-16" aria-labelledby="locations-heading">
           <h2 id="locations-heading" className="mb-6 text-2xl">
@@ -273,13 +323,35 @@ export function HomePage() {
 }
 
 
-function StatTile({ value, label }: { value: number; label: string }) {
+/**
+ * One number, and the directory it counts.
+ *
+ * A link, not a decorative box. Each figure is the size of one of the three
+ * directories, so the thing a reader wants after seeing "28 products" is the
+ * products — and the tile was a dead end. The destination comes from
+ * `BROWSE_DOORS` like every other route to those three pages, so this cannot
+ * drift from the strip below it or the chooser above.
+ *
+ * `min-h` on the label rather than letting it size itself: one of the three
+ * Arabic labels wraps to two lines at phone width and the other two do not,
+ * which left the row visibly ragged and the numbers off a shared baseline.
+ * Reserving both lines everywhere keeps the figures aligned, which is the
+ * whole point of putting them in a row.
+ */
+function StatTile({ value, label, href }: { value: number; label: string; href: string }) {
   return (
-    <Card>
-      <CardBody className="text-center">
-        <p className="ltr-nums text-3xl font-bold text-clay-900">{value}</p>
-        <p className="mt-1 text-sm text-ink-500">{label}</p>
-      </CardBody>
-    </Card>
+    <Link
+      to={href}
+      className="group rounded-2xl border border-ink-100 bg-white text-center shadow-card transition-all hover:-translate-y-0.5 hover:border-clay-300 hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 focus-visible:ring-offset-2"
+    >
+      <div className="px-3 py-5 sm:px-4">
+        <p className="ltr-nums text-3xl font-bold text-clay-900 transition-colors group-hover:text-clay-600">
+          {value}
+        </p>
+        <p className="mt-1 flex min-h-10 items-start justify-center text-balance text-sm leading-snug text-ink-500">
+          {label}
+        </p>
+      </div>
+    </Link>
   )
 }

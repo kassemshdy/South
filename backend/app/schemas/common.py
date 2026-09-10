@@ -59,8 +59,15 @@ class StatsResponse(BaseModel):
 
 
 class PublicStatsOut(BaseModel):
-    """The homepage stats strip — approved-only, safe for an anonymous visitor."""
+    """The homepage stats strip — approved-only, safe for an anonymous visitor.
+
+    The three numbers are the three directories, in the order the browse
+    strip lists them. It used to count towns instead of products, which
+    measured the map rather than the directory: "3 towns represented" is a
+    fact about Lebanon, not about what is in here, and it shrank the site in
+    the reader's mind rather than describing it.
+    """
 
     total_businesses: int
-    total_towns: int
+    total_products: int = 0
     total_talents: int = 0

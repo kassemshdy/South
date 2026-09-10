@@ -67,7 +67,16 @@ interface I18nContextValue {
 
 const I18nContext = createContext<I18nContextValue | null>(null)
 
-function readStoredLocale(): Locale {
+/**
+ * The locale the site is currently rendering in.
+ *
+ * Exported because the API client needs it too, and reads it from here
+ * rather than keeping its own copy: the language a request asks for has to
+ * be the language on the screen. This is a plain function, not a hook, so a
+ * non-React module can call it — and localStorage is the honest source,
+ * because `setLocale` writes it on every change.
+ */
+export function activeLocale(): Locale {
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY)
     if (stored === 'ar' || stored === 'en') return stored
@@ -78,7 +87,7 @@ function readStoredLocale(): Locale {
 }
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(readStoredLocale)
+  const [locale, setLocaleState] = useState<Locale>(activeLocale)
 
   // The document element carries language and direction, so RTL comes from one
   // place rather than being reapplied per component.

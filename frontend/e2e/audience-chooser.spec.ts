@@ -25,6 +25,11 @@ const DEV_OTP = '123456'
  * The other rule: choosing to list something explains the three steps before
  * asking for a phone number, because "sign in" is not an answer to "I have a
  * shop".
+ *
+ * The second level replaces the first in place. A dialog was tried and read
+ * as heavier than the choice deserves — these cards are navigation, and
+ * navigation should not darken the page behind it to ask which of three
+ * lists you want.
  */
 test.describe('Audience chooser', () => {
   test('is always there, explains before signing in, and never blocks the page', async ({
@@ -92,10 +97,93 @@ test.describe('Audience chooser', () => {
     await page.goto('/')
     await expect(page.getByRole('heading', { name: t('onboarding.heading') })).toBeVisible()
 
+    // Signed in, the header's call to action is the shortcut into the wizard.
+    const menu = page.getByRole('button', { name: t('nav.openMenu') })
+    await menu.click()
+    const mobileNav = page.getByRole('navigation', { name: t('nav.mobileAria') })
+    await expect(mobileNav.getByRole('link', { name: t('nav.addBusiness') })).toBeVisible()
+    await page.getByRole('button', { name: t('nav.closeMenu') }).click()
+
     // No steps panel for someone who has already been through it: the card is
     // a link straight to the thing it describes.
     await page.getByRole('button', { name: new RegExp(t('home.actionOffer')) }).click()
     await page.getByRole('link', { name: new RegExp(t('onboarding.ownerTitle')) }).click()
     await expect(page).toHaveURL(/\/dashboard\/businesses\/new/)
+
+    // And the fork is still reachable from inside the wizard, for someone who
+    // realises here that they are a craftsperson rather than a shop. Only
+    // until the first save — after that a DRAFT listing exists and walking
+    // away would strand it.
+    const adding = page.getByRole('navigation', { name: t('onboarding.offerSwitcherLabel') })
+    await expect(adding).toBeVisible()
+    await adding.getByRole('link', { name: t('onboarding.talentShort') }).click()
+    await expect(page).toHaveURL(/\/dashboard\/talent/)
+  })
+
+  test('the buying half offers all three directories, and backing out restores the question', async ({
+    page,
+  }) => {
+    // The half that was wrong on the live site in a quieter way: it offered
+    // goods and someone-skilled, and simply had no door to the businesses
+    // directory at all. Someone who wanted the bakery on the corner had to
+    // find it through a product.
+    await page.goto('/')
+    await page.getByRole('button', { name: new RegExp(t('home.actionBrowse')) }).click()
+
+    for (const key of [
+      'browse.businessesTitle',
+      'onboarding.seekGoodsTitle',
+      'onboarding.seekServiceTitle',
+    ]) {
+      await expect(page.getByRole('link', { name: new RegExp(t(key)) })).toBeVisible()
+    }
+
+    // Backing out is a real option, and it returns to the one question rather
+    // than leaving the visitor in a half-answered state.
+    await page.getByRole('button', { name: t('onboarding.back') }).click()
+    await expect(page.getByRole('heading', { name: t('onboarding.heading') })).toBeVisible()
+
+    // And the doors lead where they say.
+    await page.getByRole('button', { name: new RegExp(t('home.actionBrowse')) }).click()
+    await page.getByRole('link', { name: new RegExp(t('browse.businessesTitle')) }).click()
+    await expect(page).toHaveURL(/\/businesses/)
+  })
+
+  test('the header asks a signed-out visitor to sign in, not to open a shop', async ({
+    page,
+  }) => {
+    // It used to say `nav.addBusiness` and go to `/login` anyway, so the one
+    // call to action in the chrome told a craftsperson, a customer and a
+    // shopkeeper alike that the thing to do here is open a shop — the same
+    // assumption the hero card made, in the one place that is on every page.
+    await page.goto('/')
+    await page.getByRole('button', { name: t('nav.openMenu') }).click()
+
+    const mobileNav = page.getByRole('navigation', { name: t('nav.mobileAria') })
+    const signIn = mobileNav.getByRole('link', { name: t('nav.login') })
+    await expect(signIn).toBeVisible()
+    await expect(signIn).toHaveAttribute('href', '/login')
+    await expect(mobileNav.getByRole('link', { name: t('nav.addBusiness') })).toHaveCount(0)
+  })
+
+  test('the video comes before the question, not after it', async ({ page }) => {
+    // A deliberate order, and the two layouts used to disagree about it: on a
+    // phone the cards came second and the player last, while from `lg` up the
+    // player shared the first row and the cards took the second. The video is
+    // the pitch, and it only does its job if it is what you meet before being
+    // asked to choose — so it is now first on both.
+    //
+    // Asserted by geometry rather than by DOM order, because `order-*` classes
+    // are exactly what moves here: the markup can stay put while the rendered
+    // page flips.
+    await page.goto('/')
+    const player = page.getByRole('button', { name: t('home.videoPlayAria') })
+    const question = page.getByRole('heading', { name: t('onboarding.heading') })
+    await expect(player).toBeVisible()
+    await expect(question).toBeVisible()
+
+    const playerBox = await player.boundingBox()
+    const questionBox = await question.boundingBox()
+    expect(playerBox!.y).toBeLessThan(questionBox!.y)
   })
 })

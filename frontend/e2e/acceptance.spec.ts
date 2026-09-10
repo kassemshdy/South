@@ -112,7 +112,7 @@ test.describe('MVP acceptance flow', () => {
     // The public stats strip renders real numbers, not an error state.
     await expect(page.getByText(t('home.statsBusinesses'))).toBeVisible()
     await expect(page.getByText(t('home.statsTalents'))).toBeVisible()
-    await expect(page.getByText(t('home.statsTowns'))).toBeVisible()
+    await expect(page.getByText(t('home.statsProducts'))).toBeVisible()
 
     await page.goto('/businesses')
     await expect(page.getByRole('heading', { name: t('directory.heading') })).toBeVisible()

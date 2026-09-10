@@ -14,6 +14,7 @@ import { SocialForm } from '@/features/businesses/SocialForm'
 import { ImageManager } from '@/features/images/ImageManager'
 import { AssistedListing } from '@/features/onboarding/AssistedListing'
 import { ItemManager } from '@/features/items/ItemManager'
+import { OfferSwitcher } from '@/features/onboarding/OfferSwitcher'
 import { useSeo } from '@/hooks/useSeo'
 import { useT, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
@@ -130,6 +131,13 @@ export function BusinessWizardPage() {
         <h1 className="text-3xl">{t('wizard.heading')}</h1>
         <p className="mt-2 text-ink-500">{t('wizard.subtitle')}</p>
       </header>
+
+      {/* Only until the listing exists. Step one writes a DRAFT, and offering
+          to walk across to the talent form after that would leave a stub
+          listing behind rather than simply changing your mind. Before the
+          first save there is nothing to lose, and this is where a
+          craftsperson who tapped the wrong card finds out. */}
+      {businessId === null ? <OfferSwitcher current="business" /> : null}
 
       <ol className="mb-8 flex flex-wrap gap-2" aria-label={t('wizard.stepsAria')}>
         {STEPS.map((item, index) => {

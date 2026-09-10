@@ -26,6 +26,7 @@ from app.models.enums import (
 )
 from app.models.feedback import FeedbackAttachment, FeedbackComment, FeedbackTicket
 from app.models.order import Order, OrderLine
+from app.models.service_request import ServiceRequest
 from app.models.talent import (
     TalentImage,
     TalentModerationAction,
@@ -63,6 +64,7 @@ __all__ = [
     "OtpRequest",
     "OwnerVerificationDocument",
     "RateLimitEvent",
+    "ServiceRequest",
     "SocialPlatform",
     "TalentImage",
     "TalentModerationAction",

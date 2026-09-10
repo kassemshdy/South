@@ -10,6 +10,7 @@ import { ErrorState, NoSearchResults } from '@/components/ui/States'
 import { Pagination } from '@/features/businesses/Pagination'
 import { TalentCard } from '@/features/talent/TalentCard'
 import { useLocationGroups, useTalentSkills } from '@/hooks/useTaxonomy'
+import { BrowseSwitcher } from '@/features/onboarding/BrowseSwitcher'
 import { useT, type TranslationKey } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
 import { publicTalentApi } from '@/services/api/endpoints'
@@ -91,6 +92,11 @@ export function TalentDirectoryPage() {
             : t('talent.introFallback')}
         </p>
       </header>
+
+      {/* The other two directories, one tap away. Without this each
+          directory was an island: a search that came up empty here left
+          the browser's back button as the only way across. */}
+      <BrowseSwitcher current="talent" />
 
       <form
         role="search"

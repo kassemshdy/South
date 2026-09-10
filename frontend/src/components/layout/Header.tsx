@@ -33,8 +33,12 @@ import { cn } from '@/utils/cn'
  * a sign-out button, plus `nav.adminPanel` for an admin, so the people who use
  * the site most got the most crowded bar — eight items and a call to action
  * competing on one line. The public links stay three, and everything personal
- * now lives behind one account menu. The `nav.addBusiness` button keeps its
- * place whether or not anybody is signed in; only where it leads changes.
+ * now lives behind one account menu. The primary button keeps its place
+ * whether or not anybody is signed in; what it says and where it leads
+ * change with them. Signed out it is `nav.login` — it used to read
+ * `nav.addBusiness` and go to `/login` regardless, which told a
+ * craftsperson, a customer and a shopkeeper alike that the thing to do here
+ * is open a shop.
  *
  * (Key names rather than the strings themselves: `tests/test_i18n.py` scans
  * this directory for Arabic codepoints, comments included.)
@@ -107,7 +111,6 @@ export function Header() {
     navigate('/')
   }
 
-  const addBusinessTarget = isAuthenticated ? '/dashboard/businesses/new' : '/login'
   const account = user?.phone_number ?? user?.email
 
   return (
@@ -191,22 +194,26 @@ export function Header() {
                 </DropdownMenuPrimitive.Content>
               </DropdownMenuPrimitive.Portal>
             </DropdownMenuPrimitive.Root>
-          ) : (
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/login">
-                <User className="h-4 w-4" aria-hidden="true" />
-                {t('nav.login')}
-              </Link>
-            </Button>
-          )}
+          ) : null}
 
           <CartLink />
           <FavouritesLink />
 
+          {/* Signed out this is "sign in", not "add your business".
+              It used to say the latter and go to `/login` anyway, so the
+              header's one call to action told a craftsperson, a customer and
+              a shopkeeper alike that the thing to do here is open a shop —
+              the same assumption the hero card made. Signed out there is
+              exactly one thing behind it, and it now says so; the separate
+              ghost login link next to it was the same destination twice. */}
           <Button asChild size="sm" className="ms-2">
-            <Link to={addBusinessTarget}>
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              {t('nav.addBusiness')}
+            <Link to={isAuthenticated ? '/dashboard/businesses/new' : '/login'}>
+              {isAuthenticated ? (
+                <Plus className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <User className="h-4 w-4" aria-hidden="true" />
+              )}
+              {t(isAuthenticated ? 'nav.addBusiness' : 'nav.login')}
             </Link>
           </Button>
         </nav>
@@ -279,16 +286,19 @@ export function Header() {
                 {t('nav.signOut')}
               </button>
             </>
-          ) : (
-            <Link to="/login" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">
-              {t('nav.login')}
-            </Link>
-          )}
+          ) : null}
 
           <Button asChild block className="mt-2">
-            <Link to={addBusinessTarget} onClick={() => setMenuOpen(false)}>
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              {t('nav.addBusiness')}
+            <Link
+              to={isAuthenticated ? '/dashboard/businesses/new' : '/login'}
+              onClick={() => setMenuOpen(false)}
+            >
+              {isAuthenticated ? (
+                <Plus className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <User className="h-4 w-4" aria-hidden="true" />
+              )}
+              {t(isAuthenticated ? 'nav.addBusiness' : 'nav.login')}
             </Link>
           </Button>
         </nav>

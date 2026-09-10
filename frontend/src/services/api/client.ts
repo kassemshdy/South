@@ -5,7 +5,7 @@
  * envelope and network-failure handling exist in exactly one place.
  */
 
-import { DEFAULT_LOCALE, translate } from '@/i18n'
+import { activeLocale, translate } from '@/i18n'
 import type { ApiErrorPayload } from '@/types/api'
 
 const TOKEN_STORAGE_KEY = 'south.auth.token'
@@ -62,6 +62,26 @@ export const tokenStorage = {
   },
 }
 
+/**
+ * The headers every request carries: the session, and the language.
+ *
+ * `Accept-Language` is sent explicitly because the browser's own header is
+ * the wrong answer. It says what the *browser* was configured for, and this
+ * site lets someone choose Arabic or English for themselves — so an English
+ * browser on the Arabic site was sending `en-US,en;q=0.9`, and the API
+ * dutifully replied in English. Ordering a product on the Arabic site
+ * confirmed it in English.
+ *
+ * Read at call time, not at module load, so switching language takes effect
+ * on the next request rather than the next reload.
+ */
+function baseHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { 'Accept-Language': activeLocale() }
+  const token = tokenStorage.get()
+  if (token) headers.Authorization = `Bearer ${token}`
+  return headers
+}
+
 type Query = Record<string, string | number | boolean | undefined | null>
 
 interface RequestOptions {
@@ -90,9 +110,7 @@ export const UNAUTHORIZED_EVENT = 'south:unauthorized'
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { method = 'GET', body, query, formData, signal } = options
 
-  const headers: Record<string, string> = {}
-  const token = tokenStorage.get()
-  if (token) headers.Authorization = `Bearer ${token}`
+  const headers = baseHeaders()
   if (body !== undefined) headers['Content-Type'] = 'application/json'
 
   let response: Response
@@ -105,7 +123,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     })
   } catch (cause) {
     if (cause instanceof DOMException && cause.name === 'AbortError') throw cause
-    throw new ApiError(0, null, translate(DEFAULT_LOCALE, 'api.networkError'))
+    throw new ApiError(0, null, translate(activeLocale(), 'api.networkError'))
   }
 
   if (response.status === 204) return undefined as T
@@ -117,7 +135,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     const error = new ApiError(
       response.status,
       isJson ? (payload as ApiErrorPayload) : null,
-      translate(DEFAULT_LOCALE, 'api.unexpectedError'),
+      translate(activeLocale(), 'api.unexpectedError'),
     )
     if (error.isUnauthorized) {
       tokenStorage.clear()
@@ -135,21 +153,19 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
  * JSON/text, which would corrupt binary content.
  */
 export async function apiDownload(path: string): Promise<{ blob: Blob; filename: string | null }> {
-  const headers: Record<string, string> = {}
-  const token = tokenStorage.get()
-  if (token) headers.Authorization = `Bearer ${token}`
+  const headers = baseHeaders()
 
   let response: Response
   try {
     response = await fetch(buildUrl(path), { headers })
   } catch {
-    throw new ApiError(0, null, translate(DEFAULT_LOCALE, 'api.networkError'))
+    throw new ApiError(0, null, translate(activeLocale(), 'api.networkError'))
   }
 
   if (!response.ok) {
     const isJson = response.headers.get('content-type')?.includes('application/json')
     const payload = isJson ? ((await response.json()) as ApiErrorPayload) : null
-    const error = new ApiError(response.status, payload, translate(DEFAULT_LOCALE, 'api.unexpectedError'))
+    const error = new ApiError(response.status, payload, translate(activeLocale(), 'api.unexpectedError'))
     if (error.isUnauthorized) {
       tokenStorage.clear()
       window.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT))
