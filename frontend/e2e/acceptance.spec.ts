@@ -88,17 +88,23 @@ test.describe('MVP acceptance flow', () => {
     await expect(page.getByRole('heading', { name: t('home.heroTitle') })).toBeVisible()
     await expect(page.getByRole('heading', { name: t('home.latestHeading') })).toBeVisible()
 
-    // The Discover chooser: all three tiers are live and every card is a link.
-    const discoverSection = page.locator('section', { has: page.getByRole('heading', { name: t('home.discoverHeading') }) })
-    await expect(discoverSection).toBeVisible()
-    await expect(discoverSection.getByRole('link', { name: new RegExp(t('home.discoverBusinessesTitle')) })).toBeVisible()
-    await expect(discoverSection.getByRole('link', { name: new RegExp(t('home.discoverProductsTitle')) })).toBeVisible()
-    await expect(discoverSection.getByRole('link', { name: new RegExp(t('home.discoverTalentTitle')) })).toBeVisible()
-    // Nothing is "coming soon" any more.
-    await expect(discoverSection.getByText(t('home.comingSoon'))).toHaveCount(0)
+    // The one intent chooser, asked once: both halves of the question, and no
+    // second or third widget asking it again further down. This replaced a
+    // "what are you looking for" section that duplicated it.
+    await expect(page.getByRole('heading', { name: t('onboarding.heading') })).toBeVisible()
+    await expect(page.getByRole('button', { name: new RegExp(t('home.actionOffer')) })).toHaveCount(1)
+    await expect(page.getByRole('button', { name: new RegExp(t('home.actionBrowse')) })).toHaveCount(1)
+    // Nothing anywhere on the page is "coming soon" any more.
+    await expect(page.getByText(t('home.comingSoon'))).toHaveCount(0)
 
-    // The talent card navigates to the talent directory.
-    await discoverSection.getByRole('link', { name: new RegExp(t('home.discoverTalentTitle')) }).click()
+    // Looking for something forks by kind, and the service side reaches the
+    // talent directory -- the same destination the old card asserted, now via
+    // the path a visitor actually takes.
+    await page.getByRole('button', { name: new RegExp(t('home.actionBrowse')) }).click()
+    await expect(
+      page.getByRole('link', { name: new RegExp(t('onboarding.seekGoodsTitle')) }),
+    ).toBeVisible()
+    await page.getByRole('link', { name: new RegExp(t('onboarding.seekServiceTitle')) }).click()
     await expect(page).toHaveURL(/\/talent$/)
     await expect(page.getByRole('heading', { name: t('talent.heading') })).toBeVisible()
     await page.goBack()

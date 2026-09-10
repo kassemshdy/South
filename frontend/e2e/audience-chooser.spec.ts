@@ -41,6 +41,8 @@ test.describe('Audience chooser', () => {
 
     // Choosing to list a business explains what that involves, in place,
     // rather than jumping to a phone-number prompt.
+    // Two levels now: the intent first, then which kind.
+    await page.getByRole('button', { name: new RegExp(t('home.actionOffer')) }).click()
     await page.getByRole('button', { name: new RegExp(t('onboarding.ownerTitle')) }).click()
     await expect(page.getByText(t('onboarding.step1'))).toBeVisible()
     await expect(page.getByText(t('onboarding.step3'))).toBeVisible()
@@ -68,6 +70,8 @@ test.describe('Audience chooser', () => {
     // value at build time, so it would need a second build -- but the
     // failure that actually costs someone a listing is this one.
     await page.goto('/')
+    // Two levels now: the intent first, then which kind.
+    await page.getByRole('button', { name: new RegExp(t('home.actionOffer')) }).click()
     await page.getByRole('button', { name: new RegExp(t('onboarding.ownerTitle')) }).click()
 
     await expect(page.getByText(t('onboarding.step1'))).toBeVisible()
@@ -90,6 +94,7 @@ test.describe('Audience chooser', () => {
 
     // No steps panel for someone who has already been through it: the card is
     // a link straight to the thing it describes.
+    await page.getByRole('button', { name: new RegExp(t('home.actionOffer')) }).click()
     await page.getByRole('link', { name: new RegExp(t('onboarding.ownerTitle')) }).click()
     await expect(page).toHaveURL(/\/dashboard\/businesses\/new/)
   })

@@ -9,6 +9,7 @@ import { App } from '@/App'
 import { ToastProvider } from '@/components/ui/Toast'
 import { AuthProvider } from '@/features/auth/AuthContext'
 import { CartProvider } from '@/features/cart/CartContext'
+import { FavouritesProvider } from '@/features/favourites/FavouritesContext'
 import { I18nProvider, useI18n } from '@/i18n'
 import { initAnalytics } from '@/services/analytics'
 import { ApiError } from '@/services/api/client'
@@ -70,7 +71,12 @@ createRoot(container).render(
                 {/* Above the router so a cart survives navigation, and
                     inside ToastProvider so adding to it can confirm. */}
                 <CartProvider>
-                  <App />
+                  {/* Alongside the cart and for the same reason: a saved list
+                      that did not survive navigation would not be a saved
+                      list. Inside ToastProvider so saving can confirm. */}
+                  <FavouritesProvider>
+                    <App />
+                  </FavouritesProvider>
                 </CartProvider>
               </ToastProvider>
             </AuthProvider>

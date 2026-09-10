@@ -1,6 +1,7 @@
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu'
 import {
   ChevronDown,
+  Heart,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -20,6 +21,7 @@ import { LocaleToggle } from '@/components/layout/LocaleToggle'
 import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useCart } from '@/features/cart/CartContext'
+import { useFavourites } from '@/features/favourites/FavouritesContext'
 import { useT } from '@/i18n'
 import { cn } from '@/utils/cn'
 
@@ -61,6 +63,33 @@ function CartLink({ compact = false }: { compact?: boolean }) {
           {count}
         </span>
         {compact ? null : <span className="ms-1.5">{t('cart.link')}</span>}
+      </Link>
+    </Button>
+  )
+}
+
+function FavouritesLink({ compact = false }: { compact?: boolean }) {
+  const t = useT()
+  const { count } = useFavourites()
+
+  // Same rule as the cart: absent until there is something in it. A heart on
+  // an empty list is a feature advertising itself rather than a way back to
+  // something someone chose.
+  if (count === 0) return null
+
+  return (
+    <Button
+      asChild
+      variant="ghost"
+      size={compact ? 'icon' : 'sm'}
+      aria-label={t('favourites.link')}
+    >
+      <Link to="/favourites" className="relative">
+        <Heart className="h-5 w-5" aria-hidden="true" />
+        <span className="absolute -end-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-clay-500 px-1 text-[10px] font-bold text-white ltr-nums">
+          {count}
+        </span>
+        {compact ? null : <span className="ms-1.5">{t('favourites.link')}</span>}
       </Link>
     </Button>
   )
@@ -172,6 +201,7 @@ export function Header() {
           )}
 
           <CartLink />
+          <FavouritesLink />
 
           <Button asChild size="sm" className="ms-2">
             <Link to={addBusinessTarget}>
@@ -183,6 +213,7 @@ export function Header() {
 
         <div className="flex items-center gap-1 md:hidden">
           <CartLink compact />
+          <FavouritesLink compact />
           <LocaleToggle compact />
           <Button asChild variant="ghost" size="icon" aria-label={t('nav.searchAria')}>
             <Link to="/businesses">

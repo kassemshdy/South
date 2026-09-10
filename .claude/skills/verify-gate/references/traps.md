@@ -30,6 +30,46 @@ these ways is not telling you what it appears to.
   check onto the kill, because the chained check dies with the shell. This has
   now cost time three times, twice *after* being written down: an unbracketed
   literal anywhere on the command line is enough.
+- **Running the Playwright suite twice breaks it two different ways, and
+  neither looks like what it is.** Both bit in one session.
+  1. **The per-IP OTP limiter.** Every owner/admin spec signs in, and
+     `OTP_SEND_PER_IP_LIMIT` counts them all against one address. Past the
+     limit `request-otp` answers `rate_limited` with a `retry_after_seconds`
+     near an hour, the code field never appears, and the failure reads as
+     `locator.fill: Test timeout ... waiting for getByLabel('رمز التحقق')`
+     — broken auth, apparently. Probe it directly to be sure:
+     `curl -s -X POST localhost:8000/api/auth/request-otp -H 'Content-Type:
+     application/json' -d '{"phone_number":"03911223"}'`. `TRUNCATE
+     rate_limit_events` clears it without waiting.
+  2. **Duplicate rows.** Each run creates its listings again, so the second
+     run fails with a Playwright *strict mode violation* — "resolved to 3
+     elements" for one business name. Nothing is broken; the same shop exists
+     three times.
+
+  So a repeated run proves nothing either way. **One run on a freshly reset
+  database is the evidence**; if a spec fails on a second pass, reset before
+  reading anything into it.
+- **`pgrep -f` lies the same way, and reading state is where it does damage.**
+  The `pkill` entry above is about killing the wrong process; this is about
+  *believing* the wrong answer. `pgrep -f "[s]cripts.seed"` matched its own
+  Bash wrapper, whose command line contains that text, so a progress check
+  reported "still seeding" for thirteen minutes while nothing was seeding at
+  all. Bracketing does not help here — the wrapper carries the bracketed
+  pattern *and* the command it wraps. Check for the thing itself instead of
+  for a process name: a row count, a port answering, a file appearing. If a
+  process check is unavoidable, match on the interpreter path
+  (`pgrep -f '\.venv/bin/python -m scripts\.seed'`) and confirm against
+  something the process actually produced.
+- **A multi-line Bash command can arrive flattened onto one line.** The same
+  session ran `cd backend`, `dropdb`, `createdb`, `alembic upgrade head` and
+  `seed --ensure` as five lines and they were delivered as
+  `cd /home/user/South/backend dropdb --if-exists … createdb … alembic …` —
+  one `cd` with a pile of arguments, no separators. Nothing ran, and it then
+  hung on a password prompt with `< /dev/null`. **Chain steps with explicit
+  `&&`** rather than newlines whenever a later step depends on an earlier one,
+  so a flattened delivery fails loudly instead of silently doing nothing. The
+  local Postgres also needs `PGPASSWORD=postgres` for `dropdb`/`createdb`/
+  `psql`, which is what the prompt was waiting on.
 - **Read a commit SHA, never reconstruct one.** `git rev-parse HEAD`. A
   hand-typed SHA produces `409 Head branch was modified` or "must be exactly 40
   characters".

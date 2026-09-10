@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
 import { ShareButton } from '@/components/ui/ShareButton'
 import { AddToCartButton } from '@/features/cart/AddToCartButton'
+import { FavouriteButton } from '@/features/favourites/FavouriteButton'
 import { TestimonialForm } from '@/features/testimonials/TestimonialForm'
 import { TestimonialList } from '@/features/testimonials/TestimonialList'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -158,11 +159,15 @@ export function BusinessProfilePage() {
             </div>
           </div>
 
-          <ShareButton
-            title={data.name}
-            text={data.short_description ?? undefined}
-            className="shrink-0"
-          />
+          <div className="flex shrink-0 gap-2">
+            <ShareButton title={data.name} text={data.short_description ?? undefined} />
+            <FavouriteButton
+              subject="BUSINESS"
+              slug={data.slug}
+              title={data.name}
+              imageUrl={data.cover_url ?? data.logo_url}
+            />
+          </div>
         </div>
 
         {/* Contact CTAs sit directly under the header: on a phone this is the

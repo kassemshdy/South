@@ -2,18 +2,12 @@ import { useQuery } from '@tanstack/react-query'
 import {
   ArrowLeft,
   MapPin,
-  Package,
   Plus,
   ShieldCheck,
-  ShoppingBag,
   Store,
-  Users,
-  type LucideIcon,
 } from 'lucide-react'
-import { type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
-import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
 import { BusinessCardSkeleton, Skeleton } from '@/components/ui/Skeleton'
@@ -90,58 +84,18 @@ export function HomePage() {
             </p>
           </div>
 
-          {/* The two reasons anybody is on this page, in the visitor's own
-              words rather than ours — offering something, or looking for
-              something. Which of the two someone is decides the whole rest of
-              their visit, so the page asks it first and asks it once.
+          {/* The one question, in the visitor's own words rather than ours --
+              offering something, or looking for something. Which of the two
+              someone is decides the whole rest of their visit, so the page
+              asks it here and, now, only here.
 
-              Cards rather than buttons, and identical weight: these are two
-              halves of one question, not a call to action and its
-              afterthought. Each is one whole-card target, and it carries the
-              choice and nothing else — a line of explanation under each was
-              answering a question nobody had yet asked.
-
-              Centred as a pair across the row rather than tucked under one
-              column: with only a line of type in each, two cards hugging the
-              heading looked like an accident, and the row they sit under is
-              the full width of the hero. */}
-          <ul className="order-2 mx-auto grid w-full max-w-2xl gap-4 sm:grid-cols-2 lg:order-3 lg:col-span-2">
-            {[
-              {
-                key: 'offer' as const,
-                icon: Store,
-                href: isAuthenticated ? '/dashboard/businesses/new' : '/login',
-                titleKey: 'home.actionOffer' as const,
-              },
-              {
-                key: 'browse' as const,
-                icon: ShoppingBag,
-                href: '/products',
-                titleKey: 'home.actionBrowse' as const,
-              },
-            ].map((action) => {
-              const Icon = action.icon
-              return (
-                <li key={action.key}>
-                  <Link
-                    to={action.href}
-                    className="group flex h-full flex-col items-center gap-3 rounded-2xl border-2 border-ink-100 bg-white p-6 text-center shadow-card transition-all hover:-translate-y-0.5 hover:border-clay-300 hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 focus-visible:ring-offset-2"
-                  >
-                    <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-sand-100 text-clay-600 transition-colors group-hover:bg-clay-500 group-hover:text-white">
-                      <Icon className="h-6 w-6" aria-hidden="true" />
-                    </span>
-                    <span className="text-lg font-bold leading-snug text-ink-900">
-                      {t(action.titleKey)}
-                    </span>
-                    <span className="flex items-center gap-1.5 text-sm font-semibold text-clay-600">
-                      {t('onboarding.choose')}
-                      <ArrowLeft className="h-4 w-4 ltr:rotate-180" aria-hidden="true" />
-                    </span>
-                  </Link>
-                </li>
-              )
-            })}
-          </ul>
+              This used to be a pair of cards written inline, with the chooser
+              repeating the question further down and a third section
+              repeating the looking half again. See AudienceChooser for what
+              that cost. */}
+          <div className="order-2 w-full lg:order-3 lg:col-span-2">
+            <AudienceChooser isAuthenticated={isAuthenticated} />
+          </div>
         </div>
       </section>
 
@@ -181,42 +135,10 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* These three cards are the homepage's navigation for anyone not
-          confident online, and navigation you see once is not navigation.
-          They overlap the hero's two cards on purpose: the hero asks the
-          question in two halves, these name the third audience — someone
-          offering a skill rather than a shop — and spell out what signing up
-          involves before anyone is asked for a phone number. */}
-      <AudienceChooser isAuthenticated={isAuthenticated} />
 
       {/* The video used to have a section of its own here. It is in the hero
           now, and one recording twice on one page is one too many. */}
 
-      <section className="container-page py-14" aria-labelledby="discover-heading">
-        <h2 id="discover-heading" className="mb-6 text-center text-2xl">
-          {t('home.discoverHeading')}
-        </h2>
-        <div className="grid gap-5 sm:grid-cols-3">
-          <DiscoverCard
-            icon={Store}
-            title={t('home.discoverBusinessesTitle')}
-            description={t('home.discoverBusinessesDescription')}
-            href="/businesses"
-          />
-          <DiscoverCard
-            icon={Package}
-            title={t('home.discoverProductsTitle')}
-            description={t('home.discoverProductsDescription')}
-            href="/products"
-          />
-          <DiscoverCard
-            icon={Users}
-            title={t('home.discoverTalentTitle')}
-            description={t('home.discoverTalentDescription')}
-            href="/talent"
-          />
-        </div>
-      </section>
 
       <section className="container-page pb-14" aria-label={t('home.statsHeading')}>
         <div className="mx-auto grid max-w-2xl grid-cols-3 gap-4">
@@ -350,47 +272,6 @@ export function HomePage() {
   )
 }
 
-function DiscoverCard({
-  icon: Icon,
-  title,
-  description,
-  href,
-}: {
-  icon: LucideIcon
-  title: string
-  description: string
-  href?: string
-}) {
-  const t = useT()
-  const content: ReactNode = (
-    <CardBody className="flex h-full flex-col items-center gap-2 text-center">
-      <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-sand-100 text-clay-600">
-        <Icon className="h-6 w-6" aria-hidden="true" />
-      </span>
-      <span className="flex items-center gap-2 font-bold text-ink-900">
-        {title}
-        {!href ? <Badge className="bg-sand-100 text-clay-700">{t('home.comingSoon')}</Badge> : null}
-      </span>
-      <span className="text-sm text-ink-500">{description}</span>
-    </CardBody>
-  )
-
-  if (!href) {
-    return (
-      <Card aria-disabled="true" className="opacity-60">
-        {content}
-      </Card>
-    )
-  }
-
-  return (
-    <Card className="transition-all hover:-translate-y-0.5 hover:border-clay-300 hover:shadow-lift">
-      <Link to={href} className="block h-full">
-        {content}
-      </Link>
-    </Card>
-  )
-}
 
 function StatTile({ value, label }: { value: number; label: string }) {
   return (
