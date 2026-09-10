@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from app.core.arabic import normalize_arabic
 from app.core.pagination import Page
 from app.models.business import Business, BusinessItem
-from app.models.enums import BusinessStatus, LocationType
+from app.models.enums import BusinessStatus
 from app.models.taxonomy import Category, Location
 from app.models.user import User
 from app.repositories.base import BaseRepository
@@ -240,14 +240,6 @@ class BusinessRepository(BaseRepository[Business]):
             select(func.count()).select_from(self.public_query().subquery())
         ).scalar_one()
 
-    def public_town_count(self) -> int:
-        """Distinct towns with at least one approved business."""
-        return self.db.execute(
-            select(func.count(func.distinct(Business.location_id)))
-            .select_from(Business)
-            .join(Location, Business.location_id == Location.id)
-            .where(Business.status == BusinessStatus.APPROVED, Location.type == LocationType.TOWN)
-        ).scalar_one()
 
 
 def make_repository(db: Session) -> BusinessRepository:

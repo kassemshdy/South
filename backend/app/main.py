@@ -27,6 +27,7 @@ from app.core.logging import configure_logging
 from app.core.middleware import RequestContextMiddleware, SecurityHeadersMiddleware
 from app.core.observability import configure_error_tracking
 from app.core.seo import business_tags, default_tags, inject, talent_tags
+from app.core.validation_messages import field_errors
 from app.database.session import SessionLocal
 from app.repositories.business import BusinessRepository
 from app.repositories.talent import TalentRepository
@@ -172,21 +173,17 @@ def _register_exception_handlers(app: FastAPI) -> None:
     async def handle_validation_error(
         request: Request, exc: RequestValidationError
     ) -> JSONResponse:
-        # Field errors are surfaced so the Arabic forms can highlight the right
-        # input rather than showing a generic failure.
-        fields = [
-            {
-                "field": ".".join(str(part) for part in error["loc"][1:]) or "body",
-                "message": error.get("msg", translate("error.field_invalid")),
-            }
-            for error in exc.errors()
-        ]
+        # Field errors are surfaced so the forms can highlight the right input
+        # rather than showing a generic failure -- and each one is rendered
+        # from the catalogs, because pydantic writes its own messages in
+        # English and knows nothing about the request locale. See
+        # ``app/core/validation_messages.py``.
         return JSONResponse(
             {
                 "error": {
                     "code": "validation_error",
                     "message": translate("error.validation_fields"),
-                    "details": {"fields": fields},
+                    "details": {"fields": field_errors(exc.errors())},
                 }
             },
             status_code=422,

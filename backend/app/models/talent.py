@@ -36,6 +36,7 @@ from app.models.enums import (
 )
 
 if TYPE_CHECKING:
+    from app.models.service_request import ServiceRequest
     from app.models.taxonomy import Location
     from app.models.user import User
 
@@ -155,6 +156,11 @@ class TalentProfile(Base, TimestampMixin):
         back_populates="profile",
         cascade="all, delete-orphan",
         order_by="TalentModerationAction.created_at",
+    )
+    service_requests: Mapped[list[ServiceRequest]] = relationship(
+        back_populates="profile",
+        cascade="all, delete-orphan",
+        order_by="ServiceRequest.created_at.desc()",
     )
 
     @property

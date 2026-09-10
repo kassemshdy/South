@@ -1,9 +1,11 @@
-import { ArrowLeft, Check, Search, ShoppingBag, Store, UserRound } from 'lucide-react'
+import { ArrowLeft, Check, ShoppingBag, Store } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { Button } from '@/components/ui/Button'
 import { AssistedListing } from '@/features/onboarding/AssistedListing'
+import { DOOR_CARD, DoorBody, DoorCard } from '@/features/onboarding/DoorCard'
+import { BROWSE_DOORS, OFFER_DOORS, type Door } from '@/features/onboarding/destinations'
 import { useT, type TranslationKey } from '@/i18n'
 
 /**
@@ -40,72 +42,37 @@ import { useT, type TranslationKey } from '@/i18n'
 
 type Intent = 'offer' | 'seek'
 
-interface Leaf {
-  key: string
-  icon: typeof Store
-  titleKey: TranslationKey
-  descriptionKey: TranslationKey
-  /** Set for the paths that need an account; the rest navigate straight away. */
-  needsAccount: boolean
-  href: string
-}
-
 interface Branch {
   intent: Intent
   icon: typeof Store
   titleKey: TranslationKey
-  leaves: Leaf[]
+  /** Listing anything needs an account; looking at anything does not. */
+  needsAccount: boolean
+  doors: Door[]
 }
 
+/**
+ * The two halves, and what is behind each.
+ *
+ * The doors themselves live in `destinations.ts` and are shared with the
+ * switcher above every directory and the strip further down the homepage.
+ * They used to be written out here, and in two other components, and the
+ * three drifted until they contradicted each other —— see that file.
+ */
 const BRANCHES: Branch[] = [
   {
     intent: 'offer',
     icon: Store,
     titleKey: 'home.actionOffer',
-    leaves: [
-      {
-        key: 'business',
-        icon: Store,
-        titleKey: 'onboarding.ownerTitle',
-        descriptionKey: 'onboarding.ownerDescription',
-        needsAccount: true,
-        href: '/dashboard/businesses/new',
-      },
-      {
-        key: 'talent',
-        icon: UserRound,
-        titleKey: 'onboarding.talentTitle',
-        descriptionKey: 'onboarding.talentDescription',
-        needsAccount: true,
-        href: '/dashboard/talent',
-      },
-    ],
+    needsAccount: true,
+    doors: OFFER_DOORS,
   },
   {
     intent: 'seek',
     icon: ShoppingBag,
     titleKey: 'home.actionBrowse',
-    leaves: [
-      {
-        key: 'goods',
-        icon: ShoppingBag,
-        titleKey: 'onboarding.seekGoodsTitle',
-        descriptionKey: 'onboarding.seekGoodsDescription',
-        needsAccount: false,
-        // `/products`, not `/businesses`: someone who says they want to buy
-        // means a thing with a price and an "add to order" button, not a list
-        // of shops to work through.
-        href: '/products',
-      },
-      {
-        key: 'service',
-        icon: Search,
-        titleKey: 'onboarding.seekServiceTitle',
-        descriptionKey: 'onboarding.seekServiceDescription',
-        needsAccount: false,
-        href: '/talent',
-      },
-    ],
+    needsAccount: false,
+    doors: BROWSE_DOORS,
   },
 ]
 
@@ -115,14 +82,10 @@ const STEP_KEYS: TranslationKey[] = [
   'onboarding.step3',
 ]
 
-/** A whole-card target, sized for a thumb rather than a cursor. */
-const CARD =
-  'group flex h-full w-full flex-row items-center gap-4 rounded-2xl border-2 border-ink-100 bg-white p-5 text-start shadow-card transition-colors hover:border-clay-300 hover:bg-sand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 focus-visible:ring-offset-2 sm:flex-col sm:items-start sm:gap-0 sm:p-6'
-
 export function AudienceChooser({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
   const t = useT()
   const [intent, setIntent] = useState<Intent | null>(null)
-  const [expanded, setExpanded] = useState<Leaf | null>(null)
+  const [expanded, setExpanded] = useState<Door | null>(null)
 
   const back = () => {
     if (expanded) {
@@ -134,31 +97,8 @@ export function AudienceChooser({ isAuthenticated = false }: { isAuthenticated?:
 
   const branch = BRANCHES.find((candidate) => candidate.intent === intent) ?? null
 
-  const Body = ({ leaf }: { leaf: Leaf }) => {
-    const Icon = leaf.icon
-    return (
-      <>
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sand-100 text-clay-600 transition-colors group-hover:bg-clay-500 group-hover:text-white sm:h-14 sm:w-14">
-          <Icon className="h-6 w-6 sm:h-7 sm:w-7" aria-hidden="true" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block font-bold text-ink-900 sm:mt-4 sm:text-lg">
-            {t(leaf.titleKey)}
-          </span>
-          <span className="mt-1 block text-sm leading-relaxed text-ink-500">
-            {t(leaf.descriptionKey)}
-          </span>
-          <span className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-clay-600 sm:mt-4">
-            {t('onboarding.choose')}
-            <ArrowLeft className="h-4 w-4 ltr:rotate-180" aria-hidden="true" />
-          </span>
-        </span>
-      </>
-    )
-  }
-
   // Step three: the account explanation, for an anonymous visitor who chose to
-  // list something.
+  // list something. Shown before the phone-number prompt, never after it.
   if (expanded) {
     return (
       <div className="mx-auto w-full max-w-2xl rounded-2xl border-2 border-clay-200 bg-sand-50 p-6">
@@ -206,21 +146,14 @@ export function AudienceChooser({ isAuthenticated = false }: { isAuthenticated?:
       <div className="mx-auto w-full max-w-2xl">
         <p className="text-center font-bold text-ink-900">{t(branch.titleKey)}</p>
         <ul className="mt-4 grid gap-4 sm:grid-cols-2">
-          {branch.leaves.map((leaf) => (
-            <li key={leaf.key}>
-              {leaf.needsAccount && !isAuthenticated ? (
-                <button
-                  type="button"
-                  className={CARD}
-                  onClick={() => setExpanded(leaf)}
-                  aria-expanded={false}
-                >
-                  <Body leaf={leaf} />
+          {branch.doors.map((door) => (
+            <li key={door.key}>
+              {branch.needsAccount && !isAuthenticated ? (
+                <button type="button" className={DOOR_CARD} onClick={() => setExpanded(door)}>
+                  <DoorBody door={door} />
                 </button>
               ) : (
-                <Link to={leaf.href} className={CARD}>
-                  <Body leaf={leaf} />
-                </Link>
+                <DoorCard door={door} />
               )}
             </li>
           ))}

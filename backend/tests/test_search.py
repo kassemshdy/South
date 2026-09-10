@@ -264,10 +264,25 @@ def test_public_stats_counts_only_approved_businesses_and_distinct_towns(
         business.status = BusinessStatus.APPROVED
         db.commit()
 
-    # A business in a third town that never gets approved must not count at all —
-    # neither towards total_businesses nor towards total_towns.
-    create_business("03910005", str(town_c.id))
+    # A business in a third town that never gets approved must not count at all.
+    unapproved = create_business("03910005", str(town_c.id))
+
+    # Nor may its products: the strip counts what a visitor can reach, so a
+    # product on an unapproved listing is invisible to it, exactly as it is
+    # invisible to the products directory.
+    hidden_item = client.post(
+        f"/api/businesses/{unapproved}/items",
+        headers=sign_in(client, "03910005"),
+        json={"title": ar("item.generic"), "price": "5.00", "currency": "USD"},
+    )
+    assert hidden_item.status_code == 201, hidden_item.text
 
     stats = client.get("/api/businesses/stats")
     assert stats.status_code == 200, stats.text
-    assert stats.json() == {"total_businesses": 4, "total_towns": 2, "total_talents": 0}
+    # The three directories, and only those. It used to count towns instead of
+    # products, which measured the map rather than what is in the directory.
+    assert stats.json() == {
+        "total_businesses": 4,
+        "total_products": 0,
+        "total_talents": 0,
+    }

@@ -1,4 +1,4 @@
-import type { BusinessQuery, BusinessStatus, TalentQuery } from '@/types/api'
+import type { BusinessQuery, BusinessStatus, ProductQuery, TalentQuery } from '@/types/api'
 
 /** Central query-key registry so invalidation targets stay consistent. */
 export const queryKeys = {
@@ -12,7 +12,7 @@ export const queryKeys = {
   latestBusinesses: (limit: number) => ['businesses', 'latest', limit] as const,
   publicStats: ['businesses', 'stats'] as const,
   business: (slug: string) => ['business', slug] as const,
-  products: (query: BusinessQuery) => ['products', query] as const,
+  products: (query: ProductQuery) => ['products', query] as const,
   product: (slug: string) => ['product', slug] as const,
   talents: (query: TalentQuery) => ['talents', query] as const,
   latestTalents: (limit: number) => ['talents', 'latest', limit] as const,
@@ -26,6 +26,7 @@ export const queryKeys = {
   myOrders: (id: string) => ['my-business', id, 'orders'] as const,
   myTalent: ['my-talent'] as const,
   myTalentReadiness: ['my-talent', 'readiness'] as const,
+  myServiceRequests: ['my-talent', 'requests'] as const,
   adminStats: ['admin', 'stats'] as const,
   adminBusinesses: (status: BusinessStatus | undefined, page: number, q?: string) =>
     ['admin', 'businesses', status ?? 'all', page, q ?? ''] as const,

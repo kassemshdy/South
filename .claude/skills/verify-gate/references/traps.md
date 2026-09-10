@@ -92,3 +92,29 @@ these ways is not telling you what it appears to.
   `sqlalchemy.dialects.postgresql.ENUM` for the column and a separate
   `postgresql.ENUM(...).create(bind, checkfirst=True)` / `.drop(...)` pair so
   the downgrade is complete.
+- **A Playwright assertion on a toast races a five-second timer.**
+  `src/components/ui/Toast.tsx` sets `duration={5000}`, so a spec that clicks
+  submit and then asserts the toast's text is asserting on something that
+  removes itself. It passes in isolation and on a warm run, and fails once in
+  a full suite where the preceding specs have made the page slower to settle
+  — which reads exactly like a real regression in the feature under test. Two
+  runs of the same spec, one green and one red, with no code change between
+  them, is the tell.
+  Assert the **response** instead: `page.waitForResponse(...)` around the
+  click, then check the status and the body. It is deterministic, and it is
+  the stronger claim anyway — what the server actually sent, rather than what
+  survived long enough to be painted.
+  Do **not** keep the toast assertion after it "now that the response has
+  resolved". That was tried here and failed a second time, on the other one of
+  the two tests, with the response assertion on the line above passing — five
+  seconds is simply not a window a suite can be relied on to hit. If the point
+  is that the visitor reached the outcome, assert something the page keeps:
+  the confirmation panel that replaces the form, not the toast that floats
+  over it.
+- **The no-Arabic guard reads your prose, not just your code.** Quoting a
+  catalog string in a doc comment to explain which button you mean fails
+  `test_frontend_source_contains_no_arabic_text`, and the failure names the
+  file and line but not the reason, so it looks like a stray literal. Name the
+  translation key instead — `onboarding.ownerTitle` rather than the Arabic it
+  renders. The key is more useful to the next reader anyway, because it is
+  greppable.

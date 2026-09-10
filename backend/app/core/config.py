@@ -84,6 +84,18 @@ class Settings(BaseSettings):
     order_per_business_limit: int = 40
     order_per_business_window_seconds: int = 86400
 
+    # Asking a talent profile for a piece of work. Its own numbers rather
+    # than the order ones, because the shape of the traffic is different: a
+    # commissioned job is a considered request, not something the same
+    # household sends twice in an afternoon, so the per-address allowance is
+    # lower and the per-profile one much lower -- one person receiving forty
+    # job enquiries a day is a flood, where a shop receiving forty orders is
+    # a good day.
+    service_request_per_ip_limit: int = 5
+    service_request_per_ip_window_seconds: int = 3600
+    service_request_per_profile_limit: int = 15
+    service_request_per_profile_window_seconds: int = 86400
+
     twilio_account_sid: str | None = None
     twilio_auth_token: str | None = None
     twilio_from_number: str | None = None

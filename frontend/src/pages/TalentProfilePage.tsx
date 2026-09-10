@@ -20,6 +20,7 @@ import { ErrorState } from '@/components/ui/States'
 import { useSeo } from '@/hooks/useSeo'
 import { useT } from '@/i18n'
 import { PROFICIENCY_KEYS } from '@/features/talent/labels'
+import { ServiceRequestForm } from '@/features/talent/ServiceRequestForm'
 import { publicTalentApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import { telHref, whatsappHref } from '@/utils/format'
@@ -283,6 +284,11 @@ export function TalentProfilePage() {
                 ) : null}
               </CardBody>
             </Card>
+
+            {/* Beside the WhatsApp button, not instead of it: the message
+                gets a faster answer, the stored request is what survives the
+                answer not coming. */}
+            <ServiceRequestForm slug={slug} />
 
             <Button asChild variant="outline" block>
               <Link to="/talent">{t('talent.backToDirectory')}</Link>

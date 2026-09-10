@@ -33,6 +33,7 @@ import type {
   Paginated,
   PlatformStats,
   ProductDetail,
+  ProductQuery,
   ProductSummary,
   PublicStats,
   RequestOtpResponse,
@@ -41,6 +42,7 @@ import type {
   FeedbackTicketDetail,
   FeedbackTicketSummary,
   FeedbackUser,
+  ServiceRequest,
   SocialPlatform,
   TalentDetail,
   TalentQuery,
@@ -184,7 +186,7 @@ export const publicBusinessApi = {
 }
 
 export const publicItemApi = {
-  search: (query: BusinessQuery) =>
+  search: (query: ProductQuery) =>
     apiRequest<Paginated<ProductSummary>>('/api/items', { query: { ...query } }),
   bySlug: (slug: string) =>
     apiRequest<ProductDetail>(`/api/items/${encodeURIComponent(slug)}`),
@@ -287,6 +289,32 @@ export const orderApi = {
     apiRequest<Order[]>(`/api/businesses/${businessId}/orders`),
   setStatus: (businessId: string, orderId: string, status: OrderStatus) =>
     apiRequest<Order>(`/api/businesses/${businessId}/orders/${orderId}/status`, {
+      method: 'POST',
+      body: { status },
+    }),
+}
+
+export interface ServiceRequestPayload {
+  customer_name: string
+  customer_phone: string
+  details: string
+}
+
+/**
+ * Asking a talent profile for work needs no account; reading a request is
+ * that person's alone. No profile id in any owner path — a profile is
+ * one-per-account, so the token is the lookup key and there is no id a
+ * caller could substitute.
+ */
+export const serviceRequestApi = {
+  place: (slug: string, payload: ServiceRequestPayload) =>
+    apiRequest<{ message: string }>(`/api/talent/${encodeURIComponent(slug)}/requests`, {
+      method: 'POST',
+      body: payload,
+    }),
+  listMine: () => apiRequest<ServiceRequest[]>('/api/my/talent/requests'),
+  setStatus: (requestId: string, status: OrderStatus) =>
+    apiRequest<ServiceRequest>(`/api/my/talent/requests/${requestId}/status`, {
       method: 'POST',
       body: { status },
     }),

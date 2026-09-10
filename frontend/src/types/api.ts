@@ -335,10 +335,16 @@ export interface PlatformStats {
   approved_talents: number
 }
 
-/** The homepage stats strip — approved-only, safe for an anonymous visitor. */
+/**
+ * The homepage stats strip — approved-only, safe for an anonymous visitor.
+ *
+ * The three directories, in the order the browse strip lists them. It used to
+ * count towns instead of products, which measured the map rather than the
+ * directory.
+ */
 export interface PublicStats {
   total_businesses: number
-  total_towns: number
+  total_products: number
   total_talents: number
 }
 
@@ -418,6 +424,24 @@ export interface BusinessQuery {
   sort?: SortOption
   page?: number
   page_size?: number
+}
+
+/**
+ * The products directory query. Price is three fields rather than two
+ * because a range means nothing until it names a currency: this directory
+ * lists in dollars and in lira, holds no exchange rate, and the API refuses
+ * a bound without `currency` rather than guessing one.
+ *
+ * `include_unpriced` defaults to true on the server. A product whose owner
+ * left the price blank matches no bound, and dropping it silently would
+ * penalise them for an empty field — so it stays unless the visitor says
+ * otherwise.
+ */
+export interface ProductQuery extends BusinessQuery {
+  currency?: Currency
+  min_price?: string
+  max_price?: string
+  include_unpriced?: boolean
 }
 
 export interface TalentQuery {
@@ -517,6 +541,28 @@ export interface Order {
   note: string | null
   status: OrderStatus
   lines: OrderLine[]
+  created_at: string
+  updated_at: string
+}
+
+/**
+ * A request for a piece of work, sent to a talent profile.
+ *
+ * The counterpart to an `Order`, and only ever the provider's for the same
+ * reason: it carries a stranger's name and phone number, so there is no
+ * public and no admin counterpart to this type. It shares `OrderStatus`
+ * because new/contacted/done is the same three-step the same person works
+ * through.
+ *
+ * `details` is required where an order's `note` is optional — an order has
+ * line items that say what is wanted, and this has nothing else.
+ */
+export interface ServiceRequest {
+  id: string
+  customer_name: string
+  customer_phone: string
+  details: string
+  status: OrderStatus
   created_at: string
   updated_at: string
 }
