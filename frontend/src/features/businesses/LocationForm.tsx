@@ -8,6 +8,7 @@ import { Input, Textarea } from '@/components/ui/Input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 import { useLocationGroups } from '@/hooks/useTaxonomy'
 import { useT } from '@/i18n'
+import { useApplyServerFieldErrors } from '@/utils/serverFieldErrors'
 import type { BusinessPayload } from '@/services/api/endpoints'
 import type { OwnerBusiness } from '@/types/api'
 import { businessLocationSchema, type BusinessLocationValues } from '@/utils/validation'
@@ -17,10 +18,12 @@ interface LocationFormProps {
   submitLabel: string
   pending?: boolean
   onSubmit: (payload: Partial<BusinessPayload>) => void
+  /** The parent's last save failure, so a 422 lands on the right input. */
+  serverError?: unknown
   footer?: React.ReactNode
 }
 
-export function LocationForm({ business, submitLabel, pending, onSubmit, footer }: LocationFormProps) {
+export function LocationForm({ business, submitLabel, pending, onSubmit, serverError, footer }: LocationFormProps) {
   const { groups } = useLocationGroups()
   const t = useT()
   const schema = useMemo(() => businessLocationSchema(t), [t])
@@ -29,6 +32,8 @@ export function LocationForm({ business, submitLabel, pending, onSubmit, footer 
     register,
     handleSubmit,
     control,
+    setError,
+    getValues,
     formState: { errors },
   } = useForm<BusinessLocationValues>({
     resolver: zodResolver(schema),
@@ -38,6 +43,8 @@ export function LocationForm({ business, submitLabel, pending, onSubmit, footer 
       maps_url: business?.maps_url ?? '',
     },
   })
+
+  useApplyServerFieldErrors(serverError, setError, getValues)
 
   const submit = handleSubmit((values) => {
     onSubmit({

@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
 import { useT } from '@/i18n'
+import { useApplyServerFieldErrors } from '@/utils/serverFieldErrors'
 import { ApiError } from '@/services/api/client'
 import { ownerApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
@@ -234,6 +235,8 @@ function ItemDialog({
     register,
     handleSubmit,
     control,
+    setError,
+    getValues,
     formState: { errors },
   } = useForm<ItemValues>({
     resolver: zodResolver(schema),
@@ -280,6 +283,8 @@ function ItemDialog({
     onError: (error) =>
       toast.error(t('items.saveFailed'), error instanceof ApiError ? error.message : undefined),
   })
+
+  useApplyServerFieldErrors(save.error, setError, getValues)
 
   return (
     <DialogContent title={isEdit ? t('items.dialogEdit') : t('items.dialogAdd')}>

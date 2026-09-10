@@ -4,17 +4,16 @@ independent public `/items` directory."""
 from __future__ import annotations
 
 import uuid
-from decimal import Decimal
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, File, Path, Query, UploadFile, status
 
 from app.api.serializers import item_out, paginate, product_detail, product_summary
 from app.core.dependencies import AppSettings, DbSession, OwnedBusiness, Viewer
-from app.core.errors import NotFoundError, PayloadTooLargeError, ValidationError
+from app.core.errors import NotFoundError, PayloadTooLargeError
 from app.core.i18n import translate
 from app.core.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
-from app.models.enums import Currency, ImageKind, ViewSubject
+from app.models.enums import ImageKind, ViewSubject
 from app.repositories.item import ItemRepository
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.item import (
@@ -33,11 +32,6 @@ from app.storage.factory import get_storage
 router = APIRouter(tags=["business-items"])
 public_router = APIRouter(tags=["products"])
 
-# The same ceiling BusinessItemIn puts on a stored price, so a bound can
-# always name the most expensive thing that could be listed.
-MAX_PRICE = Decimal("99999999.99")
-
-
 # --- Public ------------------------------------------------------------------
 
 
@@ -47,21 +41,9 @@ def search_products(
     q: Annotated[str | None, Query(max_length=120, description="Free-text search query")] = None,
     category: Annotated[str | None, Query(description="Category slug")] = None,
     location: Annotated[str | None, Query(description="Location slug")] = None,
-    currency: Annotated[
-        Currency | None,
-        Query(description="Which currency the price bounds are in. Required with either bound."),
-    ] = None,
-    min_price: Annotated[
-        Decimal | None, Query(ge=0, le=MAX_PRICE, description="Lowest price, in `currency`")
-    ] = None,
-    max_price: Annotated[
-        Decimal | None, Query(ge=0, le=MAX_PRICE, description="Highest price, in `currency`")
-    ] = None,
-    include_unpriced: Annotated[
-        bool,
-        Query(description="Keep products whose owner has not stated a price. Default true."),
-    ] = True,
-    sort: Annotated[Literal["newest", "name", "oldest"], Query()] = "newest",
+    sort: Annotated[
+        Literal["newest", "name", "oldest", "price_asc", "price_desc"], Query()
+    ] = "newest",
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
 ) -> PaginatedResponse[ProductSummaryOut]:
@@ -69,29 +51,21 @@ def search_products(
 
     Never returns an item whose business isn't approved, or an unavailable one.
 
-    **A price bound without a currency is refused, not guessed.** Listings here
-    are priced in dollars and in lira, and ``max_price=20`` spanning both would
-    silently mean two different things at once; there is no exchange rate in
-    this directory and inventing one would be worse than asking.
+    **Ordering, not filtering, is how price is offered here.** A range needs a
+    currency to mean anything, and it also has to decide what to do with the
+    products whose owner named no price -- two questions asked before the
+    visitor has seen a single result. ``price_asc``/``price_desc`` ask
+    neither: nothing is removed, and a product with no stated price sorts to
+    the end rather than being judged cheap or expensive.
 
-    **Products with no stated price are kept by default.** A blank price is an
-    ordinary state, and dropping those rows behind the visitor's back would
-    penalise an owner for leaving a field empty. ``include_unpriced=false``
-    drops them, as the visitor's own decision.
+    See ``ItemRepository._apply_sort`` for the one caveat -- ordering compares
+    the stored number, so it is exact only while the listings share a
+    currency, which today they do.
     """
-    if (min_price is not None or max_price is not None) and currency is None:
-        raise ValidationError("item.price_currency_required", code="price_currency_required")
-    if min_price is not None and max_price is not None and min_price > max_price:
-        raise ValidationError("item.price_range_invalid", code="price_range_invalid")
-
     results = ItemRepository(db).search_public(
         q=q,
         category_slug=category,
         location_slug=location,
-        currency=currency,
-        min_price=min_price,
-        max_price=max_price,
-        include_unpriced=include_unpriced,
         sort=sort,
         page=page,
         page_size=page_size,

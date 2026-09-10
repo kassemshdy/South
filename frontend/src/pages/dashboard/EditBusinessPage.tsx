@@ -165,6 +165,7 @@ export function EditBusinessPage() {
           <CardBody>
             <Tabs.Content value="basics">
               <BasicsForm
+                serverError={update.error}
                 business={data}
                 submitLabel={t('edit.saveChanges')}
                 pending={update.isPending}
@@ -173,6 +174,7 @@ export function EditBusinessPage() {
             </Tabs.Content>
             <Tabs.Content value="location">
               <LocationForm
+                serverError={update.error}
                 business={data}
                 submitLabel={t('edit.saveChanges')}
                 pending={update.isPending}
@@ -184,6 +186,7 @@ export function EditBusinessPage() {
             </Tabs.Content>
             <Tabs.Content value="social">
               <SocialForm
+                serverError={update.error}
                 business={data}
                 submitLabel={t('edit.saveChanges')}
                 pending={update.isPending}

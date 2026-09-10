@@ -14,6 +14,7 @@ import { useSeo } from '@/hooks/useSeo'
 import { useT } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { orderApi } from '@/services/api/endpoints'
+import { useServerFieldErrors } from '@/utils/serverFieldErrors'
 import { formatPrice, whatsappHref } from '@/utils/format'
 import type { Currency } from '@/types/api'
 
@@ -37,6 +38,7 @@ export function CartPage() {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [note, setNote] = useState('')
+  const { fieldErrors, showErrorsFrom, clearFieldErrors } = useServerFieldErrors()
   const [sent, setSent] = useState<{ whatsapp: string | null } | null>(null)
 
   useSeo({ title: t('cart.title'), noIndex: true })
@@ -62,11 +64,15 @@ export function CartPage() {
       clear()
       toast.success(t('cart.sentTitle'), result.message)
     },
-    onError: (error) =>
+    onError: (error) => {
+      // Per-field sentences from the 422 land on the inputs; the envelope
+      // still goes to the toast so a failure is visible even off-screen.
+      showErrorsFrom(error)
       toast.error(
         t('cart.sendFailed'),
         error instanceof ApiError ? error.message : undefined,
-      ),
+      )
+    },
   })
 
   if (sent) {
@@ -192,22 +198,24 @@ export function CartPage() {
             className="mt-4 space-y-3"
             onSubmit={(event) => {
               event.preventDefault()
+              clearFieldErrors()
               place.mutate()
             }}
           >
-            <Field label={t('cart.nameLabel')} required>
+            <Field label={t('cart.nameLabel')} required error={fieldErrors['customer_name']}>
               {(props) => (
                 <Input
                   {...props}
                   value={name}
                   onChange={(event) => setName(event.target.value)}
+                  invalid={Boolean(fieldErrors['customer_name'])}
                   required
                   minLength={2}
                   maxLength={80}
                 />
               )}
             </Field>
-            <Field label={t('cart.phoneLabel')} required>
+            <Field label={t('cart.phoneLabel')} required error={fieldErrors['customer_phone']}>
               {(props) => (
                 <Input
                   {...props}
@@ -215,17 +223,19 @@ export function CartPage() {
                   inputMode="tel"
                   value={phone}
                   onChange={(event) => setPhone(event.target.value)}
+                  invalid={Boolean(fieldErrors['customer_phone'])}
                   required
                   className="ltr-nums"
                 />
               )}
             </Field>
-            <Field label={t('cart.noteLabel')}>
+            <Field label={t('cart.noteLabel')} error={fieldErrors['note']}>
               {(props) => (
                 <Textarea
                   {...props}
                   value={note}
                   onChange={(event) => setNote(event.target.value)}
+                  invalid={Boolean(fieldErrors['note'])}
                   rows={3}
                   maxLength={1000}
                 />

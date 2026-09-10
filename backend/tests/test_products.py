@@ -227,17 +227,18 @@ def test_sitemap_hides_a_product_whose_business_is_not_approved(
     assert f"/product/{slug}" not in client.get("/sitemap.xml").text
 
 
-# --- Price filter ----------------------------------------------------------
+# --- Price sort ------------------------------------------------------------
 #
-# The two decisions inside this filter are the ones asserted here, because
-# both are ways it could quietly lie to somebody:
+# This replaced a price *filter*, which needed a currency (a bound spanning
+# USD and LBP means two things at once) plus a fourth control deciding what
+# became of the products whose owner named no price. An ordering asks
+# neither question, and the two things it must not do are asserted here:
 #
-# - a range across USD and LBP is meaningless, so a bound without a currency
-#   is refused rather than guessed;
-# - a product whose owner left the price blank is kept unless the *visitor*
-#   says otherwise. Dropping it silently would penalise an owner for leaving
-#   a field empty, which is exactly the listing this directory exists to
-#   carry.
+# - it must not drop anything. An ordering is not a filter, and an owner who
+#   left the price blank must not fall out of the directory for it;
+# - a product with no stated price sorts last in *both* directions. Postgres
+#   puts NULLs first descending, so "dearest first" would otherwise open with
+#   the products that state no price -- a claim the data does not support.
 
 
 @pytest.fixture
@@ -280,79 +281,78 @@ def _titles(client: TestClient, **params: object) -> set[str]:
     return {item["title"] for item in response.json()["items"]}
 
 
-def test_a_price_bound_without_a_currency_is_refused(
-    client: TestClient, priced_catalogue: str
+def _ordered(client: TestClient, sort: str) -> list[tuple[str, str | None]]:
+    response = client.get("/api/items", params={"sort": sort})
+    assert response.status_code == 200, response.text
+    return [(item["title"], item["price"]) for item in response.json()["items"]]
+
+
+EVERYTHING = {
+    ar("item.cheap"),
+    ar("item.dear"),
+    ar("item.lira_priced"),
+    ar("item.unpriced"),
+}
+
+
+@pytest.mark.parametrize("sort", ["price_asc", "price_desc"])
+def test_a_price_sort_removes_nothing(
+    client: TestClient, priced_catalogue: str, sort: str
 ) -> None:
-    response = client.get("/api/items", params={"max_price": "20"})
-    assert response.status_code == 422
-    assert response.json()["error"]["code"] == "price_currency_required"
+    """The difference from the filter this replaced, and the reason it was
+    replaced: nobody drops out of the directory for leaving a field blank."""
+    assert {title for title, _ in _ordered(client, sort)} == EVERYTHING
 
 
-def test_an_inverted_range_is_refused(client: TestClient, priced_catalogue: str) -> None:
-    response = client.get(
-        "/api/items", params={"currency": "USD", "min_price": "50", "max_price": "10"}
+@pytest.mark.parametrize("sort", ["price_asc", "price_desc"])
+def test_a_product_with_no_stated_price_sorts_last_either_way(
+    client: TestClient, priced_catalogue: str, sort: str
+) -> None:
+    ordered = _ordered(client, sort)
+    assert ordered[-1][1] is None
+    assert ordered[-1][0] == ar("item.unpriced")
+    # ...and it is the only one there, so this is the tail rather than a
+    # coincidence of a single-row result.
+    assert [price for _, price in ordered[:-1]] == [
+        price for _, price in ordered[:-1] if price is not None
+    ]
+
+
+def test_ascending_puts_the_cheapest_first(client: TestClient, priced_catalogue: str) -> None:
+    priced = [
+        (title, float(price)) for title, price in _ordered(client, "price_asc") if price is not None
+    ]
+    assert [price for _, price in priced] == sorted(price for _, price in priced)
+    assert priced[0][0] == ar("item.cheap")
+
+
+def test_descending_puts_the_dearest_first(client: TestClient, priced_catalogue: str) -> None:
+    priced = [
+        (title, float(price))
+        for title, price in _ordered(client, "price_desc")
+        if price is not None
+    ]
+    assert [price for _, price in priced] == sorted(
+        (price for _, price in priced), reverse=True
     )
-    assert response.status_code == 422
-    assert response.json()["error"]["code"] == "price_range_invalid"
+    # 300,000 lira, because the ordering compares the stored number and every
+    # live listing shares a currency. Pinning it here so that the day a lira
+    # listing appears beside a dollar one, this test says so out loud rather
+    # than letting a $45 item quietly rank below a $3 one.
+    assert priced[0][0] == ar("item.lira_priced")
 
 
-def test_a_range_only_matches_prices_in_the_named_currency(
-    client: TestClient, priced_catalogue: str
-) -> None:
-    # 300000 LBP is inside 0-100 only if the two currencies are compared as
-    # bare numbers, which is the bug this filter must not have.
-    matches = _titles(client, currency="USD", min_price="0", max_price="100")
-    assert ar("item.lira_priced") not in matches
-    assert {ar("item.cheap"), ar("item.dear")} <= matches
-
-    lira = _titles(client, currency="LBP", min_price="100000", max_price="500000")
-    assert ar("item.lira_priced") in lira
-    assert ar("item.cheap") not in lira
+def test_an_unknown_sort_is_refused(client: TestClient, priced_catalogue: str) -> None:
+    assert client.get("/api/items", params={"sort": "price"}).status_code == 422
 
 
-def test_a_range_narrows_within_one_currency(client: TestClient, priced_catalogue: str) -> None:
-    matches = _titles(client, currency="USD", max_price="10")
-    assert ar("item.cheap") in matches
-    assert ar("item.dear") not in matches
-
-
-def test_a_product_with_no_price_survives_the_filter_by_default(
-    client: TestClient, priced_catalogue: str
-) -> None:
-    matches = _titles(client, currency="USD", max_price="10")
-    assert ar("item.unpriced") in matches
-
-
-def test_the_visitor_can_drop_products_with_no_price(
-    client: TestClient, priced_catalogue: str
-) -> None:
-    matches = _titles(client, currency="USD", max_price="10", include_unpriced="false")
-    assert matches == {ar("item.cheap")}
-
-
-def test_currency_alone_filters_without_a_range(client: TestClient, priced_catalogue: str) -> None:
-    matches = _titles(client, currency="LBP", include_unpriced="false")
-    assert matches == {ar("item.lira_priced")}
-
-
-def test_no_price_filter_returns_everything_available(
-    client: TestClient, priced_catalogue: str
-) -> None:
-    assert _titles(client) == {
-        ar("item.cheap"),
-        ar("item.dear"),
-        ar("item.lira_priced"),
-        ar("item.unpriced"),
-    }
-
-
-def test_the_price_filter_still_hides_what_a_visitor_may_not_see(
+def test_a_price_sort_still_hides_what_a_visitor_may_not_see(
     client: TestClient, db: Session, priced_catalogue: str
 ) -> None:
-    """A filter is a narrowing, never a way round ``public_query``."""
+    """An ordering is a rearrangement, never a way round ``public_query``."""
     record = db.get(Business, priced_catalogue)
     assert record is not None
     record.status = BusinessStatus.SUSPENDED
     db.commit()
 
-    assert _titles(client, currency="USD", max_price="100") == set()
+    assert _titles(client, sort="price_asc") == set()

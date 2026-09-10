@@ -9,6 +9,7 @@ import { Input, Textarea } from '@/components/ui/Input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 import { useLocationGroups, useTalentSkills } from '@/hooks/useTaxonomy'
 import { useT } from '@/i18n'
+import { useApplyServerFieldErrors } from '@/utils/serverFieldErrors'
 import type { TalentPayload } from '@/services/api/endpoints'
 import type { OwnerTalent } from '@/types/api'
 import { talentSchema, type TalentValues } from '@/utils/validation'
@@ -20,12 +21,14 @@ interface TalentFormProps {
   submitLabel: string
   pending?: boolean
   onSubmit: (payload: TalentPayload) => void
+  /** The parent's last save failure, so a 422 lands on the right input. */
+  serverError?: unknown
   footer?: React.ReactNode
 }
 
 /** The whole profile on one form — a talent profile is small enough not to
  * need the multi-step wizard a business listing gets. */
-export function TalentForm({ profile, submitLabel, pending, onSubmit, footer }: TalentFormProps) {
+export function TalentForm({ profile, submitLabel, pending, onSubmit, serverError, footer }: TalentFormProps) {
   const skills = useTalentSkills()
   const { groups } = useLocationGroups()
   const t = useT()
@@ -36,6 +39,8 @@ export function TalentForm({ profile, submitLabel, pending, onSubmit, footer }: 
     register,
     handleSubmit,
     control,
+    setError,
+    getValues,
     formState: { errors },
   } = useForm<TalentValues>({
     resolver: zodResolver(schema),
@@ -76,6 +81,8 @@ export function TalentForm({ profile, submitLabel, pending, onSubmit, footer }: 
 
   const skillId = useWatch({ control, name: 'skill_id' })
   const isOtherSkill = Boolean(otherSkillId) && skillId === otherSkillId
+
+  useApplyServerFieldErrors(serverError, setError, getValues)
 
   const submit = handleSubmit((values) => {
     onSubmit({

@@ -336,7 +336,9 @@ export function HomePage() {
  * Arabic labels wraps to two lines at phone width and the other two do not,
  * which left the row visibly ragged and the numbers off a shared baseline.
  * Reserving both lines everywhere keeps the figures aligned, which is the
- * whole point of putting them in a row.
+ * whole point of putting them in a row. The inner column then centres
+ * itself in the tile, so the reserved second line does not read as a gap
+ * hanging off the bottom of the two tiles that do not use it.
  */
 function StatTile({ value, label, href }: { value: number; label: string; href: string }) {
   return (
@@ -344,11 +346,11 @@ function StatTile({ value, label, href }: { value: number; label: string; href: 
       to={href}
       className="group rounded-2xl border border-ink-100 bg-white text-center shadow-card transition-all hover:-translate-y-0.5 hover:border-clay-300 hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 focus-visible:ring-offset-2"
     >
-      <div className="px-3 py-5 sm:px-4">
+      <div className="flex h-full flex-col justify-center px-3 py-7 sm:px-4">
         <p className="ltr-nums text-3xl font-bold text-clay-900 transition-colors group-hover:text-clay-600">
           {value}
         </p>
-        <p className="mt-1 flex min-h-10 items-start justify-center text-balance text-sm leading-snug text-ink-500">
+        <p className="mt-2 flex min-h-10 items-start justify-center text-balance text-sm leading-snug text-ink-500">
           {label}
         </p>
       </div>

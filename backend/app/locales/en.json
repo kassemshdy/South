@@ -68,8 +68,6 @@
   "image.unsupported_format": "Only JPG, PNG or WEBP images are allowed.",
   "item.deleted": "The item has been deleted.",
   "item.not_found": "Item not found.",
-  "item.price_currency_required": "Choose a currency when searching within a price range.",
-  "item.price_range_invalid": "The lowest price is higher than the highest price.",
   "item.title_required": "An item name is required.",
   "item.too_many": "A business cannot have more than {max} items.",
   "item.unknown_in_order": "The ordering list contains items that do not exist.",
