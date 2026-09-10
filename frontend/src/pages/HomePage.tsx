@@ -152,7 +152,7 @@ export function HomePage() {
           now, and one recording twice on one page is one too many. */}
 
 
-      <section className="container-page pb-14" aria-label={t('home.statsHeading')}>
+      <section className="container-page py-14" aria-label={t('home.statsHeading')}>
         <div className="mx-auto grid max-w-2xl grid-cols-3 gap-4">
           {stats.isLoading ? (
             <>
