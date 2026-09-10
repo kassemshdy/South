@@ -208,6 +208,7 @@ export function BusinessWizardPage() {
         <CardBody>
           {step === 'basics' ? (
             <BasicsForm
+              serverError={create.error ?? update.error}
               business={data}
               submitLabel={t('wizard.saveAndContinue')}
               pending={create.isPending || update.isPending}
@@ -227,6 +228,7 @@ export function BusinessWizardPage() {
             <>
               {step === 'location' && data ? (
                 <LocationForm
+                  serverError={update.error}
                   business={data}
                   submitLabel={t('wizard.saveAndContinue')}
                   pending={update.isPending}
@@ -255,6 +257,7 @@ export function BusinessWizardPage() {
 
               {step === 'social' && data ? (
                 <SocialForm
+                  serverError={update.error}
                   business={data}
                   submitLabel={t('wizard.saveAndContinue')}
                   pending={update.isPending}

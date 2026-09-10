@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/Toast'
 import { useT } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { serviceRequestApi } from '@/services/api/endpoints'
+import { useServerFieldErrors } from '@/utils/serverFieldErrors'
 
 /**
  * Asking a talent profile for a piece of work, with no account.
@@ -38,6 +39,9 @@ export function ServiceRequestForm({ slug }: { slug: string }) {
   const [phone, setPhone] = useState('')
   const [details, setDetails] = useState('')
   const [sent, setSent] = useState(false)
+  // The API answers a rejected request with a sentence per bad field; without
+  // this the reader got only "check the fields below", which named none.
+  const { fieldErrors, showErrorsFrom, clearFieldErrors } = useServerFieldErrors()
 
   const submit = useMutation({
     mutationFn: () =>
@@ -52,11 +56,13 @@ export function ServiceRequestForm({ slug }: { slug: string }) {
       // generic "thanks": it says who will be in touch.
       toast.success(t('serviceRequests.sent'), result.message)
     },
-    onError: (error) =>
+    onError: (error) => {
+      showErrorsFrom(error)
       toast.error(
         t('serviceRequests.sendFailed'),
         error instanceof ApiError ? error.message : undefined,
-      ),
+      )
+    },
   })
 
   if (sent) {
@@ -75,6 +81,7 @@ export function ServiceRequestForm({ slug }: { slug: string }) {
       className="space-y-3 rounded-xl border border-ink-100 bg-sand-50/60 p-4"
       onSubmit={(event) => {
         event.preventDefault()
+        clearFieldErrors()
         submit.mutate()
       }}
     >
@@ -83,12 +90,13 @@ export function ServiceRequestForm({ slug }: { slug: string }) {
         <p className="mt-0.5 text-sm text-ink-500">{t('serviceRequests.askIntro')}</p>
       </div>
 
-      <Field label={t('serviceRequests.nameLabel')} required>
+      <Field label={t('serviceRequests.nameLabel')} required error={fieldErrors['customer_name']}>
         {(props) => (
           <Input
             {...props}
             value={name}
             onChange={(event) => setName(event.target.value)}
+            invalid={Boolean(fieldErrors['customer_name'])}
             maxLength={80}
             minLength={2}
             required
@@ -96,7 +104,7 @@ export function ServiceRequestForm({ slug }: { slug: string }) {
         )}
       </Field>
 
-      <Field label={t('serviceRequests.phoneLabel')} required>
+      <Field label={t('serviceRequests.phoneLabel')} required error={fieldErrors['customer_phone']}>
         {(props) => (
           <Input
             {...props}
@@ -105,6 +113,7 @@ export function ServiceRequestForm({ slug }: { slug: string }) {
             className="ltr-nums"
             value={phone}
             onChange={(event) => setPhone(event.target.value)}
+            invalid={Boolean(fieldErrors['customer_phone'])}
             maxLength={20}
             minLength={6}
             required
@@ -112,12 +121,13 @@ export function ServiceRequestForm({ slug }: { slug: string }) {
         )}
       </Field>
 
-      <Field label={t('serviceRequests.detailsLabel')} required>
+      <Field label={t('serviceRequests.detailsLabel')} required error={fieldErrors['details']}>
         {(props) => (
           <Textarea
             {...props}
             value={details}
             onChange={(event) => setDetails(event.target.value)}
+            invalid={Boolean(fieldErrors['details'])}
             placeholder={t('serviceRequests.detailsPlaceholder')}
             rows={4}
             maxLength={1000}

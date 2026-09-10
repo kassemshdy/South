@@ -9,6 +9,7 @@ import { Input, Textarea } from '@/components/ui/Input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 import { useCategories } from '@/hooks/useTaxonomy'
 import { useT } from '@/i18n'
+import { useApplyServerFieldErrors } from '@/utils/serverFieldErrors'
 import type { BusinessPayload } from '@/services/api/endpoints'
 import type { OwnerBusiness } from '@/types/api'
 import { businessBasicsSchema, type BusinessBasicsValues } from '@/utils/validation'
@@ -18,11 +19,24 @@ interface BasicsFormProps {
   submitLabel: string
   pending?: boolean
   onSubmit: (payload: BusinessPayload) => void
+  /**
+   * The last failure from the parent's save mutation. The parent owns the
+   * mutation and this form owns the fields, so a 422's per-field sentences
+   * have to travel back down to be shown on the input they are about.
+   */
+  serverError?: unknown
   footer?: React.ReactNode
 }
 
 /** Step 1 of the wizard, and the first tab of the edit screen. */
-export function BasicsForm({ business, submitLabel, pending, onSubmit, footer }: BasicsFormProps) {
+export function BasicsForm({
+  business,
+  submitLabel,
+  pending,
+  onSubmit,
+  serverError,
+  footer,
+}: BasicsFormProps) {
   const categories = useCategories()
   const t = useT()
   const otherCategoryId = categories.data?.find((category) => category.slug === 'other')?.id
@@ -34,6 +48,8 @@ export function BasicsForm({ business, submitLabel, pending, onSubmit, footer }:
     register,
     handleSubmit,
     control,
+    setError,
+    getValues,
     formState: { errors },
   } = useForm<BusinessBasicsValues>({
     resolver: zodResolver(schema),
@@ -55,6 +71,8 @@ export function BasicsForm({ business, submitLabel, pending, onSubmit, footer }:
 
   const categoryId = useWatch({ control, name: 'category_id' })
   const isOtherCategory = Boolean(otherCategoryId) && categoryId === otherCategoryId
+
+  useApplyServerFieldErrors(serverError, setError, getValues)
 
   const submit = handleSubmit((values) => {
     onSubmit({

@@ -68,8 +68,6 @@
   "image.unsupported_format": "يُسمح بصور JPG أو PNG أو WEBP فقط.",
   "item.deleted": "تم حذف العنصر.",
   "item.not_found": "العنصر غير موجود.",
-  "item.price_currency_required": "حدّد العملة عند البحث ضمن نطاق سعري.",
-  "item.price_range_invalid": "الحد الأدنى للسعر أكبر من الحد الأقصى.",
   "item.title_required": "اسم العنصر مطلوب.",
   "item.too_many": "لا يمكن إضافة أكثر من {max} عنصر لنشاط واحد.",
   "item.unknown_in_order": "قائمة الترتيب تحتوي على عناصر غير موجودة.",

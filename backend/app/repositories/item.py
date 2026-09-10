@@ -9,21 +9,19 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Sequence
-from decimal import Decimal
 from typing import Literal
 
-from sqlalchemy import Select, and_, func, or_, select
+from sqlalchemy import Select, func, nullslast, or_, select
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy.sql.elements import ColumnElement
 
 from app.core.arabic import normalize_arabic
 from app.core.pagination import Page
 from app.models.business import Business, BusinessItem
-from app.models.enums import BusinessStatus, Currency
+from app.models.enums import BusinessStatus
 from app.models.taxonomy import Category, Location
 from app.repositories.base import BaseRepository
 
-SortOption = Literal["newest", "name", "oldest"]
+SortOption = Literal["newest", "name", "oldest", "price_asc", "price_desc"]
 
 
 class ItemRepository(BaseRepository[BusinessItem]):
@@ -115,10 +113,6 @@ class ItemRepository(BaseRepository[BusinessItem]):
         q: str | None,
         category_slug: str | None,
         location_slug: str | None,
-        currency: Currency | None = None,
-        min_price: Decimal | None = None,
-        max_price: Decimal | None = None,
-        include_unpriced: bool = True,
     ) -> Select[tuple[BusinessItem]]:
         if category_slug:
             stmt = stmt.join(Category, Business.category_id == Category.id).where(
@@ -144,61 +138,36 @@ class ItemRepository(BaseRepository[BusinessItem]):
             needle = f"%{normalize_arabic(q)}%"
             stmt = stmt.where(BusinessItem.search_text.like(needle))
 
-        return self._apply_price(
-            stmt,
-            currency=currency,
-            min_price=min_price,
-            max_price=max_price,
-            include_unpriced=include_unpriced,
-        )
-
-    def _apply_price(
-        self,
-        stmt: Select[tuple[BusinessItem]],
-        *,
-        currency: Currency | None,
-        min_price: Decimal | None,
-        max_price: Decimal | None,
-        include_unpriced: bool,
-    ) -> Select[tuple[BusinessItem]]:
-        """Narrow by price, which is only ever meaningful inside one currency.
-
-        ``5 <= price <= 20`` says nothing until it is told whether those are
-        dollars or lira, so a bound without a currency is rejected before it
-        reaches here (see ``app/api/v1/items.py``) rather than silently
-        compared across both.
-
-        A product whose owner left the price blank matches **no** bound, so
-        ``include_unpriced`` decides whether it is kept alongside the matches
-        or dropped. It defaults to keeping: a blank price is a very common
-        state here, and dropping those rows would quietly punish an owner for
-        not naming a number -- exactly the kind of listing this directory
-        exists to carry. The visitor can drop them, but the filter never does
-        it behind their back.
-        """
-        if currency is None and min_price is None and max_price is None:
-            return stmt
-
-        priced: list[ColumnElement[bool]] = [BusinessItem.price.is_not(None)]
-        if currency is not None:
-            priced.append(BusinessItem.currency == currency)
-        if min_price is not None:
-            priced.append(BusinessItem.price >= min_price)
-        if max_price is not None:
-            priced.append(BusinessItem.price <= max_price)
-
-        matches = and_(*priced)
-        if include_unpriced:
-            return stmt.where(or_(matches, BusinessItem.price.is_(None)))
-        return stmt.where(matches)
+        return stmt
 
     def _apply_sort(
         self, stmt: Select[tuple[BusinessItem]], sort: SortOption
     ) -> Select[tuple[BusinessItem]]:
+        """Order the results, including the two price orders.
+
+        **A product with no stated price sorts last in both directions.**
+        Postgres would otherwise put NULLs first on a descending order, so
+        "most expensive first" would open with the products that name no
+        price at all -- which reads as a broken page, and is also a claim the
+        data does not support: a blank price is an unanswered question, not a
+        high or a low one. ``nullslast`` says that once, for both directions.
+
+        **The comparison is on the stored number, across currencies.** Every
+        listing here is priced in dollars today, so this is exact; the moment
+        one is priced in lira, 100,000 LBP would sort above $100 while being
+        worth a fraction of it. There is no exchange rate in this directory
+        and a hardcoded one would go stale silently, so the honest fix when
+        that day comes is to convert at read time from a rate someone
+        maintains -- not to leave this comparing two different units.
+        """
         if sort == "name":
             return stmt.order_by(BusinessItem.title.asc())
         if sort == "oldest":
             return stmt.order_by(BusinessItem.created_at.asc())
+        if sort == "price_asc":
+            return stmt.order_by(nullslast(BusinessItem.price.asc()), BusinessItem.id.asc())
+        if sort == "price_desc":
+            return stmt.order_by(nullslast(BusinessItem.price.desc()), BusinessItem.id.asc())
         return stmt.order_by(BusinessItem.created_at.desc())
 
     def search_public(
@@ -207,10 +176,6 @@ class ItemRepository(BaseRepository[BusinessItem]):
         q: str | None = None,
         category_slug: str | None = None,
         location_slug: str | None = None,
-        currency: Currency | None = None,
-        min_price: Decimal | None = None,
-        max_price: Decimal | None = None,
-        include_unpriced: bool = True,
         sort: SortOption = "newest",
         page: int = 1,
         page_size: int = 12,
@@ -221,10 +186,6 @@ class ItemRepository(BaseRepository[BusinessItem]):
             q=q,
             category_slug=category_slug,
             location_slug=location_slug,
-            currency=currency,
-            min_price=min_price,
-            max_price=max_price,
-            include_unpriced=include_unpriced,
         )
 
         total = int(

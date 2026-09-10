@@ -13,6 +13,7 @@ import { useToast } from '@/components/ui/Toast'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useSeo } from '@/hooks/useSeo'
 import { useT } from '@/i18n'
+import { serverFieldErrors } from '@/utils/serverFieldErrors'
 import { ApiError } from '@/services/api/client'
 import { authApi } from '@/services/api/endpoints'
 import { otpSchema, phoneSchema } from '@/utils/validation'
@@ -80,7 +81,12 @@ function PhoneStep({ onSent }: { onSent: (phone: string, debugCode: string | nul
       onSent(phone_number, response.debug_code)
     } catch (error) {
       if (error instanceof ApiError) {
-        setError('phone_number', { message: error.message })
+        // The field's own sentence when the API sent one, the envelope
+        // otherwise — on a one-field form the envelope is the next best
+        // thing, but "enter a valid Lebanese number" beats "check the
+        // fields below" when it is on offer.
+        const message = serverFieldErrors(error)['phone_number'] ?? error.message
+        setError('phone_number', { message })
       } else {
         toast.error(t('login.sendFailed'), t('login.sendFailedDescription'))
       }
@@ -174,7 +180,7 @@ function CodeStep({
       navigate(redirectTo, { replace: true })
     } catch (error) {
       if (error instanceof ApiError) {
-        setError('code', { message: error.message })
+        setError('code', { message: serverFieldErrors(error)['code'] ?? error.message })
       } else {
         toast.error(t('login.verifyFailed'))
       }

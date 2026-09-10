@@ -26,6 +26,7 @@ import {
 } from '@/features/identity/labels'
 import { useSeo } from '@/hooks/useSeo'
 import { useI18n, useT, type TranslationKey } from '@/i18n'
+import { useApplyServerFieldErrors } from '@/utils/serverFieldErrors'
 import { ApiError } from '@/services/api/client'
 import { authApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
@@ -87,6 +88,8 @@ function ProfileCard({ user, onSaved }: { user: User; onSaved: () => Promise<voi
     register,
     handleSubmit,
     control,
+    setError,
+    getValues,
     formState: { errors },
   } = useForm<AccountValues>({
     resolver: zodResolver(schema),
@@ -121,6 +124,10 @@ function ProfileCard({ user, onSaved }: { user: User; onSaved: () => Promise<voi
     onError: (error) =>
       toast.error(t('account.profileSaveFailed'), error instanceof ApiError ? error.message : undefined),
   })
+
+  // A 422 here is the identity block: eight fields, and the envelope alone
+  // ("check the fields below") named none of them.
+  useApplyServerFieldErrors(save.error, setError, getValues)
 
   const submit = handleSubmit((values) => save.mutate(values))
 
