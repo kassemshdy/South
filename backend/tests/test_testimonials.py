@@ -369,6 +369,97 @@ def test_an_admin_can_remove_one_outright(
     assert db.get(Testimonial, uuid.UUID(entry["id"])) is None
 
 
+def test_an_admin_can_survey_every_testimonial_in_any_state(
+    client: TestClient,
+    db: Session,
+    business: Business,
+    admin: User,
+    owner_headers: dict[str, str],
+) -> None:
+    """The point of the platform view: a submission the owner has not acted on
+    is still visible here, alongside the listing it belongs to. The owner sees
+    only their own; the admin sees the whole directory."""
+    _submit(
+        client,
+        business.slug,
+        author=ar("testimonial.author"),
+        body=ar("testimonial.body"),
+        ip="198.51.100.1",
+    )
+    _submit(
+        client,
+        business.slug,
+        author=ar("testimonial.second_author"),
+        body=ar("testimonial.second_body"),
+        ip="198.51.100.2",
+    )
+    # Approve one, leaving the other PENDING, so the survey must carry both.
+    first = client.get(
+        f"/api/businesses/{business.id}/testimonials", headers=owner_headers
+    ).json()[-1]
+    client.post(
+        f"/api/businesses/{business.id}/testimonials/{first['id']}/approve",
+        headers=owner_headers,
+    )
+
+    survey = client.get("/api/admin/testimonials", headers=admin_headers(client))
+
+    assert survey.status_code == 200, survey.text
+    entries = survey.json()
+    assert {entry["status"] for entry in entries} == {"PENDING", "APPROVED"}
+    # Each carries the listing it is on, by public identity only.
+    assert all(entry["business_slug"] == business.slug for entry in entries)
+    assert all(entry["business_name"] == business.name for entry in entries)
+    # Never the owner's identity: the platform view is public-shaped.
+    assert all("owner_identity" not in entry for entry in entries)
+
+
+def test_the_admin_survey_filters_by_status(
+    client: TestClient,
+    db: Session,
+    business: Business,
+    admin: User,
+    owner_headers: dict[str, str],
+) -> None:
+    _submit(
+        client,
+        business.slug,
+        author=ar("testimonial.author"),
+        body=ar("testimonial.body"),
+        ip="198.51.100.3",
+    )
+    _submit(
+        client,
+        business.slug,
+        author=ar("testimonial.second_author"),
+        body=ar("testimonial.second_body"),
+        ip="198.51.100.4",
+    )
+    approved = client.get(
+        f"/api/businesses/{business.id}/testimonials", headers=owner_headers
+    ).json()[-1]
+    client.post(
+        f"/api/businesses/{business.id}/testimonials/{approved['id']}/approve",
+        headers=owner_headers,
+    )
+
+    pending_only = client.get(
+        "/api/admin/testimonials",
+        params={"status": "PENDING"},
+        headers=admin_headers(client),
+    ).json()
+
+    assert [entry["status"] for entry in pending_only] == ["PENDING"]
+
+
+def test_the_admin_survey_is_admin_only(
+    client: TestClient, business: Business, owner_headers: dict[str, str]
+) -> None:
+    response = client.get("/api/admin/testimonials", headers=owner_headers)
+
+    assert response.status_code == 403
+
+
 def test_removal_is_admin_only(
     client: TestClient, business: Business, owner_headers: dict[str, str]
 ) -> None:
