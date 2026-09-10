@@ -37,3 +37,16 @@ class OwnerTestimonialOut(TestimonialOut):
 
     status: TestimonialStatus
     approved_at: datetime | None = None
+
+
+class AdminTestimonialOut(OwnerTestimonialOut):
+    """The platform's view: the same moderation fields the owner sees, plus the
+    listing each testimonial belongs to, so an administrator can survey every
+    submission across the directory from one place rather than per business.
+
+    Carries only the business's public identity (name and slug) -- never the
+    owner's, which stays on ``users`` and out of any public-shaped payload."""
+
+    business_id: uuid.UUID
+    business_name: str
+    business_slug: str

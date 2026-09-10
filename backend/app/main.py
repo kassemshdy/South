@@ -22,7 +22,7 @@ from app.api.router import api_router
 from app.api.v1 import seo as seo_router
 from app.core.config import Settings, get_settings
 from app.core.errors import AppError, RateLimitedError
-from app.core.i18n import translate
+from app.core.i18n import DEFAULT_LOCALE, translate, using_locale
 from app.core.logging import configure_logging
 from app.core.middleware import RequestContextMiddleware, SecurityHeadersMiddleware
 from app.core.observability import configure_error_tracking
@@ -267,58 +267,66 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
         document = index_file.read_text(encoding="utf-8")
         tags = None
 
-        if path.startswith("business/"):
-            slug = path.removeprefix("business/").split("/")[0]
-            db = SessionLocal()
-            try:
-                business = BusinessRepository(db).get_by_slug(slug, public_only=True)
-                if business is not None:
-                    tags = business_tags(
-                        name=business.name,
-                        short_description=business.short_description,
-                        category_name=business.category.name_ar if business.category else None,
-                        location_name=business.location.name_ar if business.location else None,
-                        image_url=_absolute(business.cover_url or business.logo_url),
-                        canonical_url=f"{base_url}/business/{quote(business.slug)}",
-                    )
-            finally:
-                db.close()
-        elif path.startswith("talent/"):
-            slug = path.removeprefix("talent/").split("/")[0]
-            db = SessionLocal()
-            try:
-                profile = TalentRepository(db).get_by_slug(slug, public_only=True)
-                if profile is not None:
-                    tags = talent_tags(
-                        display_name=profile.display_name,
-                        skill_name=profile.skill.name_ar if profile.skill else None,
-                        headline=profile.headline,
-                        bio=profile.bio,
-                        location_name=profile.location.name_ar if profile.location else None,
-                        image_url=_absolute(profile.photo_url),
-                        canonical_url=f"{base_url}/talent/{quote(profile.slug)}",
-                    )
-            finally:
-                db.close()
+        # A share/link preview must read in the site's own language, not the
+        # crawler's. WhatsApp, Facebook and X fetch with `Accept-Language: en`,
+        # which the request middleware would otherwise honour — turning every
+        # injected title/description English on an Arabic-first site. Pin the
+        # default locale for the whole tag build (the business/talent *content*
+        # is already the listing's own Arabic text; this fixes the translated
+        # templates and the site-wide defaults).
+        with using_locale(DEFAULT_LOCALE):
+            if path.startswith("business/"):
+                slug = path.removeprefix("business/").split("/")[0]
+                db = SessionLocal()
+                try:
+                    business = BusinessRepository(db).get_by_slug(slug, public_only=True)
+                    if business is not None:
+                        tags = business_tags(
+                            name=business.name,
+                            short_description=business.short_description,
+                            category_name=business.category.name_ar if business.category else None,
+                            location_name=business.location.name_ar if business.location else None,
+                            image_url=_absolute(business.cover_url or business.logo_url),
+                            canonical_url=f"{base_url}/business/{quote(business.slug)}",
+                        )
+                finally:
+                    db.close()
+            elif path.startswith("talent/"):
+                slug = path.removeprefix("talent/").split("/")[0]
+                db = SessionLocal()
+                try:
+                    profile = TalentRepository(db).get_by_slug(slug, public_only=True)
+                    if profile is not None:
+                        tags = talent_tags(
+                            display_name=profile.display_name,
+                            skill_name=profile.skill.name_ar if profile.skill else None,
+                            headline=profile.headline,
+                            bio=profile.bio,
+                            location_name=profile.location.name_ar if profile.location else None,
+                            image_url=_absolute(profile.photo_url),
+                            canonical_url=f"{base_url}/talent/{quote(profile.slug)}",
+                        )
+                finally:
+                    db.close()
 
-        if tags is None:
-            # Every other route (home, search, dashboard, a business/talent
-            # slug that isn't public) still gets an absolute-URL image and
-            # canonical instead of the static, relative ones baked into the
-            # build — a shared link works the same everywhere on the site.
-            trimmed = path.rstrip("/")
-            canonical = f"{base_url}/{trimmed}" if trimmed else base_url
-            tags = default_tags(canonical_url=canonical, image_url=default_image_url)
+            if tags is None:
+                # Every other route (home, search, dashboard, a business/talent
+                # slug that isn't public) still gets an absolute-URL image and
+                # canonical instead of the static, relative ones baked into the
+                # build — a shared link works the same everywhere on the site.
+                trimmed = path.rstrip("/")
+                canonical = f"{base_url}/{trimmed}" if trimmed else base_url
+                tags = default_tags(canonical_url=canonical, image_url=default_image_url)
 
-        # Explicit and unambiguous: this document is rebuilt per-request (the
-        # SEO tags depend on the slug/path), so an edge or CDN in front of the
-        # app must never substitute its own default caching heuristic for a
-        # bare "/" or similar path — that silently served stale tags across
-        # multiple deploys until this header was added.
-        return HTMLResponse(
-            inject(document, tags),
-            headers={"Cache-Control": "no-store, must-revalidate"},
-        )
+            # Explicit and unambiguous: this document is rebuilt per-request (the
+            # SEO tags depend on the slug/path), so an edge or CDN in front of the
+            # app must never substitute its own default caching heuristic for a
+            # bare "/" or similar path — that silently served stale tags across
+            # multiple deploys until this header was added.
+            return HTMLResponse(
+                inject(document, tags),
+                headers={"Cache-Control": "no-store, must-revalidate"},
+            )
 
     def _build_file(relative: str) -> Path | None:
         """A real file in the build output, or None.

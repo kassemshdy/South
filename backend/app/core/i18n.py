@@ -12,9 +12,11 @@ handed a locale argument.
 
 from __future__ import annotations
 
+import contextlib
 import contextvars
 import json
 import logging
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
@@ -48,6 +50,21 @@ def available_locales() -> tuple[str, ...]:
 
 def set_locale(locale: str) -> contextvars.Token[str]:
     return current_locale.set(normalize_locale(locale))
+
+
+@contextlib.contextmanager
+def using_locale(locale: str) -> Iterator[None]:
+    """Force ``locale`` for the duration of a block, restoring the previous one.
+
+    Used where output must ignore the request's negotiated locale — chiefly the
+    server-injected share tags, which must read in the site's own language no
+    matter what ``Accept-Language`` a crawler (WhatsApp, Facebook, X) sends.
+    """
+    token = set_locale(locale)
+    try:
+        yield
+    finally:
+        current_locale.reset(token)
 
 
 def normalize_locale(locale: str | None) -> str:

@@ -15,17 +15,22 @@ from __future__ import annotations
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Path, status
+from fastapi import APIRouter, Path, Query, status
 
-from app.api.serializers import owner_testimonial
+from app.api.serializers import admin_testimonial, owner_testimonial
 from app.core.dependencies import AdminUser, AppSettings, ClientIp, DbSession, OwnedBusiness
 from app.core.errors import NotFoundError
 from app.core.i18n import translate
+from app.models.enums import TestimonialStatus
 from app.models.testimonial import Testimonial
 from app.repositories.business import BusinessRepository
 from app.repositories.testimonial import TestimonialRepository
 from app.schemas.common import MessageResponse
-from app.schemas.testimonial import OwnerTestimonialOut, TestimonialSubmitIn
+from app.schemas.testimonial import (
+    AdminTestimonialOut,
+    OwnerTestimonialOut,
+    TestimonialSubmitIn,
+)
 from app.services.testimonial import TestimonialService
 
 public_router = APIRouter(tags=["testimonials"])
@@ -120,6 +125,24 @@ def hide_testimonial(
 
 
 # --- Admin -----------------------------------------------------------------
+
+
+@admin_router.get("/testimonials", response_model=list[AdminTestimonialOut])
+def list_testimonials(
+    admin: AdminUser,
+    db: DbSession,
+    status: Annotated[TestimonialStatus | None, Query()] = None,
+) -> list[AdminTestimonialOut]:
+    """Every testimonial across the directory, newest first, in any state.
+
+    The owner controls what is *displayed*; this is the platform keeping sight
+    of what was *submitted* -- so a pending or hidden testimonial an owner has
+    not acted on is still visible here, which is the whole point of the view.
+    An optional ``status`` narrows it to one moderation state."""
+    entries = TestimonialRepository(db).all_recent(
+        statuses=[status] if status is not None else None
+    )
+    return [admin_testimonial(entry) for entry in entries]
 
 
 @admin_router.delete("/testimonials/{testimonial_id}", response_model=MessageResponse)

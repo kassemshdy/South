@@ -62,6 +62,11 @@ const AdminUserDetailPage = lazy(() =>
 const AdminUsersPage = lazy(() =>
   import('@/pages/admin/AdminUsersPage').then((m) => ({ default: m.AdminUsersPage })),
 )
+const AdminTestimonialsPage = lazy(() =>
+  import('@/pages/admin/AdminTestimonialsPage').then((m) => ({
+    default: m.AdminTestimonialsPage,
+  })),
+)
 const AccountPage = lazy(() =>
   import('@/pages/dashboard/AccountPage').then((m) => ({ default: m.AccountPage })),
 )
@@ -177,6 +182,7 @@ export function App() {
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="users/:id" element={<AdminUserDetailPage />} />
             <Route path="feedback" element={<AdminFeedbackPage />} />
+            <Route path="testimonials" element={<AdminTestimonialsPage />} />
           </Route>
 
           <Route path="*" element={<NotFoundPage />} />

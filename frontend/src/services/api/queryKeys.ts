@@ -1,4 +1,10 @@
-import type { BusinessQuery, BusinessStatus, ProductQuery, TalentQuery } from '@/types/api'
+import type {
+  BusinessQuery,
+  BusinessStatus,
+  ProductQuery,
+  TalentQuery,
+  TestimonialStatus,
+} from '@/types/api'
 
 /** Central query-key registry so invalidation targets stay consistent. */
 export const queryKeys = {
@@ -42,4 +48,6 @@ export const queryKeys = {
   feedbackTickets: ['admin', 'feedback', 'tickets'] as const,
   feedbackTicket: (id: string) => ['admin', 'feedback', 'ticket', id] as const,
   feedbackAssignees: ['admin', 'feedback', 'assignees'] as const,
+  adminTestimonials: (status: TestimonialStatus | 'ALL') =>
+    ['admin', 'testimonials', status] as const,
 }

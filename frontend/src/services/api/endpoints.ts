@@ -9,6 +9,7 @@ import { apiDownload, apiRequest } from '@/services/api/client'
 import type {
   AdminBusiness,
   AdminTalent,
+  AdminTestimonial,
   AdminUser,
   AdminUserDetail,
   AuthToken,
@@ -48,6 +49,7 @@ import type {
   TalentQuery,
   TalentSkill,
   TalentSummary,
+  TestimonialStatus,
   User,
   VerificationDocument,
 } from '@/types/api'
@@ -449,6 +451,15 @@ export const adminApi = {
     apiRequest<LocationNode>(`/api/admin/locations/${id}`, { method: 'PUT', body }),
   deleteLocation: (id: string) =>
     apiRequest<{ message: string }>(`/api/admin/locations/${id}`, { method: 'DELETE' }),
+
+  // Owner controls what is displayed; this is the platform's sight of what was
+  // submitted — every testimonial in any state, optionally narrowed to one.
+  testimonials: (status?: TestimonialStatus) =>
+    apiRequest<AdminTestimonial[]>('/api/admin/testimonials', {
+      query: status ? { status } : {},
+    }),
+  removeTestimonial: (id: string) =>
+    apiRequest<{ message: string }>(`/api/admin/testimonials/${id}`, { method: 'DELETE' }),
 }
 
 export interface FeedbackTicketPayload {
