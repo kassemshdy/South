@@ -138,6 +138,7 @@ export function TalentDashboardPage() {
         <Card>
           <CardBody>
             <TalentForm
+            serverError={create.error ?? save.error}
               submitLabel={t('talentDashboard.createSubmit')}
               pending={create.isPending}
               onSubmit={(payload) => create.mutate(payload)}
@@ -231,6 +232,7 @@ export function TalentDashboardPage() {
           <CardBody>
             <Tabs.Content value="details">
               <TalentForm
+            serverError={create.error ?? save.error}
                 profile={data}
                 submitLabel={t('edit.saveChanges')}
                 pending={save.isPending}

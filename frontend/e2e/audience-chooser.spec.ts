@@ -97,11 +97,17 @@ test.describe('Audience chooser', () => {
     await page.goto('/')
     await expect(page.getByRole('heading', { name: t('onboarding.heading') })).toBeVisible()
 
-    // Signed in, the header's call to action is the shortcut into the wizard.
+    // Signed in, the header offers the account section and nothing after
+    // it. It used to end in an "add your business" button, which sat beside
+    // the account controls and made the bar appear to offer a way in and a
+    // way further in at once. Adding a business is a task, not a greeting —
+    // the card below is the route to it, which the rest of this test walks.
     const menu = page.getByRole('button', { name: t('nav.openMenu') })
     await menu.click()
     const mobileNav = page.getByRole('navigation', { name: t('nav.mobileAria') })
-    await expect(mobileNav.getByRole('link', { name: t('nav.addBusiness') })).toBeVisible()
+    await expect(mobileNav.getByRole('link', { name: t('nav.myBusinesses') })).toBeVisible()
+    await expect(mobileNav.getByRole('link', { name: t('nav.addBusiness') })).toHaveCount(0)
+    await expect(mobileNav.getByRole('link', { name: t('nav.login') })).toHaveCount(0)
     await page.getByRole('button', { name: t('nav.closeMenu') }).click()
 
     // No steps panel for someone who has already been through it: the card is

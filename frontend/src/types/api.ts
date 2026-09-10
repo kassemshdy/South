@@ -417,6 +417,18 @@ export interface ApiErrorPayload {
 
 export type SortOption = 'newest' | 'name' | 'oldest'
 
+/**
+ * The products directory sorts by price as well, which the other two cannot:
+ * a business and a talent profile have no price to sort on.
+ *
+ * There is no matching *filter*. A price range has to name a currency to
+ * mean anything — this directory lists in dollars and in lira and holds no
+ * exchange rate — and it has to decide what becomes of the products whose
+ * owner named no price. An ordering asks neither question: nothing is
+ * removed, and an unpriced product sorts last in both directions.
+ */
+export type ProductSortOption = SortOption | 'price_asc' | 'price_desc'
+
 export interface BusinessQuery {
   q?: string
   category?: string
@@ -426,22 +438,9 @@ export interface BusinessQuery {
   page_size?: number
 }
 
-/**
- * The products directory query. Price is three fields rather than two
- * because a range means nothing until it names a currency: this directory
- * lists in dollars and in lira, holds no exchange rate, and the API refuses
- * a bound without `currency` rather than guessing one.
- *
- * `include_unpriced` defaults to true on the server. A product whose owner
- * left the price blank matches no bound, and dropping it silently would
- * penalise them for an empty field — so it stays unless the visitor says
- * otherwise.
- */
-export interface ProductQuery extends BusinessQuery {
-  currency?: Currency
-  min_price?: string
-  max_price?: string
-  include_unpriced?: boolean
+/** Same as a business search, but its `sort` can also order by price. */
+export interface ProductQuery extends Omit<BusinessQuery, 'sort'> {
+  sort?: ProductSortOption
 }
 
 export interface TalentQuery {

@@ -5,7 +5,6 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
-  Plus,
   Search,
   ShoppingBag,
   Shield,
@@ -33,12 +32,15 @@ import { cn } from '@/utils/cn'
  * a sign-out button, plus `nav.adminPanel` for an admin, so the people who use
  * the site most got the most crowded bar — eight items and a call to action
  * competing on one line. The public links stay three, and everything personal
- * now lives behind one account menu. The primary button keeps its place
- * whether or not anybody is signed in; what it says and where it leads
- * change with them. Signed out it is `nav.login` — it used to read
- * `nav.addBusiness` and go to `/login` regardless, which told a
- * craftsperson, a customer and a shopkeeper alike that the thing to do here
- * is open a shop.
+ * now lives behind one account menu.
+ *
+ * Signed out the bar ends in one button, `nav.login`. Signed in it ends in
+ * the account menu and nothing after it. It used to end in `nav.addBusiness`
+ * either way, which was wrong twice over: signed out it told a craftsperson,
+ * a customer and a shopkeeper alike that the thing to do here is open a
+ * shop, and signed in it sat beside the account menu so the bar appeared to
+ * offer a way in and a way further in at once. Adding a business is a task,
+ * not a greeting — the hero chooser and the dashboard both lead to it.
  *
  * (Key names rather than the strings themselves: `tests/test_i18n.py` scans
  * this directory for Arabic codepoints, comments included.)
@@ -199,23 +201,24 @@ export function Header() {
           <CartLink />
           <FavouritesLink />
 
-          {/* Signed out this is "sign in", not "add your business".
-              It used to say the latter and go to `/login` anyway, so the
-              header's one call to action told a craftsperson, a customer and
-              a shopkeeper alike that the thing to do here is open a shop —
-              the same assumption the hero card made. Signed out there is
-              exactly one thing behind it, and it now says so; the separate
-              ghost login link next to it was the same destination twice. */}
-          <Button asChild size="sm" className="ms-2">
-            <Link to={isAuthenticated ? '/dashboard/businesses/new' : '/login'}>
-              {isAuthenticated ? (
-                <Plus className="h-4 w-4" aria-hidden="true" />
-              ) : (
+          {/* Signed out, one button: sign in. Signed in, none — the account
+              menu above already is the control, and a second button beside
+              it read as a stray "log in" next to the thing you log in to.
+
+              It used to say "add your business" here, which told a
+              craftsperson, a customer and a shopkeeper alike that the thing
+              to do on this site is open a shop — the same assumption the
+              hero card made. Adding a business is a task, not a greeting: it
+              lives on the hero chooser and inside the dashboard, where
+              someone who wants it is already looking. */}
+          {isAuthenticated ? null : (
+            <Button asChild size="sm" className="ms-2">
+              <Link to="/login">
                 <User className="h-4 w-4" aria-hidden="true" />
-              )}
-              {t(isAuthenticated ? 'nav.addBusiness' : 'nav.login')}
-            </Link>
-          </Button>
+                {t('nav.login')}
+              </Link>
+            </Button>
+          )}
         </nav>
 
         <div className="flex items-center gap-1 md:hidden">
@@ -288,19 +291,16 @@ export function Header() {
             </>
           ) : null}
 
-          <Button asChild block className="mt-2">
-            <Link
-              to={isAuthenticated ? '/dashboard/businesses/new' : '/login'}
-              onClick={() => setMenuOpen(false)}
-            >
-              {isAuthenticated ? (
-                <Plus className="h-4 w-4" aria-hidden="true" />
-              ) : (
+          {/* Same rule as the desktop row: signed in, the account section
+              above is the control and this button would only repeat it. */}
+          {isAuthenticated ? null : (
+            <Button asChild block className="mt-2">
+              <Link to="/login" onClick={() => setMenuOpen(false)}>
                 <User className="h-4 w-4" aria-hidden="true" />
-              )}
-              {t(isAuthenticated ? 'nav.addBusiness' : 'nav.login')}
-            </Link>
-          </Button>
+                {t('nav.login')}
+              </Link>
+            </Button>
+          )}
         </nav>
       </div>
     </header>

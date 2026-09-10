@@ -8,6 +8,7 @@ import { Field } from '@/components/ui/Field'
 import { Input } from '@/components/ui/Input'
 import type { BusinessPayload } from '@/services/api/endpoints'
 import { useT, type TranslationKey } from '@/i18n'
+import { useApplyServerFieldErrors } from '@/utils/serverFieldErrors'
 import type { OwnerBusiness, SocialPlatform } from '@/types/api'
 import { socialLinksSchema, type SocialLinksValues } from '@/utils/validation'
 
@@ -16,6 +17,8 @@ interface SocialFormProps {
   submitLabel: string
   pending?: boolean
   onSubmit: (payload: Partial<BusinessPayload>) => void
+  /** The parent's last save failure, so a 422 lands on the right input. */
+  serverError?: unknown
   footer?: React.ReactNode
 }
 
@@ -35,7 +38,7 @@ const FIELDS = [
 }[]
 
 /** All links optional — only the ones actually provided are rendered publicly. */
-export function SocialForm({ business, submitLabel, pending, onSubmit, footer }: SocialFormProps) {
+export function SocialForm({ business, submitLabel, pending, onSubmit, serverError, footer }: SocialFormProps) {
   const existing = new Map((business?.social_links ?? []).map((link) => [link.platform, link.url]))
   const t = useT()
   const schema = useMemo(() => socialLinksSchema(t), [t])
@@ -43,6 +46,8 @@ export function SocialForm({ business, submitLabel, pending, onSubmit, footer }:
   const {
     register,
     handleSubmit,
+    setError,
+    getValues,
     formState: { errors },
   } = useForm<SocialLinksValues>({
     resolver: zodResolver(schema),
@@ -55,6 +60,8 @@ export function SocialForm({ business, submitLabel, pending, onSubmit, footer }:
       website: existing.get('WEBSITE') ?? '',
     },
   })
+
+  useApplyServerFieldErrors(serverError, setError, getValues)
 
   const submit = handleSubmit((values) => {
     const social_links = FIELDS.flatMap(({ key, platform }) => {
