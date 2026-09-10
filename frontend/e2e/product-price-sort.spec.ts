@@ -79,7 +79,13 @@ test.describe('Products price sort', () => {
   test('a visitor picks the order from the sort dropdown', async ({ page }) => {
     await page.goto('/products')
 
-    await page.getByRole('combobox').filter({ hasText: t('directory.sortNewest') }).click()
+    // The filter row is collapsed at phone width behind this toggle, so the
+    // sort control does not exist on screen until it is opened.
+    await page.getByRole('button', { name: t('directory.filtersAria') }).click()
+
+    // By its label rather than its current text: the trigger is the one
+    // `filter-sort` names, whatever option happens to be selected.
+    await page.getByRole('combobox', { name: t('directory.sort') }).click()
     await page.getByRole('option', { name: t('products.sortPriceAsc') }).click()
 
     await expect(page).toHaveURL(/sort=price_asc/)
