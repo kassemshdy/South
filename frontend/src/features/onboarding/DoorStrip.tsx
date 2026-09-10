@@ -20,8 +20,11 @@ export function DoorStrip({
   suffix = '',
 }: {
   doors: Door[]
-  /** The door the caller is currently on, marked and announced. */
-  current: string
+  /**
+   * The door the caller is currently on, marked and announced. Omitted on the
+   * homepage, where none of the three is where you are.
+   */
+  current?: string
   label: TranslationKey
   /** Appended to every href — the query string a directory hop carries. */
   suffix?: string

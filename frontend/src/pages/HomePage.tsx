@@ -16,7 +16,8 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { BusinessCard } from '@/features/businesses/BusinessCard'
 import { WelcomeVideoPlayer } from '@/features/home/WelcomeVideo'
 import { AudienceChooser } from '@/features/onboarding/AudienceChooser'
-import { BrowseDoors } from '@/features/onboarding/BrowseDoors'
+import { DoorStrip } from '@/features/onboarding/DoorStrip'
+import { BROWSE_DOORS } from '@/features/onboarding/destinations'
 import { useCategories, useLocationGroups } from '@/hooks/useTaxonomy'
 import { useT } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
@@ -151,9 +152,12 @@ export function HomePage() {
             </>
           ) : stats.data ? (
             <>
+              {/* The three directories, in the order the browse strip lists
+                  them. Towns used to be the third number, which measured the
+                  map rather than what is in here. */}
               <StatTile value={stats.data.total_businesses} label={t('home.statsBusinesses')} />
+              <StatTile value={stats.data.total_products} label={t('home.statsProducts')} />
               <StatTile value={stats.data.total_talents} label={t('home.statsTalents')} />
-              <StatTile value={stats.data.total_towns} label={t('home.statsTowns')} />
             </>
           ) : null}
           {/* A failed fetch renders nothing here: this is a decorative strip, not
@@ -240,8 +244,15 @@ export function HomePage() {
           without answering it —— and they do. This is the one repetition on
           the page that earns its place: the hero asks a question, this offers
           a way in to somebody who has just been reading listings and has now
-          decided what they want. It renders `BROWSE_DOORS`, so it cannot
-          drift from the popup the way the section it replaces did. */}
+          decided what they want.
+
+          Deliberately the compact strip and not a second set of the cards the
+          chooser shows. Rendering both meant the identical three cards
+          appeared twice on one screen the moment someone opened the looking
+          half —— which is the duplication this whole rework exists to remove,
+          reintroduced two sections lower. A row of pills reads as "jump
+          straight there", which is what it is for. It still renders
+          `BROWSE_DOORS`, so it cannot drift from the chooser. */}
       <section className="container-page pb-14" aria-labelledby="browse-heading">
         <h2 id="browse-heading" className="mb-1 text-center text-2xl">
           {t('browse.heading')}
@@ -249,7 +260,7 @@ export function HomePage() {
         <p className="mx-auto mb-6 max-w-md text-center text-sm text-ink-500">
           {t('browse.subtitle')}
         </p>
-        <BrowseDoors />
+        <DoorStrip doors={BROWSE_DOORS} label="browse.switcherLabel" />
       </section>
 
       {popularDistricts.length > 0 ? (

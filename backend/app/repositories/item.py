@@ -78,6 +78,18 @@ class ItemRepository(BaseRepository[BusinessItem]):
         )
         return list(self.db.execute(stmt).unique().scalars().all())
 
+    def public_product_count(self) -> int:
+        """How many products a visitor can actually reach.
+
+        Built on ``public_query`` like everything else here, so the number on
+        the homepage counts exactly the rows the directory would list — an
+        unavailable item, or one belonging to a listing that is not approved,
+        is not advertised in a total a visitor cannot then find.
+        """
+        return self.db.execute(
+            select(func.count()).select_from(self.public_query().subquery())
+        ).scalar_one()
+
     def public_slugs(self) -> list[tuple[str, object]]:
         """(slug, updated_at) pairs for the sitemap.
 

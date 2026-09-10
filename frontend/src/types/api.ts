@@ -335,10 +335,16 @@ export interface PlatformStats {
   approved_talents: number
 }
 
-/** The homepage stats strip — approved-only, safe for an anonymous visitor. */
+/**
+ * The homepage stats strip — approved-only, safe for an anonymous visitor.
+ *
+ * The three directories, in the order the browse strip lists them. It used to
+ * count towns instead of products, which measured the map rather than the
+ * directory.
+ */
 export interface PublicStats {
   total_businesses: number
-  total_towns: number
+  total_products: number
   total_talents: number
 }
 

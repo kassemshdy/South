@@ -26,11 +26,10 @@ const DEV_OTP = '123456'
  * asking for a phone number, because "sign in" is not an answer to "I have a
  * shop".
  *
- * The second level is a dialog rather than a swap in place. It used to
- * replace the two cards where they stood, which read as the page changing
- * under you and left the heading above describing something no longer there.
- * These tests therefore assert the dialog, not just the destination — a
- * regression to the in-place swap would otherwise pass them all.
+ * The second level replaces the first in place. A dialog was tried and read
+ * as heavier than the choice deserves — these cards are navigation, and
+ * navigation should not darken the page behind it to ask which of three
+ * lists you want.
  */
 test.describe('Audience chooser', () => {
   test('is always there, explains before signing in, and never blocks the page', async ({
@@ -98,10 +97,16 @@ test.describe('Audience chooser', () => {
     await page.goto('/')
     await expect(page.getByRole('heading', { name: t('onboarding.heading') })).toBeVisible()
 
+    // Signed in, the header's call to action is the shortcut into the wizard.
+    const menu = page.getByRole('button', { name: t('nav.openMenu') })
+    await menu.click()
+    const mobileNav = page.getByRole('navigation', { name: t('nav.mobileAria') })
+    await expect(mobileNav.getByRole('link', { name: t('nav.addBusiness') })).toBeVisible()
+    await page.getByRole('button', { name: t('nav.closeMenu') }).click()
+
     // No steps panel for someone who has already been through it: the card is
     // a link straight to the thing it describes.
     await page.getByRole('button', { name: new RegExp(t('home.actionOffer')) }).click()
-    await expect(page.getByRole('dialog')).toBeVisible()
     await page.getByRole('link', { name: new RegExp(t('onboarding.ownerTitle')) }).click()
     await expect(page).toHaveURL(/\/dashboard\/businesses\/new/)
 
@@ -115,7 +120,7 @@ test.describe('Audience chooser', () => {
     await expect(page).toHaveURL(/\/dashboard\/talent/)
   })
 
-  test('the buying half offers all three directories, and closing puts the question back', async ({
+  test('the buying half offers all three directories, and backing out restores the question', async ({
     page,
   }) => {
     // The half that was wrong on the live site in a quieter way: it offered
@@ -125,23 +130,39 @@ test.describe('Audience chooser', () => {
     await page.goto('/')
     await page.getByRole('button', { name: new RegExp(t('home.actionBrowse')) }).click()
 
-    const dialog = page.getByRole('dialog')
-    await expect(dialog).toBeVisible()
-    for (const key of ['browse.businessesTitle', 'onboarding.seekGoodsTitle', 'onboarding.seekServiceTitle']) {
-      await expect(dialog.getByRole('link', { name: new RegExp(t(key)) })).toBeVisible()
+    for (const key of [
+      'browse.businessesTitle',
+      'onboarding.seekGoodsTitle',
+      'onboarding.seekServiceTitle',
+    ]) {
+      await expect(page.getByRole('link', { name: new RegExp(t(key)) })).toBeVisible()
     }
 
     // Backing out is a real option, and it returns to the one question rather
-    // than to a half-answered state.
-    await page.keyboard.press('Escape')
-    await expect(dialog).toHaveCount(0)
+    // than leaving the visitor in a half-answered state.
+    await page.getByRole('button', { name: t('onboarding.back') }).click()
     await expect(page.getByRole('heading', { name: t('onboarding.heading') })).toBeVisible()
 
     // And the doors lead where they say.
     await page.getByRole('button', { name: new RegExp(t('home.actionBrowse')) }).click()
-    await page
-      .getByRole('link', { name: new RegExp(t('browse.businessesTitle')) })
-      .click()
+    await page.getByRole('link', { name: new RegExp(t('browse.businessesTitle')) }).click()
     await expect(page).toHaveURL(/\/businesses/)
+  })
+
+  test('the header asks a signed-out visitor to sign in, not to open a shop', async ({
+    page,
+  }) => {
+    // It used to say `nav.addBusiness` and go to `/login` anyway, so the one
+    // call to action in the chrome told a craftsperson, a customer and a
+    // shopkeeper alike that the thing to do here is open a shop — the same
+    // assumption the hero card made, in the one place that is on every page.
+    await page.goto('/')
+    await page.getByRole('button', { name: t('nav.openMenu') }).click()
+
+    const mobileNav = page.getByRole('navigation', { name: t('nav.mobileAria') })
+    const signIn = mobileNav.getByRole('link', { name: t('nav.login') })
+    await expect(signIn).toBeVisible()
+    await expect(signIn).toHaveAttribute('href', '/login')
+    await expect(mobileNav.getByRole('link', { name: t('nav.addBusiness') })).toHaveCount(0)
   })
 })

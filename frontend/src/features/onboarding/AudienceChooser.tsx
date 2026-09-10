@@ -3,7 +3,6 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { Button } from '@/components/ui/Button'
-import { Dialog, DialogContent } from '@/components/ui/Dialog'
 import { AssistedListing } from '@/features/onboarding/AssistedListing'
 import { DOOR_CARD, DoorBody, DoorCard } from '@/features/onboarding/DoorCard'
 import { BROWSE_DOORS, OFFER_DOORS, type Door } from '@/features/onboarding/destinations'
@@ -88,14 +87,91 @@ export function AudienceChooser({ isAuthenticated = false }: { isAuthenticated?:
   const [intent, setIntent] = useState<Intent | null>(null)
   const [expanded, setExpanded] = useState<Door | null>(null)
 
-  const branch = BRANCHES.find((candidate) => candidate.intent === intent) ?? null
-
-  /** Closing the dialog puts the widget back to its one question. */
-  const close = () => {
+  const back = () => {
+    if (expanded) {
+      setExpanded(null)
+      return
+    }
     setIntent(null)
-    setExpanded(null)
   }
 
+  const branch = BRANCHES.find((candidate) => candidate.intent === intent) ?? null
+
+  // Step three: the account explanation, for an anonymous visitor who chose to
+  // list something. Shown before the phone-number prompt, never after it.
+  if (expanded) {
+    return (
+      <div className="mx-auto w-full max-w-2xl rounded-2xl border-2 border-clay-200 bg-sand-50 p-6">
+        <h3 className="text-lg font-bold">{t(expanded.titleKey)}</h3>
+        <p className="mt-1 text-sm text-ink-500">{t('onboarding.stepsIntro')}</p>
+
+        <ol className="mt-5 space-y-4">
+          {STEP_KEYS.map((key, index) => (
+            <li key={key} className="flex items-start gap-3">
+              <span
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-clay-500 text-sm font-bold text-white ltr-nums"
+                aria-hidden="true"
+              >
+                {index + 1}
+              </span>
+              <span className="leading-relaxed text-ink-700">{t(key)}</span>
+            </li>
+          ))}
+        </ol>
+
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Button asChild size="lg">
+            <Link to="/login">
+              <Check className="h-5 w-5" aria-hidden="true" />
+              {t('onboarding.start')}
+            </Link>
+          </Button>
+          <Button type="button" variant="ghost" size="lg" onClick={back}>
+            {t('onboarding.back')}
+          </Button>
+        </div>
+
+        {/* Offered here, next to the steps, rather than after a failed
+            attempt: someone who reads "register with your phone number" and
+            decides it is not for them never reaches a later screen to be
+            rescued on. */}
+        <AssistedListing contextKey="assisted.contextHome" />
+      </div>
+    )
+  }
+
+  // Step two: which kind, within the chosen intent.
+  if (branch) {
+    return (
+      <div className="mx-auto w-full max-w-2xl">
+        <p className="text-center font-bold text-ink-900">{t(branch.titleKey)}</p>
+        <ul className="mt-4 grid gap-4 sm:grid-cols-2">
+          {branch.doors.map((door) => (
+            <li key={door.key}>
+              {branch.needsAccount && !isAuthenticated ? (
+                <button type="button" className={DOOR_CARD} onClick={() => setExpanded(door)}>
+                  <DoorBody door={door} />
+                </button>
+              ) : (
+                <DoorCard door={door} />
+              )}
+            </li>
+          ))}
+        </ul>
+        <div className="mt-4 text-center">
+          <Button type="button" variant="ghost" onClick={back}>
+            {t('onboarding.back')}
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // Step one: offering, or looking.
+  //
+  // Identical weight, because these are two halves of one question rather than
+  // a call to action and its afterthought. No line of explanation under
+  // either: it was answering a question nobody had yet asked.
   return (
     <div className="mx-auto w-full max-w-2xl">
       {/* The question is asked out loud rather than implied by two cards.
@@ -108,11 +184,6 @@ export function AudienceChooser({ isAuthenticated = false }: { isAuthenticated?:
         {t('onboarding.subtitle')}
       </p>
 
-      {/* Step one: offering, or looking.
-          Identical weight, because these are two halves of one question
-          rather than a call to action and its afterthought. No line of
-          explanation under either: it was answering a question nobody had
-          yet asked. */}
       <ul className="mt-5 grid gap-4 sm:grid-cols-2">
         {BRANCHES.map((candidate) => {
           const Icon = candidate.icon
@@ -121,7 +192,7 @@ export function AudienceChooser({ isAuthenticated = false }: { isAuthenticated?:
               <button
                 type="button"
                 onClick={() => setIntent(candidate.intent)}
-                aria-haspopup="dialog"
+                aria-expanded={false}
                 className="group flex h-full w-full flex-col items-center gap-3 rounded-2xl border-2 border-ink-100 bg-white p-6 text-center shadow-card transition-all hover:-translate-y-0.5 hover:border-clay-300 hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 focus-visible:ring-offset-2"
               >
                 <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-sand-100 text-clay-600 transition-colors group-hover:bg-clay-500 group-hover:text-white">
@@ -139,83 +210,6 @@ export function AudienceChooser({ isAuthenticated = false }: { isAuthenticated?:
           )
         })}
       </ul>
-
-      {/* Step two, and step three behind it, in a dialog rather than in place.
-          The second level used to replace the two cards where they stood,
-          which read as the page having changed under you —— and it left the
-          homepage's own heading describing something that was no longer
-          there. A dialog says "this is a decision, and you can back out of
-          it", which is what it is. Closing returns to the one question. */}
-      <Dialog open={branch !== null} onOpenChange={(open) => (open ? null : close())}>
-        {branch ? (
-          <DialogContent
-            title={t(expanded ? expanded.titleKey : branch.titleKey)}
-            description={expanded ? t('onboarding.stepsIntro') : t('onboarding.subtitle')}
-          >
-            {expanded ? (
-              // Step three: the account explanation, for an anonymous visitor
-              // who chose to list something. Shown before the phone-number
-              // prompt, never after it.
-              <>
-                <ol className="space-y-4">
-                  {STEP_KEYS.map((key, index) => (
-                    <li key={key} className="flex items-start gap-3">
-                      <span
-                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-clay-500 text-sm font-bold text-white ltr-nums"
-                        aria-hidden="true"
-                      >
-                        {index + 1}
-                      </span>
-                      <span className="leading-relaxed text-ink-700">{t(key)}</span>
-                    </li>
-                  ))}
-                </ol>
-
-                <div className="mt-6 flex flex-wrap gap-3">
-                  <Button asChild size="lg">
-                    <Link to="/login">
-                      <Check className="h-5 w-5" aria-hidden="true" />
-                      {t('onboarding.start')}
-                    </Link>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="lg"
-                    onClick={() => setExpanded(null)}
-                  >
-                    {t('onboarding.back')}
-                  </Button>
-                </div>
-
-                {/* Offered here, next to the steps, rather than after a failed
-                    attempt: someone who reads "register with your phone
-                    number" and decides it is not for them never reaches a
-                    later screen to be rescued on. */}
-                <AssistedListing contextKey="assisted.contextHome" />
-              </>
-            ) : (
-              <ul className="grid gap-4 sm:grid-cols-2">
-                {branch.doors.map((door) => (
-                  <li key={door.key}>
-                    {branch.needsAccount && !isAuthenticated ? (
-                      <button
-                        type="button"
-                        className={DOOR_CARD}
-                        onClick={() => setExpanded(door)}
-                      >
-                        <DoorBody door={door} />
-                      </button>
-                    ) : (
-                      <DoorCard door={door} onNavigate={close} />
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </DialogContent>
-        ) : null}
-      </Dialog>
     </div>
   )
 }
