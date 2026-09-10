@@ -59,11 +59,17 @@ export function HomePage() {
           about what the site is or what they can do here. */}
       <section className="border-b border-ink-100 bg-gradient-to-b from-sand-100 to-sand-50">
         {/* One grid, three children, and `order` doing the work: on a phone
-            the copy comes first, then the two choices, and the video last —
-            the choices are what someone is here to make, and a 16:9 player
-            above them would push both below the fold. From `lg` up the copy
-            and the player share the first row and the cards take the whole
-            width of the second, which is the only way they are big. */}
+            the copy comes first, then the video, then the two choices. From
+            `lg` up the copy and the player share the first row and the cards
+            take the whole width of the second, which is the only way they
+            are big — so the two layouts now agree, where they used to
+            disagree about which of the video and the cards came first.
+
+            The cards were second here on the argument that they are what
+            someone came to make and a 16:9 player above them pushes them
+            below the fold. That is still true and is the cost of this
+            order: the video is the pitch, and it only works if it is the
+            thing you meet before being asked to choose. */}
         <div className="container-page grid items-center gap-10 py-10 sm:py-14 lg:grid-cols-2 lg:gap-x-14 lg:py-20">
           <div className="order-1">
             <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-clay-700 shadow-card">
@@ -79,7 +85,7 @@ export function HomePage() {
             </p>
           </div>
 
-          <div className="order-3 lg:order-2">
+          <div className="order-2">
             <WelcomeVideoPlayer />
             <p className="mt-3 text-center text-sm font-semibold text-ink-500">
               {t('home.videoHeading')}
@@ -95,7 +101,7 @@ export function HomePage() {
               repeating the question further down and a third section
               repeating the looking half again. See AudienceChooser for what
               that cost. */}
-          <div className="order-2 w-full lg:order-3 lg:col-span-2">
+          <div className="order-3 w-full lg:col-span-2">
             <AudienceChooser isAuthenticated={isAuthenticated} />
           </div>
         </div>

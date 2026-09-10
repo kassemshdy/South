@@ -165,4 +165,25 @@ test.describe('Audience chooser', () => {
     await expect(signIn).toHaveAttribute('href', '/login')
     await expect(mobileNav.getByRole('link', { name: t('nav.addBusiness') })).toHaveCount(0)
   })
+
+  test('the video comes before the question, not after it', async ({ page }) => {
+    // A deliberate order, and the two layouts used to disagree about it: on a
+    // phone the cards came second and the player last, while from `lg` up the
+    // player shared the first row and the cards took the second. The video is
+    // the pitch, and it only does its job if it is what you meet before being
+    // asked to choose — so it is now first on both.
+    //
+    // Asserted by geometry rather than by DOM order, because `order-*` classes
+    // are exactly what moves here: the markup can stay put while the rendered
+    // page flips.
+    await page.goto('/')
+    const player = page.getByRole('button', { name: t('home.videoPlayAria') })
+    const question = page.getByRole('heading', { name: t('onboarding.heading') })
+    await expect(player).toBeVisible()
+    await expect(question).toBeVisible()
+
+    const playerBox = await player.boundingBox()
+    const questionBox = await question.boundingBox()
+    expect(playerBox!.y).toBeLessThan(questionBox!.y)
+  })
 })
