@@ -154,6 +154,39 @@ def test_generic_routes_get_the_default_absolute_share_image(spa_client: TestCli
         assert 'rel="canonical"' in html
 
 
+def test_share_tags_stay_arabic_for_an_english_speaking_crawler(
+    spa_client: TestClient, approved_slug: str
+) -> None:
+    """WhatsApp, Facebook and X fetch link targets with `Accept-Language: en`.
+    The request middleware honours that header for API responses, but a share
+    preview on this Arabic-first directory must not flip to English because of
+    it — the injected head is pinned to the site's own locale."""
+    english = {"Accept-Language": "en-US,en;q=0.9"}
+
+    expected_title = translate(
+        "seo.business.title_with_location",
+        "ar",
+        name=ar("business.seo_name"),
+        location=ar("location.tyre"),
+        site=translate("app.name", "ar"),
+    )
+    business_html = spa_client.get(f"/business/{approved_slug}", headers=english).text
+    assert f"<title>{expected_title}</title>" in business_html
+    assert f'property="og:title" content="{expected_title}"' in business_html
+    assert 'property="og:locale" content="ar_LB"' in business_html
+
+    # The home/default route carries fully translated tags, so it is the real
+    # regression surface: its title and description come from the catalog, not
+    # from a listing's own Arabic content.
+    home_html = spa_client.get("/", headers=english).text
+    assert f"<title>{translate('seo.default.title', 'ar')}</title>" in home_html
+    assert (
+        f'property="og:description" content="{translate("seo.default.description", "ar")}"'
+        in home_html
+    )
+    assert f'property="og:site_name" content="{translate("app.name", "ar")}"' in home_html
+
+
 def test_rendered_index_is_never_edge_cached(spa_client: TestClient) -> None:
     """Regression: an edge/CDN in front of the app once served a stale
     snapshot of "/" across multiple deploys, since nothing told it this

@@ -518,6 +518,17 @@ export interface OwnerTestimonial extends Testimonial {
   approved_at: string | null
 }
 
+/**
+ * The platform's view: the owner's moderation fields plus which listing the
+ * testimonial is on, so an admin can survey every submission in one place.
+ * Carries only the business's public identity, never the owner's.
+ */
+export interface AdminTestimonial extends OwnerTestimonial {
+  business_id: string
+  business_name: string
+  business_slug: string
+}
+
 export type OrderStatus = 'NEW' | 'CONTACTED' | 'DONE'
 
 /** A line as it was when the order was placed, not as the product is now. */

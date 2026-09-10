@@ -52,7 +52,7 @@ from app.schemas.talent import (
     TalentSummaryOut,
 )
 from app.schemas.taxonomy import CategoryOut, LocationOut
-from app.schemas.testimonial import OwnerTestimonialOut, TestimonialOut
+from app.schemas.testimonial import AdminTestimonialOut, OwnerTestimonialOut, TestimonialOut
 
 RecordT = TypeVar("RecordT")
 SchemaT = TypeVar("SchemaT")
@@ -137,6 +137,17 @@ def business_detail(
 
 def owner_testimonial(testimonial: Testimonial) -> OwnerTestimonialOut:
     return OwnerTestimonialOut.model_validate(testimonial)
+
+
+def admin_testimonial(testimonial: Testimonial) -> AdminTestimonialOut:
+    """Platform view — the owner's moderation fields plus which listing it is
+    on, so the admin survey can name and link through to the business."""
+    return AdminTestimonialOut(
+        **owner_testimonial(testimonial).model_dump(),
+        business_id=testimonial.business_id,
+        business_name=testimonial.business.name,
+        business_slug=testimonial.business.slug,
+    )
 
 
 def owner_business(business: Business) -> OwnerBusinessOut:

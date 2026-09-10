@@ -1,4 +1,14 @@
-import { BarChart3, Bug, FolderTree, MapPin, Sparkles, Store, UserRound, Users } from 'lucide-react'
+import {
+  BarChart3,
+  Bug,
+  FolderTree,
+  MapPin,
+  MessageSquareQuote,
+  Sparkles,
+  Store,
+  UserRound,
+  Users,
+} from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
 
 import { useSeo } from '@/hooks/useSeo'
@@ -13,6 +23,12 @@ const NAV: { to: string; labelKey: TranslationKey; icon: typeof BarChart3; end: 
   { to: '/admin/talent-skills', labelKey: 'admin.navTalentSkills', icon: Sparkles, end: false },
   { to: '/admin/locations', labelKey: 'admin.navLocations', icon: MapPin, end: false },
   { to: '/admin/users', labelKey: 'admin.navUsers', icon: Users, end: false },
+  {
+    to: '/admin/testimonials',
+    labelKey: 'admin.navTestimonials',
+    icon: MessageSquareQuote,
+    end: false,
+  },
   { to: '/admin/feedback', labelKey: 'admin.navFeedback', icon: Bug, end: false },
 ]
 

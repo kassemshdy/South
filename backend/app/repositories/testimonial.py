@@ -11,6 +11,7 @@ import uuid
 from collections.abc import Sequence
 
 from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 
 from app.models.enums import TestimonialStatus
 from app.models.testimonial import Testimonial
@@ -28,6 +29,18 @@ class TestimonialRepository(BaseRepository[Testimonial]):
     ) -> list[Testimonial]:
         """Newest first. ``statuses=None`` means every status."""
         stmt = select(Testimonial).where(Testimonial.business_id == business_id)
+        if statuses is not None:
+            stmt = stmt.where(Testimonial.status.in_(list(statuses)))
+        stmt = stmt.order_by(Testimonial.created_at.desc())
+        return list(self.db.execute(stmt).scalars().all())
+
+    def all_recent(
+        self, *, statuses: Sequence[TestimonialStatus] | None = None
+    ) -> list[Testimonial]:
+        """Every testimonial in the directory, newest first, with its business
+        eager-loaded so an admin listing needs no per-row query. ``statuses=None``
+        means every status. No owner scoping: this is the platform view."""
+        stmt = select(Testimonial).options(joinedload(Testimonial.business))
         if statuses is not None:
             stmt = stmt.where(Testimonial.status.in_(list(statuses)))
         stmt = stmt.order_by(Testimonial.created_at.desc())
