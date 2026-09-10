@@ -9,7 +9,6 @@ import {
 import { Link } from 'react-router-dom'
 
 import { Button } from '@/components/ui/Button'
-import { Card, CardBody } from '@/components/ui/Card'
 import { BusinessCardSkeleton, Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -23,6 +22,11 @@ import { useT } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
 import { publicBusinessApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
+
+/** The route behind a door, by key — see `destinations.ts`. */
+function doorHref(key: string): string {
+  return BROWSE_DOORS.find((door) => door.key === key)!.href
+}
 
 export function HomePage() {
   const { isAuthenticated } = useAuth()
@@ -161,9 +165,21 @@ export function HomePage() {
               {/* The three directories, in the order the browse strip lists
                   them. Towns used to be the third number, which measured the
                   map rather than what is in here. */}
-              <StatTile value={stats.data.total_businesses} label={t('home.statsBusinesses')} />
-              <StatTile value={stats.data.total_products} label={t('home.statsProducts')} />
-              <StatTile value={stats.data.total_talents} label={t('home.statsTalents')} />
+              <StatTile
+                value={stats.data.total_businesses}
+                label={t('home.statsBusinesses')}
+                href={doorHref('businesses')}
+              />
+              <StatTile
+                value={stats.data.total_products}
+                label={t('home.statsProducts')}
+                href={doorHref('products')}
+              />
+              <StatTile
+                value={stats.data.total_talents}
+                label={t('home.statsTalents')}
+                href={doorHref('talent')}
+              />
             </>
           ) : null}
           {/* A failed fetch renders nothing here: this is a decorative strip, not
@@ -307,13 +323,35 @@ export function HomePage() {
 }
 
 
-function StatTile({ value, label }: { value: number; label: string }) {
+/**
+ * One number, and the directory it counts.
+ *
+ * A link, not a decorative box. Each figure is the size of one of the three
+ * directories, so the thing a reader wants after seeing "28 products" is the
+ * products — and the tile was a dead end. The destination comes from
+ * `BROWSE_DOORS` like every other route to those three pages, so this cannot
+ * drift from the strip below it or the chooser above.
+ *
+ * `min-h` on the label rather than letting it size itself: one of the three
+ * Arabic labels wraps to two lines at phone width and the other two do not,
+ * which left the row visibly ragged and the numbers off a shared baseline.
+ * Reserving both lines everywhere keeps the figures aligned, which is the
+ * whole point of putting them in a row.
+ */
+function StatTile({ value, label, href }: { value: number; label: string; href: string }) {
   return (
-    <Card>
-      <CardBody className="text-center">
-        <p className="ltr-nums text-3xl font-bold text-clay-900">{value}</p>
-        <p className="mt-1 text-sm text-ink-500">{label}</p>
-      </CardBody>
-    </Card>
+    <Link
+      to={href}
+      className="group rounded-2xl border border-ink-100 bg-white text-center shadow-card transition-all hover:-translate-y-0.5 hover:border-clay-300 hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 focus-visible:ring-offset-2"
+    >
+      <div className="px-3 py-5 sm:px-4">
+        <p className="ltr-nums text-3xl font-bold text-clay-900 transition-colors group-hover:text-clay-600">
+          {value}
+        </p>
+        <p className="mt-1 flex min-h-10 items-start justify-center text-balance text-sm leading-snug text-ink-500">
+          {label}
+        </p>
+      </div>
+    </Link>
   )
 }
