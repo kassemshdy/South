@@ -25,6 +25,12 @@ const DEV_OTP = '123456'
  * The other rule: choosing to list something explains the three steps before
  * asking for a phone number, because "sign in" is not an answer to "I have a
  * shop".
+ *
+ * The second level is a dialog rather than a swap in place. It used to
+ * replace the two cards where they stood, which read as the page changing
+ * under you and left the heading above describing something no longer there.
+ * These tests therefore assert the dialog, not just the destination — a
+ * regression to the in-place swap would otherwise pass them all.
  */
 test.describe('Audience chooser', () => {
   test('is always there, explains before signing in, and never blocks the page', async ({
@@ -95,7 +101,47 @@ test.describe('Audience chooser', () => {
     // No steps panel for someone who has already been through it: the card is
     // a link straight to the thing it describes.
     await page.getByRole('button', { name: new RegExp(t('home.actionOffer')) }).click()
+    await expect(page.getByRole('dialog')).toBeVisible()
     await page.getByRole('link', { name: new RegExp(t('onboarding.ownerTitle')) }).click()
     await expect(page).toHaveURL(/\/dashboard\/businesses\/new/)
+
+    // And the fork is still reachable from inside the wizard, for someone who
+    // realises here that they are a craftsperson rather than a shop. Only
+    // until the first save — after that a DRAFT listing exists and walking
+    // away would strand it.
+    const adding = page.getByRole('navigation', { name: t('onboarding.offerSwitcherLabel') })
+    await expect(adding).toBeVisible()
+    await adding.getByRole('link', { name: t('onboarding.talentShort') }).click()
+    await expect(page).toHaveURL(/\/dashboard\/talent/)
+  })
+
+  test('the buying half offers all three directories, and closing puts the question back', async ({
+    page,
+  }) => {
+    // The half that was wrong on the live site in a quieter way: it offered
+    // goods and someone-skilled, and simply had no door to the businesses
+    // directory at all. Someone who wanted the bakery on the corner had to
+    // find it through a product.
+    await page.goto('/')
+    await page.getByRole('button', { name: new RegExp(t('home.actionBrowse')) }).click()
+
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible()
+    for (const key of ['browse.businessesTitle', 'onboarding.seekGoodsTitle', 'onboarding.seekServiceTitle']) {
+      await expect(dialog.getByRole('link', { name: new RegExp(t(key)) })).toBeVisible()
+    }
+
+    // Backing out is a real option, and it returns to the one question rather
+    // than to a half-answered state.
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+    await expect(page.getByRole('heading', { name: t('onboarding.heading') })).toBeVisible()
+
+    // And the doors lead where they say.
+    await page.getByRole('button', { name: new RegExp(t('home.actionBrowse')) }).click()
+    await page
+      .getByRole('link', { name: new RegExp(t('browse.businessesTitle')) })
+      .click()
+    await expect(page).toHaveURL(/\/businesses/)
   })
 })

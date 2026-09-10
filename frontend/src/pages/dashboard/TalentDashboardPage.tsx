@@ -14,6 +14,7 @@ import { ViewsPanel } from '@/features/insights/ViewsPanel'
 import { OwnerServiceRequests } from '@/features/talent/OwnerServiceRequests'
 import { TalentForm } from '@/features/talent/TalentForm'
 import { TalentImageManager } from '@/features/talent/TalentImageManager'
+import { OfferSwitcher } from '@/features/onboarding/OfferSwitcher'
 import { useSeo } from '@/hooks/useSeo'
 import { useT, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
@@ -128,6 +129,12 @@ export function TalentDashboardPage() {
           <h1 className="text-3xl">{t('talentDashboard.createHeading')}</h1>
           <p className="mt-2 text-ink-500">{t('talentDashboard.createIntro')}</p>
         </header>
+
+        {/* The counterpart of the wizard's, and unconditional here: nothing
+            has been written yet, so there is nothing to strand. Only on the
+            create form — once a profile exists this is the page for managing
+            it, not a fork. */}
+        <OfferSwitcher current="talent" />
         <Card>
           <CardBody>
             <TalentForm

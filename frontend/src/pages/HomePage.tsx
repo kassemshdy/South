@@ -16,6 +16,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { BusinessCard } from '@/features/businesses/BusinessCard'
 import { WelcomeVideoPlayer } from '@/features/home/WelcomeVideo'
 import { AudienceChooser } from '@/features/onboarding/AudienceChooser'
+import { BrowseDoors } from '@/features/onboarding/BrowseDoors'
 import { useCategories, useLocationGroups } from '@/hooks/useTaxonomy'
 import { useT } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
@@ -233,6 +234,22 @@ export function HomePage() {
             }
           />
         )}
+      </section>
+
+      {/* The same three doors again, for someone who scrolled past the hero
+          without answering it —— and they do. This is the one repetition on
+          the page that earns its place: the hero asks a question, this offers
+          a way in to somebody who has just been reading listings and has now
+          decided what they want. It renders `BROWSE_DOORS`, so it cannot
+          drift from the popup the way the section it replaces did. */}
+      <section className="container-page pb-14" aria-labelledby="browse-heading">
+        <h2 id="browse-heading" className="mb-1 text-center text-2xl">
+          {t('browse.heading')}
+        </h2>
+        <p className="mx-auto mb-6 max-w-md text-center text-sm text-ink-500">
+          {t('browse.subtitle')}
+        </p>
+        <BrowseDoors />
       </section>
 
       {popularDistricts.length > 0 ? (

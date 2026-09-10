@@ -9,6 +9,7 @@ import { BusinessCardSkeleton } from '@/components/ui/Skeleton'
 import { ErrorState, NoSearchResults } from '@/components/ui/States'
 import { BusinessCard } from '@/features/businesses/BusinessCard'
 import { Pagination } from '@/features/businesses/Pagination'
+import { BrowseSwitcher } from '@/features/onboarding/BrowseSwitcher'
 import { useCategories, useLocationGroups } from '@/hooks/useTaxonomy'
 import { useT, type TranslationKey } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
@@ -91,6 +92,11 @@ export function DirectoryPage() {
             : t('directory.introFallback')}
         </p>
       </header>
+
+      {/* The other two directories, one tap away. Without this each
+          directory was an island: a search that came up empty here left
+          the browser's back button as the only way across. */}
+      <BrowseSwitcher current="businesses" />
 
       <form
         role="search"

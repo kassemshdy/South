@@ -89,15 +89,24 @@ test.describe('Language switcher', () => {
 })
 
 /**
- * Place an order through the UI. `ui` is the catalog the page is currently
- * rendering in — the labels have to be looked up in the language on screen,
- * which is the same distinction these tests are about.
+ * Place an order through the UI and hand back the sentence the API answered
+ * with. `ui` is the catalog the page is currently rendering in — the labels
+ * have to be looked up in the language on screen, which is the same
+ * distinction these tests are about.
+ *
+ * The response is returned, rather than the caller reading the toast,
+ * because the toast dismisses itself after five seconds. An assertion on it
+ * races that timer and fails for reasons that have nothing to do with
+ * language — twice here, on a different one of the two tests each time,
+ * while the response assertion beside it passed. The response body is the
+ * stronger claim anyway: what the server actually said, rather than what
+ * survived long enough to be painted.
  */
 async function orderTheFirstProduct(
   page: Page,
   request: APIRequestContext,
   ui: (key: string) => string,
-) {
+): Promise<string> {
   const listing = await request.get('/api/items?page_size=1')
   expect(listing.ok()).toBeTruthy()
   const { items } = (await listing.json()) as { items: { slug: string }[] }
@@ -108,7 +117,16 @@ async function orderTheFirstProduct(
   await page.goto('/cart')
   await page.getByLabel(ui('cart.nameLabel')).fill(fixture.customer)
   await page.getByLabel(ui('cart.phoneLabel')).fill(fixture.phone)
+
+  const placed = page.waitForResponse(
+    (response) =>
+      response.url().includes('/orders') && response.request().method() === 'POST',
+  )
   await page.getByRole('button', { name: ui('cart.submit') }).click()
+  const response = await placed
+  expect(response.status(), await response.text()).toBe(201)
+
+  return ((await response.json()) as { message: string }).message
 }
 
 /**
@@ -130,12 +148,14 @@ test.describe('An English browser does not make the Arabic site speak English', 
     await page.goto('/')
     await expect(page.locator('html')).toHaveAttribute('lang', 'ar')
 
-    await orderTheFirstProduct(page, request, t)
+    const message = await orderTheFirstProduct(page, request, t)
 
-    // The toast description is the API's own sentence rather than a local
-    // string, which is why it was the thing the visitor saw in the wrong
-    // language.
-    await expect(page.getByText(apiAr('order.received'))).toBeVisible()
+    // The sentence the server chose. This is the whole claim: the API was
+    // asked in the language of the site, not of the browser.
+    expect(message).toBe(apiAr('order.received'))
+    // And the visitor actually got to the confirmation, rather than an error
+    // the language assertion above would have been indifferent to.
+    await expect(page.getByRole('heading', { name: t('cart.sentTitle') })).toBeVisible()
   })
 })
 
@@ -147,8 +167,9 @@ test.describe('An Arabic browser does not make the English site speak Arabic', (
     await page.getByRole('button', { name: SWITCH_TO_ENGLISH }).click()
     await expect(page.locator('html')).toHaveAttribute('lang', 'en')
 
-    await orderTheFirstProduct(page, request, tEn)
+    const message = await orderTheFirstProduct(page, request, tEn)
 
-    await expect(page.getByText(apiEn('order.received'))).toBeVisible()
+    expect(message).toBe(apiEn('order.received'))
+    await expect(page.getByRole('heading', { name: tEn('cart.sentTitle') })).toBeVisible()
   })
 })
