@@ -54,6 +54,7 @@ class BusinessService:
             institution_name=payload.institution_name,
             founding_date=payload.founding_date,
             production_nature=payload.production_nature,
+            working_hours=payload.working_hours,
             category_id=payload.category_id,
             custom_category_text=payload.custom_category_text,
             location_id=payload.location_id,

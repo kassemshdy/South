@@ -76,6 +76,12 @@ class Business(Base, TimestampMixin):
     founding_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     production_nature: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # Free-text opening hours as the owner wants them read. Optional, and
+    # deliberately not a structured per-day schedule: most listings here are
+    # one-person shops, and a single line — the one they would write on their
+    # own door — is both enough and what they will actually fill in.
+    working_hours: Mapped[str | None] = mapped_column(String(200), nullable=True)
+
     # Public contact details — deliberately separate from the owner's login
     # phone, which is never published.
     phone: Mapped[str | None] = mapped_column(String(20), nullable=True)

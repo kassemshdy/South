@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import {
   BadgeCheck,
+  Clock,
   Facebook,
   Globe,
   Instagram,
@@ -369,6 +370,18 @@ export function BusinessProfilePage() {
                   <p className="flex items-start gap-3 text-ink-700">
                     <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-clay-500" aria-hidden="true" />
                     {data.address_text}
+                  </p>
+                ) : null}
+
+                {data.working_hours ? (
+                  <p className="flex items-start gap-3 text-ink-700">
+                    <Clock className="mt-0.5 h-5 w-5 shrink-0 text-clay-500" aria-hidden="true" />
+                    <span>
+                      <span className="block text-sm font-semibold text-ink-500">
+                        {t('business.workingHours')}
+                      </span>
+                      {data.working_hours}
+                    </span>
                   </p>
                 ) : null}
 

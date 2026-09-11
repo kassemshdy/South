@@ -159,6 +159,12 @@ export const businessLocationSchema = (t: Translate) =>
       .max(400, t('validation.addressTooLong'))
       .optional()
       .or(z.literal('')),
+    working_hours: z
+      .string()
+      .trim()
+      .max(200, t('validation.workingHoursTooLong'))
+      .optional()
+      .or(z.literal('')),
     maps_url: optionalUrl(t),
   })
 

@@ -71,6 +71,7 @@ class BusinessDetailOut(BusinessSummaryOut):
     institution_name: str | None = None
     founding_date: date | None = None
     production_nature: str | None = None
+    working_hours: str | None = None
     email: str | None = None
     website: str | None = None
     address_text: str | None = None
@@ -103,6 +104,7 @@ class BusinessCreateIn(BaseModel):
     institution_name: str | None = Field(default=None, max_length=200)
     founding_date: date | None = None
     production_nature: str | None = Field(default=None, max_length=5000)
+    working_hours: str | None = Field(default=None, max_length=200)
     category_id: uuid.UUID | None = None
     custom_category_text: str | None = Field(default=None, max_length=120)
     location_id: uuid.UUID | None = None
@@ -129,7 +131,7 @@ class BusinessCreateIn(BaseModel):
     def _phones(cls, value: str | None) -> str | None:
         return normalize_optional_phone(value)
 
-    @field_validator("custom_category_text", "institution_name")
+    @field_validator("custom_category_text", "institution_name", "working_hours")
     @classmethod
     def _strip_custom_category(cls, value: str | None) -> str | None:
         return _strip_or_none(value)
@@ -144,6 +146,7 @@ class BusinessUpdateIn(BaseModel):
     institution_name: str | None = Field(default=None, max_length=200)
     founding_date: date | None = None
     production_nature: str | None = Field(default=None, max_length=5000)
+    working_hours: str | None = Field(default=None, max_length=200)
     category_id: uuid.UUID | None = None
     custom_category_text: str | None = Field(default=None, max_length=120)
     location_id: uuid.UUID | None = None
@@ -162,7 +165,7 @@ class BusinessUpdateIn(BaseModel):
     def _phones(cls, value: str | None) -> str | None:
         return normalize_optional_phone(value)
 
-    @field_validator("custom_category_text", "institution_name")
+    @field_validator("custom_category_text", "institution_name", "working_hours")
     @classmethod
     def _strip_custom_category(cls, value: str | None) -> str | None:
         return _strip_or_none(value)

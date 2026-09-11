@@ -63,6 +63,7 @@ export interface BusinessPayload {
   /** ISO date (YYYY-MM-DD). */
   founding_date?: string | null
   production_nature?: string | null
+  working_hours?: string | null
   category_id?: string | null
   custom_category_text?: string | null
   location_id?: string | null

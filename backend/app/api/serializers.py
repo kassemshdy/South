@@ -122,6 +122,7 @@ def business_detail(
         institution_name=business.institution_name,
         founding_date=business.founding_date,
         production_nature=business.production_nature,
+        working_hours=business.working_hours,
         email=business.email,
         website=business.website,
         address_text=business.address_text,

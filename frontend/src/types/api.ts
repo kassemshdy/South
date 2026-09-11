@@ -161,6 +161,8 @@ export interface BusinessDetail extends BusinessSummary {
   /** ISO date (YYYY-MM-DD): founded, or started producing. */
   founding_date: string | null
   production_nature: string | null
+  /** Free-text opening hours as the owner wrote them. */
+  working_hours: string | null
   email: string | null
   website: string | null
   address_text: string | null

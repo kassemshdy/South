@@ -40,6 +40,7 @@ export function LocationForm({ business, submitLabel, pending, onSubmit, serverE
     defaultValues: {
       location_id: business?.location?.id ?? '',
       address_text: business?.address_text ?? '',
+      working_hours: business?.working_hours ?? '',
       maps_url: business?.maps_url ?? '',
     },
   })
@@ -50,6 +51,7 @@ export function LocationForm({ business, submitLabel, pending, onSubmit, serverE
     onSubmit({
       location_id: values.location_id || null,
       address_text: values.address_text || null,
+      working_hours: values.working_hours || null,
       maps_url: values.maps_url || null,
     })
   })
@@ -97,6 +99,21 @@ export function LocationForm({ business, submitLabel, pending, onSubmit, serverE
       >
         {(props) => (
           <Textarea {...props} {...register('address_text')} rows={3} invalid={Boolean(errors.address_text)} />
+        )}
+      </Field>
+
+      <Field
+        label={t('form.workingHours')}
+        error={errors.working_hours?.message}
+        hint={t('form.workingHoursHint')}
+      >
+        {(props) => (
+          <Input
+            {...props}
+            {...register('working_hours')}
+            placeholder={t('form.workingHoursPlaceholder')}
+            invalid={Boolean(errors.working_hours)}
+          />
         )}
       </Field>
 
