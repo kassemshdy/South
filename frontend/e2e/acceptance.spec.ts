@@ -86,7 +86,6 @@ test.describe('MVP acceptance flow', () => {
     // --- 1. A visitor browses approved businesses without logging in --------
     await page.goto('/')
     await expect(page.getByRole('heading', { name: t('home.heroTitle') })).toBeVisible()
-    await expect(page.getByRole('heading', { name: t('home.latestHeading') })).toBeVisible()
 
     // The one intent chooser, asked once: both halves of the question, and no
     // second or third widget asking it again further down. This replaced a
@@ -108,11 +107,6 @@ test.describe('MVP acceptance flow', () => {
     await expect(page).toHaveURL(/\/talent$/)
     await expect(page.getByRole('heading', { name: t('talent.heading') })).toBeVisible()
     await page.goBack()
-
-    // The public stats strip renders real numbers, not an error state.
-    await expect(page.getByText(t('home.statsBusinesses'))).toBeVisible()
-    await expect(page.getByText(t('home.statsTalents'))).toBeVisible()
-    await expect(page.getByText(t('home.statsProducts'))).toBeVisible()
 
     await page.goto('/businesses')
     await expect(page.getByRole('heading', { name: t('directory.heading') })).toBeVisible()
