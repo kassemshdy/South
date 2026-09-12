@@ -14,9 +14,9 @@ import type { TranslationKey } from '@/i18n'
  * that; three copies of the same list simply stopped agreeing.
  *
  * So the destinations live here, and every surface that offers them —— the
- * popup on the homepage, the switcher above each directory, the strip further
- * down the homepage —— renders this same array. A door can be moved, renamed
- * or removed in one place, and no surface can quietly disagree with another.
+ * popup on the homepage and the switcher above each directory —— renders this
+ * same array. A door can be moved, renamed or removed in one place, and no
+ * surface can quietly disagree with another.
  */
 export interface Door {
   key: string

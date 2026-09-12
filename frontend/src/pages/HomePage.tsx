@@ -1,32 +1,10 @@
-import { useQuery } from '@tanstack/react-query'
-import {
-  ArrowLeft,
-  MapPin,
-  Plus,
-  ShieldCheck,
-  Store,
-} from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { ShieldCheck } from 'lucide-react'
 
-import { Button } from '@/components/ui/Button'
-import { BusinessCardSkeleton, Skeleton } from '@/components/ui/Skeleton'
-import { EmptyState, ErrorState } from '@/components/ui/States'
 import { useAuth } from '@/features/auth/AuthContext'
-import { BusinessCard } from '@/features/businesses/BusinessCard'
 import { WelcomeVideoPlayer } from '@/features/home/WelcomeVideo'
 import { AudienceChooser } from '@/features/onboarding/AudienceChooser'
-import { DoorStrip } from '@/features/onboarding/DoorStrip'
-import { BROWSE_DOORS } from '@/features/onboarding/destinations'
-import { useCategories, useLocationGroups } from '@/hooks/useTaxonomy'
 import { useT } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
-import { publicBusinessApi } from '@/services/api/endpoints'
-import { queryKeys } from '@/services/api/queryKeys'
-
-/** The route behind a door, by key — see `destinations.ts`. */
-function doorHref(key: string): string {
-  return BROWSE_DOORS.find((door) => door.key === key)!.href
-}
 
 export function HomePage() {
   const { isAuthenticated } = useAuth()
@@ -37,19 +15,6 @@ export function HomePage() {
     description: t('home.seoDescription'),
     canonicalPath: '/',
   })
-
-  const categories = useCategories()
-  const { groups } = useLocationGroups()
-  const latest = useQuery({
-    queryKey: queryKeys.latestBusinesses(8),
-    queryFn: () => publicBusinessApi.latest(8),
-  })
-  const stats = useQuery({ queryKey: queryKeys.publicStats, queryFn: publicBusinessApi.stats })
-
-  const popularDistricts = groups
-    .slice()
-    .sort((a, b) => b.district.business_count - a.district.business_count)
-    .slice(0, 6)
 
   return (
     <>
@@ -111,9 +76,26 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Straight under the hero, against it. The four words carry the weight
-          of the whole project, so the mark's deep green closes the first
-          screen rather than turning up somewhere down the page. */}
+      {/* Straight under the hero, against it, and the last thing on the page.
+          The four words carry the weight of the whole project, so the mark's
+          deep green closes the homepage rather than turning up somewhere in
+          the middle of it.
+
+          Six sections used to follow this band: a stats strip, a categories
+          grid, the latest listings, a second copy of the browse doors, the
+          popular districts, and a closing "add your business" card. Every one
+          of them was a directory index rendered on a page nobody comes to for
+          an index — and each repeated something the visitor has already been
+          offered. The doors are in the chooser above and in the switcher on
+          every directory page; the categories and districts are filters on
+          `/businesses`, one tap from the header; the listings are the whole of
+          `/businesses` itself; and the last card asked for the same thing as
+          the chooser's offer half and the footer's link.
+
+          So the homepage now makes one pitch and asks one question, and every
+          answer to that question is a real page rather than a preview of one.
+          Resist adding a seventh: a strip of latest listings here costs a
+          request on every first visit and says less than the band does. */}
       <section
         className="border-y-4 border-wheat-500 bg-brand-700 py-10 sm:py-14"
         aria-label={t('home.sloganTitle')}
@@ -146,214 +128,6 @@ export function HomePage() {
           </p>
         </div>
       </section>
-
-
-      {/* The video used to have a section of its own here. It is in the hero
-          now, and one recording twice on one page is one too many. */}
-
-
-      <section className="container-page py-14" aria-label={t('home.statsHeading')}>
-        <div className="mx-auto grid max-w-2xl grid-cols-3 gap-4">
-          {stats.isLoading ? (
-            <>
-              <Skeleton className="h-28 rounded-2xl" />
-              <Skeleton className="h-28 rounded-2xl" />
-              <Skeleton className="h-28 rounded-2xl" />
-            </>
-          ) : stats.data ? (
-            <>
-              {/* The three directories, in the order the browse strip lists
-                  them. Towns used to be the third number, which measured the
-                  map rather than what is in here. */}
-              <StatTile
-                value={stats.data.total_businesses}
-                label={t('home.statsBusinesses')}
-                href={doorHref('businesses')}
-              />
-              <StatTile
-                value={stats.data.total_products}
-                label={t('home.statsProducts')}
-                href={doorHref('products')}
-              />
-              <StatTile
-                value={stats.data.total_talents}
-                label={t('home.statsTalents')}
-                href={doorHref('talent')}
-              />
-            </>
-          ) : null}
-          {/* A failed fetch renders nothing here: this is a decorative strip, not
-              a page the visitor came to use, so it must never block or clutter
-              the homepage with an error state. */}
-        </div>
-      </section>
-
-      <section className="container-page py-14" aria-labelledby="categories-heading">
-        <h2 id="categories-heading" className="mb-6 text-2xl">
-          {t('home.categoriesHeading')}
-        </h2>
-
-        {categories.isLoading ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {Array.from({ length: 10 }).map((_, index) => (
-              <div key={index} className="skeleton h-24 rounded-2xl" />
-            ))}
-          </div>
-        ) : categories.isError ? (
-          <ErrorState error={categories.error} onRetry={() => void categories.refetch()} />
-        ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {categories.data?.map((category) => (
-              <Link
-                key={category.id}
-                to={`/businesses?category=${encodeURIComponent(category.slug)}`}
-                className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-ink-100 bg-white p-5 text-center shadow-card transition-all hover:-translate-y-0.5 hover:border-clay-300 hover:shadow-lift"
-              >
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sand-100 text-clay-600">
-                  <Store className="h-5 w-5" aria-hidden="true" />
-                </span>
-                <span className="font-semibold text-ink-900">{category.name_ar}</span>
-                <span className="text-xs text-ink-500">
-                  {t('home.categoryCount', { count: category.business_count })}
-                </span>
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="container-page pb-14" aria-labelledby="latest-heading">
-        <div className="mb-6 flex items-center justify-between gap-4">
-          <h2 id="latest-heading" className="text-2xl">
-            {t('home.latestHeading')}
-          </h2>
-          <Link to="/businesses" className="flex items-center gap-1 font-semibold text-clay-600 hover:text-clay-700">
-            {t('home.viewAll')}
-            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          </Link>
-        </div>
-
-        {latest.isLoading ? (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <BusinessCardSkeleton key={index} />
-            ))}
-          </div>
-        ) : latest.isError ? (
-          <ErrorState error={latest.error} onRetry={() => void latest.refetch()} />
-        ) : latest.data && latest.data.length > 0 ? (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {latest.data.map((business) => (
-              <BusinessCard key={business.id} business={business} />
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            title={t('home.emptyTitle')}
-            description={t('home.emptyDescription')}
-            action={
-              <Button asChild>
-                <Link to={isAuthenticated ? '/dashboard/businesses/new' : '/login'}>
-                  {t('nav.addBusiness')}
-                </Link>
-              </Button>
-            }
-          />
-        )}
-      </section>
-
-      {/* The same three doors again, for someone who scrolled past the hero
-          without answering it —— and they do. This is the one repetition on
-          the page that earns its place: the hero asks a question, this offers
-          a way in to somebody who has just been reading listings and has now
-          decided what they want.
-
-          Deliberately the compact strip and not a second set of the cards the
-          chooser shows. Rendering both meant the identical three cards
-          appeared twice on one screen the moment someone opened the looking
-          half —— which is the duplication this whole rework exists to remove,
-          reintroduced two sections lower. A row of pills reads as "jump
-          straight there", which is what it is for. It still renders
-          `BROWSE_DOORS`, so it cannot drift from the chooser. */}
-      <section className="container-page pb-14" aria-labelledby="browse-heading">
-        <h2 id="browse-heading" className="mb-1 text-center text-2xl">
-          {t('browse.heading')}
-        </h2>
-        <p className="mx-auto mb-6 max-w-md text-center text-sm text-ink-500">
-          {t('browse.subtitle')}
-        </p>
-        <DoorStrip doors={BROWSE_DOORS} label="browse.switcherLabel" />
-      </section>
-
-      {popularDistricts.length > 0 ? (
-        <section className="container-page pb-16" aria-labelledby="locations-heading">
-          <h2 id="locations-heading" className="mb-6 text-2xl">
-            {t('home.locationsHeading')}
-          </h2>
-          <div className="flex flex-wrap gap-3">
-            {popularDistricts.map(({ district }) => (
-              <Link
-                key={district.id}
-                to={`/businesses?location=${encodeURIComponent(district.slug)}`}
-                className="inline-flex items-center gap-2 rounded-full border border-ink-100 bg-white px-5 py-2.5 font-semibold shadow-card transition-colors hover:border-clay-300 hover:text-clay-600"
-              >
-                <MapPin className="h-4 w-4 text-clay-500" aria-hidden="true" />
-                {district.name_ar}
-                <span className="text-xs font-normal text-ink-500">({district.business_count})</span>
-              </Link>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      <section className="border-t border-ink-100 bg-white py-14">
-        <div className="container-page text-center">
-          <h2 className="text-2xl">{t('home.ctaTitle')}</h2>
-          <p className="mx-auto mt-3 max-w-xl text-ink-500">{t('home.ctaBody')}</p>
-          <Button asChild size="lg" className="mt-6">
-            <Link to={isAuthenticated ? '/dashboard/businesses/new' : '/login'}>
-              <Plus className="h-5 w-5" aria-hidden="true" />
-              {t('nav.addBusiness')}
-            </Link>
-          </Button>
-        </div>
-      </section>
     </>
-  )
-}
-
-
-/**
- * One number, and the directory it counts.
- *
- * A link, not a decorative box. Each figure is the size of one of the three
- * directories, so the thing a reader wants after seeing "28 products" is the
- * products — and the tile was a dead end. The destination comes from
- * `BROWSE_DOORS` like every other route to those three pages, so this cannot
- * drift from the strip below it or the chooser above.
- *
- * `min-h` on the label rather than letting it size itself: one of the three
- * Arabic labels wraps to two lines at phone width and the other two do not,
- * which left the row visibly ragged and the numbers off a shared baseline.
- * Reserving both lines everywhere keeps the figures aligned, which is the
- * whole point of putting them in a row. The inner column then centres
- * itself in the tile, so the reserved second line does not read as a gap
- * hanging off the bottom of the two tiles that do not use it.
- */
-function StatTile({ value, label, href }: { value: number; label: string; href: string }) {
-  return (
-    <Link
-      to={href}
-      className="group rounded-2xl border border-ink-100 bg-white text-center shadow-card transition-all hover:-translate-y-0.5 hover:border-clay-300 hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 focus-visible:ring-offset-2"
-    >
-      <div className="flex h-full flex-col justify-center px-3 py-7 sm:px-4">
-        <p className="ltr-nums text-3xl font-bold text-clay-900 transition-colors group-hover:text-clay-600">
-          {value}
-        </p>
-        <p className="mt-2 flex min-h-10 items-start justify-center text-balance text-sm leading-snug text-ink-500">
-          {label}
-        </p>
-      </div>
-    </Link>
   )
 }

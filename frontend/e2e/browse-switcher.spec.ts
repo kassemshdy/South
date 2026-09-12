@@ -83,33 +83,3 @@ test.describe('Browse switcher', () => {
     )
   })
 })
-
-/**
- * The homepage's three figures are the sizes of the three directories, so
- * they are links to them. They used to be decorative boxes: a reader who saw
- * "28 products" and wanted the products had to go and find them.
- *
- * Same destinations as the switcher and the chooser, from the same array, so
- * a fourth surface cannot introduce a fourth opinion about where anything is.
- */
-test.describe('Homepage stat tiles', () => {
-  test('each figure links to the directory it counts', async ({ page }) => {
-    await page.goto('/')
-
-    for (const [labelKey, href] of [
-      ['home.statsBusinesses', '/businesses'],
-      ['home.statsProducts', '/products'],
-      ['home.statsTalents', '/talent'],
-    ] as const) {
-      const tile = page.getByRole('link', { name: new RegExp(t(labelKey)) })
-      await expect(tile).toHaveAttribute('href', href)
-    }
-
-    // And the figure is a real one, not a placeholder: the products tile
-    // agrees with what the products directory actually reports.
-    const tile = page.getByRole('link', { name: new RegExp(t('home.statsProducts')) })
-    await tile.click()
-    await expect(page).toHaveURL(/\/products/)
-    await expect(page.getByRole('heading', { name: t('products.heading') })).toBeVisible()
-  })
-})
