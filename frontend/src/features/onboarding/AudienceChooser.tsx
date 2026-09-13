@@ -1,11 +1,11 @@
-import { ArrowLeft, Check, ShoppingBag, Store } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Check, ShoppingBag, Store } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { Button } from '@/components/ui/Button'
 import { AssistedListing } from '@/features/onboarding/AssistedListing'
-import { DOOR_CARD, DoorBody, DoorCard } from '@/features/onboarding/DoorCard'
-import { BROWSE_DOORS, OFFER_DOORS, type Door } from '@/features/onboarding/destinations'
+import { DOOR_CARD, DoorBody } from '@/features/onboarding/DoorCard'
+import { OFFER_DOORS, SEEK_DOORS, type Door } from '@/features/onboarding/destinations'
 import { useT, type TranslationKey } from '@/i18n'
 
 /**
@@ -17,11 +17,19 @@ import { useT, type TranslationKey } from '@/i18n'
  * something you only see once cannot be navigation. So it is permanent, and it
  * carries no dismissal and no memory.
  *
- * **Two levels, because the question has two levels.** Offering splits into a
- * business and a personal craft; looking splits into goods and someone
- * skilled. Four leaves, reached in two taps rather than presented as four
- * choices at once — the audience here is someone who is not confident online,
+ * **Two levels, because the question has two levels.** Each half splits the
+ * same way —— goods and products, or services and jobs —— so the fork is two
+ * by two. Four leaves, reached in two taps rather than presented as four
+ * choices at once: the audience here is someone who is not confident online,
  * and two large targets are easier than four.
+ *
+ * **And a notice stands between the second level and its page.** Every route
+ * out of this widget ends at a dealing between two strangers, and the platform
+ * checks only that the person listing is from the South —— it does not stand
+ * behind the transaction. So the visitor reads that and presses agree before
+ * the page opens, on both halves. It is asked every time rather than
+ * remembered: the same reason the cards themselves carry no memory, and the
+ * gate costs one tap at the point where it is actually relevant.
  *
  * **And it is one widget now, which it was not.** The homepage used to ask
  * this three separate times: this chooser, a pair of cards in the hero, and a
@@ -72,7 +80,7 @@ const BRANCHES: Branch[] = [
     icon: ShoppingBag,
     titleKey: 'home.actionBrowse',
     needsAccount: false,
-    doors: BROWSE_DOORS,
+    doors: SEEK_DOORS,
   },
 ]
 
@@ -85,11 +93,19 @@ const STEP_KEYS: TranslationKey[] = [
 export function AudienceChooser({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
   const t = useT()
   const [intent, setIntent] = useState<Intent | null>(null)
+  const [pending, setPending] = useState<Door | null>(null)
   const [expanded, setExpanded] = useState<Door | null>(null)
 
+  // One step back per press, innermost screen first, so a visitor who went
+  // two levels in and read the notice lands back on the doors rather than at
+  // the top.
   const back = () => {
     if (expanded) {
       setExpanded(null)
+      return
+    }
+    if (pending) {
+      setPending(null)
       return
     }
     setIntent(null)
@@ -140,21 +156,76 @@ export function AudienceChooser({ isAuthenticated = false }: { isAuthenticated?:
     )
   }
 
+  // Step two and a half: the notice, between a door and the page behind it.
+  //
+  // `needsAccount` decides what agreeing leads to, not whether the notice is
+  // shown: an anonymous visitor who chose to list something still has the
+  // steps panel ahead of them, so agreeing opens that rather than navigating.
+  // Everyone else agrees straight onto the destination, and that control is a
+  // real `<Link>` so it behaves like one.
+  if (pending && branch) {
+    const toSteps = branch.needsAccount && !isAuthenticated
+    return (
+      <div className="mx-auto w-full max-w-2xl rounded-2xl border-2 border-clay-300 bg-sand-50 p-6">
+        <h3 className="flex items-center gap-2 text-lg font-bold text-ink-900">
+          <span
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-clay-100 text-clay-700"
+            aria-hidden="true"
+          >
+            <AlertTriangle className="h-5 w-5" />
+          </span>
+          {t('consent.heading')}
+        </h3>
+
+        {/* The notice is the screen, not a footnote on it: full size, full
+            line height, nothing competing for the eye above the two
+            controls. */}
+        <p className="mt-4 leading-relaxed text-ink-700">{t('consent.body')}</p>
+
+        <div className="mt-6 flex flex-wrap gap-3">
+          {toSteps ? (
+            <Button
+              type="button"
+              size="lg"
+              onClick={() => {
+                setExpanded(pending)
+                setPending(null)
+              }}
+            >
+              <Check className="h-5 w-5" aria-hidden="true" />
+              {t('consent.agree')}
+            </Button>
+          ) : (
+            <Button asChild size="lg">
+              <Link to={pending.href}>
+                <Check className="h-5 w-5" aria-hidden="true" />
+                {t('consent.agree')}
+              </Link>
+            </Button>
+          )}
+          <Button type="button" variant="ghost" size="lg" onClick={back}>
+            {t('onboarding.back')}
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   // Step two: which kind, within the chosen intent.
   if (branch) {
     return (
       <div className="mx-auto w-full max-w-2xl">
         <p className="text-center font-bold text-ink-900">{t(branch.titleKey)}</p>
+        {/* Buttons rather than links, on both halves: the notice comes
+            between a door and its page, so there is nothing here for a
+            middle-click to open yet. The final control on the notice itself is
+            a real link wherever it leads to a page. */}
         <ul className="mt-4 grid gap-4 sm:grid-cols-2">
           {branch.doors.map((door) => (
             <li key={door.key}>
-              {branch.needsAccount && !isAuthenticated ? (
-                <button type="button" className={DOOR_CARD} onClick={() => setExpanded(door)}>
-                  <DoorBody door={door} />
-                </button>
-              ) : (
-                <DoorCard door={door} />
-              )}
+              <button type="button" className={DOOR_CARD} onClick={() => setPending(door)}>
+                <DoorBody door={door} />
+              </button>
             </li>
           ))}
         </ul>
