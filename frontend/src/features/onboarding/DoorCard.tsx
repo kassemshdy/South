@@ -1,5 +1,4 @@
 import { ArrowLeft } from 'lucide-react'
-import { Link } from 'react-router-dom'
 
 import { useT } from '@/i18n'
 import type { Door } from '@/features/onboarding/destinations'
@@ -7,9 +6,13 @@ import type { Door } from '@/features/onboarding/destinations'
 /**
  * A whole-card target, sized for a thumb rather than a cursor.
  *
- * Exported because the chooser renders one case this file cannot: a door
- * that needs an account is a `<button>` opening the steps panel, not a link.
- * Same skin, different element, so the two cannot drift apart visually.
+ * Skin and contents are separate exports because the element around them is
+ * the caller's to choose. Every door in the chooser is now a `<button>` —— the
+ * responsibility notice sits between a door and its page, so there is no
+ * navigation to hand a link yet —— and this file used to also ship a `<Link>`
+ * flavour for the doors that went straight through. Nothing needs it now, so
+ * it is gone rather than left exported and unused; the strip renders its own
+ * links from `DoorStrip`.
  */
 export const DOOR_CARD =
   'group flex h-full w-full flex-row items-center gap-4 rounded-2xl border-2 border-ink-100 bg-white p-5 text-start shadow-card transition-colors hover:border-clay-300 hover:bg-sand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 focus-visible:ring-offset-2 sm:flex-col sm:items-start sm:gap-0 sm:p-6'
@@ -35,13 +38,5 @@ export function DoorBody({ door }: { door: Door }) {
         </span>
       </span>
     </>
-  )
-}
-
-export function DoorCard({ door, onNavigate }: { door: Door; onNavigate?: () => void }) {
-  return (
-    <Link to={door.href} className={DOOR_CARD} onClick={onNavigate}>
-      <DoorBody door={door} />
-    </Link>
   )
 }
