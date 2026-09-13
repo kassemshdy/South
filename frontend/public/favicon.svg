@@ -1,13 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <!--
-    Reduced from the جنوبنا mark to what survives at 16px: the deep green
-    ring and one olive sprig. Not the mark itself — that file belongs in the
-    repo and should replace this — but the same colour and the same motif, so
-    the browser tab stops showing a terracotta shop that shares nothing with
-    the brand.
+    Reduced from the جنوبنا mark to what survives at 16px: the ring and one
+    olive sprig, now in olive rather than forest green so the tab icon and
+    the header mark are the same colour (brand-700 / brand-400).
+
+    Not the mark itself — that file belongs in the repo and should replace
+    this — but the same colour and the same motif, so the browser tab stops
+    showing a terracotta shop that shares nothing with the brand. These two
+    hexes are the only place the palette is duplicated outside
+    tailwind.config.ts, so they have to be changed with it.
   -->
-  <rect width="64" height="64" rx="14" fill="#114626"/>
-  <circle cx="32" cy="32" r="20" fill="none" stroke="#3d9460" stroke-width="3"/>
+  <rect width="64" height="64" rx="14" fill="#2e4433"/>
+  <circle cx="32" cy="32" r="20" fill="none" stroke="#739c60" stroke-width="3"/>
   <g stroke="#e8ae1f" stroke-width="3" stroke-linecap="round" fill="none">
     <path d="M20 40 C 28 30 38 24 46 22"/>
   </g>
