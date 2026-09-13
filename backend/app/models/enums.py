@@ -154,3 +154,22 @@ class OrderStatus(str, enum.Enum):
     NEW = "NEW"
     CONTACTED = "CONTACTED"
     DONE = "DONE"
+
+
+class OwnerRelation(str, enum.Enum):
+    """How the person listing a business stands to the establishment itself.
+
+    A moderation signal rather than a public one: it answers "is this person
+    entitled to list on behalf of this place", which is a reviewer's question.
+    It therefore sits on ``OwnerBusinessOut`` and not on the public detail
+    schema -- see ``tests/test_owner_relation.py``, which pins that boundary
+    the way ``test_identity.py`` pins the account holder's own fields.
+
+    Per *business*, not per account, because one person may own one
+    establishment and manage another; that is exactly why it cannot live on
+    ``users`` beside the identity fields it is asked for alongside.
+    """
+
+    OWNER = "OWNER"
+    MANAGER = "MANAGER"
+    WORKER = "WORKER"

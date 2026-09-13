@@ -26,6 +26,7 @@ from app.models.enums import (
     Currency,
     ImageKind,
     ModerationActionType,
+    OwnerRelation,
     SocialPlatform,
 )
 
@@ -75,6 +76,21 @@ class Business(Base, TimestampMixin):
     # say so.
     founding_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     production_nature: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Years in this trade, which is not the same as the establishment's age:
+    # someone who spent fifteen years at a bakery before opening their own
+    # last year has both, and the buyer cares about the fifteen. Published
+    # for that reason, alongside the founding date.
+    years_of_experience: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    # --- Who is listing this (never published) ---------------------------
+    # Owner, manager or employee. A reviewer's question -- is this person
+    # entitled to list on behalf of this establishment -- so it reaches the
+    # owner and an administrator and stops there, the same boundary the
+    # account holder's identity fields keep. Per business rather than per
+    # account: one person may own one place and manage another.
+    owner_relation: Mapped[OwnerRelation | None] = mapped_column(
+        pg_enum(OwnerRelation, "owner_relation"), nullable=True
+    )
 
     # Public contact details — deliberately separate from the owner's login
     # phone, which is never published.
