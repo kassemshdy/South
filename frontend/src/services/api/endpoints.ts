@@ -96,7 +96,6 @@ export interface ItemPayload {
 
 export interface TalentPayload {
   display_name: string
-  headline?: string | null
   bio?: string | null
   years_experience?: number | null
   skill_id?: string | null

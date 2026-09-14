@@ -228,7 +228,6 @@ export function AdminTalentReviewPage() {
               <h2 className="font-bold">{t('admin.infoTitle')}</h2>
             </CardHeader>
             <CardBody className="space-y-3">
-              <Detail labelKey="admin.fieldHeadline" value={data.headline} />
               <Detail labelKey="admin.fieldBio" value={data.bio} />
               <Detail
                 labelKey="admin.fieldSkill"

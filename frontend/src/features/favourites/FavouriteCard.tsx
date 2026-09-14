@@ -82,10 +82,16 @@ export function FavouriteCard({ favourite }: { favourite: Favourite }) {
       price: null,
     }
   } else if (talent.data && subject === 'TALENT') {
+    // An "Other" profile shows the person's own words; every other profile
+    // shows the skill name — same rule TalentCard uses for its badge.
+    const skillLabel =
+      talent.data.skill?.slug === 'other' && talent.data.custom_skill_text
+        ? talent.data.custom_skill_text
+        : (talent.data.skill?.name_ar ?? null)
     live = {
       title: talent.data.display_name,
       imageUrl: talent.data.photo_url,
-      subtitle: talent.data.headline,
+      subtitle: skillLabel,
       price: null,
     }
   } else if (product.data && subject === 'PRODUCT') {

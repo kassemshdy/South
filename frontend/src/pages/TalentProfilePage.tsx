@@ -43,7 +43,7 @@ export function TalentProfilePage() {
         ? `${data.display_name} — ${data.location.name_ar} | ${t('app.name')}`
         : `${data.display_name} | ${t('app.name')}`
       : t('app.name'),
-    description: data?.headline ?? undefined,
+    description: data?.bio ?? undefined,
     image: data?.photo_url ?? null,
     canonicalPath: `/talent/${encodeURIComponent(slug)}`,
   })
@@ -158,8 +158,6 @@ export function TalentProfilePage() {
               </Badge>
             </div>
 
-            {data.headline ? <p className="mt-2 text-ink-600">{data.headline}</p> : null}
-
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-500">
               {data.skill ? (
                 <Link
@@ -184,7 +182,7 @@ export function TalentProfilePage() {
           </div>
 
           <div className="flex shrink-0 gap-2">
-            <ShareButton title={data.display_name} text={data.headline ?? undefined} />
+            <ShareButton title={data.display_name} text={data.bio ?? undefined} />
             <FavouriteButton
               subject="TALENT"
               slug={data.slug}

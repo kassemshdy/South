@@ -93,7 +93,6 @@ class TalentProfile(Base, TimestampMixin):
     # someone may work under a professional name.
     display_name: Mapped[str] = mapped_column(String(160), nullable=False)
     slug: Mapped[str] = mapped_column(String(180), unique=True, index=True, nullable=False)
-    headline: Mapped[str | None] = mapped_column(String(300), nullable=True)
     bio: Mapped[str | None] = mapped_column(Text, nullable=True)
     years_experience: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
