@@ -111,7 +111,7 @@ export function AdminReviewPage() {
 
   return (
     <div className="max-w-4xl space-y-6">
-      <Link to="/admin/businesses" className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-clay-600">
+      <Link to="/admin/businesses" className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-brand-700">
         <ArrowRight className="h-4 w-4" aria-hidden="true" />
         {t('admin.backToBusinesses')}
       </Link>
@@ -270,7 +270,7 @@ export function AdminReviewPage() {
                           <p className="text-xs text-ink-500">{t('items.unavailable')}</p>
                         ) : null}
                       </div>
-                      <span className="ltr-nums shrink-0 font-bold text-clay-700">
+                      <span className="ltr-nums shrink-0 font-bold text-brand-800">
                         {formatPrice(item.price, item.currency) ?? '—'}
                       </span>
                     </li>
@@ -337,7 +337,7 @@ export function AdminReviewPage() {
                     href={link.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block truncate text-sm text-clay-600 hover:underline"
+                    className="block truncate text-sm text-brand-700 hover:underline"
                   >
                     {t(PLATFORM_KEYS[link.platform])}:{' '}
                     <span className="ltr-nums">{link.url}</span>
@@ -359,7 +359,7 @@ export function AdminReviewPage() {
                   {data.moderation_actions.map((action) => (
                     <li key={action.id} className="border-s-2 border-ink-100 ps-3">
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge className="bg-sand-100 text-clay-700">
+                        <Badge className="bg-sand-100 text-brand-700">
                           {t(STATUS_KEYS[action.to_status])}
                         </Badge>
                         <span className="text-xs text-ink-300">

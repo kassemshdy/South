@@ -162,7 +162,7 @@ export function TalentProfilePage() {
               {data.skill ? (
                 <Link
                   to={`/talent?skill=${encodeURIComponent(data.skill.slug)}`}
-                  className="font-semibold text-clay-600 hover:underline"
+                  className="font-semibold text-brand-700 hover:underline"
                 >
                   {skillLabel}
                 </Link>
@@ -278,9 +278,9 @@ export function TalentProfilePage() {
                 {data.phone ? (
                   <a
                     href={phone ?? '#'}
-                    className="flex items-center gap-3 text-ink-700 hover:text-clay-600"
+                    className="flex items-center gap-3 text-ink-700 hover:text-brand-700"
                   >
-                    <Phone className="h-5 w-5 shrink-0 text-clay-500" aria-hidden="true" />
+                    <Phone className="h-5 w-5 shrink-0 text-brand-600" aria-hidden="true" />
                     <span className="ltr-nums">{data.phone}</span>
                   </a>
                 ) : null}
@@ -288,9 +288,9 @@ export function TalentProfilePage() {
                 {data.email ? (
                   <a
                     href={`mailto:${data.email}`}
-                    className="flex items-center gap-3 break-all text-ink-700 hover:text-clay-600"
+                    className="flex items-center gap-3 break-all text-ink-700 hover:text-brand-700"
                   >
-                    <Mail className="h-5 w-5 shrink-0 text-clay-500" aria-hidden="true" />
+                    <Mail className="h-5 w-5 shrink-0 text-brand-600" aria-hidden="true" />
                     {data.email}
                   </a>
                 ) : null}
@@ -300,9 +300,9 @@ export function TalentProfilePage() {
                     href={data.website}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-3 break-all text-ink-700 hover:text-clay-600"
+                    className="flex items-center gap-3 break-all text-ink-700 hover:text-brand-700"
                   >
-                    <Globe className="h-5 w-5 shrink-0 text-clay-500" aria-hidden="true" />
+                    <Globe className="h-5 w-5 shrink-0 text-brand-600" aria-hidden="true" />
                     {data.website}
                   </a>
                 ) : null}

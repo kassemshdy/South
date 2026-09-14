@@ -224,7 +224,7 @@ export function BasicsForm({
           </div>
 
           <fieldset className="space-y-5 rounded-2xl border border-ink-100 p-4">
-            <legend className="px-2 text-sm font-bold text-clay-700">
+            <legend className="px-2 text-sm font-bold text-brand-800">
               {t('form.producerHeading')}
             </legend>
             <p className="text-sm text-ink-500">{t('form.producerHint')}</p>
@@ -298,7 +298,7 @@ export function BasicsForm({
               (is this person entitled to list on behalf of the place) and
               never reaches the public listing. See OwnerBusinessOut. */}
           <fieldset className="space-y-3 rounded-2xl border border-ink-100 p-4">
-            <legend className="px-2 text-sm font-bold text-clay-700">
+            <legend className="px-2 text-sm font-bold text-brand-800">
               {t('form.ownerRelationHeading')}
             </legend>
 

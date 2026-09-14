@@ -3,7 +3,7 @@ import { forwardRef, type InputHTMLAttributes, type TextareaHTMLAttributes } fro
 import { cn } from '@/utils/cn'
 
 const base =
-  'w-full rounded-xl border-2 border-ink-100 bg-white px-4 py-3 text-[15px] text-ink-900 placeholder:text-ink-300 transition-colors focus:border-clay-400 focus:outline-none focus:ring-2 focus:ring-clay-500/20 disabled:bg-ink-50 aria-[invalid=true]:border-clay-500'
+  'w-full rounded-xl border-2 border-ink-100 bg-white px-4 py-3 text-[15px] text-ink-900 placeholder:text-ink-300 transition-colors focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:bg-ink-50 aria-[invalid=true]:border-clay-500'
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   invalid?: boolean

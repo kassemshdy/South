@@ -28,22 +28,22 @@ export function Footer() {
           </h2>
           <ul className="space-y-2 text-ink-500">
             <li>
-              <Link to="/businesses" className="hover:text-clay-600">
+              <Link to="/businesses" className="hover:text-brand-700">
                 {t('nav.directory')}
               </Link>
             </li>
             <li>
-              <Link to="/dashboard/businesses/new" className="hover:text-clay-600">
+              <Link to="/dashboard/businesses/new" className="hover:text-brand-700">
                 {t('nav.addBusiness')}
               </Link>
             </li>
             <li>
               {isAuthenticated ? (
-                <Link to="/dashboard" className="hover:text-clay-600">
+                <Link to="/dashboard" className="hover:text-brand-700">
                   {t('nav.myBusinesses')}
                 </Link>
               ) : (
-                <Link to="/login" className="hover:text-clay-600">
+                <Link to="/login" className="hover:text-brand-700">
                   {t('nav.login')}
                 </Link>
               )}

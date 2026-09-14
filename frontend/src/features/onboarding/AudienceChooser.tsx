@@ -125,7 +125,7 @@ export function AudienceChooser({ isAuthenticated = false }: { isAuthenticated?:
           {STEP_KEYS.map((key, index) => (
             <li key={key} className="flex items-start gap-3">
               <span
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-clay-500 text-sm font-bold text-white ltr-nums"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-800 text-sm font-bold text-white ltr-nums"
                 aria-hidden="true"
               >
                 {index + 1}
@@ -169,7 +169,7 @@ export function AudienceChooser({ isAuthenticated = false }: { isAuthenticated?:
       <div className="mx-auto w-full max-w-2xl rounded-2xl border-2 border-clay-300 bg-sand-50 p-6">
         <h3 className="flex items-center gap-2 text-lg font-bold text-ink-900">
           <span
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-clay-100 text-clay-700"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-800"
             aria-hidden="true"
           >
             <AlertTriangle className="h-5 w-5" />
@@ -264,15 +264,15 @@ export function AudienceChooser({ isAuthenticated = false }: { isAuthenticated?:
                 type="button"
                 onClick={() => setIntent(candidate.intent)}
                 aria-expanded={false}
-                className="group flex h-full w-full flex-col items-center gap-3 rounded-2xl border-2 border-ink-100 bg-white p-6 text-center shadow-card transition-all hover:-translate-y-0.5 hover:border-clay-300 hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 focus-visible:ring-offset-2"
+                className="group flex h-full w-full flex-col items-center gap-3 rounded-2xl border-2 border-ink-100 bg-white p-6 text-center shadow-card transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
               >
-                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-sand-100 text-clay-600 transition-colors group-hover:bg-clay-500 group-hover:text-white">
+                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-sand-100 text-brand-700 transition-colors group-hover:bg-brand-700 group-hover:text-white">
                   <Icon className="h-6 w-6" aria-hidden="true" />
                 </span>
                 <span className="text-lg font-bold leading-snug text-ink-900">
                   {t(candidate.titleKey)}
                 </span>
-                <span className="flex items-center gap-1.5 text-sm font-semibold text-clay-600">
+                <span className="flex items-center gap-1.5 text-sm font-semibold text-brand-700">
                   {t('onboarding.choose')}
                   <ArrowLeft className="h-4 w-4 ltr:rotate-180" aria-hidden="true" />
                 </span>

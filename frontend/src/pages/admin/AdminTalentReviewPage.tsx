@@ -131,7 +131,7 @@ export function AdminTalentReviewPage() {
     <div className="max-w-4xl space-y-6">
       <Link
         to="/admin/talent"
-        className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-clay-600"
+        className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-brand-700"
       >
         <ArrowRight className="h-4 w-4" aria-hidden="true" />
         {t('admin.backToTalent')}
@@ -349,7 +349,7 @@ export function AdminTalentReviewPage() {
                   {data.moderation_actions.map((action) => (
                     <li key={action.id} className="border-s-2 border-ink-100 ps-3">
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge className="bg-sand-100 text-clay-700">
+                        <Badge className="bg-sand-100 text-brand-700">
                           {t(STATUS_KEYS[action.to_status])}
                         </Badge>
                         <span className="text-xs text-ink-300">

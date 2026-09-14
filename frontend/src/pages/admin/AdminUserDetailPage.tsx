@@ -22,7 +22,7 @@ function WebsiteLink({ website }: { website: string | null }) {
       href={website}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-1 text-sm font-semibold text-clay-600 hover:text-clay-700 hover:underline"
+      className="inline-flex items-center gap-1 text-sm font-semibold text-brand-700 hover:text-brand-800 hover:underline"
     >
       <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
       {t('admin.fieldWebsite')}
@@ -49,7 +49,7 @@ function BusinessRow({ business }: { business: AdminBusiness }) {
       </div>
       <Link
         to={`/admin/businesses/${business.id}`}
-        className="shrink-0 text-sm font-semibold text-clay-600 hover:text-clay-700"
+        className="shrink-0 text-sm font-semibold text-brand-700 hover:text-brand-800"
       >
         {business.status === 'PENDING_REVIEW' ? t('admin.review') : t('admin.details')}
       </Link>
@@ -76,7 +76,7 @@ function TalentRow({ talent }: { talent: AdminTalent }) {
       </div>
       <Link
         to={`/admin/talent/${talent.id}`}
-        className="shrink-0 text-sm font-semibold text-clay-600 hover:text-clay-700"
+        className="shrink-0 text-sm font-semibold text-brand-700 hover:text-brand-800"
       >
         {talent.status === 'PENDING_REVIEW' ? t('admin.review') : t('admin.details')}
       </Link>
@@ -104,7 +104,7 @@ export function AdminUserDetailPage() {
     <div className="max-w-3xl space-y-6">
       <Link
         to="/admin/users"
-        className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-clay-600"
+        className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-brand-700"
       >
         <ArrowRight className="h-4 w-4" aria-hidden="true" />
         {t('admin.backToUsers')}

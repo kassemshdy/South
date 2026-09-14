@@ -73,7 +73,7 @@ export function WelcomeVideoPlayer() {
               />
             )}
             <span className="absolute inset-0 flex items-center justify-center">
-              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-clay-500 text-white shadow-lift transition-transform group-hover:scale-110 sm:h-20 sm:w-20">
+              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-800 text-white shadow-lift transition-transform group-hover:scale-110 sm:h-20 sm:w-20">
                 {/* Nudged off-centre so the triangle looks centred. */}
                 <Play className="h-7 w-7 translate-x-0.5 sm:h-9 sm:w-9" aria-hidden="true" />
               </span>

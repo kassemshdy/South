@@ -15,7 +15,7 @@ interface EmptyStateProps {
 export function EmptyState({ title, description, icon, action }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-ink-100 bg-white/60 px-6 py-14 text-center">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-sand-100 text-clay-500">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-sand-100 text-brand-700">
         {icon ?? <Inbox className="h-7 w-7" aria-hidden="true" />}
       </div>
       <h3 className="text-lg font-bold text-ink-900">{title}</h3>
@@ -81,7 +81,7 @@ export function InlineSpinner({ label }: { label?: string }) {
   const t = useT()
   return (
     <div className="flex items-center justify-center gap-3 py-10 text-ink-500" role="status">
-      <span className="h-5 w-5 animate-spin rounded-full border-2 border-ink-100 border-t-clay-500" />
+      <span className="h-5 w-5 animate-spin rounded-full border-2 border-ink-100 border-t-brand-600" />
       <span>{label ?? t('states.loading')}</span>
     </div>
   )

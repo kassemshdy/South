@@ -77,7 +77,7 @@ export function AdminTalentsPage() {
               className={cn(
                 'rounded-full px-4 py-2 text-sm font-semibold transition-colors',
                 isActive
-                  ? 'bg-clay-500 text-white'
+                  ? 'bg-brand-800 text-white'
                   : 'bg-white text-ink-700 ring-1 ring-ink-100 hover:bg-sand-100',
               )}
             >
@@ -109,7 +109,7 @@ export function AdminTalentsPage() {
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
             placeholder={t('admin.talentSearchPlaceholder')}
-            className="h-11 w-full rounded-xl border-2 border-ink-100 bg-white ps-12 pe-4 focus:border-clay-400 focus:outline-none"
+            className="h-11 w-full rounded-xl border-2 border-ink-100 bg-white ps-12 pe-4 focus:border-brand-400 focus:outline-none"
           />
         </div>
         <Button type="submit">{t('common.search')}</Button>
