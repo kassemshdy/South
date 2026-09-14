@@ -8,7 +8,7 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.core.i18n import translate
 from app.core.phone import normalize_optional_phone
-from app.models.enums import BusinessStatus, ImageKind, SocialPlatform
+from app.models.enums import BusinessStatus, ImageKind, OwnerRelation, SocialPlatform
 from app.schemas.common import ORMModel
 from app.schemas.item import BusinessItemOut
 from app.schemas.taxonomy import CategoryOut, LocationOut
@@ -71,6 +71,7 @@ class BusinessDetailOut(BusinessSummaryOut):
     institution_name: str | None = None
     founding_date: date | None = None
     production_nature: str | None = None
+    years_of_experience: int | None = None
     email: str | None = None
     website: str | None = None
     address_text: str | None = None
@@ -88,8 +89,17 @@ class BusinessDetailOut(BusinessSummaryOut):
 
 
 class OwnerBusinessOut(BusinessDetailOut):
-    """Adds moderation fields only the owner (and admins) may see."""
+    """Adds moderation fields only the owner (and admins) may see.
 
+    ``owner_relation`` is here rather than one class up on purpose. It says
+    whether the person listing owns, manages or works at the establishment,
+    which is a reviewer's question and nobody else's, so this class is the
+    boundary that keeps it off every public payload —— exactly the role
+    ``OwnerIdentityOut`` plays for the account holder's own fields.
+    ``tests/test_owner_relation.py`` pins it.
+    """
+
+    owner_relation: OwnerRelation | None = None
     status: BusinessStatus
     rejection_reason: str | None = None
     submitted_at: datetime | None = None
@@ -103,6 +113,8 @@ class BusinessCreateIn(BaseModel):
     institution_name: str | None = Field(default=None, max_length=200)
     founding_date: date | None = None
     production_nature: str | None = Field(default=None, max_length=5000)
+    years_of_experience: int | None = Field(default=None, ge=0, le=100)
+    owner_relation: OwnerRelation | None = None
     category_id: uuid.UUID | None = None
     custom_category_text: str | None = Field(default=None, max_length=120)
     location_id: uuid.UUID | None = None
@@ -144,6 +156,8 @@ class BusinessUpdateIn(BaseModel):
     institution_name: str | None = Field(default=None, max_length=200)
     founding_date: date | None = None
     production_nature: str | None = Field(default=None, max_length=5000)
+    years_of_experience: int | None = Field(default=None, ge=0, le=100)
+    owner_relation: OwnerRelation | None = None
     category_id: uuid.UUID | None = None
     custom_category_text: str | None = Field(default=None, max_length=120)
     location_id: uuid.UUID | None = None

@@ -130,6 +130,19 @@ export const businessBasicsSchema = (t: Translate, otherCategoryId?: string) =>
           t('validation.foundingDateInvalid'),
         ),
       production_nature: z.string().trim().max(5000).optional().or(z.literal('')),
+      years_of_experience: z
+        .string()
+        .trim()
+        .optional()
+        .or(z.literal(''))
+        .refine(
+          (value) => !value || (/^\d+$/.test(value) && Number(value) <= 100),
+          t('validation.yearsOfExperienceInvalid'),
+        ),
+      // Who is listing this -- a reviewer's question, and optional like the
+      // rest of this step; the empty string is "not chosen", mapped to null
+      // on submit alongside every other optional field here.
+      owner_relation: z.enum(['OWNER', 'MANAGER', 'WORKER']).optional().or(z.literal('')),
 
       phone: optionalPhone(t),
       whatsapp: optionalPhone(t),

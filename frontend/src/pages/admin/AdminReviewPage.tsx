@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/Input'
 import { ErrorState, InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
 import { OwnerIdentityCard } from '@/features/admin/OwnerIdentityCard'
+import { OWNER_RELATION_KEYS } from '@/features/businesses/labels'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
 import { useI18n, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
@@ -219,6 +220,16 @@ export function AdminReviewPage() {
                 value={data.founding_date ? formatDate(data.founding_date, locale) : null}
               />
               <Detail labelKey="business.productionLabel" value={data.production_nature} />
+              <Detail
+                labelKey="business.yearsOfExperienceLabel"
+                value={data.years_of_experience !== null ? String(data.years_of_experience) : null}
+                ltr
+              />
+              {/* Per business, not per account -- never on OwnerIdentityCard. */}
+              <Detail
+                labelKey="business.ownerRelationLabel"
+                value={data.owner_relation ? t(OWNER_RELATION_KEYS[data.owner_relation]) : null}
+              />
             </CardBody>
           </Card>
 

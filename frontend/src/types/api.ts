@@ -19,6 +19,14 @@ export type Gender = 'MALE' | 'FEMALE'
 export type MaritalStatus = 'SINGLE' | 'MARRIED' | 'DIVORCED' | 'WIDOWED'
 
 /**
+ * How the person listing a business stands to the establishment itself —
+ * owner, manager, or an employee listing on the business's behalf. A
+ * reviewer's question, not a shopper's: present on `OwnerBusiness` and
+ * `AdminBusiness`, never on the public `BusinessDetail`.
+ */
+export type OwnerRelation = 'OWNER' | 'MANAGER' | 'WORKER'
+
+/**
  * The account holder's identity.
  *
  * Belongs to the person, not to any one listing — one account holds a single
@@ -182,6 +190,8 @@ export interface BusinessDetail extends BusinessSummary {
   /** ISO date (YYYY-MM-DD): founded, or started producing. */
   founding_date: string | null
   production_nature: string | null
+  /** Years in this trade -- not the establishment's age; see founding_date. */
+  years_of_experience: number | null
   email: string | null
   website: string | null
   address_text: string | null
@@ -198,6 +208,8 @@ export interface BusinessDetail extends BusinessSummary {
 
 /** The owner's own view of a listing, including moderation state. */
 export interface OwnerBusiness extends BusinessDetail {
+  /** Never on BusinessDetail -- a reviewer's question, not a public one. */
+  owner_relation: OwnerRelation | null
   status: BusinessStatus
   rejection_reason: string | null
   submitted_at: string | null
