@@ -204,6 +204,23 @@ export const itemSchema = (t: Translate) =>
       ),
     currency: z.enum(['USD', 'LBP']),
     is_available: z.boolean(),
+    good_type: z.string().trim().max(160).optional().or(z.literal('')),
+    brand_name: z.string().trim().max(160).optional().or(z.literal('')),
+    ingredients: z.string().trim().max(2000).optional().or(z.literal('')),
+    manufactured_at: z
+      .string()
+      .trim()
+      .optional()
+      .or(z.literal(''))
+      .refine((value) => !value || !Number.isNaN(Date.parse(value)), t('validation.dateInvalid')),
+    expiry_date: z
+      .string()
+      .trim()
+      .optional()
+      .or(z.literal(''))
+      .refine((value) => !value || !Number.isNaN(Date.parse(value)), t('validation.dateInvalid')),
+    net_weight: z.string().trim().max(80).optional().or(z.literal('')),
+    external_link: optionalUrl(t),
   })
 
 /**
@@ -219,12 +236,6 @@ export const talentSchema = (t: Translate, otherSkillId?: string) =>
         .trim()
         .min(2, t('validation.nameRequired'))
         .max(160, t('validation.nameTooLong')),
-      headline: z
-        .string()
-        .trim()
-        .max(300, t('validation.shortDescriptionTooLong'))
-        .optional()
-        .or(z.literal('')),
       bio: z.string().trim().max(5000, t('validation.descriptionTooLong')).optional().or(z.literal('')),
       years_experience: z
         .string()
@@ -247,9 +258,29 @@ export const talentSchema = (t: Translate, otherSkillId?: string) =>
       highest_degree: z.string().trim().max(160).optional().or(z.literal('')),
       specialization: z.string().trim().max(160).optional().or(z.literal('')),
       university: z.string().trim().max(200).optional().or(z.literal('')),
+      education_years: z
+        .string()
+        .trim()
+        .optional()
+        .or(z.literal(''))
+        .refine(
+          (value) => !value || (/^\d{1,2}$/.test(value) && Number(value) <= 30),
+          t('validation.yearsInvalid'),
+        ),
+      graduation_date: z
+        .string()
+        .trim()
+        .optional()
+        .or(z.literal(''))
+        .refine((value) => !value || !Number.isNaN(Date.parse(value)), t('validation.dateInvalid')),
+      study_focus: z.string().trim().max(2000).optional().or(z.literal('')),
       experience: z.string().trim().max(5000).optional().or(z.literal('')),
+      professional_training: z.string().trim().max(2000).optional().or(z.literal('')),
       skills_text: z.string().trim().max(2000).optional().or(z.literal('')),
       services_offered: z.string().trim().max(2000).optional().or(z.literal('')),
+      hobbies: z.string().trim().max(1000).optional().or(z.literal('')),
+      employment_type: z.enum(['FULL_TIME', 'PART_TIME']).optional().or(z.literal('')),
+      remote_capable: z.boolean(),
       languages: z
         .array(
           z.object({

@@ -173,3 +173,10 @@ class OwnerRelation(str, enum.Enum):
     OWNER = "OWNER"
     MANAGER = "MANAGER"
     WORKER = "WORKER"
+
+
+class EmploymentType(str, enum.Enum):
+    """What kind of job a talent profile is looking for, if anything."""
+
+    FULL_TIME = "FULL_TIME"
+    PART_TIME = "PART_TIME"

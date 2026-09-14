@@ -11,14 +11,15 @@ import { FavouriteButton } from '@/features/favourites/FavouriteButton'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { useSeo } from '@/hooks/useSeo'
-import { useT } from '@/i18n'
+import { useI18n, useT } from '@/i18n'
 import { publicItemApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import { formatPrice, telHref, whatsappHref } from '@/utils/format'
+import { formatDate, formatPrice, telHref, whatsappHref } from '@/utils/format'
 
 export function ProductProfilePage() {
   const { slug = '' } = useParams()
   const t = useT()
+  const { locale } = useI18n()
 
   const product = useQuery({
     queryKey: queryKeys.product(slug),
@@ -127,6 +128,91 @@ export function ProductProfilePage() {
             <p className="mt-4 whitespace-pre-line leading-loose text-ink-700" dir="auto">
               {data.description}
             </p>
+          ) : null}
+
+          {data.images.length > 0 ? (
+            <ul className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">
+              {data.images.map((image) => (
+                <li key={image.id} className="overflow-hidden rounded-xl bg-sand-100">
+                  <img src={image.url} alt={image.caption ?? data.title} className="h-24 w-full object-cover sm:h-28" />
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
+          {data.good_type ||
+          data.brand_name ||
+          data.ingredients ||
+          data.manufactured_at ||
+          data.expiry_date ||
+          data.net_weight ||
+          data.external_link ? (
+            <section aria-labelledby="product-detail-heading" className="mt-6">
+              <h2 id="product-detail-heading" className="mb-3 text-xl">
+                {t('products.detailHeading')}
+              </h2>
+              <Card>
+                <CardBody>
+                  <dl className="grid gap-4 sm:grid-cols-2">
+                    {data.good_type ? (
+                      <div>
+                        <dt className="text-sm font-semibold text-ink-500">{t('products.goodTypeLabel')}</dt>
+                        <dd className="mt-1 text-ink-700">{data.good_type}</dd>
+                      </div>
+                    ) : null}
+                    {data.brand_name ? (
+                      <div>
+                        <dt className="text-sm font-semibold text-ink-500">{t('products.brandNameLabel')}</dt>
+                        <dd className="mt-1 text-ink-700">{data.brand_name}</dd>
+                      </div>
+                    ) : null}
+                    {data.net_weight ? (
+                      <div>
+                        <dt className="text-sm font-semibold text-ink-500">{t('products.netWeightLabel')}</dt>
+                        <dd className="mt-1 text-ink-700">{data.net_weight}</dd>
+                      </div>
+                    ) : null}
+                    {data.manufactured_at ? (
+                      <div>
+                        <dt className="text-sm font-semibold text-ink-500">
+                          {t('products.manufacturedAtLabel')}
+                        </dt>
+                        <dd className="mt-1 text-ink-700">{formatDate(data.manufactured_at, locale)}</dd>
+                      </div>
+                    ) : null}
+                    {data.expiry_date ? (
+                      <div>
+                        <dt className="text-sm font-semibold text-ink-500">{t('products.expiryDateLabel')}</dt>
+                        <dd className="mt-1 text-ink-700">{formatDate(data.expiry_date, locale)}</dd>
+                      </div>
+                    ) : null}
+                    {data.ingredients ? (
+                      <div className="sm:col-span-2">
+                        <dt className="text-sm font-semibold text-ink-500">{t('products.ingredientsLabel')}</dt>
+                        <dd className="mt-1 whitespace-pre-line leading-relaxed text-ink-700" dir="auto">
+                          {data.ingredients}
+                        </dd>
+                      </div>
+                    ) : null}
+                    {data.external_link ? (
+                      <div className="sm:col-span-2">
+                        <dt className="text-sm font-semibold text-ink-500">{t('products.externalLinkLabel')}</dt>
+                        <dd className="mt-1">
+                          <a
+                            href={data.external_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="break-all text-clay-600 underline"
+                          >
+                            {data.external_link}
+                          </a>
+                        </dd>
+                      </div>
+                    ) : null}
+                  </dl>
+                </CardBody>
+              </Card>
+            </section>
           ) : null}
         </div>
 

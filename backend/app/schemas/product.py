@@ -7,11 +7,14 @@ nested under a business the caller already owns.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
+
+from pydantic import Field
 
 from app.models.enums import Currency
 from app.schemas.common import ORMModel
+from app.schemas.item import ItemImageOut
 from app.schemas.taxonomy import CategoryOut, LocationOut
 
 
@@ -39,3 +42,11 @@ class ProductSummaryOut(ORMModel):
 class ProductDetailOut(ProductSummaryOut):
     description: str | None = None
     created_at: datetime
+    good_type: str | None = None
+    brand_name: str | None = None
+    ingredients: str | None = None
+    manufactured_at: date | None = None
+    expiry_date: date | None = None
+    net_weight: str | None = None
+    external_link: str | None = None
+    images: list[ItemImageOut] = Field(default_factory=list)

@@ -169,7 +169,6 @@ def test_a_talent_profile_view_is_counted_and_the_owner_excluded(
         headers=headers,
         json={
             "display_name": ar("talent.designer"),
-            "headline": ar("talent.designer_headline"),
             "skill_id": str(skill.id),
             "location_id": str(location.id),
         },

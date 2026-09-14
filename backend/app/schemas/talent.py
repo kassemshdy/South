@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
@@ -10,6 +10,7 @@ from app.core.i18n import translate
 from app.core.phone import normalize_optional_phone
 from app.models.enums import (
     BusinessStatus,
+    EmploymentType,
     ImageKind,
     LanguageProficiency,
 )
@@ -68,7 +69,6 @@ class TalentSummaryOut(ORMModel):
     id: uuid.UUID
     display_name: str
     slug: str
-    headline: str | None = None
     photo_url: str | None = None
     phone: str | None = None
     whatsapp: str | None = None
@@ -99,9 +99,16 @@ class TalentDetailOut(TalentSummaryOut):
     highest_degree: str | None = None
     specialization: str | None = None
     university: str | None = None
+    education_years: int | None = None
+    graduation_date: date | None = None
+    study_focus: str | None = None
     experience: str | None = None
+    professional_training: str | None = None
     skills_text: str | None = None
     services_offered: str | None = None
+    hobbies: str | None = None
+    employment_type: EmploymentType | None = None
+    remote_capable: bool = False
     languages: list[TalentLanguageOut] = Field(default_factory=list)
 
 
@@ -143,9 +150,16 @@ class TalentProfileFieldsIn(BaseModel):
     highest_degree: str | None = Field(default=None, max_length=160)
     specialization: str | None = Field(default=None, max_length=160)
     university: str | None = Field(default=None, max_length=200)
+    education_years: int | None = Field(default=None, ge=0, le=30)
+    graduation_date: date | None = None
+    study_focus: str | None = Field(default=None, max_length=2000)
     experience: str | None = Field(default=None, max_length=5000)
+    professional_training: str | None = Field(default=None, max_length=2000)
     skills_text: str | None = Field(default=None, max_length=2000)
     services_offered: str | None = Field(default=None, max_length=2000)
+    hobbies: str | None = Field(default=None, max_length=1000)
+    employment_type: EmploymentType | None = None
+    remote_capable: bool = False
 
     languages: list[TalentLanguageIn] | None = Field(default=None, max_length=20)
 
@@ -157,7 +171,6 @@ class TalentProfileFieldsIn(BaseModel):
 
 class TalentCreateIn(TalentProfileFieldsIn):
     display_name: str = Field(min_length=2, max_length=160)
-    headline: str | None = Field(default=None, max_length=300)
     bio: str | None = Field(default=None, max_length=5000)
     years_experience: int | None = Field(default=None, ge=0, le=70)
     skill_id: uuid.UUID | None = None
@@ -191,7 +204,6 @@ class TalentUpdateIn(TalentProfileFieldsIn):
     """Every field optional: the profile editor saves one section at a time."""
 
     display_name: str | None = Field(default=None, min_length=2, max_length=160)
-    headline: str | None = Field(default=None, max_length=300)
     bio: str | None = Field(default=None, max_length=5000)
     years_experience: int | None = Field(default=None, ge=0, le=70)
     skill_id: uuid.UUID | None = None

@@ -46,9 +46,6 @@ export function TalentCard({ talent }: { talent: TalentSummary }) {
               {talent.display_name}
             </Link>
           </h3>
-          {talent.headline ? (
-            <p className="mt-1 line-clamp-2 text-sm text-ink-500">{talent.headline}</p>
-          ) : null}
         </div>
       </div>
 

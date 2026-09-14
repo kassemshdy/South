@@ -68,7 +68,6 @@ class TalentSeed(TypedDict, total=False):
     custom_skill_text: str
     location: str
     status: str
-    headline: str
     bio: str
     years_experience: int
     highest_degree: str

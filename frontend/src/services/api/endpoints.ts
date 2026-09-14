@@ -20,6 +20,7 @@ import type {
   BusinessSummary,
   Category,
   Currency,
+  EmploymentType,
   Gender,
   ImageKind,
   LanguageProficiency,
@@ -87,11 +88,17 @@ export interface ItemPayload {
   currency?: Currency
   is_available?: boolean
   sort_order?: number
+  good_type?: string | null
+  brand_name?: string | null
+  ingredients?: string | null
+  manufactured_at?: string | null
+  expiry_date?: string | null
+  net_weight?: string | null
+  external_link?: string | null
 }
 
 export interface TalentPayload {
   display_name: string
-  headline?: string | null
   bio?: string | null
   years_experience?: number | null
   skill_id?: string | null
@@ -106,9 +113,16 @@ export interface TalentPayload {
   highest_degree?: string | null
   specialization?: string | null
   university?: string | null
+  education_years?: number | null
+  graduation_date?: string | null
+  study_focus?: string | null
   experience?: string | null
+  professional_training?: string | null
   skills_text?: string | null
   services_offered?: string | null
+  hobbies?: string | null
+  employment_type?: EmploymentType | null
+  remote_capable?: boolean
   languages?: { name: string; proficiency: LanguageProficiency }[]
 }
 
@@ -376,6 +390,24 @@ export const ownerApi = {
       formData: form,
     })
   },
+  uploadItemGalleryImage: (id: string, itemId: string, file: File, caption?: string) => {
+    const form = new FormData()
+    form.append('file', file)
+    if (caption) form.append('caption', caption)
+    return apiRequest<BusinessItem>(`/api/businesses/${id}/items/${itemId}/gallery`, {
+      method: 'POST',
+      formData: form,
+    })
+  },
+  deleteItemGalleryImage: (id: string, itemId: string, imageId: string) =>
+    apiRequest<BusinessItem>(`/api/businesses/${id}/items/${itemId}/gallery/${imageId}`, {
+      method: 'DELETE',
+    }),
+  reorderItemGalleryImages: (id: string, itemId: string, image_ids: string[]) =>
+    apiRequest<BusinessItem>(`/api/businesses/${id}/items/${itemId}/gallery/order`, {
+      method: 'PUT',
+      body: { image_ids },
+    }),
 }
 
 export const adminApi = {

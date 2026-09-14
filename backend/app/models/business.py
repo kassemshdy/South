@@ -234,11 +234,56 @@ class BusinessItem(Base, TimestampMixin):
     is_available: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
+    # The fields below only ever apply to a physical good -- a service or menu
+    # item simply leaves them unset, the same way a talent profile leaves
+    # fields unset that don't describe its trade.
+    good_type: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    brand_name: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    ingredients: Mapped[str | None] = mapped_column(Text, nullable=True)
+    manufactured_at: Mapped[date | None] = mapped_column(Date, nullable=True)
+    expiry_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    net_weight: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    external_link: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
     # Arabic-normalized haystack for the independent products directory,
     # maintained by BusinessItemService the same way Business.search_text is.
     search_text: Mapped[str] = mapped_column(Text, default="", nullable=False)
 
     business: Mapped[Business] = relationship(back_populates="items")
+    images: Mapped[list[BusinessItemImage]] = relationship(
+        back_populates="item",
+        order_by="BusinessItemImage.sort_order",
+        cascade="all, delete-orphan",
+    )
+
+
+class BusinessItemImage(Base):
+    """Gallery image metadata for a product/service item; bytes live in object storage.
+
+    An item's single ``image_url`` is its card thumbnail (see the existing
+    upload-photo endpoint); this table is the additional gallery a buyer opens
+    to see more of the actual good, mirroring ``BusinessImage``/``TalentImage``.
+    """
+
+    __tablename__ = "business_item_images"
+    __table_args__ = (Index("ix_business_item_images_item_sort", "item_id", "sort_order"),)
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    item_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("business_items.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    url: Mapped[str] = mapped_column(String(500), nullable=False)
+    storage_key: Mapped[str] = mapped_column(String(500), nullable=False)
+    caption: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    width: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    height: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    size_bytes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    item: Mapped[BusinessItem] = relationship(back_populates="images")
 
 
 class ModerationAction(Base):

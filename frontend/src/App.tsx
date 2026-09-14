@@ -4,10 +4,13 @@ import { Route, Routes } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { InlineSpinner } from '@/components/ui/States'
 import { RequireAdmin, RequireAuth } from '@/features/auth/RouteGuards'
+import { AboutPage } from '@/pages/AboutPage'
+import { BlogPage } from '@/pages/BlogPage'
 import { BusinessProfilePage } from '@/pages/BusinessProfilePage'
 import { DirectoryPage } from '@/pages/DirectoryPage'
 import { HomePage } from '@/pages/HomePage'
 import { LoginPage } from '@/pages/LoginPage'
+import { NewsPage } from '@/pages/NewsPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { ProductProfilePage } from '@/pages/ProductProfilePage'
 import { ProductsDirectoryPage } from '@/pages/ProductsDirectoryPage'
@@ -109,6 +112,9 @@ export function App() {
           <Route path="product/:slug" element={<ProductProfilePage />} />
           <Route path="talent" element={<TalentDirectoryPage />} />
           <Route path="talent/:slug" element={<TalentProfilePage />} />
+          <Route path="news" element={<NewsPage />} />
+          <Route path="blog" element={<BlogPage />} />
+          <Route path="about" element={<AboutPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="admin/login" element={<AdminLoginPage />} />
 
