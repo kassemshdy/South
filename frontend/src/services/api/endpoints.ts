@@ -26,6 +26,7 @@ import type {
   LocationNode,
   MaritalStatus,
   OwnerBusiness,
+  OwnerRelation,
   OwnerTalent,
   Order,
   OrderStatus,
@@ -63,6 +64,8 @@ export interface BusinessPayload {
   /** ISO date (YYYY-MM-DD). */
   founding_date?: string | null
   production_nature?: string | null
+  years_of_experience?: number | null
+  owner_relation?: OwnerRelation | null
   category_id?: string | null
   custom_category_text?: string | null
   location_id?: string | null

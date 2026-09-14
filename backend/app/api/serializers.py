@@ -128,6 +128,7 @@ def business_detail(
         latitude=float(business.latitude) if business.latitude is not None else None,
         longitude=float(business.longitude) if business.longitude is not None else None,
         maps_url=business.maps_url,
+        years_of_experience=business.years_of_experience,
         images=_gallery(business),
         social_links=[SocialLinkOut.model_validate(link) for link in business.social_links],
         items=[item_out(item) for item in sorted(business.items, key=lambda i: i.sort_order)],
@@ -154,6 +155,7 @@ def owner_business(business: Business) -> OwnerBusinessOut:
     """Owner's own view — adds moderation state and the rejection reason."""
     return OwnerBusinessOut(
         **business_detail(business).model_dump(),
+        owner_relation=business.owner_relation,
         status=business.status,
         rejection_reason=business.rejection_reason,
         submitted_at=business.submitted_at,
