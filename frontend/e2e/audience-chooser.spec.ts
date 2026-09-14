@@ -27,12 +27,14 @@ const DEV_OTP = '123456'
  * shop".
  *
  * The third, and the reason several of these tests have an extra click in
- * them: **the responsibility notice is the only way through a door.** Both
- * halves of the fork end at a dealing between two strangers that the platform
- * does not stand behind, so the visitor reads that and agrees before the page
- * opens. Pinned here rather than trusted, because the failure mode is silent —
- * a door that quietly becomes a link again still works, and still skips the
- * notice.
+ * them: **the responsibility notice is the only way through an offering
+ * door.** Listing something ends at a dealing between two strangers that the
+ * platform does not stand behind, so the visitor reads that and agrees before
+ * the page opens. Browsing carries none of that responsibility, so those
+ * doors are real links straight through, with nothing in between. Pinned here
+ * rather than trusted, because the failure mode is silent either way — an
+ * offering door that quietly becomes a link skips the notice, and a browsing
+ * door that quietly grows one adds a click nobody asked for.
  *
  * The second level replaces the first in place. A dialog was tried and read
  * as heavier than the choice deserves — these cards are navigation, and
@@ -160,11 +162,13 @@ test.describe('Audience chooser', () => {
     await page.goto('/')
     await page.getByRole('button', { name: t('home.actionBrowse') }).click()
 
+    // Browsing doors are real links, not buttons: there is no notice ahead of
+    // them to hold navigation back.
     for (const key of ['onboarding.seekGoodsTitle', 'onboarding.seekServiceTitle']) {
-      await expect(page.getByRole('button', { name: t(key) })).toBeVisible()
+      await expect(page.getByRole('link', { name: t(key) })).toBeVisible()
     }
     await expect(
-      page.getByRole('button', { name: t('browse.businessesTitle') }),
+      page.getByRole('link', { name: t('browse.businessesTitle') }),
     ).toHaveCount(0)
 
     // Backing out is a real option, and it returns to the one question rather
@@ -172,10 +176,10 @@ test.describe('Audience chooser', () => {
     await page.getByRole('button', { name: t('onboarding.back') }).click()
     await expect(page.getByRole('heading', { name: t('onboarding.heading') })).toBeVisible()
 
-    // And the doors lead where they say, once the notice is agreed to.
+    // And the doors lead straight where they say -- browsing carries no
+    // responsibility notice.
     await page.getByRole('button', { name: t('home.actionBrowse') }).click()
-    await page.getByRole('button', { name: t('onboarding.seekGoodsTitle') }).click()
-    await page.getByRole('link', { name: t('consent.agree') }).click()
+    await page.getByRole('link', { name: t('onboarding.seekGoodsTitle') }).click()
     await expect(page).toHaveURL(/\/products/)
 
     // The door this fork no longer offers, still one tap from the page it
@@ -186,15 +190,15 @@ test.describe('Audience chooser', () => {
     await expect(page).toHaveURL(/\/businesses/)
   })
 
-  test('the notice is the only way through a door, on either half', async ({ page }) => {
+  test('the notice is the only way through an offering door', async ({ page }) => {
     // The assertion that matters is the negative one: choosing a door must
     // not navigate. A door that regresses to a plain link still looks and
     // behaves correctly to anyone clicking through it — the notice simply
     // never appears — so "we are still on the homepage" is the line that
     // catches it.
     await page.goto('/')
-    await page.getByRole('button', { name: t('home.actionBrowse') }).click()
-    await page.getByRole('button', { name: t('onboarding.seekServiceTitle') }).click()
+    await page.getByRole('button', { name: t('home.actionOffer') }).click()
+    await page.getByRole('button', { name: t('onboarding.talentTitle') }).click()
 
     await expect(page.getByRole('heading', { name: t('consent.heading') })).toBeVisible()
     expect(new URL(page.url()).pathname).toBe('/')
@@ -202,14 +206,29 @@ test.describe('Audience chooser', () => {
     // Backing out of the notice returns to the two doors and navigates
     // nowhere: declining is a real answer, not a dead end.
     await page.getByRole('button', { name: t('onboarding.back') }).click()
-    await expect(page.getByRole('button', { name: t('onboarding.seekGoodsTitle') })).toBeVisible()
+    await expect(page.getByRole('button', { name: t('onboarding.ownerTitle') })).toBeVisible()
     expect(new URL(page.url()).pathname).toBe('/')
 
-    // And agreeing carries on to the page that was chosen, not to some
-    // default.
-    await page.getByRole('button', { name: t('onboarding.seekServiceTitle') }).click()
-    await page.getByRole('link', { name: t('consent.agree') }).click()
+    // And agreeing carries on to the steps panel — anonymous, so there is no
+    // direct link to the wizard yet.
+    await page.getByRole('button', { name: t('onboarding.talentTitle') }).click()
+    await page.getByRole('button', { name: t('consent.agree') }).click()
+    await expect(page.getByText(t('onboarding.step1'))).toBeVisible()
+  })
+
+  test('choosing to browse goes straight through, with no notice in the way', async ({
+    page,
+  }) => {
+    // The opposite claim from the test above, on the other half: browsing
+    // carries no responsibility to accept, so a door here is a real link with
+    // nothing between it and the page it names — no heading, no agree button,
+    // ever rendered.
+    await page.goto('/')
+    await page.getByRole('button', { name: t('home.actionBrowse') }).click()
+    await page.getByRole('link', { name: t('onboarding.seekServiceTitle') }).click()
+
     await expect(page).toHaveURL(/\/talent/)
+    await expect(page.getByRole('heading', { name: t('consent.heading') })).toHaveCount(0)
   })
 
   test('the header asks a signed-out visitor to sign in, not to open a shop', async ({
