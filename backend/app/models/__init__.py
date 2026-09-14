@@ -1,6 +1,7 @@
 """SQLAlchemy models. Importing this package registers every table on Base."""
 
 from app.models.analytics import ListingViewDaily
+from app.models.article import Article
 from app.models.auth import OtpRequest, RateLimitEvent
 from app.models.business import (
     Business,
@@ -11,6 +12,7 @@ from app.models.business import (
     ModerationAction,
 )
 from app.models.enums import (
+    ArticleSection,
     BusinessStatus,
     Currency,
     FeedbackAttachmentKind,
@@ -40,6 +42,8 @@ from app.models.user import User
 from app.models.verification import OwnerVerificationDocument
 
 __all__ = [
+    "Article",
+    "ArticleSection",
     "Business",
     "BusinessImage",
     "BusinessItem",
