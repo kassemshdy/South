@@ -25,7 +25,7 @@ export function AboutPage() {
         {points.map(({ icon: Icon, title, body }) => (
           <Card key={title}>
             <CardBody className="text-center">
-              <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-sand-100 text-clay-600">
+              <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-sand-100 text-brand-700">
                 <Icon className="h-5 w-5" aria-hidden="true" />
               </span>
               <h2 className="mt-3 font-bold">{title}</h2>

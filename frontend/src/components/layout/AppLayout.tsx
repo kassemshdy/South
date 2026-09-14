@@ -19,7 +19,7 @@ export function AppLayout() {
       {/* Skip link: the first tab stop on every page. */}
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:m-3 focus:rounded-lg focus:bg-clay-500 focus:px-4 focus:py-2 focus:text-white"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:m-3 focus:rounded-lg focus:bg-brand-800 focus:px-4 focus:py-2 focus:text-white"
       >
         {t('common.skipToContent')}
       </a>

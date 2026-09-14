@@ -87,7 +87,7 @@ export function ProductProfilePage() {
             {/* Owner-authored text carries its own direction — see BusinessCard. */}
             <h1 className="text-2xl sm:text-3xl" dir="auto">{data.title}</h1>
             {price ? (
-              <Badge className="ltr-nums bg-sand-100 px-3 py-1.5 text-base font-bold text-clay-700">
+              <Badge className="ltr-nums bg-sand-100 px-3 py-1.5 text-base font-bold text-brand-800">
                 {price}
               </Badge>
             ) : null}
@@ -202,7 +202,7 @@ export function ProductProfilePage() {
                             href={data.external_link}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="break-all text-clay-600 underline"
+                            className="break-all text-brand-700 underline"
                           >
                             {data.external_link}
                           </a>
@@ -220,11 +220,11 @@ export function ProductProfilePage() {
           <Card>
             <CardBody className="space-y-4">
               <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sand-100 text-clay-600">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sand-100 text-brand-700">
                   <Store className="h-5 w-5" aria-hidden="true" />
                 </span>
                 <div className="min-w-0">
-                  <Link to={businessUrl} className="block truncate font-bold text-ink-900 hover:text-clay-600">
+                  <Link to={businessUrl} className="block truncate font-bold text-ink-900 hover:text-brand-700">
                     {data.business.name}
                   </Link>
                   {data.business.location ? (

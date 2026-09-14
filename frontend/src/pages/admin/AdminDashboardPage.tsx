@@ -119,7 +119,7 @@ function StatCard({
   label,
   value,
   icon: Icon,
-  tone = 'text-clay-600',
+  tone = 'text-brand-700',
 }: {
   label: string
   value: number

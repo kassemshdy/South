@@ -86,7 +86,7 @@ export function AdminTestimonialsPage() {
               className={cn(
                 'rounded-full px-4 py-2 text-sm font-semibold transition-colors',
                 isActive
-                  ? 'bg-clay-500 text-white ring-1 ring-clay-600'
+                  ? 'bg-brand-800 text-white ring-1 ring-brand-900'
                   : 'bg-white text-ink-700 ring-1 ring-ink-100 hover:bg-sand-100',
               )}
             >
@@ -112,7 +112,7 @@ export function AdminTestimonialsPage() {
                       <p className="mt-0.5 text-sm text-ink-500">
                         <Link
                           to={`/business/${encodeURIComponent(entry.business_slug)}`}
-                          className="text-clay-600 hover:underline"
+                          className="text-brand-700 hover:underline"
                         >
                           {entry.business_name}
                         </Link>

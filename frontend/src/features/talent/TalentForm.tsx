@@ -433,7 +433,7 @@ export function TalentForm({ profile, submitLabel, pending, onSubmit, serverErro
           </Field>
 
           <label className="flex items-center gap-3 self-end rounded-xl border-2 border-ink-100 p-3.5">
-            <input type="checkbox" {...register('remote_capable')} className="h-5 w-5 accent-clay-500" />
+            <input type="checkbox" {...register('remote_capable')} className="h-5 w-5 accent-brand-600" />
             <span className="font-medium">{t('talentForm.remoteCapable')}</span>
           </label>
         </div>

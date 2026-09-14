@@ -59,7 +59,7 @@ export function AccountPage() {
       <div className="space-y-6">
         <ProfileCard user={user} onSaved={refresh} />
         <DocumentCard
-          icon={<ShieldCheck className="h-5 w-5 text-clay-600" aria-hidden="true" />}
+          icon={<ShieldCheck className="h-5 w-5 text-brand-700" aria-hidden="true" />}
           titleKey="account.documentTitle"
           hintKey="account.documentHint"
           queryKey={queryKeys.myVerificationDocument}
@@ -67,7 +67,7 @@ export function AccountPage() {
           upload={authApi.uploadVerificationDocument}
         />
         <DocumentCard
-          icon={<FileText className="h-5 w-5 text-clay-600" aria-hidden="true" />}
+          icon={<FileText className="h-5 w-5 text-brand-700" aria-hidden="true" />}
           titleKey="account.cvTitle"
           hintKey="account.cvHint"
           queryKey={queryKeys.myCvDocument}

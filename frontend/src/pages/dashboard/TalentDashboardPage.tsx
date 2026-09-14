@@ -166,7 +166,7 @@ export function TalentDashboardPage() {
             <p className="mt-1.5">
               <Link
                 to={`/talent/${encodeURIComponent(data.slug)}`}
-                className="inline-flex items-center gap-1.5 text-sm text-clay-600 hover:underline"
+                className="inline-flex items-center gap-1.5 text-sm text-brand-700 hover:underline"
               >
                 <ExternalLink className="h-4 w-4" aria-hidden="true" />
                 {t('talentDashboard.viewPublic')}
@@ -272,7 +272,7 @@ function BackLink() {
   return (
     <Link
       to="/dashboard"
-      className="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-clay-600"
+      className="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-brand-700"
     >
       <ArrowRight className="h-4 w-4" aria-hidden="true" />
       {t('wizard.backToDashboard')}
@@ -284,7 +284,7 @@ function TabTrigger({ value, children }: { value: string; children: React.ReactN
   return (
     <Tabs.Trigger
       value={value}
-      className="shrink-0 rounded-lg px-4 py-2 text-sm font-semibold text-ink-500 transition-colors hover:text-clay-600 data-[state=active]:bg-sand-100 data-[state=active]:text-clay-700"
+      className="shrink-0 rounded-lg px-4 py-2 text-sm font-semibold text-ink-500 transition-colors hover:text-brand-700 data-[state=active]:bg-sand-100 data-[state=active]:text-brand-800"
     >
       {children}
     </Tabs.Trigger>

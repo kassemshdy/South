@@ -159,7 +159,7 @@ export function AdminLocationsPage() {
                 >
                   <div className="flex items-center gap-2">
                     <span className="font-semibold">{location.name_ar}</span>
-                    <Badge className="bg-sand-100 text-clay-700">
+                    <Badge className="bg-sand-100 text-brand-700">
                       {t(TYPE_KEYS[location.type])}
                     </Badge>
                     {!location.is_active ? (

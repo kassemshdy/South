@@ -146,7 +146,7 @@ export function BusinessProfilePage() {
 
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-500">
               {data.category ? (
-                <Link to={`/businesses?category=${encodeURIComponent(data.category.slug)}`} className="font-semibold text-clay-600 hover:underline">
+                <Link to={`/businesses?category=${encodeURIComponent(data.category.slug)}`} className="font-semibold text-brand-700 hover:underline">
                   {data.custom_category_text || data.category.name_ar}
                 </Link>
               ) : null}
@@ -266,7 +266,7 @@ export function BusinessProfilePage() {
                         <div className="flex items-start justify-between gap-3">
                           <h3 className="font-bold text-ink-900">{item.title}</h3>
                           {formatPrice(item.price, item.currency) ? (
-                            <span className="ltr-nums shrink-0 rounded-lg bg-sand-100 px-2.5 py-1 text-sm font-bold text-clay-700">
+                            <span className="ltr-nums shrink-0 rounded-lg bg-sand-100 px-2.5 py-1 text-sm font-bold text-brand-800">
                               {formatPrice(item.price, item.currency)}
                             </span>
                           ) : null}
@@ -345,29 +345,29 @@ export function BusinessProfilePage() {
                 <h2 className="text-lg font-bold">{t('business.contactHeading')}</h2>
 
                 {data.phone ? (
-                  <a href={telHref(data.phone) ?? '#'} className="flex items-center gap-3 text-ink-700 hover:text-clay-600">
-                    <Phone className="h-5 w-5 shrink-0 text-clay-500" aria-hidden="true" />
+                  <a href={telHref(data.phone) ?? '#'} className="flex items-center gap-3 text-ink-700 hover:text-brand-700">
+                    <Phone className="h-5 w-5 shrink-0 text-brand-600" aria-hidden="true" />
                     <span className="ltr-nums">{data.phone}</span>
                   </a>
                 ) : null}
 
                 {data.whatsapp && whatsapp ? (
-                  <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-ink-700 hover:text-clay-600">
+                  <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-ink-700 hover:text-brand-700">
                     <MessageCircle className="h-5 w-5 shrink-0 text-[#25D366]" aria-hidden="true" />
                     <span className="ltr-nums">{data.whatsapp}</span>
                   </a>
                 ) : null}
 
                 {data.website ? (
-                  <a href={data.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 break-all text-ink-700 hover:text-clay-600">
-                    <Globe className="h-5 w-5 shrink-0 text-clay-500" aria-hidden="true" />
+                  <a href={data.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 break-all text-ink-700 hover:text-brand-700">
+                    <Globe className="h-5 w-5 shrink-0 text-brand-600" aria-hidden="true" />
                     <span className="ltr-nums">{data.website}</span>
                   </a>
                 ) : null}
 
                 {data.address_text ? (
                   <p className="flex items-start gap-3 text-ink-700">
-                    <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-clay-500" aria-hidden="true" />
+                    <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" aria-hidden="true" />
                     {data.address_text}
                   </p>
                 ) : null}
@@ -395,9 +395,9 @@ export function BusinessProfilePage() {
                         href={link.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-3 rounded-lg p-2 text-ink-700 transition-colors hover:bg-sand-100 hover:text-clay-600"
+                        className="flex items-center gap-3 rounded-lg p-2 text-ink-700 transition-colors hover:bg-sand-100 hover:text-brand-700"
                       >
-                        <Icon className="h-5 w-5 shrink-0 text-clay-500" aria-hidden="true" />
+                        <Icon className="h-5 w-5 shrink-0 text-brand-600" aria-hidden="true" />
                         {t(PLATFORM_KEYS[link.platform])}
                       </a>
                     )

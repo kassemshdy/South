@@ -167,7 +167,7 @@ export function FeedbackWidget() {
         type="button"
         data-feedback-widget
         onClick={handleOpen}
-        className="fixed bottom-5 end-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-clay-600 text-white shadow-lift transition-transform hover:scale-105 hover:bg-clay-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 focus-visible:ring-offset-2"
+        className="fixed bottom-5 end-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-brand-800 text-white shadow-lift transition-transform hover:scale-105 hover:bg-brand-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
         aria-label={t('feedback.reportBug')}
       >
         <Bug className="h-6 w-6" aria-hidden="true" />
