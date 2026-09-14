@@ -62,6 +62,8 @@ export function BasicsForm({
       institution_name: business?.institution_name ?? '',
       founding_date: business?.founding_date ?? '',
       production_nature: business?.production_nature ?? '',
+      years_of_experience: business?.years_of_experience?.toString() ?? '',
+      owner_relation: business?.owner_relation ?? '',
       phone: business?.phone ?? '',
       whatsapp: business?.whatsapp ?? '',
       email: business?.email ?? '',
@@ -84,6 +86,8 @@ export function BasicsForm({
       institution_name: values.institution_name || null,
       founding_date: values.founding_date || null,
       production_nature: values.production_nature || null,
+      years_of_experience: values.years_of_experience ? Number(values.years_of_experience) : null,
+      owner_relation: (values.owner_relation || null) as BusinessPayload['owner_relation'],
       phone: values.phone || null,
       whatsapp: values.whatsapp || null,
       email: values.email || null,
@@ -270,9 +274,67 @@ export function BasicsForm({
                 />
               )}
             </Field>
+
+            <Field
+              label={t('form.yearsOfExperience')}
+              error={errors.years_of_experience?.message}
+              hint={t('form.yearsOfExperienceHint')}
+            >
+              {(props) => (
+                <Input
+                  {...props}
+                  {...register('years_of_experience')}
+                  inputMode="numeric"
+                  dir="ltr"
+                  className="ltr-nums"
+                  placeholder="10"
+                  invalid={Boolean(errors.years_of_experience)}
+                />
+              )}
+            </Field>
+          </fieldset>
+
+          {/* Not producer detail -- this answers a reviewer's question
+              (is this person entitled to list on behalf of the place) and
+              never reaches the public listing. See OwnerBusinessOut. */}
+          <fieldset className="space-y-3 rounded-2xl border border-ink-100 p-4">
+            <legend className="px-2 text-sm font-bold text-clay-700">
+              {t('form.ownerRelationHeading')}
+            </legend>
+
+            <Field label={t('form.ownerRelationLabel')} error={errors.owner_relation?.message}>
+              {(props) => (
+                <Controller
+                  control={control}
+                  name="owner_relation"
+                  render={({ field }) => (
+                    <Select value={field.value || undefined} onValueChange={field.onChange}>
+                      <SelectTrigger
+                        id={props.id}
+                        aria-describedby={props['aria-describedby']}
+                        invalid={Boolean(errors.owner_relation)}
+                      >
+                        <SelectValue placeholder={t('form.ownerRelationPlaceholder')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="OWNER">{t('form.ownerRelationOwner')}</SelectItem>
+                        <SelectItem value="MANAGER">{t('form.ownerRelationManager')}</SelectItem>
+                        <SelectItem value="WORKER">{t('form.ownerRelationWorker')}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              )}
+            </Field>
           </fieldset>
         </div>
       </details>
+
+      {/* Identity is set on the account, not here: one legal name per
+          person, however many businesses they own. */}
+      <p className="rounded-xl bg-sand-100 p-3.5 text-sm text-clay-800">
+        {t('form.identityMovedNote')}
+      </p>
 
       <p className="rounded-xl bg-sand-100 p-3.5 text-sm text-clay-800">
         {t('form.privacyNote')}
