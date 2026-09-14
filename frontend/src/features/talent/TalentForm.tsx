@@ -46,7 +46,6 @@ export function TalentForm({ profile, submitLabel, pending, onSubmit, serverErro
     resolver: zodResolver(schema),
     defaultValues: {
       display_name: profile?.display_name ?? '',
-      headline: profile?.headline ?? '',
       bio: profile?.bio ?? '',
       years_experience:
         profile?.years_experience !== null && profile?.years_experience !== undefined
@@ -97,7 +96,6 @@ export function TalentForm({ profile, submitLabel, pending, onSubmit, serverErro
   const submit = handleSubmit((values) => {
     onSubmit({
       display_name: values.display_name,
-      headline: values.headline || null,
       bio: values.bio || null,
       years_experience: values.years_experience ? Number(values.years_experience) : null,
       skill_id: values.skill_id || null,
@@ -143,22 +141,6 @@ export function TalentForm({ profile, submitLabel, pending, onSubmit, serverErro
             {...register('display_name')}
             placeholder={t('talentForm.displayNamePlaceholder')}
             invalid={Boolean(errors.display_name)}
-          />
-        )}
-      </Field>
-
-      <Field
-        label={t('talentForm.headline')}
-        required
-        error={errors.headline?.message}
-        hint={t('talentForm.headlineHint')}
-      >
-        {(props) => (
-          <Input
-            {...props}
-            {...register('headline')}
-            placeholder={t('talentForm.headlinePlaceholder')}
-            invalid={Boolean(errors.headline)}
           />
         )}
       </Field>

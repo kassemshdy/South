@@ -246,7 +246,6 @@ def talent_summary(profile: TalentProfile) -> TalentSummaryOut:
         id=profile.id,
         display_name=profile.display_name,
         slug=profile.slug,
-        headline=profile.headline,
         photo_url=profile.photo_url,
         phone=profile.phone,
         whatsapp=profile.whatsapp,

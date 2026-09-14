@@ -53,7 +53,6 @@ def _create_profile(
         headers=headers,
         json={
             "display_name": display_name or ar("talent.designer"),
-            "headline": ar("talent.designer_headline"),
             "bio": ar("talent.designer_bio"),
             "skill_id": str(skill.id),
             "location_id": str(location.id),
@@ -143,7 +142,7 @@ def test_suspending_removes_a_profile_from_the_public_directory(
 # --- Search ----------------------------------------------------------------
 
 
-def test_search_matches_headline_and_filters_by_skill_and_location(
+def test_search_matches_bio_and_filters_by_skill_and_location(
     client: TestClient, db: Session, admin: User, skill: TalentSkill, location: Location
 ) -> None:
     headers = sign_in(client, "03950105")
@@ -176,7 +175,6 @@ def test_custom_skill_text_is_searchable_for_an_other_profile(
         headers=headers,
         json={
             "display_name": ar("talent.photographer"),
-            "headline": ar("talent.photographer_headline"),
             "skill_id": str(skill_other.id),
             "custom_skill_text": ar("talent.custom_skill_text"),
             "location_id": str(location.id),
@@ -274,7 +272,6 @@ def test_submission_lists_what_is_still_missing(
 
     readiness = client.get("/api/my/talent/readiness", headers=headers).json()
     assert set(readiness) == {
-        "talent.field.headline",
         "talent.field.bio",
         "talent.field.photo",
         "talent.field.contact",
@@ -294,7 +291,6 @@ def test_an_other_profile_must_name_its_own_skill(
         headers=headers,
         json={
             "display_name": ar("talent.designer"),
-            "headline": ar("talent.designer_headline"),
             "bio": ar("talent.designer_bio"),
             "skill_id": str(skill_other.id),
             "location_id": str(location.id),
@@ -545,7 +541,7 @@ def test_languages_are_replaced_wholesale_on_update(
     # Omitting the key entirely leaves the collection untouched, so saving
     # one section of the editor cannot wipe another.
     untouched = client.put(
-        "/api/my/talent", headers=headers, json={"headline": ar("talent.designer_headline")}
+        "/api/my/talent", headers=headers, json={"bio": ar("talent.designer_bio")}
     )
     assert [language["name"] for language in untouched.json()["languages"]] == [
         ar("talent.language_french")

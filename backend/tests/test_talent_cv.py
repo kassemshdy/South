@@ -34,7 +34,6 @@ def _create_profile(client: TestClient, headers: dict[str, str], skill: TalentSk
         headers=headers,
         json={
             "display_name": ar("talent.designer"),
-            "headline": ar("talent.designer_headline"),
             "bio": ar("talent.designer_bio"),
             "skill_id": str(skill.id),
             "location_id": str(location.id),

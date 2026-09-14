@@ -97,7 +97,7 @@ def approved_talent_slug(
         headers=headers,
         json={
             "display_name": ar("talent.designer"),
-            "headline": ar("talent.designer_headline"),
+            "bio": ar("talent.designer_bio"),
             "skill_id": str(skill.id),
             "location_id": str(location.id),
         },
@@ -130,7 +130,7 @@ def test_talent_url_gets_server_rendered_seo_tags(
 
     assert f"<title>{expected_title}</title>" in html
     assert f'property="og:title" content="{expected_title}"' in html
-    assert f'property="og:description" content="{ar("talent.designer_headline")}"' in html
+    assert f'property="og:description" content="{ar("talent.designer_bio")}"' in html
     # No photo was uploaded, so the site-wide share image is the fallback —
     # never a relative URL a crawler can't resolve on its own.
     assert 'property="og:image" content="https://example.test/og-image.png"' in html

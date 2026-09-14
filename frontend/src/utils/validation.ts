@@ -223,12 +223,6 @@ export const talentSchema = (t: Translate, otherSkillId?: string) =>
         .trim()
         .min(2, t('validation.nameRequired'))
         .max(160, t('validation.nameTooLong')),
-      headline: z
-        .string()
-        .trim()
-        .max(300, t('validation.shortDescriptionTooLong'))
-        .optional()
-        .or(z.literal('')),
       bio: z.string().trim().max(5000, t('validation.descriptionTooLong')).optional().or(z.literal('')),
       years_experience: z
         .string()

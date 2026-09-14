@@ -63,7 +63,6 @@ def _approved_profile(
         headers=headers,
         json={
             "display_name": display_name,
-            "headline": ar("talent.designer_headline"),
             "skill_id": str(skill.id),
             "location_id": str(location.id),
             "whatsapp": PROVIDER_PHONE,

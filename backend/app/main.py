@@ -300,7 +300,6 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
                         tags = talent_tags(
                             display_name=profile.display_name,
                             skill_name=profile.skill.name_ar if profile.skill else None,
-                            headline=profile.headline,
                             bio=profile.bio,
                             location_name=profile.location.name_ar if profile.location else None,
                             image_url=_absolute(profile.photo_url),

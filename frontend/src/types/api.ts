@@ -284,7 +284,6 @@ export interface TalentSummary {
   id: string
   display_name: string
   slug: string
-  headline: string | null
   photo_url: string | null
   phone: string | null
   whatsapp: string | null
