@@ -10,6 +10,7 @@ from collections.abc import Callable, Sequence
 from typing import TypeVar
 
 from app.core.pagination import Page
+from app.models.article import Article
 from app.models.business import Business, BusinessItem
 from app.models.enums import ImageKind
 from app.models.feedback import FeedbackAttachment, FeedbackComment, FeedbackTicket
@@ -17,6 +18,7 @@ from app.models.talent import TalentProfile, TalentSkill
 from app.models.taxonomy import Category, Location
 from app.models.testimonial import Testimonial
 from app.models.user import User
+from app.schemas.article import AdminArticleOut, ArticleOut
 from app.schemas.business import (
     BusinessDetailOut,
     BusinessImageOut,
@@ -56,6 +58,14 @@ from app.schemas.testimonial import AdminTestimonialOut, OwnerTestimonialOut, Te
 
 RecordT = TypeVar("RecordT")
 SchemaT = TypeVar("SchemaT")
+
+
+def article_out(article: Article) -> ArticleOut:
+    return ArticleOut.model_validate(article)
+
+
+def admin_article_out(article: Article) -> AdminArticleOut:
+    return AdminArticleOut.model_validate(article)
 
 
 def category_out(category: Category | None, *, business_count: int = 0) -> CategoryOut | None:

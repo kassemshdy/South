@@ -1,4 +1,5 @@
 import type {
+  ArticleSection,
   BusinessQuery,
   BusinessStatus,
   ProductQuery,
@@ -50,4 +51,7 @@ export const queryKeys = {
   feedbackAssignees: ['admin', 'feedback', 'assignees'] as const,
   adminTestimonials: (status: TestimonialStatus | 'ALL') =>
     ['admin', 'testimonials', status] as const,
+  articles: (section: ArticleSection) => ['articles', section] as const,
+  article: (slug: string) => ['article', slug] as const,
+  adminArticles: (section: ArticleSection | 'ALL') => ['admin', 'articles', section] as const,
 }

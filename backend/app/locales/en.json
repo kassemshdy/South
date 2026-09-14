@@ -1,6 +1,9 @@
 {
   "admin.default_display_name": "Platform administrator",
   "app.name": "South Directory",
+  "article.deleted": "The article was deleted.",
+  "article.duplicate_slug": "This link is already used by another article.",
+  "article.not_found": "Article not found.",
   "auth.account.disabled": "This account is suspended.",
   "auth.account.unavailable": "This account is unavailable.",
   "auth.admin_only": "This area is for administrators only.",

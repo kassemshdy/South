@@ -5,6 +5,7 @@ import { AppLayout } from '@/components/layout/AppLayout'
 import { InlineSpinner } from '@/components/ui/States'
 import { RequireAdmin, RequireAuth } from '@/features/auth/RouteGuards'
 import { AboutPage } from '@/pages/AboutPage'
+import { ArticleDetailPage } from '@/pages/ArticleDetailPage'
 import { BlogPage } from '@/pages/BlogPage'
 import { BusinessProfilePage } from '@/pages/BusinessProfilePage'
 import { DirectoryPage } from '@/pages/DirectoryPage'
@@ -70,6 +71,9 @@ const AdminTestimonialsPage = lazy(() =>
     default: m.AdminTestimonialsPage,
   })),
 )
+const AdminArticlesPage = lazy(() =>
+  import('@/pages/admin/AdminArticlesPage').then((m) => ({ default: m.AdminArticlesPage })),
+)
 const AccountPage = lazy(() =>
   import('@/pages/dashboard/AccountPage').then((m) => ({ default: m.AccountPage })),
 )
@@ -114,6 +118,7 @@ export function App() {
           <Route path="talent/:slug" element={<TalentProfilePage />} />
           <Route path="news" element={<NewsPage />} />
           <Route path="blog" element={<BlogPage />} />
+          <Route path="articles/:slug" element={<ArticleDetailPage />} />
           <Route path="about" element={<AboutPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="admin/login" element={<AdminLoginPage />} />
@@ -189,6 +194,7 @@ export function App() {
             <Route path="users/:id" element={<AdminUserDetailPage />} />
             <Route path="feedback" element={<AdminFeedbackPage />} />
             <Route path="testimonials" element={<AdminTestimonialsPage />} />
+            <Route path="articles" element={<AdminArticlesPage />} />
           </Route>
 
           <Route path="*" element={<NotFoundPage />} />

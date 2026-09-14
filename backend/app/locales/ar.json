@@ -1,6 +1,9 @@
 {
   "admin.default_display_name": "مدير المنصة",
   "app.name": "دليل الجنوب",
+  "article.deleted": "تم حذف المقال.",
+  "article.duplicate_slug": "هذا الرابط مستخدم مسبقاً لمقال آخر.",
+  "article.not_found": "المقال غير موجود.",
   "auth.account.disabled": "هذا الحساب موقوف.",
   "auth.account.unavailable": "الحساب غير متاح.",
   "auth.admin_only": "هذه الصفحة مخصصة للمشرفين.",

@@ -6,6 +6,7 @@ from fastapi import APIRouter
 
 from app.api.v1 import (
     analytics,
+    articles,
     auth,
     businesses,
     feedback,
@@ -18,6 +19,7 @@ from app.api.v1 import (
     taxonomy,
     testimonials,
 )
+from app.api.v1.admin import articles as admin_articles
 from app.api.v1.admin import businesses as admin_businesses
 from app.api.v1.admin import feedback as admin_feedback
 from app.api.v1.admin import stats as admin_stats
@@ -32,6 +34,7 @@ api_router.include_router(taxonomy.router)
 
 # Admin routes are registered before the owner/public business routes so that
 # "/api/admin/businesses/..." is never captured by "/api/businesses/{slug}".
+api_router.include_router(admin_articles.router)
 api_router.include_router(admin_businesses.router)
 api_router.include_router(admin_feedback.router)
 api_router.include_router(admin_talent.router)
@@ -57,6 +60,7 @@ api_router.include_router(talent_images.router)
 api_router.include_router(testimonials.public_router)
 api_router.include_router(orders.public_router)
 api_router.include_router(businesses.public_router)
+api_router.include_router(articles.router)
 api_router.include_router(items.public_router)
 api_router.include_router(service_requests.public_router)
 api_router.include_router(talent.public_router)
