@@ -78,6 +78,13 @@ class BusinessItemService:
             currency=payload.currency,
             is_available=payload.is_available,
             sort_order=sort_order,
+            good_type=payload.good_type,
+            brand_name=payload.brand_name,
+            ingredients=payload.ingredients,
+            manufactured_at=payload.manufactured_at,
+            expiry_date=payload.expiry_date,
+            net_weight=payload.net_weight,
+            external_link=payload.external_link,
             search_text=build_search_text(payload.title, payload.description),
         )
         self._db.add(item)
@@ -97,14 +104,18 @@ class BusinessItemService:
         self._db.commit()
         return item
 
-    def delete(self, item: BusinessItem) -> str | None:
-        """Remove the item, returning its storage key so the caller can clean up."""
-        storage_key = item.image_storage_key
+    def delete(self, item: BusinessItem) -> list[str]:
+        """Remove the item, returning every storage key so the caller can clean up.
+
+        The gallery rows cascade at the database level, but the files behind
+        them live in object storage and are never cleaned up by a foreign key.
+        """
+        storage_keys = [item.image_storage_key, *(image.storage_key for image in item.images)]
         # View counters do not cascade -- see ViewSubject.
         ViewCounterService(self._db).forget(ViewSubject.PRODUCT, item.id)
         self._db.delete(item)
         self._db.commit()
-        return storage_key
+        return [key for key in storage_keys if key]
 
     def reorder(self, business: Business, item_ids: list[uuid.UUID]) -> list[BusinessItem]:
         items = {item.id: item for item in self.list_for_business(business.id)}

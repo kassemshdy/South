@@ -84,6 +84,13 @@ export interface ItemPayload {
   currency?: Currency
   is_available?: boolean
   sort_order?: number
+  good_type?: string | null
+  brand_name?: string | null
+  ingredients?: string | null
+  manufactured_at?: string | null
+  expiry_date?: string | null
+  net_weight?: string | null
+  external_link?: string | null
 }
 
 export interface TalentPayload {
@@ -373,6 +380,24 @@ export const ownerApi = {
       formData: form,
     })
   },
+  uploadItemGalleryImage: (id: string, itemId: string, file: File, caption?: string) => {
+    const form = new FormData()
+    form.append('file', file)
+    if (caption) form.append('caption', caption)
+    return apiRequest<BusinessItem>(`/api/businesses/${id}/items/${itemId}/gallery`, {
+      method: 'POST',
+      formData: form,
+    })
+  },
+  deleteItemGalleryImage: (id: string, itemId: string, imageId: string) =>
+    apiRequest<BusinessItem>(`/api/businesses/${id}/items/${itemId}/gallery/${imageId}`, {
+      method: 'DELETE',
+    }),
+  reorderItemGalleryImages: (id: string, itemId: string, image_ids: string[]) =>
+    apiRequest<BusinessItem>(`/api/businesses/${id}/items/${itemId}/gallery/order`, {
+      method: 'PUT',
+      body: { image_ids },
+    }),
 }
 
 export const adminApi = {

@@ -6,6 +6,7 @@ from app.models.business import (
     Business,
     BusinessImage,
     BusinessItem,
+    BusinessItemImage,
     BusinessSocialLink,
     ModerationAction,
 )
@@ -42,6 +43,7 @@ __all__ = [
     "Business",
     "BusinessImage",
     "BusinessItem",
+    "BusinessItemImage",
     "BusinessSocialLink",
     "BusinessStatus",
     "Category",

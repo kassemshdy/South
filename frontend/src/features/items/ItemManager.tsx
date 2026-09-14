@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ImagePlus, Package, Pencil, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ImagePlus, Package, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 
@@ -246,6 +246,13 @@ function ItemDialog({
       price: item?.price ?? '',
       currency: item?.currency ?? 'USD',
       is_available: item?.is_available ?? true,
+      good_type: item?.good_type ?? '',
+      brand_name: item?.brand_name ?? '',
+      ingredients: item?.ingredients ?? '',
+      manufactured_at: item?.manufactured_at ?? '',
+      expiry_date: item?.expiry_date ?? '',
+      net_weight: item?.net_weight ?? '',
+      external_link: item?.external_link ?? '',
     },
   })
 
@@ -267,6 +274,13 @@ function ItemDialog({
         price: values.price ? values.price : null,
         currency: values.currency,
         is_available: values.is_available,
+        good_type: values.good_type || null,
+        brand_name: values.brand_name || null,
+        ingredients: values.ingredients || null,
+        manufactured_at: values.manufactured_at || null,
+        expiry_date: values.expiry_date || null,
+        net_weight: values.net_weight || null,
+        external_link: values.external_link || null,
       }
       const saved = isEdit
         ? await ownerApi.updateItem(businessId, item.id, payload)
@@ -373,6 +387,69 @@ function ItemDialog({
           <span className="font-medium">{t('items.availableLabel')}</span>
         </label>
 
+        <fieldset className="space-y-4 rounded-xl border-2 border-ink-100 p-3.5">
+          <legend className="px-1 text-sm font-semibold">{t('items.goodDetailHeading')}</legend>
+          <p className="text-xs text-ink-500">{t('items.goodDetailHint')}</p>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Field label={t('items.goodTypeLabel')} error={errors.good_type?.message}>
+              {(props) => <Input {...props} {...register('good_type')} invalid={Boolean(errors.good_type)} />}
+            </Field>
+            <Field label={t('items.brandNameLabel')} error={errors.brand_name?.message}>
+              {(props) => <Input {...props} {...register('brand_name')} invalid={Boolean(errors.brand_name)} />}
+            </Field>
+          </div>
+
+          <Field label={t('items.ingredientsLabel')} error={errors.ingredients?.message}>
+            {(props) => <Textarea {...props} {...register('ingredients')} rows={2} />}
+          </Field>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Field label={t('items.manufacturedAtLabel')} error={errors.manufactured_at?.message}>
+              {(props) => (
+                <Input
+                  {...props}
+                  {...register('manufactured_at')}
+                  type="date"
+                  dir="ltr"
+                  className="ltr-nums"
+                  invalid={Boolean(errors.manufactured_at)}
+                />
+              )}
+            </Field>
+            <Field label={t('items.expiryDateLabel')} error={errors.expiry_date?.message}>
+              {(props) => (
+                <Input
+                  {...props}
+                  {...register('expiry_date')}
+                  type="date"
+                  dir="ltr"
+                  className="ltr-nums"
+                  invalid={Boolean(errors.expiry_date)}
+                />
+              )}
+            </Field>
+          </div>
+
+          <Field label={t('items.netWeightLabel')} error={errors.net_weight?.message}>
+            {(props) => <Input {...props} {...register('net_weight')} invalid={Boolean(errors.net_weight)} />}
+          </Field>
+
+          <Field label={t('items.externalLinkLabel')} error={errors.external_link?.message}>
+            {(props) => (
+              <Input
+                {...props}
+                {...register('external_link')}
+                dir="ltr"
+                placeholder="https://"
+                invalid={Boolean(errors.external_link)}
+              />
+            )}
+          </Field>
+        </fieldset>
+
+        {isEdit ? <ItemGalleryManager businessId={businessId} item={item} /> : null}
+
         <div className="flex gap-3 pt-2">
           <Button type="submit" block loading={save.isPending}>
             {isEdit ? t('items.saveAction') : t('items.addAction')}
@@ -380,5 +457,122 @@ function ItemDialog({
         </div>
       </form>
     </DialogContent>
+  )
+}
+
+function ItemGalleryManager({ businessId, item }: { businessId: string; item: BusinessItem }) {
+  const queryClient = useQueryClient()
+  const toast = useToast()
+  const t = useT()
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+
+  const invalidate = () => {
+    void queryClient.invalidateQueries({ queryKey: queryKeys.myBusinessItems(businessId) })
+  }
+
+  const upload = useMutation({
+    mutationFn: (file: File) => ownerApi.uploadItemGalleryImage(businessId, item.id, file),
+    onSuccess: invalidate,
+    onError: (error) =>
+      toast.error(t('items.imageUploadFailed'), error instanceof ApiError ? error.message : undefined),
+    onSettled: () => setUploading(false),
+  })
+
+  const remove = useMutation({
+    mutationFn: (imageId: string) => ownerApi.deleteItemGalleryImage(businessId, item.id, imageId),
+    onSuccess: invalidate,
+  })
+
+  const reorder = useMutation({
+    mutationFn: (imageIds: string[]) => ownerApi.reorderItemGalleryImages(businessId, item.id, imageIds),
+    onSuccess: invalidate,
+  })
+
+  const move = (index: number, direction: -1 | 1) => {
+    const next = [...item.images]
+    const target = index + direction
+    const moved = next[index]
+    const swapped = next[target]
+    if (!moved || !swapped) return
+    next[index] = swapped
+    next[target] = moved
+    reorder.mutate(next.map((image) => image.id))
+  }
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <p className="text-sm font-semibold">{t('items.galleryHeading')}</p>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="sr-only"
+          onChange={(event) => {
+            const file = event.target.files?.[0]
+            if (file) {
+              setUploading(true)
+              upload.mutate(file)
+            }
+            event.target.value = ''
+          }}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={uploading}
+          onClick={() => inputRef.current?.click()}
+        >
+          <ImagePlus className="h-4 w-4" aria-hidden="true" />
+          {t('items.galleryAdd')}
+        </Button>
+      </div>
+
+      {item.images.length === 0 ? (
+        <p className="rounded-xl border-2 border-dashed border-ink-100 p-4 text-center text-sm text-ink-500">
+          {t('items.galleryEmpty')}
+        </p>
+      ) : (
+        <ul className="grid grid-cols-3 gap-2">
+          {item.images.map((image, index) => (
+            <li key={image.id} className="group relative overflow-hidden rounded-xl border border-ink-100 bg-sand-100">
+              <img src={image.url} alt={image.caption ?? ''} className="h-20 w-full object-cover" />
+              <div className="absolute inset-x-0 bottom-0 flex justify-between gap-1 bg-ink-900/60 p-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => move(index, -1)}
+                    disabled={index === 0 || reorder.isPending}
+                    className="rounded bg-white/90 p-1 text-ink-900 disabled:opacity-40"
+                    aria-label={t('images.moveBack')}
+                  >
+                    <ArrowRight className="h-3 w-3" aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => move(index, 1)}
+                    disabled={index === item.images.length - 1 || reorder.isPending}
+                    className="rounded bg-white/90 p-1 text-ink-900 disabled:opacity-40"
+                    aria-label={t('images.moveForward')}
+                  >
+                    <ArrowLeft className="h-3 w-3" aria-hidden="true" />
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => remove.mutate(image.id)}
+                  className="rounded bg-clay-600 p-1 text-white"
+                  aria-label={t('images.deleteImage')}
+                >
+                  <Trash2 className="h-3 w-3" aria-hidden="true" />
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }
