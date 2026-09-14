@@ -23,13 +23,14 @@ import { useT, type TranslationKey } from '@/i18n'
  * choices at once: the audience here is someone who is not confident online,
  * and two large targets are easier than four.
  *
- * **And a notice stands between the second level and its page.** Every route
- * out of this widget ends at a dealing between two strangers, and the platform
- * checks only that the person listing is from the South —— it does not stand
- * behind the transaction. So the visitor reads that and presses agree before
- * the page opens, on both halves. It is asked every time rather than
- * remembered: the same reason the cards themselves carry no memory, and the
- * gate costs one tap at the point where it is actually relevant.
+ * **And a notice stands between the second level and its page, on the
+ * offering half only.** Listing something is what carries the responsibility
+ * —— the platform checks only that the person listing is from the South, and
+ * does not stand behind the transaction —— so that half's doors are buttons
+ * that open the notice, and agreeing is what finally navigates. Browsing
+ * carries none of that: those doors are real links straight to the directory
+ * they name, with nothing in between. The notice is asked every time rather
+ * than remembered, for the same reason the cards themselves carry no memory.
  *
  * **And it is one widget now, which it was not.** The homepage used to ask
  * this three separate times: this chooser, a pair of cards in the hero, and a
@@ -213,21 +214,30 @@ export function AudienceChooser({ isAuthenticated = false }: { isAuthenticated?:
 
   // Step two: which kind, within the chosen intent.
   if (branch) {
+    // Offering opens the notice first -- a button, because there is nothing
+    // here yet for a middle-click to open. Browsing carries no such
+    // responsibility, so those doors are real links straight to the page they
+    // name, the same as the switcher strip above each directory.
+    const opensNotice = branch.intent === 'offer'
     return (
       <div className="mx-auto w-full max-w-2xl">
         <p className="text-center font-bold text-ink-900">{t(branch.titleKey)}</p>
-        {/* Buttons rather than links, on both halves: the notice comes
-            between a door and its page, so there is nothing here for a
-            middle-click to open yet. The final control on the notice itself is
-            a real link wherever it leads to a page. */}
         <ul className="mt-4 grid gap-4 sm:grid-cols-2">
-          {branch.doors.map((door) => (
-            <li key={door.key}>
-              <button type="button" className={DOOR_CARD} onClick={() => setPending(door)}>
-                <DoorBody door={door} />
-              </button>
-            </li>
-          ))}
+          {branch.doors.map((door) =>
+            opensNotice ? (
+              <li key={door.key}>
+                <button type="button" className={DOOR_CARD} onClick={() => setPending(door)}>
+                  <DoorBody door={door} />
+                </button>
+              </li>
+            ) : (
+              <li key={door.key}>
+                <Link to={door.href} className={DOOR_CARD}>
+                  <DoorBody door={door} />
+                </Link>
+              </li>
+            ),
+          )}
         </ul>
         <div className="mt-4 text-center">
           <Button type="button" variant="ghost" onClick={back}>

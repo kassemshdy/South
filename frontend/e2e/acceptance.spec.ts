@@ -101,12 +101,12 @@ test.describe('MVP acceptance flow', () => {
 
     // Looking for something forks by kind, and the service side reaches the
     // talent directory -- the same destination the old card asserted, now via
-    // the path a visitor actually takes. That path runs through the
-    // responsibility notice, which is the only way to the page behind a door.
+    // the path a visitor actually takes. Browsing carries no responsibility
+    // notice -- only listing something does -- so this door is a real link
+    // straight through.
     await page.getByRole('button', { name: t('home.actionBrowse') }).click()
-    await expect(page.getByRole('button', { name: t('onboarding.seekGoodsTitle') })).toBeVisible()
-    await page.getByRole('button', { name: t('onboarding.seekServiceTitle') }).click()
-    await page.getByRole('link', { name: t('consent.agree') }).click()
+    await expect(page.getByRole('link', { name: t('onboarding.seekGoodsTitle') })).toBeVisible()
+    await page.getByRole('link', { name: t('onboarding.seekServiceTitle') }).click()
     await expect(page).toHaveURL(/\/talent$/)
     await expect(page.getByRole('heading', { name: t('talent.heading') })).toBeVisible()
     await page.goBack()
