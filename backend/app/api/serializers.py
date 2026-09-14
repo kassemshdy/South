@@ -264,9 +264,16 @@ def talent_detail(profile: TalentProfile) -> TalentDetailOut:
         highest_degree=profile.highest_degree,
         specialization=profile.specialization,
         university=profile.university,
+        education_years=profile.education_years,
+        graduation_date=profile.graduation_date,
+        study_focus=profile.study_focus,
         experience=profile.experience,
+        professional_training=profile.professional_training,
         skills_text=profile.skills_text,
         services_offered=profile.services_offered,
+        hobbies=profile.hobbies,
+        employment_type=profile.employment_type,
+        remote_capable=profile.remote_capable,
         languages=[
             TalentLanguageOut.model_validate(language)
             for language in sorted(profile.languages, key=lambda item: item.sort_order)

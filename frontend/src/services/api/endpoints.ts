@@ -20,6 +20,7 @@ import type {
   BusinessSummary,
   Category,
   Currency,
+  EmploymentType,
   Gender,
   ImageKind,
   LanguageProficiency,
@@ -103,9 +104,16 @@ export interface TalentPayload {
   highest_degree?: string | null
   specialization?: string | null
   university?: string | null
+  education_years?: number | null
+  graduation_date?: string | null
+  study_focus?: string | null
   experience?: string | null
+  professional_training?: string | null
   skills_text?: string | null
   services_offered?: string | null
+  hobbies?: string | null
+  employment_type?: EmploymentType | null
+  remote_capable?: boolean
   languages?: { name: string; proficiency: LanguageProficiency }[]
 }
 
