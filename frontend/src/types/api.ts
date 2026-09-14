@@ -276,6 +276,7 @@ export interface TalentSummary {
 }
 
 export type LanguageProficiency = 'BASIC' | 'GOOD' | 'FLUENT' | 'NATIVE'
+export type EmploymentType = 'FULL_TIME' | 'PART_TIME'
 
 export interface TalentLanguage {
   id: string
@@ -292,9 +293,18 @@ export interface TalentDetail extends TalentSummary {
   highest_degree: string | null
   specialization: string | null
   university: string | null
+  /** Years spent earning that degree/training, not years worked. */
+  education_years: number | null
+  /** ISO date (YYYY-MM-DD). */
+  graduation_date: string | null
+  study_focus: string | null
   experience: string | null
+  professional_training: string | null
   skills_text: string | null
   services_offered: string | null
+  hobbies: string | null
+  employment_type: EmploymentType | null
+  remote_capable: boolean
   languages: TalentLanguage[]
   images: TalentImage[]
   approved_at: string | null

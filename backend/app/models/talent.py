@@ -12,11 +12,12 @@ the business one transition for transition.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     Boolean,
+    Date,
     DateTime,
     ForeignKey,
     Index,
@@ -30,6 +31,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.base import Base, TimestampMixin, pg_enum, uuid_pk
 from app.models.enums import (
     BusinessStatus,
+    EmploymentType,
     ImageKind,
     LanguageProficiency,
     ModerationActionType,
@@ -111,9 +113,20 @@ class TalentProfile(Base, TimestampMixin):
     highest_degree: Mapped[str | None] = mapped_column(String(160), nullable=True)
     specialization: Mapped[str | None] = mapped_column(String(160), nullable=True)
     university: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # Years spent earning that degree/training, not years worked -- see
+    # years_experience above for the work-history count.
+    education_years: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    graduation_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    study_focus: Mapped[str | None] = mapped_column(Text, nullable=True)
     experience: Mapped[str | None] = mapped_column(Text, nullable=True)
+    professional_training: Mapped[str | None] = mapped_column(Text, nullable=True)
     skills_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     services_offered: Mapped[str | None] = mapped_column(Text, nullable=True)
+    hobbies: Mapped[str | None] = mapped_column(Text, nullable=True)
+    employment_type: Mapped[EmploymentType | None] = mapped_column(
+        pg_enum(EmploymentType, "employment_type"), nullable=True
+    )
+    remote_capable: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Identity — legal name, birth year, gender, marital status and the two
     # civil-record places — lives on :class:`~app.models.user.User`, not

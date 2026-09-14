@@ -25,7 +25,7 @@ import { ErrorState, InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
 import { OwnerIdentityCard } from '@/features/admin/OwnerIdentityCard'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
-import { PROFICIENCY_KEYS } from '@/features/talent/labels'
+import { EMPLOYMENT_TYPE_KEYS, PROFICIENCY_KEYS } from '@/features/talent/labels'
 import { useI18n, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { adminApi } from '@/services/api/endpoints'
@@ -247,9 +247,29 @@ export function AdminTalentReviewPage() {
               <Detail labelKey="talent.degreeLabel" value={data.highest_degree} />
               <Detail labelKey="talent.specializationLabel" value={data.specialization} />
               <Detail labelKey="talent.universityLabel" value={data.university} />
+              <Detail
+                labelKey="talent.educationYearsLabel"
+                value={data.education_years !== null ? String(data.education_years) : null}
+                ltr
+              />
+              <Detail
+                labelKey="talent.graduationDateLabel"
+                value={data.graduation_date ? formatDate(data.graduation_date, locale) : null}
+              />
+              <Detail labelKey="talent.studyFocusLabel" value={data.study_focus} />
               <Detail labelKey="talent.experienceLabel" value={data.experience} />
+              <Detail labelKey="talent.professionalTrainingLabel" value={data.professional_training} />
               <Detail labelKey="talent.skillsLabel" value={data.skills_text} />
               <Detail labelKey="talent.servicesLabel" value={data.services_offered} />
+              <Detail labelKey="talent.hobbiesLabel" value={data.hobbies} />
+              <Detail
+                labelKey="talent.employmentTypeLabel"
+                value={data.employment_type ? t(EMPLOYMENT_TYPE_KEYS[data.employment_type]) : null}
+              />
+              <Detail
+                labelKey="talent.remoteCapableLabel"
+                value={data.remote_capable ? t('talent.remoteCapableValue') : null}
+              />
               <Detail labelKey="talent.languagesLabel" value={languages} />
             </CardBody>
           </Card>

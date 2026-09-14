@@ -72,9 +72,16 @@ class TalentService:
             highest_degree=payload.highest_degree,
             specialization=payload.specialization,
             university=payload.university,
+            education_years=payload.education_years,
+            graduation_date=payload.graduation_date,
+            study_focus=payload.study_focus,
             experience=payload.experience,
+            professional_training=payload.professional_training,
             skills_text=payload.skills_text,
             services_offered=payload.services_offered,
+            hobbies=payload.hobbies,
+            employment_type=payload.employment_type,
+            remote_capable=payload.remote_capable,
         )
         if payload.languages is not None:
             self._apply_languages(profile, payload.languages)
