@@ -4,6 +4,7 @@ import {
   FolderTree,
   MapPin,
   MessageSquareQuote,
+  Newspaper,
   Sparkles,
   Store,
   UserRound,
@@ -29,6 +30,7 @@ const NAV: { to: string; labelKey: TranslationKey; icon: typeof BarChart3; end: 
     icon: MessageSquareQuote,
     end: false,
   },
+  { to: '/admin/articles', labelKey: 'admin.navArticles', icon: Newspaper, end: false },
   { to: '/admin/feedback', labelKey: 'admin.navFeedback', icon: Bug, end: false },
 ]
 

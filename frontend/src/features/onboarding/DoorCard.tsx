@@ -7,12 +7,12 @@ import type { Door } from '@/features/onboarding/destinations'
  * A whole-card target, sized for a thumb rather than a cursor.
  *
  * Skin and contents are separate exports because the element around them is
- * the caller's to choose. Every door in the chooser is now a `<button>` —— the
- * responsibility notice sits between a door and its page, so there is no
- * navigation to hand a link yet —— and this file used to also ship a `<Link>`
- * flavour for the doors that went straight through. Nothing needs it now, so
- * it is gone rather than left exported and unused; the strip renders its own
- * links from `DoorStrip`.
+ * the caller's to choose: a `<button>` where a responsibility notice has to
+ * sit between the door and its page (offering something), or a `<Link>`
+ * straight through where it does not (browsing). `DOOR_CARD` is plain
+ * classes rather than a wrapping element for exactly that reason -- the
+ * caller applies it to whichever tag the door actually needs. The strip above
+ * each directory renders its own links, independently, from `DoorStrip`.
  */
 export const DOOR_CARD =
   'group flex h-full w-full flex-row items-center gap-4 rounded-2xl border-2 border-ink-100 bg-white p-5 text-start shadow-card transition-colors hover:border-brand-300 hover:bg-sand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 sm:flex-col sm:items-start sm:gap-0 sm:p-6'

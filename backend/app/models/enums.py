@@ -180,3 +180,15 @@ class EmploymentType(str, enum.Enum):
 
     FULL_TIME = "FULL_TIME"
     PART_TIME = "PART_TIME"
+
+
+class ArticleSection(str, enum.Enum):
+    """Which of the two "coming soon" nav pages a published article belongs to.
+
+    ``BLOG`` is the professional-tips section (``/blog``), ``NEWS`` is
+    activities-and-news (``/news``) — the two placeholders the top nav has
+    linked to since before this content type existed.
+    """
+
+    BLOG = "BLOG"
+    NEWS = "NEWS"

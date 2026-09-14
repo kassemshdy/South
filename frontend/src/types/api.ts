@@ -579,6 +579,29 @@ export interface AdminTestimonial extends OwnerTestimonial {
   business_slug: string
 }
 
+export type ArticleSection = 'BLOG' | 'NEWS'
+
+/**
+ * Admin-authored content behind the `/blog` and `/news` pages. Nothing here
+ * is owner- or visitor-submitted, so a public payload carries no moderation
+ * state — only what a published article actually is.
+ */
+export interface Article {
+  id: string
+  section: ArticleSection
+  slug: string
+  title: string
+  body: string
+  cover_url: string | null
+  published_at: string | null
+}
+
+export interface AdminArticle extends Article {
+  is_published: boolean
+  created_at: string
+  updated_at: string
+}
+
 export type OrderStatus = 'NEW' | 'CONTACTED' | 'DONE'
 
 /** A line as it was when the order was placed, not as the product is now. */

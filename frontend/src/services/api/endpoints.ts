@@ -7,11 +7,14 @@
 
 import { apiDownload, apiRequest } from '@/services/api/client'
 import type {
+  AdminArticle,
   AdminBusiness,
   AdminTalent,
   AdminTestimonial,
   AdminUser,
   AdminUserDetail,
+  Article,
+  ArticleSection,
   AuthToken,
   BusinessDetail,
   BusinessItem,
@@ -209,6 +212,12 @@ export const publicItemApi = {
     apiRequest<Paginated<ProductSummary>>('/api/items', { query: { ...query } }),
   bySlug: (slug: string) =>
     apiRequest<ProductDetail>(`/api/items/${encodeURIComponent(slug)}`),
+}
+
+export const publicArticleApi = {
+  list: (section: ArticleSection) =>
+    apiRequest<Article[]>('/api/articles', { query: { section } }),
+  bySlug: (slug: string) => apiRequest<Article>(`/api/articles/${encodeURIComponent(slug)}`),
 }
 
 export const publicTalentApi = {
@@ -495,6 +504,31 @@ export const adminApi = {
     }),
   removeTestimonial: (id: string) =>
     apiRequest<{ message: string }>(`/api/admin/testimonials/${id}`, { method: 'DELETE' }),
+
+  articles: (section?: ArticleSection) =>
+    apiRequest<AdminArticle[]>('/api/admin/articles', { query: section ? { section } : {} }),
+  createArticle: (body: { section: ArticleSection; title: string; body: string; slug?: string }) =>
+    apiRequest<AdminArticle>('/api/admin/articles', { method: 'POST', body }),
+  updateArticle: (
+    id: string,
+    body: Partial<{ section: ArticleSection; title: string; body: string; slug: string }>,
+  ) => apiRequest<AdminArticle>(`/api/admin/articles/${id}`, { method: 'PUT', body }),
+  publishArticle: (id: string) =>
+    apiRequest<AdminArticle>(`/api/admin/articles/${id}/publish`, { method: 'POST' }),
+  unpublishArticle: (id: string) =>
+    apiRequest<AdminArticle>(`/api/admin/articles/${id}/unpublish`, { method: 'POST' }),
+  deleteArticle: (id: string) =>
+    apiRequest<{ message: string }>(`/api/admin/articles/${id}`, { method: 'DELETE' }),
+  uploadArticleCover: (id: string, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return apiRequest<AdminArticle>(`/api/admin/articles/${id}/image`, {
+      method: 'POST',
+      formData: form,
+    })
+  },
+  deleteArticleCover: (id: string) =>
+    apiRequest<AdminArticle>(`/api/admin/articles/${id}/image`, { method: 'DELETE' }),
 }
 
 export interface FeedbackTicketPayload {
