@@ -126,6 +126,15 @@ export interface SocialLink {
   url: string
 }
 
+export interface ItemImage {
+  id: string
+  url: string
+  caption: string | null
+  sort_order: number
+  width: number | null
+  height: number | null
+}
+
 export interface BusinessItem {
   id: string
   title: string
@@ -136,6 +145,18 @@ export interface BusinessItem {
   image_url: string | null
   is_available: boolean
   sort_order: number
+  /** The fields below only ever apply to a physical good, not a service or menu item. */
+  good_type: string | null
+  brand_name: string | null
+  ingredients: string | null
+  /** ISO date (YYYY-MM-DD). */
+  manufactured_at: string | null
+  /** ISO date (YYYY-MM-DD). */
+  expiry_date: string | null
+  net_weight: string | null
+  external_link: string | null
+  /** Separate from image_url, which is the card thumbnail. */
+  images: ItemImage[]
 }
 
 export interface BusinessSummary {
@@ -485,6 +506,14 @@ export interface ProductSummary {
 export interface ProductDetail extends ProductSummary {
   description: string | null
   created_at: string
+  good_type: string | null
+  brand_name: string | null
+  ingredients: string | null
+  manufactured_at: string | null
+  expiry_date: string | null
+  net_weight: string | null
+  external_link: string | null
+  images: ItemImage[]
 }
 
 /**

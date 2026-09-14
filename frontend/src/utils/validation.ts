@@ -191,6 +191,23 @@ export const itemSchema = (t: Translate) =>
       ),
     currency: z.enum(['USD', 'LBP']),
     is_available: z.boolean(),
+    good_type: z.string().trim().max(160).optional().or(z.literal('')),
+    brand_name: z.string().trim().max(160).optional().or(z.literal('')),
+    ingredients: z.string().trim().max(2000).optional().or(z.literal('')),
+    manufactured_at: z
+      .string()
+      .trim()
+      .optional()
+      .or(z.literal(''))
+      .refine((value) => !value || !Number.isNaN(Date.parse(value)), t('validation.dateInvalid')),
+    expiry_date: z
+      .string()
+      .trim()
+      .optional()
+      .or(z.literal(''))
+      .refine((value) => !value || !Number.isNaN(Date.parse(value)), t('validation.dateInvalid')),
+    net_weight: z.string().trim().max(80).optional().or(z.literal('')),
+    external_link: optionalUrl(t),
   })
 
 /**

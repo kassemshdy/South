@@ -6,15 +6,18 @@ from __future__ import annotations
 import uuid
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, File, Path, Query, UploadFile, status
+from fastapi import APIRouter, File, Form, Path, Query, UploadFile, status
+from sqlalchemy import func, select
 
 from app.api.serializers import item_out, paginate, product_detail, product_summary
 from app.core.dependencies import AppSettings, DbSession, OwnedBusiness, Viewer
-from app.core.errors import NotFoundError, PayloadTooLargeError
+from app.core.errors import NotFoundError, PayloadTooLargeError, ValidationError
 from app.core.i18n import translate
 from app.core.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from app.models.business import BusinessItemImage
 from app.models.enums import ImageKind, ViewSubject
 from app.repositories.item import ItemRepository
+from app.schemas.business import ImageReorderIn
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.item import (
     BusinessItemIn,
@@ -135,8 +138,10 @@ def delete_item(
 ) -> MessageResponse:
     service = BusinessItemService(db)
     item = service.get_owned(business, item_id)
-    storage_key = service.delete(item)
-    ImageService(get_storage(), settings).delete(storage_key)
+    storage_keys = service.delete(item)
+    images = ImageService(get_storage(), settings)
+    for storage_key in storage_keys:
+        images.delete(storage_key)
     BusinessService(db).refresh_search_text(business)
     db.commit()
     return MessageResponse(message=translate("item.deleted"))
@@ -176,4 +181,124 @@ def upload_item_image(
     images.delete(item.image_storage_key)
     item.image_url, item.image_storage_key = stored.url, stored.key
     db.commit()
+    return item_out(item)
+
+
+@router.post(
+    "/businesses/{business_id}/items/{item_id}/gallery",
+    response_model=BusinessItemOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def upload_item_gallery_image(
+    item_id: uuid.UUID,
+    business: OwnedBusiness,
+    db: DbSession,
+    settings: AppSettings,
+    file: Annotated[UploadFile, File()],
+    caption: Annotated[str | None, Form(max_length=300)] = None,
+) -> BusinessItemOut:
+    """Add a photo to a product's gallery, separate from its card thumbnail.
+
+    ``image_url`` (set by ``upload_item_image`` above) is what a listing card
+    shows; this gallery is what a buyer sees after opening the product, the
+    same distinction a business draws between its logo/cover and its gallery.
+    """
+    service = BusinessItemService(db)
+    item = service.get_owned(business, item_id)
+
+    gallery_count = int(
+        db.execute(
+            select(func.count())
+            .select_from(BusinessItemImage)
+            .where(BusinessItemImage.item_id == item.id)
+        ).scalar_one()
+    )
+    if gallery_count >= settings.max_gallery_images:
+        raise ValidationError(
+            "image.gallery_limit",
+            code="gallery_limit_reached",
+            params={"max": settings.max_gallery_images},
+        )
+
+    data = file.file.read()
+    if len(data) > settings.max_upload_bytes:
+        raise PayloadTooLargeError()
+
+    images = ImageService(get_storage(), settings)
+    stored = images.process_and_store(
+        data=data,
+        content_type=file.content_type,
+        owner_id=item.id,
+        kind=ImageKind.GALLERY,
+        prefix="items",
+    )
+
+    db.add(
+        BusinessItemImage(
+            item_id=item.id,
+            url=stored.url,
+            storage_key=stored.key,
+            caption=caption,
+            sort_order=gallery_count,
+            width=stored.width,
+            height=stored.height,
+            size_bytes=stored.size_bytes,
+        )
+    )
+    db.commit()
+    db.refresh(item)
+    return item_out(item)
+
+
+@router.delete(
+    "/businesses/{business_id}/items/{item_id}/gallery/{image_id}",
+    response_model=BusinessItemOut,
+)
+def delete_item_gallery_image(
+    item_id: uuid.UUID,
+    image_id: uuid.UUID,
+    business: OwnedBusiness,
+    db: DbSession,
+    settings: AppSettings,
+) -> BusinessItemOut:
+    service = BusinessItemService(db)
+    item = service.get_owned(business, item_id)
+
+    image = db.execute(
+        select(BusinessItemImage).where(
+            BusinessItemImage.id == image_id, BusinessItemImage.item_id == item.id
+        )
+    ).scalar_one_or_none()
+    if image is None:
+        raise NotFoundError("image.not_found")
+
+    ImageService(get_storage(), settings).delete(image.storage_key)
+    db.delete(image)
+    db.commit()
+    db.refresh(item)
+    return item_out(item)
+
+
+@router.put(
+    "/businesses/{business_id}/items/{item_id}/gallery/order",
+    response_model=BusinessItemOut,
+)
+def reorder_item_gallery(
+    item_id: uuid.UUID,
+    payload: ImageReorderIn,
+    business: OwnedBusiness,
+    db: DbSession,
+) -> BusinessItemOut:
+    service = BusinessItemService(db)
+    item = service.get_owned(business, item_id)
+
+    gallery = {image.id: image for image in item.images}
+    unknown = [image_id for image_id in payload.image_ids if image_id not in gallery]
+    if unknown:
+        raise ValidationError("image.unknown_in_order", code="unknown_image")
+
+    for position, image_id in enumerate(payload.image_ids):
+        gallery[image_id].sort_order = position
+    db.commit()
+    db.refresh(item)
     return item_out(item)
