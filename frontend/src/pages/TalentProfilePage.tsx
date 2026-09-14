@@ -18,16 +18,17 @@ import { FavouriteButton } from '@/features/favourites/FavouriteButton'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { useSeo } from '@/hooks/useSeo'
-import { useT } from '@/i18n'
-import { PROFICIENCY_KEYS } from '@/features/talent/labels'
+import { useI18n, useT } from '@/i18n'
+import { EMPLOYMENT_TYPE_KEYS, PROFICIENCY_KEYS } from '@/features/talent/labels'
 import { ServiceRequestForm } from '@/features/talent/ServiceRequestForm'
 import { publicTalentApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import { telHref, whatsappHref } from '@/utils/format'
+import { formatDate, telHref, whatsappHref } from '@/utils/format'
 
 export function TalentProfilePage() {
   const { slug = '' } = useParams()
   const t = useT()
+  const { locale } = useI18n()
 
   const talent = useQuery({
     queryKey: queryKeys.talent(slug),
@@ -42,7 +43,7 @@ export function TalentProfilePage() {
         ? `${data.display_name} — ${data.location.name_ar} | ${t('app.name')}`
         : `${data.display_name} | ${t('app.name')}`
       : t('app.name'),
-    description: data?.headline ?? undefined,
+    description: data?.bio ?? undefined,
     image: data?.photo_url ?? null,
     canonicalPath: `/talent/${encodeURIComponent(slug)}`,
   })
@@ -81,19 +82,53 @@ export function TalentProfilePage() {
 
   // Only the fields the person actually filled in get a row — an empty
   // definition list would otherwise render as a box of headings.
-  const professional = (
+  const textFields = (
     [
       ['highest_degree', 'talent.degreeLabel'],
       ['specialization', 'talent.specializationLabel'],
       ['university', 'talent.universityLabel'],
+      ['study_focus', 'talent.studyFocusLabel'],
       ['experience', 'talent.experienceLabel'],
+      ['professional_training', 'talent.professionalTrainingLabel'],
       ['skills_text', 'talent.skillsLabel'],
       ['services_offered', 'talent.servicesLabel'],
+      ['hobbies', 'talent.hobbiesLabel'],
     ] as const
   ).flatMap(([key, labelKey]) => {
     const value = data[key]
-    return value ? [{ key, label: t(labelKey), value }] : []
+    return value ? [{ key: key as string, label: t(labelKey), value }] : []
   })
+
+  const derivedFields: { key: string; label: string; value: string }[] = []
+  if (data.education_years !== null) {
+    derivedFields.push({
+      key: 'education_years',
+      label: t('talent.educationYearsLabel'),
+      value: t('talent.educationYearsValue', { count: data.education_years }),
+    })
+  }
+  if (data.graduation_date) {
+    derivedFields.push({
+      key: 'graduation_date',
+      label: t('talent.graduationDateLabel'),
+      value: formatDate(data.graduation_date, locale),
+    })
+  }
+  if (data.employment_type) {
+    derivedFields.push({
+      key: 'employment_type',
+      label: t('talent.employmentTypeLabel'),
+      value: t(EMPLOYMENT_TYPE_KEYS[data.employment_type]),
+    })
+  }
+  if (data.remote_capable) {
+    derivedFields.push({
+      key: 'remote_capable',
+      label: t('talent.remoteCapableLabel'),
+      value: t('talent.remoteCapableValue'),
+    })
+  }
+  const professional = [...textFields, ...derivedFields]
 
   return (
     <article className="pb-16">
@@ -123,8 +158,6 @@ export function TalentProfilePage() {
               </Badge>
             </div>
 
-            {data.headline ? <p className="mt-2 text-ink-600">{data.headline}</p> : null}
-
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-500">
               {data.skill ? (
                 <Link
@@ -149,7 +182,7 @@ export function TalentProfilePage() {
           </div>
 
           <div className="flex shrink-0 gap-2">
-            <ShareButton title={data.display_name} text={data.headline ?? undefined} />
+            <ShareButton title={data.display_name} text={data.bio ?? undefined} />
             <FavouriteButton
               subject="TALENT"
               slug={data.slug}

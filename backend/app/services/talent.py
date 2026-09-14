@@ -27,7 +27,6 @@ logger = logging.getLogger(__name__)
 # save: the editor deliberately allows saving an incomplete draft.
 SUBMISSION_REQUIREMENTS: tuple[tuple[str, str], ...] = (
     ("display_name", "talent.field.display_name"),
-    ("headline", "talent.field.headline"),
     ("bio", "talent.field.bio"),
     ("skill_id", "talent.field.skill"),
     ("location_id", "talent.field.location"),
@@ -58,7 +57,6 @@ class TalentService:
             slug=unique_slug(
                 payload.display_name, self._repo.slug_exists, fallback_prefix="talent"
             ),
-            headline=payload.headline,
             bio=payload.bio,
             years_experience=payload.years_experience,
             skill_id=payload.skill_id,
@@ -72,9 +70,16 @@ class TalentService:
             highest_degree=payload.highest_degree,
             specialization=payload.specialization,
             university=payload.university,
+            education_years=payload.education_years,
+            graduation_date=payload.graduation_date,
+            study_focus=payload.study_focus,
             experience=payload.experience,
+            professional_training=payload.professional_training,
             skills_text=payload.skills_text,
             services_offered=payload.services_offered,
+            hobbies=payload.hobbies,
+            employment_type=payload.employment_type,
+            remote_capable=payload.remote_capable,
         )
         if payload.languages is not None:
             self._apply_languages(profile, payload.languages)
@@ -219,7 +224,6 @@ class TalentService:
         # would let anyone find a profile by data the profile never shows.
         return build_search_text(
             profile.display_name,
-            profile.headline,
             profile.bio,
             skill,
             location,

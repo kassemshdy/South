@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>دليل الجنوب — حالة إنجاز المشروع</title>
+  <meta name="description" content="تقرير حالة إنجاز منصّة دليل الجنوب: ما اكتمل، وما هو قيد العمل، وما هو مُخطَّط للمرحلة القادمة." />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="ar_LB" />
+  <meta property="og:site_name" content="دليل الجنوب" />
+  <meta property="og:title" content="دليل الجنوب — حالة إنجاز المشروع" />
+  <meta property="og:description" content="ما اكتمل من المشروع، وما هو قيد العمل، وما هو قادم." />
+  <meta name="theme-color" content="#123f28" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <style>
+    :root {
+      --bg: #f4f2ec; --surface: #ffffff; --surface-2: #faf9f5; --ink: #18241d; --muted: #566259;
+      --hair: #e4e0d6; --pine: #123f28; --pine-2: #0d3020; --gold: #b98a2e;
+      --ok: #2f7d4f; --ok-bg: #e7f2ea; --warn: #b0791f; --warn-bg: #f6eed9; --wait: #64757f; --wait-bg: #eaeef0;
+      --shadow: 0 1px 2px rgba(18, 63, 40, .06), 0 8px 24px rgba(18, 63, 40, .06);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #10160f; --surface: #172119; --surface-2: #131c15; --ink: #e9efe6; --muted: #9aa89d;
+        --hair: #26322690; --pine: #7fc79a; --pine-2: #163826; --gold: #d8b25a;
+        --ok: #6fce97; --ok-bg: #16301f; --warn: #e0b458; --warn-bg: #322616; --wait: #9fb2bc; --wait-bg: #1e2a30;
+        --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0; background: var(--bg); color: var(--ink);
+      font-family: "SF Arabic", "Geeza Pro", "Segoe UI", "Noto Kufi Arabic", "Tahoma", system-ui, sans-serif;
+      line-height: 1.6; font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased;
+    }
+    .wrap { max-width: 940px; margin: 0 auto; padding: 0 20px 72px; }
+
+    .masthead {
+      background: linear-gradient(160deg, var(--pine) 0%, var(--pine-2) 100%);
+      color: #f2f6ef; border-radius: 0 0 26px 26px; padding: 40px 20px 30px; box-shadow: var(--shadow);
+    }
+    .masthead .inner { max-width: 940px; margin: 0 auto; }
+    .eyebrow { font-size: 12.5px; letter-spacing: .14em; text-transform: uppercase; color: #cfe6d6; opacity: .85; margin: 0 0 10px; }
+    h1 { font-size: clamp(26px, 5vw, 40px); line-height: 1.15; margin: 0; font-weight: 800; text-wrap: balance; letter-spacing: -.01em; }
+    .lede { margin: 12px 0 0; max-width: 60ch; color: #d8e7dc; font-size: 16px; }
+
+    .summary { display: grid; grid-template-columns: 1.15fr .85fr; gap: 22px; margin-top: 26px; align-items: center; }
+    @media (max-width: 620px) { .summary { grid-template-columns: 1fr; } }
+    .meter-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+    .meter-top b { font-size: 15px; font-weight: 700; color: #eef5ef; }
+    .meter-top span { font-size: 13px; color: #cfe6d6; }
+    .meter { height: 16px; border-radius: 999px; overflow: hidden; display: flex; background: #ffffff22; box-shadow: inset 0 0 0 1px #ffffff2e; }
+    .meter i { display: block; height: 100%; }
+    .seg-ok { background: #5cc487; } .seg-warn { background: #e6b855; } .seg-wait { background: #9fb2bc; }
+    .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .tile { background: #ffffff14; border: 1px solid #ffffff26; border-radius: 14px; padding: 12px 10px; text-align: center; }
+    .tile .n { font-size: 26px; font-weight: 800; line-height: 1; }
+    .tile .k { font-size: 12px; margin-top: 5px; color: #d8e7dc; }
+    .dotk { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-inline-start: 6px; vertical-align: middle; }
+
+    .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 26px 0 6px; padding: 0 2px; color: var(--muted); font-size: 13.5px; }
+    .legend span { display: inline-flex; align-items: center; gap: 7px; }
+    .legend i { width: 10px; height: 10px; border-radius: 50%; }
+
+    section { margin-top: 22px; background: var(--surface); border: 1px solid var(--hair); border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; }
+    .sec-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--hair); background: var(--surface-2); }
+    .sec-head h2 { margin: 0; font-size: 18px; font-weight: 800; color: var(--pine); letter-spacing: -.01em; }
+    .sec-count { font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+    ul.items { list-style: none; margin: 0; padding: 4px 0; }
+    ul.items li { display: flex; align-items: center; gap: 14px; padding: 13px 20px; border-top: 1px solid var(--hair); }
+    ul.items li:first-child { border-top: 0; }
+    .txt { flex: 1; min-width: 0; }
+    .txt p { margin: 0; font-size: 15.5px; color: var(--ink); }
+    .txt small { display: block; margin-top: 3px; color: var(--muted); font-size: 13px; }
+    .chip { flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 700; padding: 5px 11px; border-radius: 999px; white-space: nowrap; }
+    .chip i { width: 7px; height: 7px; border-radius: 50%; }
+    .c-ok { color: var(--ok); background: var(--ok-bg); } .c-ok i { background: var(--ok); }
+    .c-warn { color: var(--warn); background: var(--warn-bg); } .c-warn i { background: var(--warn); }
+    .c-wait { color: var(--wait); background: var(--wait-bg); } .c-wait i { background: var(--wait); }
+
+    footer { margin-top: 30px; text-align: center; color: var(--muted); font-size: 13px; line-height: 1.7; }
+    footer b { color: var(--ink); }
+
+    @media print {
+      body { background: #fff; }
+      .masthead { border-radius: 0; box-shadow: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      section, .tile, .meter { box-shadow: none; }
+      section { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <header class="masthead">
+    <div class="inner">
+      <p class="eyebrow">دليل الجنوب · تقرير حالة الإنجاز</p>
+      <h1>ما الذي أُنجِز في منصّة دليل الجنوب</h1>
+      <p class="lede">لمحة واحدة عن حالة كل بند من بنود المشروع: ما اكتمل وأصبح يعمل على الموقع، وما هو قيد العمل، وما هو مُخطَّط للمرحلة القادمة.</p>
+
+      <div class="summary">
+        <div class="meter-wrap">
+          <div class="meter-top">
+            <b>التقدّم الإجمالي</b>
+            <span>19 من 41 بندًا مكتملة بالكامل</span>
+          </div>
+          <div class="meter" role="img" aria-label="19 منجزة، 5 قيد العمل، 17 قادمة">
+            <i class="seg-ok" style="width:46.3%"></i>
+            <i class="seg-warn" style="width:12.2%"></i>
+            <i class="seg-wait" style="width:41.5%"></i>
+          </div>
+        </div>
+        <div class="tiles">
+          <div class="tile"><div class="n">19</div><div class="k"><span class="dotk" style="background:#5cc487"></span>مُنجَز</div></div>
+          <div class="tile"><div class="n">5</div><div class="k"><span class="dotk" style="background:#e6b855"></span>قيد العمل</div></div>
+          <div class="tile"><div class="n">17</div><div class="k"><span class="dotk" style="background:#9fb2bc"></span>قادم</div></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="legend">
+      <span><i style="background:var(--ok)"></i> مُنجَز — يعمل الآن على الموقع</span>
+      <span><i style="background:var(--warn)"></i> قيد العمل — أساسه جاهز ويُستكمل</span>
+      <span><i style="background:var(--wait)"></i> قادم — مخطَّط للمرحلة التالية</span>
+    </div>
+
+    <section>
+      <div class="sec-head"><h2>المنصّة والتسجيل</h2><span class="sec-count">4 / 4 مُنجَز</span></div>
+      <ul class="items">
+        <li><div class="txt"><p>موقع بالعربية والإنجليزية ومتوافق تمامًا مع الهاتف</p></div><span class="chip c-ok"><i></i>مُنجَز</span></li>
+        <li><div class="txt"><p>تسجيل واستخدام بسيط جدًا يناسب من ليست لديهم خبرة تقنية</p></div><span class="chip c-ok"><i></i>مُنجَز</span></li>
+        <li><div class="txt"><p>عند الدخول يختار المستخدم بين «عندي مصلحة أو خدمة» و«أريد التصفّح»</p></div><span class="chip c-ok"><i></i>مُنجَز</span></li>
+        <li><div class="txt"><p>التسجيل عبر رقم الهاتف</p></div><span class="chip c-ok"><i></i>مُنجَز</span></li>
+      </ul>
+    </section>
+
+    <section>
+      <div class="sec-head"><h2>المصالح والمحتوى</h2><span class="sec-count">6 مُنجَز · 1 قيد العمل</span></div>
+      <ul class="items">
+        <li><div class="txt"><p>إضافة مصلحة، متجر، منتج، خدمة، حرفة، مهارة أو تدريس</p></div><span class="chip c-ok"><i></i>مُنجَز</span></li>
+        <li><div class="txt"><p>صفحة خاصة لكل مصلحة: الاسم، الوصف، المنطقة، الصور ووسائل التواصل</p></div><span class="chip c-ok"><i></i>مُنجَز</span></li>
+        <li><div class="txt"><p>معلومات إضافية اختيارية: الشعار، صورة الغلاف وروابط التواصل الاجتماعي</p><small>الشعار والغلاف والروابط جاهزة — ساعات العمل قيد الإضافة</small></div><span class="chip c-warn"><i></i>قيد العمل</span></li>
+        <li><div class="txt"><p>إضافة المنتجات مع الصور والأسعار والتفاصيل</p></div><span class="chip c-ok"><i></i>مُنجَز</span></li>
+        <li><div class="txt"><p>إضافة الخدمات مع الأسعار والتفاصيل</p></div><span class="chip c-ok"><i></i>مُنجَز</span></li>
+        <li><div class="txt"><p>البحث عن المصالح والخدمات حسب الفئة والمنطقة</p></div><span class="chip c-ok"><i></i>مُنجَز</span></li>
+        <li><div class="txt"><p>مراجعة المصالح والموافقة عليها قبل نشرها على الموقع</p></div><span class="chip c-ok"><i></i>مُنجَز</span></li>
+      </ul>
+    </section>
+
+    <section>
+      <div class="sec-head"><h2>الطلبات ولوحة التحكم</h2><span class="sec-count">3 / 3 مُنجَز</span></div>
+      <ul class="items">
+        <li><div class="txt"><p>إضافة المنتجات إلى سلة طلب بسيطة</p></div><span class="chip c-ok"><i></i>مُنجَز</span></li>
+        <li><div class="txt"><p>وصول الطلب إلى صاحب المصلحة والتواصل معه عبر واتساب لإكمال الشراء</p></div><span class="chip c-ok"><i></i>مُنجَز</span></li>
+        <li><div class="txt"><p>لوحة تحكم لصاحب المصلحة لإدارة صفحته ومنتجاته وخدماته وطلباته</p></div><span class="chip c-ok"><i></i>مُنجَز</span></li>
+      </ul>
+    </section>
+
+    <section>
+      <div class="sec-head"><h2>الظهور والمشاركة والملاحظات</h2><span class="sec-count">3 مُنجَز · 1 قيد العمل</span></div>
+      <ul class="items">
+        <li><div class="txt"><p>تحسين ظهور صفحات المصالح والمنتجات في نتائج بحث غوغل</p></div><span class="chip c-ok"><i></i>مُنجَز</span></li>
+        <li><div class="txt"><p>تسهيل مشاركة صفحة المصلحة والمنتجات عبر واتساب ووسائل التواصل</p></div><span class="chip c-ok"><i></i>مُنجَز</span></li>
+        <li><div class="txt"><p>وضع التعليقات والمشاكل داخل المنصة لمعالجتها بشكل أسرع</p></div><span class="chip c-ok"><i></i>مُنجَز</span></li>
+        <li><div class="txt"><p>إمكانية إضافة علامة «مصلحة موثّقة»</p><small>الشارة تظهر حاليًا للمصالح المنشورة — نظام توثيق مستقل مخطَّط لاحقًا</small></div><span class="chip c-warn"><i></i>قيد العمل</span></li>
+      </ul>
+    </section>
+
+    <section>
+      <div class="sec-head"><h2>القياس والتحليلات</h2><span class="sec-count">2 مُنجَز · 2 قيد العمل</span></div>
+      <ul class="items">
+        <li><div class="txt"><p>تركيب أدوات لقياس عدد الزوار والتفاعل داخل الموقع</p></div><span class="chip c-ok"><i></i>مُنجَز</span></li>
+        <li><div class="txt"><p>قياس عدد مشاهدات كل مصلحة ومنتج</p></div><span class="chip c-ok"><i></i>مُنجَز</span></li>
+        <li><div class="txt"><p>قياس الضغطات على واتساب والطلبات وتنزيلات الفيديوهات</p><small>الطلبات تُسجَّل — قياس ضغطات واتساب والتنزيلات قيد الإضافة</small></div><span class="chip c-warn"><i></i>قيد العمل</span></li>
+        <li><div class="txt"><p>معرفة أكثر المصالح والفئات والمناطق تفاعلًا</p><small>المشاهدات لكل صفحة متوفرة — لوحة الترتيب حسب التفاعل قيد العمل</small></div><span class="chip c-warn"><i></i>قيد العمل</span></li>
+      </ul>
+    </section>
+
+    <section>
+      <div class="sec-head"><h2>الوسائط والتسويق</h2><span class="sec-count">1 مُنجَز · 1 قيد العمل · 5 قادم</span></div>
+      <ul class="items">
+        <li><div class="txt"><p>تصوير فيديو تعريفي احترافي للدكتور حسام لشرح فكرة المشروع</p></div><span class="chip c-ok"><i></i>مُنجَز</span></li>
+        <li><div class="txt"><p>إنشاء صفحات المشروع على إنستغرام وتيك توك وفيسبوك</p><small>روابط التواصل مدمجة في الموقع — إنشاء وإدارة الحسابات نشاط خارجي</small></div><span class="chip c-warn"><i></i>قيد العمل</span></li>
+        <li><div class="txt"><p>نشر المصالح والمنتجات وقصص أصحابها على صفحات المشروع</p></div><span class="chip c-wait"><i></i>قادم</span></li>
+        <li><div class="txt"><p>أداة داخل الموقع تنشئ فيديو تلقائيًا من صور المنتجات</p></div><span class="chip c-wait"><i></i>قادم</span></li>
+        <li><div class="txt"><p>رفع الصور والسعر والمعلومات ← إنشاء فيديو قصير جاهز للنشر</p></div><span class="chip c-wait"><i></i>قادم</span></li>
+        <li><div class="txt"><p>تنزيل الفيديو ونشره على حسابات صاحب المصلحة</p></div><span class="chip c-wait"><i></i>قادم</span></li>
+        <li><div class="txt"><p>نشر الفيديوهات المميّزة على صفحات المشروع</p></div><span class="chip c-wait"><i></i>قادم</span></li>
+      </ul>
+    </section>
+
+    <section>
+      <div class="sec-head"><h2>المحتوى التعليمي والفرص</h2><span class="sec-count">7 / 7 قادم</span></div>
+      <ul class="items">
+        <li><div class="txt"><p>تعليم أصحاب المصالح تصوير المنتجات بطريقة جيدة باستخدام الهاتف</p></div><span class="chip c-wait"><i></i>قادم</span></li>
+        <li><div class="txt"><p>محتوى تعليمي عن إنشاء الفيديوهات وتطبيقات المونتاج مثل «كاب كت»</p></div><span class="chip c-wait"><i></i>قادم</span></li>
+        <li><div class="txt"><p>تعليم استخدام وسائل التواصل الاجتماعي لتسويق الأعمال</p></div><span class="chip c-wait"><i></i>قادم</span></li>
+        <li><div class="txt"><p>إنشاء قسم مقالات وفرص داخل الموقع</p></div><span class="chip c-wait"><i></i>قادم</span></li>
+        <li><div class="txt"><p>نشر مقالات عن العمل عن بُعد والعمل الحر والتعليم عبر الإنترنت</p></div><span class="chip c-wait"><i></i>قادم</span></li>
+        <li><div class="txt"><p>التعريف بمنصات تساعد أهل الجنوب على إيجاد فرص العمل</p></div><span class="chip c-wait"><i></i>قادم</span></li>
+        <li><div class="txt"><p>مشاركة المقالات والمحتوى عبر صفحات المشروع وصفحات الدكتور حسام</p></div><span class="chip c-wait"><i></i>قادم</span></li>
+      </ul>
+    </section>
+
+    <section>
+      <div class="sec-head"><h2>الانتشار الميداني (رموز QR والملصقات)</h2><span class="sec-count">5 / 5 قادم</span></div>
+      <ul class="items">
+        <li><div class="txt"><p>إنشاء رمز استجابة سريع (QR) خاص بكل مصلحة يؤدي مباشرة إلى صفحتها</p></div><span class="chip c-wait"><i></i>قادم</span></li>
+        <li><div class="txt"><p>تصميم وطباعة ملصق خاص بالمشروع يوضع على واجهة كل محل مشارك</p></div><span class="chip c-wait"><i></i>قادم</span></li>
+        <li><div class="txt"><p>احتواء الملصق على رمز الاستجابة السريع الخاص بالمحل</p></div><span class="chip c-wait"><i></i>قادم</span></li>
+        <li><div class="txt"><p>استخدام الملصقات لتحويل كل محل مشارك إلى نقطة تعريف بالمنصة</p></div><span class="chip c-wait"><i></i>قادم</span></li>
+        <li><div class="txt"><p>قياس عدد الأشخاص الذين دخلوا إلى الموقع من خلال رموز الملصقات</p></div><span class="chip c-wait"><i></i>قادم</span></li>
+      </ul>
+    </section>
+
+    <footer>
+      <p><b>الهدف الأساسي:</b> زيادة انتشار مصالح أهل الجنوب، وتعريف الناس بهم، ومساعدتهم على الوصول إلى زبائن جدد وزيادة فرص العمل والدخل.</p>
+      <p>حالة الإنجاز بحسب مراجعة المنصّة — أيلول 2026</p>
+    </footer>
+  </div>
+</body>
+</html>

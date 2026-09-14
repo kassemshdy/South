@@ -17,7 +17,6 @@ const locations = load<{ children?: { slug: string; name_ar: string }[] }[]>(
 )
 const fixture = load<{
   displayName: string
-  headline: string
   bio: string
   yearsExperience: string
   skillSlug: string
@@ -94,7 +93,6 @@ test.describe('Talent directory', () => {
     ).toBeVisible()
 
     await page.getByLabel(t('talentForm.displayName')).fill(fixture.displayName)
-    await page.getByLabel(t('talentForm.headline')).fill(fixture.headline)
     await page.getByLabel(t('talentForm.bio')).fill(fixture.bio)
     await page.getByRole('combobox').first().click()
     await page.getByRole('option', { name: skillName }).click()
@@ -134,7 +132,7 @@ test.describe('Talent directory', () => {
     // publishes a profile, so it needs a single role switch rather than four.
     await signInAsAdmin(page)
     await openTalentReview(page)
-    await expect(page.getByText(fixture.headline)).toBeVisible()
+    await expect(page.getByText(fixture.bio)).toBeVisible()
     await page.getByRole('button', { name: t('admin.approve') }).click()
     await expect(page.getByRole('heading', { name: t('admin.confirmApproveTitle') })).toBeVisible()
     await page.getByRole('button', { name: t('common.confirm'), exact: true }).click()
@@ -158,7 +156,6 @@ test.describe('Talent directory', () => {
     await page.goto('/talent')
     await page.getByRole('link', { name: fixture.displayName, exact: true }).click()
     await expect(page.getByRole('heading', { name: fixture.displayName, level: 1 })).toBeVisible()
-    await expect(page.getByText(fixture.headline)).toBeVisible()
     await expect(page.getByText(fixture.bio)).toBeVisible()
     // A public page never carries a status badge.
     await expect(page.getByText(t('status.APPROVED'), { exact: true })).toHaveCount(0)

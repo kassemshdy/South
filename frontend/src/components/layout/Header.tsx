@@ -31,8 +31,14 @@ import { cn } from '@/utils/cn'
  * It used to grow: signing in appended `nav.myBusinesses`, `nav.account` and
  * a sign-out button, plus `nav.adminPanel` for an admin, so the people who use
  * the site most got the most crowded bar — eight items and a call to action
- * competing on one line. The public links stay three, and everything personal
- * now lives behind one account menu.
+ * competing on one line. Everything personal lives behind one account menu
+ * regardless of sign-in state.
+ *
+ * The public side grew too, once the site had marketing pages to point to
+ * (news, a blog, an about page): rather than let the row keep widening one
+ * link at a time, the three primary destinations (directory, products,
+ * talent) stay direct links and the rest sit behind one `nav.more` menu —
+ * still one tap away, just not one of the first things in the bar.
  *
  * Signed out the bar ends in one button, `nav.login`. Signed in it ends in
  * the account menu and nothing after it. It used to end in `nav.addBusiness`
@@ -135,6 +141,36 @@ export function Header() {
           <Link to="/talent" className={NAV_LINK}>
             {t('nav.talent')}
           </Link>
+
+          {/* Lower-traffic marketing pages, grouped rather than given their
+              own slot each -- see the file-level note on why the row stays
+              short. Still one tap from the header, just not one of the first
+              three links in it. */}
+          <DropdownMenuPrimitive.Root>
+            <DropdownMenuPrimitive.Trigger asChild>
+              <button type="button" className={cn(NAV_LINK, 'flex items-center gap-1')}>
+                {t('nav.more')}
+                <ChevronDown className="h-3.5 w-3.5 text-ink-500" aria-hidden="true" />
+              </button>
+            </DropdownMenuPrimitive.Trigger>
+            <DropdownMenuPrimitive.Portal>
+              <DropdownMenuPrimitive.Content
+                align="start"
+                sideOffset={6}
+                className="z-50 min-w-48 overflow-hidden rounded-xl border border-ink-100 bg-white p-1 shadow-lift"
+              >
+                <DropdownMenuPrimitive.Item asChild className={MENU_ITEM}>
+                  <Link to="/news">{t('nav.news')}</Link>
+                </DropdownMenuPrimitive.Item>
+                <DropdownMenuPrimitive.Item asChild className={MENU_ITEM}>
+                  <Link to="/blog">{t('nav.blog')}</Link>
+                </DropdownMenuPrimitive.Item>
+                <DropdownMenuPrimitive.Item asChild className={MENU_ITEM}>
+                  <Link to="/about">{t('nav.about')}</Link>
+                </DropdownMenuPrimitive.Item>
+              </DropdownMenuPrimitive.Content>
+            </DropdownMenuPrimitive.Portal>
+          </DropdownMenuPrimitive.Root>
 
           <LocaleToggle />
 
@@ -256,6 +292,15 @@ export function Header() {
           </Link>
           <Link to="/talent" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">
             {t('nav.talent')}
+          </Link>
+          <Link to="/news" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">
+            {t('nav.news')}
+          </Link>
+          <Link to="/blog" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">
+            {t('nav.blog')}
+          </Link>
+          <Link to="/about" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">
+            {t('nav.about')}
           </Link>
 
           {/* The drawer is already a submenu, so the personal links sit here

@@ -15,21 +15,34 @@ const OWNER_PHONE = '03966401'
 const DEV_OTP = '123456'
 
 /**
- * The three ways into the site.
+ * The ways into the site.
  *
  * These cards are the homepage's navigation for anyone not confident online,
  * so the rule pinned here is that they are **always** there — no dismissal, no
  * memory, present on a return visit and present when signed in. It started out
  * as a once-only question; navigation you see once is not navigation.
  *
- * The other rule: choosing to list something explains the three steps before
+ * The second rule: choosing to list something explains the three steps before
  * asking for a phone number, because "sign in" is not an answer to "I have a
  * shop".
  *
+ * The third, and the reason several of these tests have an extra click in
+ * them: **the responsibility notice is the only way through a door.** Both
+ * halves of the fork end at a dealing between two strangers that the platform
+ * does not stand behind, so the visitor reads that and agrees before the page
+ * opens. Pinned here rather than trusted, because the failure mode is silent —
+ * a door that quietly becomes a link again still works, and still skips the
+ * notice.
+ *
  * The second level replaces the first in place. A dialog was tried and read
  * as heavier than the choice deserves — these cards are navigation, and
- * navigation should not darken the page behind it to ask which of three
+ * navigation should not darken the page behind it to ask which of two
  * lists you want.
+ *
+ * Locators here use plain substrings rather than `new RegExp(...)`: the two
+ * top-level labels carry a parenthesised aside, and `(` inside a RegExp is a
+ * group rather than a bracket, so a pattern built from the label stops
+ * matching the label.
  */
 test.describe('Audience chooser', () => {
   test('is always there, explains before signing in, and never blocks the page', async ({
@@ -47,8 +60,14 @@ test.describe('Audience chooser', () => {
     // Choosing to list a business explains what that involves, in place,
     // rather than jumping to a phone-number prompt.
     // Two levels now: the intent first, then which kind.
-    await page.getByRole('button', { name: new RegExp(t('home.actionOffer')) }).click()
-    await page.getByRole('button', { name: new RegExp(t('onboarding.ownerTitle')) }).click()
+    await page.getByRole('button', { name: t('home.actionOffer') }).click()
+    await page.getByRole('button', { name: t('onboarding.ownerTitle') }).click()
+
+    // The notice first, and it is the screen rather than a line on it.
+    await expect(page.getByRole('heading', { name: t('consent.heading') })).toBeVisible()
+    await expect(page.getByText(t('consent.body'))).toBeVisible()
+    await page.getByRole('button', { name: t('consent.agree') }).click()
+
     await expect(page.getByText(t('onboarding.step1'))).toBeVisible()
     await expect(page.getByText(t('onboarding.step3'))).toBeVisible()
     expect(new URL(page.url()).pathname).toBe('/')
@@ -76,15 +95,16 @@ test.describe('Audience chooser', () => {
     // failure that actually costs someone a listing is this one.
     await page.goto('/')
     // Two levels now: the intent first, then which kind.
-    await page.getByRole('button', { name: new RegExp(t('home.actionOffer')) }).click()
-    await page.getByRole('button', { name: new RegExp(t('onboarding.ownerTitle')) }).click()
+    await page.getByRole('button', { name: t('home.actionOffer') }).click()
+    await page.getByRole('button', { name: t('onboarding.ownerTitle') }).click()
+    await page.getByRole('button', { name: t('consent.agree') }).click()
 
     await expect(page.getByText(t('onboarding.step1'))).toBeVisible()
     await expect(page.getByText(t('assisted.title'))).toHaveCount(0)
     await expect(page.getByRole('link', { name: t('assisted.cta') })).toHaveCount(0)
   })
 
-  test('someone signed in gets the same three routes, pointing at their dashboard', async ({
+  test('someone signed in gets the same doors, pointing at their dashboard', async ({
     page,
   }) => {
     await page.goto('/login')
@@ -112,8 +132,11 @@ test.describe('Audience chooser', () => {
 
     // No steps panel for someone who has already been through it: the card is
     // a link straight to the thing it describes.
-    await page.getByRole('button', { name: new RegExp(t('home.actionOffer')) }).click()
-    await page.getByRole('link', { name: new RegExp(t('onboarding.ownerTitle')) }).click()
+    await page.getByRole('button', { name: t('home.actionOffer') }).click()
+    await page.getByRole('button', { name: t('onboarding.ownerTitle') }).click()
+    // Signed in, agreeing is the whole remaining step: no steps panel, and the
+    // control is a real link straight to the wizard.
+    await page.getByRole('link', { name: t('consent.agree') }).click()
     await expect(page).toHaveURL(/\/dashboard\/businesses\/new/)
 
     // And the fork is still reachable from inside the wizard, for someone who
@@ -126,33 +149,67 @@ test.describe('Audience chooser', () => {
     await expect(page).toHaveURL(/\/dashboard\/talent/)
   })
 
-  test('the buying half offers all three directories, and backing out restores the question', async ({
+  test('the buying half forks two ways, and backing out restores the question', async ({
     page,
   }) => {
-    // The half that was wrong on the live site in a quieter way: it offered
-    // goods and someone-skilled, and simply had no door to the businesses
-    // directory at all. Someone who wanted the bakery on the corner had to
-    // find it through a product.
+    // Two doors, on the axis the board ticket named: goods and products, or
+    // services and jobs. It offered three until that ticket — the businesses
+    // directory had a card here too — and the cost of dropping to two is
+    // asserted rather than assumed further down this test: the shops
+    // directory is still reachable, just not from this fork.
     await page.goto('/')
-    await page.getByRole('button', { name: new RegExp(t('home.actionBrowse')) }).click()
+    await page.getByRole('button', { name: t('home.actionBrowse') }).click()
 
-    for (const key of [
-      'browse.businessesTitle',
-      'onboarding.seekGoodsTitle',
-      'onboarding.seekServiceTitle',
-    ]) {
-      await expect(page.getByRole('link', { name: new RegExp(t(key)) })).toBeVisible()
+    for (const key of ['onboarding.seekGoodsTitle', 'onboarding.seekServiceTitle']) {
+      await expect(page.getByRole('button', { name: t(key) })).toBeVisible()
     }
+    await expect(
+      page.getByRole('button', { name: t('browse.businessesTitle') }),
+    ).toHaveCount(0)
 
     // Backing out is a real option, and it returns to the one question rather
     // than leaving the visitor in a half-answered state.
     await page.getByRole('button', { name: t('onboarding.back') }).click()
     await expect(page.getByRole('heading', { name: t('onboarding.heading') })).toBeVisible()
 
-    // And the doors lead where they say.
-    await page.getByRole('button', { name: new RegExp(t('home.actionBrowse')) }).click()
-    await page.getByRole('link', { name: new RegExp(t('browse.businessesTitle')) }).click()
+    // And the doors lead where they say, once the notice is agreed to.
+    await page.getByRole('button', { name: t('home.actionBrowse') }).click()
+    await page.getByRole('button', { name: t('onboarding.seekGoodsTitle') }).click()
+    await page.getByRole('link', { name: t('consent.agree') }).click()
+    await expect(page).toHaveURL(/\/products/)
+
+    // The door this fork no longer offers, still one tap from the page it
+    // sent us to. This is the whole argument for dropping to two, so it is
+    // pinned next to the assertion that the card is gone.
+    const strip = page.getByRole('navigation', { name: t('browse.switcherLabel') })
+    await strip.getByRole('link', { name: t('browse.businessesShort') }).click()
     await expect(page).toHaveURL(/\/businesses/)
+  })
+
+  test('the notice is the only way through a door, on either half', async ({ page }) => {
+    // The assertion that matters is the negative one: choosing a door must
+    // not navigate. A door that regresses to a plain link still looks and
+    // behaves correctly to anyone clicking through it — the notice simply
+    // never appears — so "we are still on the homepage" is the line that
+    // catches it.
+    await page.goto('/')
+    await page.getByRole('button', { name: t('home.actionBrowse') }).click()
+    await page.getByRole('button', { name: t('onboarding.seekServiceTitle') }).click()
+
+    await expect(page.getByRole('heading', { name: t('consent.heading') })).toBeVisible()
+    expect(new URL(page.url()).pathname).toBe('/')
+
+    // Backing out of the notice returns to the two doors and navigates
+    // nowhere: declining is a real answer, not a dead end.
+    await page.getByRole('button', { name: t('onboarding.back') }).click()
+    await expect(page.getByRole('button', { name: t('onboarding.seekGoodsTitle') })).toBeVisible()
+    expect(new URL(page.url()).pathname).toBe('/')
+
+    // And agreeing carries on to the page that was chosen, not to some
+    // default.
+    await page.getByRole('button', { name: t('onboarding.seekServiceTitle') }).click()
+    await page.getByRole('link', { name: t('consent.agree') }).click()
+    await expect(page).toHaveURL(/\/talent/)
   })
 
   test('the header asks a signed-out visitor to sign in, not to open a shop', async ({

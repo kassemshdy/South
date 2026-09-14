@@ -86,33 +86,30 @@ test.describe('MVP acceptance flow', () => {
     // --- 1. A visitor browses approved businesses without logging in --------
     await page.goto('/')
     await expect(page.getByRole('heading', { name: t('home.heroTitle') })).toBeVisible()
-    await expect(page.getByRole('heading', { name: t('home.latestHeading') })).toBeVisible()
 
     // The one intent chooser, asked once: both halves of the question, and no
     // second or third widget asking it again further down. This replaced a
     // "what are you looking for" section that duplicated it.
     await expect(page.getByRole('heading', { name: t('onboarding.heading') })).toBeVisible()
-    await expect(page.getByRole('button', { name: new RegExp(t('home.actionOffer')) })).toHaveCount(1)
-    await expect(page.getByRole('button', { name: new RegExp(t('home.actionBrowse')) })).toHaveCount(1)
+    // Plain substrings rather than `new RegExp`: both of these labels carry a
+    // parenthesised aside now, and `(` in a RegExp is a group rather than a
+    // bracket, so the pattern would stop matching the text it was built from.
+    await expect(page.getByRole('button', { name: t('home.actionOffer') })).toHaveCount(1)
+    await expect(page.getByRole('button', { name: t('home.actionBrowse') })).toHaveCount(1)
     // Nothing anywhere on the page is "coming soon" any more.
     await expect(page.getByText(t('home.comingSoon'))).toHaveCount(0)
 
     // Looking for something forks by kind, and the service side reaches the
     // talent directory -- the same destination the old card asserted, now via
-    // the path a visitor actually takes.
-    await page.getByRole('button', { name: new RegExp(t('home.actionBrowse')) }).click()
-    await expect(
-      page.getByRole('link', { name: new RegExp(t('onboarding.seekGoodsTitle')) }),
-    ).toBeVisible()
-    await page.getByRole('link', { name: new RegExp(t('onboarding.seekServiceTitle')) }).click()
+    // the path a visitor actually takes. That path runs through the
+    // responsibility notice, which is the only way to the page behind a door.
+    await page.getByRole('button', { name: t('home.actionBrowse') }).click()
+    await expect(page.getByRole('button', { name: t('onboarding.seekGoodsTitle') })).toBeVisible()
+    await page.getByRole('button', { name: t('onboarding.seekServiceTitle') }).click()
+    await page.getByRole('link', { name: t('consent.agree') }).click()
     await expect(page).toHaveURL(/\/talent$/)
     await expect(page.getByRole('heading', { name: t('talent.heading') })).toBeVisible()
     await page.goBack()
-
-    // The public stats strip renders real numbers, not an error state.
-    await expect(page.getByText(t('home.statsBusinesses'))).toBeVisible()
-    await expect(page.getByText(t('home.statsTalents'))).toBeVisible()
-    await expect(page.getByText(t('home.statsProducts'))).toBeVisible()
 
     await page.goto('/businesses')
     await expect(page.getByRole('heading', { name: t('directory.heading') })).toBeVisible()

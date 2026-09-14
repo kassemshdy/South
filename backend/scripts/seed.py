@@ -369,7 +369,6 @@ def _talent_search_text(profile: TalentProfile, skill_name: str, location_name: 
     findable as an owner-authored one."""
     return build_search_text(
         profile.display_name,
-        profile.headline,
         profile.bio,
         profile.skills_text,
         profile.services_offered,
@@ -448,7 +447,6 @@ def seed_talents(db, skills, locations, admin) -> int:  # type: ignore[no-untype
             location_id=location.id,
             display_name=display_name,
             slug=entry.get("slug") or _talent_slug_for(display_name, db),
-            headline=entry.get("headline"),
             bio=entry.get("bio"),
             years_experience=entry.get("years_experience"),
             highest_degree=entry.get("highest_degree"),

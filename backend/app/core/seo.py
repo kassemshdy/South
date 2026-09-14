@@ -112,7 +112,6 @@ def talent_tags(
     *,
     display_name: str,
     skill_name: str | None,
-    headline: str | None,
     bio: str | None,
     location_name: str | None,
     image_url: str | None,
@@ -129,7 +128,7 @@ def talent_tags(
     else:
         fallback = translate("seo.talent.description_no_location", name=display_name)
 
-    description = headline or bio or fallback
+    description = bio or fallback
     return SeoTags(
         title=title,
         description=description[:300],

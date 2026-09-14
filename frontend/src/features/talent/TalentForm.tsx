@@ -46,7 +46,6 @@ export function TalentForm({ profile, submitLabel, pending, onSubmit, serverErro
     resolver: zodResolver(schema),
     defaultValues: {
       display_name: profile?.display_name ?? '',
-      headline: profile?.headline ?? '',
       bio: profile?.bio ?? '',
       years_experience:
         profile?.years_experience !== null && profile?.years_experience !== undefined
@@ -62,9 +61,19 @@ export function TalentForm({ profile, submitLabel, pending, onSubmit, serverErro
       highest_degree: profile?.highest_degree ?? '',
       specialization: profile?.specialization ?? '',
       university: profile?.university ?? '',
+      education_years:
+        profile?.education_years !== null && profile?.education_years !== undefined
+          ? String(profile.education_years)
+          : '',
+      graduation_date: profile?.graduation_date ?? '',
+      study_focus: profile?.study_focus ?? '',
       experience: profile?.experience ?? '',
+      professional_training: profile?.professional_training ?? '',
       skills_text: profile?.skills_text ?? '',
       services_offered: profile?.services_offered ?? '',
+      hobbies: profile?.hobbies ?? '',
+      employment_type: profile?.employment_type ?? '',
+      remote_capable: profile?.remote_capable ?? false,
       languages:
         profile?.languages?.map((language) => ({
           name: language.name,
@@ -87,7 +96,6 @@ export function TalentForm({ profile, submitLabel, pending, onSubmit, serverErro
   const submit = handleSubmit((values) => {
     onSubmit({
       display_name: values.display_name,
-      headline: values.headline || null,
       bio: values.bio || null,
       years_experience: values.years_experience ? Number(values.years_experience) : null,
       skill_id: values.skill_id || null,
@@ -100,9 +108,16 @@ export function TalentForm({ profile, submitLabel, pending, onSubmit, serverErro
       highest_degree: values.highest_degree || null,
       specialization: values.specialization || null,
       university: values.university || null,
+      education_years: values.education_years ? Number(values.education_years) : null,
+      graduation_date: values.graduation_date || null,
+      study_focus: values.study_focus || null,
       experience: values.experience || null,
+      professional_training: values.professional_training || null,
       skills_text: values.skills_text || null,
       services_offered: values.services_offered || null,
+      hobbies: values.hobbies || null,
+      employment_type: (values.employment_type || null) as TalentPayload['employment_type'],
+      remote_capable: values.remote_capable,
       // Always sent, even when empty: an omitted key means "leave as-is",
       // so clearing the last language has to be an explicit empty list.
       languages: (values.languages ?? []).map((language) => ({
@@ -126,22 +141,6 @@ export function TalentForm({ profile, submitLabel, pending, onSubmit, serverErro
             {...register('display_name')}
             placeholder={t('talentForm.displayNamePlaceholder')}
             invalid={Boolean(errors.display_name)}
-          />
-        )}
-      </Field>
-
-      <Field
-        label={t('talentForm.headline')}
-        required
-        error={errors.headline?.message}
-        hint={t('talentForm.headlineHint')}
-      >
-        {(props) => (
-          <Input
-            {...props}
-            {...register('headline')}
-            placeholder={t('talentForm.headlinePlaceholder')}
-            invalid={Boolean(errors.headline)}
           />
         )}
       </Field>
@@ -341,8 +340,51 @@ export function TalentForm({ profile, submitLabel, pending, onSubmit, serverErro
           {(props) => <Input {...props} {...register('university')} />}
         </Field>
 
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field label={t('talentForm.educationYears')} error={errors.education_years?.message}>
+            {(props) => (
+              <Input
+                {...props}
+                {...register('education_years')}
+                inputMode="numeric"
+                dir="ltr"
+                className="ltr-nums"
+                invalid={Boolean(errors.education_years)}
+              />
+            )}
+          </Field>
+          <Field label={t('talentForm.graduationDate')} error={errors.graduation_date?.message}>
+            {(props) => (
+              <Input
+                {...props}
+                {...register('graduation_date')}
+                type="date"
+                dir="ltr"
+                className="ltr-nums"
+                invalid={Boolean(errors.graduation_date)}
+              />
+            )}
+          </Field>
+        </div>
+
+        <Field
+          label={t('talentForm.studyFocus')}
+          hint={t('talentForm.studyFocusHint')}
+          error={errors.study_focus?.message}
+        >
+          {(props) => <Textarea {...props} {...register('study_focus')} rows={2} />}
+        </Field>
+
         <Field label={t('talentForm.experience')} error={errors.experience?.message}>
           {(props) => <Textarea {...props} {...register('experience')} rows={4} />}
+        </Field>
+
+        <Field
+          label={t('talentForm.professionalTraining')}
+          hint={t('talentForm.professionalTrainingHint')}
+          error={errors.professional_training?.message}
+        >
+          {(props) => <Textarea {...props} {...register('professional_training')} rows={2} />}
         </Field>
 
         <Field
@@ -360,6 +402,41 @@ export function TalentForm({ profile, submitLabel, pending, onSubmit, serverErro
         >
           {(props) => <Textarea {...props} {...register('services_offered')} rows={3} />}
         </Field>
+
+        <Field
+          label={t('talentForm.hobbies')}
+          hint={t('talentForm.hobbiesHint')}
+          error={errors.hobbies?.message}
+        >
+          {(props) => <Textarea {...props} {...register('hobbies')} rows={2} />}
+        </Field>
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field label={t('talentForm.employmentType')} error={errors.employment_type?.message}>
+            {(props) => (
+              <Controller
+                control={control}
+                name="employment_type"
+                render={({ field }) => (
+                  <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                    <SelectTrigger id={props.id}>
+                      <SelectValue placeholder={t('talentForm.employmentTypePlaceholder')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="FULL_TIME">{t('talentForm.employmentTypeFullTime')}</SelectItem>
+                      <SelectItem value="PART_TIME">{t('talentForm.employmentTypePartTime')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            )}
+          </Field>
+
+          <label className="flex items-center gap-3 self-end rounded-xl border-2 border-ink-100 p-3.5">
+            <input type="checkbox" {...register('remote_capable')} className="h-5 w-5 accent-clay-500" />
+            <span className="font-medium">{t('talentForm.remoteCapable')}</span>
+          </label>
+        </div>
 
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">

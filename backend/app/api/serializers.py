@@ -34,7 +34,7 @@ from app.schemas.feedback import (
     FeedbackUserOut,
 )
 from app.schemas.identity import OwnerIdentityOut
-from app.schemas.item import BusinessItemOut
+from app.schemas.item import BusinessItemOut, ItemImageOut
 from app.schemas.moderation import (
     AdminBusinessOut,
     AdminTalentOut,
@@ -206,11 +206,23 @@ def product_summary(item: BusinessItem) -> ProductSummaryOut:
     )
 
 
+def _item_gallery(item: BusinessItem) -> list[ItemImageOut]:
+    return [ItemImageOut.model_validate(image) for image in item.images]
+
+
 def product_detail(item: BusinessItem) -> ProductDetailOut:
     return ProductDetailOut(
         **product_summary(item).model_dump(),
         description=item.description,
         created_at=item.created_at,
+        good_type=item.good_type,
+        brand_name=item.brand_name,
+        ingredients=item.ingredients,
+        manufactured_at=item.manufactured_at,
+        expiry_date=item.expiry_date,
+        net_weight=item.net_weight,
+        external_link=item.external_link,
+        images=_item_gallery(item),
     )
 
 
@@ -234,7 +246,6 @@ def talent_summary(profile: TalentProfile) -> TalentSummaryOut:
         id=profile.id,
         display_name=profile.display_name,
         slug=profile.slug,
-        headline=profile.headline,
         photo_url=profile.photo_url,
         phone=profile.phone,
         whatsapp=profile.whatsapp,
@@ -264,9 +275,16 @@ def talent_detail(profile: TalentProfile) -> TalentDetailOut:
         highest_degree=profile.highest_degree,
         specialization=profile.specialization,
         university=profile.university,
+        education_years=profile.education_years,
+        graduation_date=profile.graduation_date,
+        study_focus=profile.study_focus,
         experience=profile.experience,
+        professional_training=profile.professional_training,
         skills_text=profile.skills_text,
         services_offered=profile.services_offered,
+        hobbies=profile.hobbies,
+        employment_type=profile.employment_type,
+        remote_capable=profile.remote_capable,
         languages=[
             TalentLanguageOut.model_validate(language)
             for language in sorted(profile.languages, key=lambda item: item.sort_order)

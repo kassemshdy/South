@@ -14,9 +14,9 @@ import type { TranslationKey } from '@/i18n'
  * that; three copies of the same list simply stopped agreeing.
  *
  * So the destinations live here, and every surface that offers them —— the
- * popup on the homepage, the switcher above each directory, the strip further
- * down the homepage —— renders this same array. A door can be moved, renamed
- * or removed in one place, and no surface can quietly disagree with another.
+ * popup on the homepage and the switcher above each directory —— renders this
+ * same array. A door can be moved, renamed or removed in one place, and no
+ * surface can quietly disagree with another.
  */
 export interface Door {
   key: string
@@ -30,47 +30,79 @@ export interface Door {
 }
 
 /**
- * Where someone looking for something can go. Three, because the directory
- * has three kinds of thing in it and a visitor who wants a carpenter, a jar
- * of honey and the shop on the corner is looking for three different shapes
- * of answer.
+ * The three directories, as individual doors.
+ *
+ * Named separately rather than written inline in one array because two
+ * surfaces need overlapping subsets of them and the subsets must be the same
+ * *objects*: the switcher strip above every directory offers all three, while
+ * the homepage fork offers two. Sharing the objects is what stops the two
+ * from drifting the way the three hand-written copies of this list once did.
  */
-export const BROWSE_DOORS: Door[] = [
-  {
-    key: 'businesses',
-    icon: Store,
-    titleKey: 'browse.businessesTitle',
-    descriptionKey: 'browse.businessesDescription',
-    shortKey: 'browse.businessesShort',
-    href: '/businesses',
-  },
-  {
-    key: 'products',
-    icon: Package,
-    // `/products`, not `/businesses`: someone who says they want to buy means
-    // a thing with a price and an "add to order" button, not a list of shops
-    // to work through.
-    titleKey: 'onboarding.seekGoodsTitle',
-    descriptionKey: 'onboarding.seekGoodsDescription',
-    shortKey: 'browse.productsShort',
-    href: '/products',
-  },
-  {
-    key: 'talent',
-    icon: Users,
-    titleKey: 'onboarding.seekServiceTitle',
-    descriptionKey: 'onboarding.seekServiceDescription',
-    shortKey: 'browse.talentShort',
-    href: '/talent',
-  },
-]
+const businessesDoor: Door = {
+  key: 'businesses',
+  icon: Store,
+  titleKey: 'browse.businessesTitle',
+  descriptionKey: 'browse.businessesDescription',
+  shortKey: 'browse.businessesShort',
+  href: '/businesses',
+}
+
+const productsDoor: Door = {
+  key: 'products',
+  icon: Package,
+  // `/products`, not `/businesses`: someone who says they want to buy means
+  // a thing with a price and an "add to order" button, not a list of shops
+  // to work through.
+  titleKey: 'onboarding.seekGoodsTitle',
+  descriptionKey: 'onboarding.seekGoodsDescription',
+  shortKey: 'browse.productsShort',
+  href: '/products',
+}
+
+const talentDoor: Door = {
+  key: 'talent',
+  icon: Users,
+  titleKey: 'onboarding.seekServiceTitle',
+  descriptionKey: 'onboarding.seekServiceDescription',
+  shortKey: 'browse.talentShort',
+  href: '/talent',
+}
 
 /**
- * Where someone with something to offer can go.
+ * Every directory, for the switcher strip that sits above each of them. All
+ * three, because from inside one directory the other two are where you go
+ * next, and a visitor who wanted the bakery on the corner should not have to
+ * reach it through one of its products.
+ */
+export const BROWSE_DOORS: Door[] = [businessesDoor, productsDoor, talentDoor]
+
+/**
+ * Where someone looking for something goes from the homepage: **two** doors,
+ * along the one axis the board ticket names —— goods on one side, services and
+ * jobs on the other.
  *
- * Two, and the split is the whole point: a business is a place or a product,
- * a talent profile is the person themselves. Collapsing them into one card is
- * exactly the bug that sent a craftsperson into the shop wizard.
+ * Two rather than three is the ticket's call and it costs something, so it is
+ * written down here rather than left to be rediscovered: the businesses
+ * directory is no longer offered by the homepage fork. It stays one tap away
+ * —— the header links it, and the switcher strip at the top of `/products` and
+ * `/talent` carries it —— but the fork itself no longer names it. Restoring it
+ * means adding `businessesDoor` back to this array and nothing else.
+ */
+export const SEEK_DOORS: Door[] = [productsDoor, talentDoor]
+
+/**
+ * Where someone with something to offer can go: two doors, on the same axis
+ * as `SEEK_DOORS` —— goods and products, or services and jobs.
+ *
+ * The split is the whole point: a business is a place or a product, a talent
+ * profile is the person themselves. Collapsing them into one card is exactly
+ * the bug that sent a craftsperson into the shop wizard.
+ *
+ * The jobs half of each label is not decoration. Offering a service here means
+ * listing yourself, which is how someone asks for work; asking for one means
+ * reading those profiles, which is how someone offers work. So the same axis
+ * reads as "sell, or look for work" on this side and "buy, or offer work" on
+ * the other, which is what the board ticket asked for.
  *
  * **Both of these need an account**, which is a property of the set rather
  * than of either door —— you cannot list anything anonymously —— so it is
