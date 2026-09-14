@@ -16,7 +16,7 @@ export const SelectTrigger = forwardRef<
       ref={ref}
       aria-invalid={invalid || undefined}
       className={cn(
-        'flex min-h-12 w-full items-center justify-between gap-2 rounded-xl border-2 border-ink-100 bg-white px-4 py-2 text-[15px] text-ink-900 transition-colors focus:border-clay-400 focus:outline-none focus:ring-2 focus:ring-clay-500/20 data-[placeholder]:text-ink-300 aria-[invalid=true]:border-clay-500',
+        'flex min-h-12 w-full items-center justify-between gap-2 rounded-xl border-2 border-ink-100 bg-white px-4 py-2 text-[15px] text-ink-900 transition-colors focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 data-[placeholder]:text-ink-300 aria-[invalid=true]:border-clay-500',
         className,
       )}
       {...props}
@@ -67,7 +67,7 @@ export const SelectItem = forwardRef<
     >
       <span className="absolute end-2 flex h-4 w-4 items-center justify-center">
         <SelectPrimitive.ItemIndicator>
-          <Check className="h-4 w-4 text-clay-500" aria-hidden="true" />
+          <Check className="h-4 w-4 text-brand-600" aria-hidden="true" />
         </SelectPrimitive.ItemIndicator>
       </span>
       <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>

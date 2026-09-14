@@ -154,7 +154,7 @@ export function BusinessWizardPage() {
                 className={cn(
                   'flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40',
                   isCurrent
-                    ? 'bg-clay-500 text-white'
+                    ? 'bg-brand-800 text-white'
                     : isDone
                       ? 'bg-olive-100 text-olive-700'
                       : 'bg-white text-ink-500 ring-1 ring-ink-100',
@@ -301,7 +301,7 @@ export function BusinessWizardPage() {
       {businessId ? (
         <p className="mt-4 text-center text-sm text-ink-500">
           {t('wizard.draftNotice')}{' '}
-          <Link to="/dashboard" className="text-clay-600 hover:underline">
+          <Link to="/dashboard" className="text-brand-700 hover:underline">
             {t('wizard.backToDashboard')}
           </Link>
         </p>
@@ -341,7 +341,7 @@ function ReviewStep({
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-sand-100 text-clay-600">
+        <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-sand-100 text-brand-700">
           <PartyPopper className="h-7 w-7" aria-hidden="true" />
         </span>
         <h2 className="text-xl">{t('wizard.reviewTitle', { name })}</h2>

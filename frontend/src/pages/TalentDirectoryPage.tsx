@@ -117,7 +117,7 @@ export function TalentDirectoryPage() {
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
             placeholder={t('talent.searchLabel')}
-            className="h-12 w-full rounded-xl border-2 border-ink-100 bg-white ps-12 pe-4 text-[15px] placeholder:text-ink-300 focus:border-clay-400 focus:outline-none focus:ring-2 focus:ring-clay-500/20"
+            className="h-12 w-full rounded-xl border-2 border-ink-100 bg-white ps-12 pe-4 text-[15px] placeholder:text-ink-300 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
           />
         </div>
         <Button type="submit">{t('common.search')}</Button>

@@ -51,8 +51,8 @@ export function DoorStrip({
                 className={cn(
                   'inline-flex shrink-0 snap-start items-center gap-2 whitespace-nowrap rounded-xl border-2 px-4 py-2.5 text-sm font-semibold transition-colors',
                   here
-                    ? 'border-clay-500 bg-clay-500 text-white'
-                    : 'border-ink-100 bg-white text-ink-700 hover:border-clay-300 hover:bg-sand-50',
+                    ? 'border-brand-800 bg-brand-800 text-white'
+                    : 'border-ink-100 bg-white text-ink-700 hover:border-brand-300 hover:bg-sand-50',
                 )}
               >
                 <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />

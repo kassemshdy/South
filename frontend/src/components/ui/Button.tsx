@@ -7,13 +7,13 @@ import { cn } from '@/utils/cn'
 
 const buttonVariants = cva(
   // Generous min-height: these are tapped on phones, not clicked with a mouse.
-  'inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-colors disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay-500 focus-visible:ring-offset-2',
+  'inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-colors disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2',
   {
     variants: {
       variant: {
-        primary: 'bg-clay-500 text-white shadow-card hover:bg-clay-600 active:bg-clay-700',
+        primary: 'bg-brand-800 text-white shadow-card hover:bg-brand-900 active:bg-brand-900',
         secondary: 'bg-olive-500 text-white shadow-card hover:bg-olive-600',
-        outline: 'border-2 border-ink-100 bg-white text-ink-900 hover:border-clay-300 hover:bg-sand-50',
+        outline: 'border-2 border-ink-100 bg-white text-ink-900 hover:border-brand-300 hover:bg-sand-50',
         ghost: 'text-ink-700 hover:bg-sand-100 hover:text-ink-900',
         danger: 'bg-clay-700 text-white hover:bg-clay-800',
         whatsapp: 'bg-[#25D366] text-white shadow-card hover:bg-[#1da851]',

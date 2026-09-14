@@ -103,7 +103,7 @@ export function EditBusinessPage() {
 
   return (
     <div className="container-page max-w-3xl py-10">
-      <Link to="/dashboard" className="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-clay-600">
+      <Link to="/dashboard" className="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-brand-700">
         <ArrowRight className="h-4 w-4" aria-hidden="true" />
         {t('wizard.backToDashboard')}
       </Link>
@@ -115,7 +115,7 @@ export function EditBusinessPage() {
             <StatusBadge status={data.status} />
           </div>
           <p className="mt-1.5 text-ink-500">
-            <Link to={`/dashboard/businesses/${id}/items`} className="text-clay-600 hover:underline">
+            <Link to={`/dashboard/businesses/${id}/items`} className="text-brand-700 hover:underline">
               {t('edit.manageItemsLink', { count: data.items.length })}
             </Link>
           </p>
@@ -154,7 +154,7 @@ export function EditBusinessPage() {
                 value={item.value}
                 className={cn(
                   'whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-semibold text-ink-500 transition-colors',
-                  'data-[state=active]:bg-sand-100 data-[state=active]:text-clay-700',
+                  'data-[state=active]:bg-sand-100 data-[state=active]:text-brand-800',
                 )}
               >
                 {t(item.labelKey)}

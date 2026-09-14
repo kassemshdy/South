@@ -33,7 +33,7 @@ export function ItemsPage() {
 
   return (
     <div className="container-page max-w-3xl py-10">
-      <Link to="/dashboard" className="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-clay-600">
+      <Link to="/dashboard" className="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-brand-700">
         <ArrowRight className="h-4 w-4" aria-hidden="true" />
         {t('wizard.backToDashboard')}
       </Link>
@@ -45,7 +45,7 @@ export function ItemsPage() {
         </div>
         <p className="mt-2 text-ink-500">
           {business.data.name} ·{' '}
-          <Link to={`/dashboard/businesses/${id}/edit`} className="text-clay-600 hover:underline">
+          <Link to={`/dashboard/businesses/${id}/edit`} className="text-brand-700 hover:underline">
             {t('itemsPage.editBusinessLink')}
           </Link>
         </p>

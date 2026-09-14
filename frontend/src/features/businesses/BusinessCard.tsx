@@ -50,7 +50,7 @@ export function BusinessCard({ business }: { business: BusinessSummary }) {
       <div className="flex flex-1 flex-col p-5" dir="auto">
         <div className="mb-2 flex flex-wrap items-center gap-2">
           {business.category ? (
-            <Badge className="bg-sand-100 text-clay-700">{business.category.name_ar}</Badge>
+            <Badge className="bg-sand-100 text-brand-700">{business.category.name_ar}</Badge>
           ) : null}
           {business.location ? (
             <span className="inline-flex items-center gap-1 text-xs text-ink-500">
@@ -61,7 +61,7 @@ export function BusinessCard({ business }: { business: BusinessSummary }) {
         </div>
 
         <h3 className="text-lg font-bold text-ink-900">
-          <Link to={profileUrl} className="transition-colors hover:text-clay-600">
+          <Link to={profileUrl} className="transition-colors hover:text-brand-700">
             {business.name}
           </Link>
         </h3>

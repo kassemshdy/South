@@ -57,7 +57,7 @@ export function AdminUsersPage() {
                             {t('admin.roleAdmin')}
                           </Badge>
                         ) : (
-                          <Badge className="bg-sand-100 text-clay-700">
+                          <Badge className="bg-sand-100 text-brand-700">
                             {t('admin.userBusinessCount', { count: user.business_count })}
                           </Badge>
                         )}

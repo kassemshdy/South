@@ -186,7 +186,7 @@ function ItemRow({
           <div className="flex items-start justify-between gap-2">
             <h4 className="font-bold">{item.title}</h4>
             {formatPrice(item.price, item.currency) ? (
-              <span className="ltr-nums shrink-0 text-sm font-bold text-clay-700">
+              <span className="ltr-nums shrink-0 text-sm font-bold text-brand-800">
                 {formatPrice(item.price, item.currency)}
               </span>
             ) : null}
@@ -383,7 +383,7 @@ function ItemDialog({
         </div>
 
         <label className="flex items-center gap-3 rounded-xl border-2 border-ink-100 p-3.5">
-          <input type="checkbox" {...register('is_available')} className="h-5 w-5 accent-clay-500" />
+          <input type="checkbox" {...register('is_available')} className="h-5 w-5 accent-brand-600" />
           <span className="font-medium">{t('items.availableLabel')}</span>
         </label>
 

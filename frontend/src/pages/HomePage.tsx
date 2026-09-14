@@ -41,7 +41,7 @@ export function HomePage() {
             thing you meet before being asked to choose. */}
         <div className="container-page grid items-center gap-10 py-10 sm:py-14 lg:grid-cols-2 lg:gap-x-14 lg:py-20">
           <div className="order-1">
-            <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-clay-700 shadow-card">
+            <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-brand-800 shadow-card">
               <ShieldCheck className="h-4 w-4" aria-hidden="true" />
               {t('home.reviewBadge')}
             </p>

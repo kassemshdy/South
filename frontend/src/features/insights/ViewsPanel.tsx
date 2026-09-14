@@ -79,7 +79,7 @@ function Sparkline({ series, label }: { series: number[]; label: string }) {
   return (
     <svg
       viewBox={`0 0 ${width} 20`}
-      className="h-10 w-24 shrink-0 text-clay-500"
+      className="h-10 w-24 shrink-0 text-brand-600"
       role="img"
       aria-label={`${label}: ${series.join(', ')}`}
       preserveAspectRatio="none"

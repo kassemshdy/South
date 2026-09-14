@@ -39,21 +39,21 @@ export function ProductCard({ product }: { product: ProductSummary }) {
       <div className="flex flex-1 flex-col p-5" dir="auto">
         <div className="mb-2 flex flex-wrap items-center gap-2">
           {product.business.category ? (
-            <Badge className="bg-sand-100 text-clay-700">{product.business.category.name_ar}</Badge>
+            <Badge className="bg-sand-100 text-brand-700">{product.business.category.name_ar}</Badge>
           ) : null}
           {price ? (
-            <span className="ltr-nums text-sm font-bold text-clay-700">{price}</span>
+            <span className="ltr-nums text-sm font-bold text-brand-800">{price}</span>
           ) : null}
         </div>
 
         <h3 className="text-lg font-bold text-ink-900">
-          <Link to={profileUrl} className="transition-colors hover:text-clay-600">
+          <Link to={profileUrl} className="transition-colors hover:text-brand-700">
             {product.title}
           </Link>
         </h3>
 
         <p className="mt-1.5 flex items-center gap-1 text-sm text-ink-500">
-          <Link to={businessUrl} className="truncate hover:text-clay-600">
+          <Link to={businessUrl} className="truncate hover:text-brand-700">
             {product.business.name}
           </Link>
           {product.business.location ? (

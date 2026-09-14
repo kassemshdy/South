@@ -42,7 +42,7 @@ export function TalentCard({ talent }: { talent: TalentSummary }) {
 
         <div className="min-w-0 flex-1">
           <h3 className="text-lg font-bold text-ink-900">
-            <Link to={profileUrl} className="transition-colors hover:text-clay-600">
+            <Link to={profileUrl} className="transition-colors hover:text-brand-700">
               {talent.display_name}
             </Link>
           </h3>
@@ -51,7 +51,7 @@ export function TalentCard({ talent }: { talent: TalentSummary }) {
 
       <div className="flex flex-1 flex-col px-5 pb-5" dir="auto">
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          {skillLabel ? <Badge className="bg-sand-100 text-clay-700">{skillLabel}</Badge> : null}
+          {skillLabel ? <Badge className="bg-sand-100 text-brand-700">{skillLabel}</Badge> : null}
           {talent.years_experience !== null ? (
             <span className="ltr-nums text-sm text-ink-500">
               {t('talent.yearsExperience', { count: talent.years_experience })}

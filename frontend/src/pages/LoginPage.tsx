@@ -98,7 +98,7 @@ function PhoneStep({ onSent }: { onSent: (phone: string, debugCode: string | nul
   return (
     <>
       <div className="mb-6 text-center">
-        <span className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-sand-100 text-clay-600">
+        <span className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-sand-100 text-brand-700">
           <Phone className="h-6 w-6" aria-hidden="true" />
         </span>
         <h1 className="text-2xl">{t('login.phoneTitle')}</h1>
@@ -135,7 +135,7 @@ function PhoneStep({ onSent }: { onSent: (phone: string, debugCode: string | nul
 
       <p className="mt-6 text-center text-sm text-ink-500">{t('login.terms')}</p>
       <p className="mt-3 text-center text-sm">
-        <Link to="/admin/login" className="text-clay-600 hover:underline">
+        <Link to="/admin/login" className="text-brand-700 hover:underline">
           {t('login.adminLink')}
         </Link>
       </p>
@@ -192,7 +192,7 @@ function CodeStep({
   return (
     <>
       <div className="mb-6 text-center">
-        <span className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-sand-100 text-clay-600">
+        <span className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-sand-100 text-brand-700">
           <KeyRound className="h-6 w-6" aria-hidden="true" />
         </span>
         <h1 className="text-2xl">{t('login.codeTitle')}</h1>

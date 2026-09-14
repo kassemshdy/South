@@ -159,7 +159,7 @@ export function FavouriteCard({ favourite }: { favourite: Favourite }) {
           regardless of the UI language, as the directory cards do. */}
       <div className="min-w-0 flex-1" dir="auto">
         <h3 className="truncate text-lg font-bold text-ink-900">
-          <Link to={href(subject, slug)} className="transition-colors hover:text-clay-600">
+          <Link to={href(subject, slug)} className="transition-colors hover:text-brand-700">
             {live?.title ?? favourite.title}
           </Link>
         </h3>
@@ -171,7 +171,7 @@ export function FavouriteCard({ favourite }: { favourite: Favourite }) {
         {query.isLoading && subject === 'PRODUCT' ? (
           <Skeleton className="mt-1.5 h-4 w-20" />
         ) : live?.price ? (
-          <p className="ltr-nums mt-1 text-sm font-bold text-clay-700">{live.price}</p>
+          <p className="ltr-nums mt-1 text-sm font-bold text-brand-800">{live.price}</p>
         ) : null}
       </div>
 
