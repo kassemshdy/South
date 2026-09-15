@@ -127,18 +127,28 @@ class ViewSubject(str, enum.Enum):
 
 
 class TestimonialStatus(str, enum.Enum):
-    """Where a piece of submitted praise is in the owner's hands.
+    """Where a piece of submitted praise is, across two gates.
 
-    ``PENDING`` is invisible to everyone but the owner and an administrator.
-    ``APPROVED`` is the only state a public payload may carry. ``HIDDEN`` is
-    an owner taking one down again -- kept rather than deleted so the same
-    text cannot be resubmitted and re-approved by accident, and so an
-    administrator can still see what was published.
+    Submitted text waits on the platform first (``PENDING_REVIEW``), because
+    handing abuse straight to the shop owner it was aimed at is the thing a
+    review gate exists to prevent. Only what an administrator clears reaches
+    the owner (``PENDING_OWNER``); only what the owner then approves is public
+    (``APPROVED``). ``REJECTED`` never reaches the owner at all.
+
+    Both gates are deliberate. The platform gate is about abuse, which is the
+    platform's problem; the owner gate is what keeps this *selected praise*
+    rather than a review system, and removing it would make a business unable
+    to decline praise it knows to be untrue. ``HIDDEN`` is an owner taking a
+    published one down again -- kept rather than deleted so the same text
+    cannot be resubmitted and re-approved by accident, and so an administrator
+    can still see what was once published.
     """
 
-    PENDING = "PENDING"
+    PENDING_REVIEW = "PENDING_REVIEW"
+    PENDING_OWNER = "PENDING_OWNER"
     APPROVED = "APPROVED"
     HIDDEN = "HIDDEN"
+    REJECTED = "REJECTED"
 
 
 class OrderStatus(str, enum.Enum):

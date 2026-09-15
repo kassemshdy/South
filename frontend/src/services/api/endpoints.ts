@@ -511,6 +511,11 @@ export const adminApi = {
     }),
   removeTestimonial: (id: string) =>
     apiRequest<{ message: string }>(`/api/admin/testimonials/${id}`, { method: 'DELETE' }),
+  /** Pass the platform gate. Not a publish — the owner still decides. */
+  clearTestimonial: (id: string) =>
+    apiRequest<AdminTestimonial>(`/api/admin/testimonials/${id}/clear`, { method: 'POST' }),
+  rejectTestimonial: (id: string) =>
+    apiRequest<AdminTestimonial>(`/api/admin/testimonials/${id}/reject`, { method: 'POST' }),
 
   articles: (section?: ArticleSection) =>
     apiRequest<AdminArticle[]>('/api/admin/articles', { query: section ? { section } : {} }),

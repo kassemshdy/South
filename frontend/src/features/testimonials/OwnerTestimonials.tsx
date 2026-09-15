@@ -13,25 +13,37 @@ import { queryKeys } from '@/services/api/queryKeys'
 import { formatDate } from '@/utils/format'
 import type { OwnerTestimonial, TestimonialStatus } from '@/types/api'
 
+/* PENDING_REVIEW and REJECTED are in these maps only because the type is
+   exhaustive: the API does not send either to an owner, since text the
+   platform has not cleared is absent from this list rather than shown in a
+   state they cannot act on. */
 const STATUS_LABEL: Record<TestimonialStatus, TranslationKey> = {
-  PENDING: 'testimonials.pending',
+  PENDING_REVIEW: 'testimonials.pendingReview',
+  PENDING_OWNER: 'testimonials.pending',
   APPROVED: 'testimonials.approved',
   HIDDEN: 'testimonials.hidden',
+  REJECTED: 'testimonials.pendingReview',
 }
 
 const STATUS_TONE: Record<TestimonialStatus, string> = {
-  PENDING: 'bg-wheat-100 text-wheat-700',
+  PENDING_REVIEW: 'bg-ink-100 text-ink-600',
+  PENDING_OWNER: 'bg-wheat-100 text-wheat-700',
   APPROVED: 'bg-olive-100 text-olive-800',
   HIDDEN: 'bg-ink-100 text-ink-600',
+  REJECTED: 'bg-ink-100 text-ink-600',
 }
 
 /**
  * The owner deciding what appears on their own page.
  *
- * Every state is shown, not just the pending ones: an owner needs to see what
- * is currently displayed in order to take it down, and a hidden testimonial
- * has to stay visible *here* or the only way to find it again would be to
- * have remembered it.
+ * Every state the platform has cleared is shown, not just the ones awaiting
+ * a decision: an owner needs to see what is currently displayed in order to
+ * take it down, and a hidden testimonial has to stay visible *here* or the
+ * only way to find it again would be to have remembered it.
+ *
+ * What is not here is anything still awaiting review, or refused — the API
+ * does not send those to an owner. Being asked to hide abuse means having
+ * read it, which is what the platform gate exists to prevent.
  */
 export function OwnerTestimonials({ businessId }: { businessId: string }) {
   const { t, locale } = useI18n()

@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Trash2 } from 'lucide-react'
+import { Check, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -9,7 +9,7 @@ import { Card, CardBody } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
-import { useI18n } from '@/i18n'
+import { useI18n, type TranslationKey } from '@/i18n'
 import { adminApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { AdminTestimonial, TestimonialStatus } from '@/types/api'
@@ -18,43 +18,72 @@ import { formatDate } from '@/utils/format'
 
 type Filter = TestimonialStatus | 'ALL'
 
-const FILTERS: { value: Filter; labelKey: 'admin.testimonialFilterAll' | 'admin.testimonialFilterPending' | 'admin.testimonialFilterApproved' | 'admin.testimonialFilterHidden' }[] = [
-  { value: 'PENDING', labelKey: 'admin.testimonialFilterPending' },
+/** Awaiting review first: it is the only one with work waiting in it. */
+const FILTERS: { value: Filter; labelKey: TranslationKey }[] = [
+  { value: 'PENDING_REVIEW', labelKey: 'admin.testimonialFilterPendingReview' },
+  { value: 'PENDING_OWNER', labelKey: 'admin.testimonialFilterPendingOwner' },
   { value: 'APPROVED', labelKey: 'admin.testimonialFilterApproved' },
   { value: 'HIDDEN', labelKey: 'admin.testimonialFilterHidden' },
+  { value: 'REJECTED', labelKey: 'admin.testimonialFilterRejected' },
   { value: 'ALL', labelKey: 'admin.testimonialFilterAll' },
 ]
 
 const STATUS_STYLES: Record<TestimonialStatus, string> = {
-  PENDING: 'bg-sand-100 text-clay-700',
+  PENDING_REVIEW: 'bg-clay-100 text-clay-700',
+  PENDING_OWNER: 'bg-sand-100 text-clay-700',
   APPROVED: 'bg-olive-100 text-olive-700',
   HIDDEN: 'bg-ink-100 text-ink-700',
+  REJECTED: 'bg-ink-100 text-ink-500',
 }
 
-const STATUS_LABELS: Record<TestimonialStatus, 'admin.testimonialStatusPending' | 'admin.testimonialStatusApproved' | 'admin.testimonialStatusHidden'> = {
-  PENDING: 'admin.testimonialStatusPending',
+const STATUS_LABELS: Record<TestimonialStatus, TranslationKey> = {
+  PENDING_REVIEW: 'admin.testimonialStatusPendingReview',
+  PENDING_OWNER: 'admin.testimonialStatusPendingOwner',
   APPROVED: 'admin.testimonialStatusApproved',
   HIDDEN: 'admin.testimonialStatusHidden',
+  REJECTED: 'admin.testimonialStatusRejected',
 }
 
 /**
- * The platform's window onto submitted praise. The owner decides what is
- * *displayed*; this page is how an administrator sees what was *submitted* —
- * across every listing, in any state — and removes abuse the owner cannot or
- * will not deal with. It is deliberately read-and-remove only: approving or
- * hiding stays the owner's call, so this never has those actions.
+ * The platform's window onto submitted praise, and the first of its two
+ * gates. Submitted text waits here before the owner sees it at all, because
+ * an owner asked to hide abuse has already read it — so this page can pass
+ * one to the owner or refuse it outright.
+ *
+ * What it still cannot do is publish. Whether a cleared testimonial appears
+ * stays the owner's decision, which is what keeps this selected praise
+ * rather than a review system; "pass to the owner" is therefore not an
+ * approve button, and the hint under the heading says so.
  */
 export function AdminTestimonialsPage() {
   const { t, locale } = useI18n()
   const toast = useToast()
   const queryClient = useQueryClient()
-  const [filter, setFilter] = useState<Filter>('PENDING')
+  const [filter, setFilter] = useState<Filter>('PENDING_REVIEW')
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
 
   const testimonials = useQuery({
     queryKey: queryKeys.adminTestimonials(filter),
     queryFn: () => adminApi.testimonials(filter === 'ALL' ? undefined : filter),
     placeholderData: keepPreviousData,
+  })
+
+  const act = (messageKey: TranslationKey) => ({
+    onSuccess: () => {
+      toast.success(t(messageKey))
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'testimonials'] })
+    },
+    onError: () => toast.error(t('admin.testimonialActionFailed')),
+  })
+
+  const clear = useMutation({
+    mutationFn: (id: string) => adminApi.clearTestimonial(id),
+    ...act('admin.testimonialCleared'),
+  })
+
+  const reject = useMutation({
+    mutationFn: (id: string) => adminApi.rejectTestimonial(id),
+    ...act('admin.testimonialRejected'),
   })
 
   const remove = useMutation({
@@ -72,6 +101,7 @@ export function AdminTestimonialsPage() {
       <header>
         <h1 className="text-3xl">{t('admin.testimonialsHeading')}</h1>
         <p className="mt-2 text-ink-500">{t('admin.testimonialsSubtitle')}</p>
+        <p className="mt-1 text-sm text-ink-500">{t('admin.testimonialReviewHint')}</p>
       </header>
 
       <div className="flex flex-wrap gap-2">
@@ -129,7 +159,31 @@ export function AdminTestimonialsPage() {
                     {entry.body}
                   </p>
 
-                  <div className="flex justify-end">
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    {/* Only while it is ours to act on. Once it is with the
+                        owner, or they have acted, the platform's remaining
+                        power is removal. */}
+                    {entry.status === 'PENDING_REVIEW' ? (
+                      <>
+                        <Button
+                          size="sm"
+                          loading={clear.isPending}
+                          onClick={() => clear.mutate(entry.id)}
+                        >
+                          <Check className="h-4 w-4" aria-hidden="true" />
+                          {t('admin.testimonialClear')}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          loading={reject.isPending}
+                          onClick={() => reject.mutate(entry.id)}
+                        >
+                          <X className="h-4 w-4" aria-hidden="true" />
+                          {t('admin.testimonialReject')}
+                        </Button>
+                      </>
+                    ) : null}
                     {confirmingId === entry.id ? (
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-ink-500">

@@ -568,7 +568,12 @@ export interface OwnerViews {
   listings: ListingViews[]
 }
 
-export type TestimonialStatus = 'PENDING' | 'APPROVED' | 'HIDDEN'
+export type TestimonialStatus =
+  | 'PENDING_REVIEW'
+  | 'PENDING_OWNER'
+  | 'APPROVED'
+  | 'HIDDEN'
+  | 'REJECTED'
 
 /**
  * Owner-selected praise, never a review — the owner decides what appears, so
