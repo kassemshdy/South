@@ -259,6 +259,13 @@ export const talentSchema = (t: Translate, otherSkillId?: string) =>
       website: optionalUrl(t),
       // An introduction video. A link here, an id once the server stores it.
       video_url: optionalUrl(t),
+      // One level below the chosen skill, in the person's own words.
+      skill_specialty: z.string().trim().max(160).optional().or(z.literal('')),
+      // Empty means no preference, which is a valid answer.
+      preferred_contact: z
+        .enum(['PHONE', 'WHATSAPP', 'EMAIL', 'WEBSITE'])
+        .optional()
+        .or(z.literal('')),
 
       // Published professional detail.
       highest_degree: z.string().trim().max(160).optional().or(z.literal('')),

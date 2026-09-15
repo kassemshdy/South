@@ -192,3 +192,18 @@ class ArticleSection(str, enum.Enum):
 
     BLOG = "BLOG"
     NEWS = "NEWS"
+
+
+class ContactChannel(str, enum.Enum):
+    """Which way a talent profile would rather be contacted.
+
+    Optional, and not a restriction: every contact detail the person filled in
+    stays on the page. It decides which one the page leads with, because a
+    profile offering four ways to reach someone is really offering none —
+    a visitor picks the first, which may be the one that is never answered.
+    """
+
+    PHONE = "PHONE"
+    WHATSAPP = "WHATSAPP"
+    EMAIL = "EMAIL"
+    WEBSITE = "WEBSITE"

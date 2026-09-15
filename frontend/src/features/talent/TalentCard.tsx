@@ -46,6 +46,12 @@ export function TalentCard({ talent }: { talent: TalentSummary }) {
               {talent.display_name}
             </Link>
           </h3>
+          {/* Under the name rather than in the skill badge below: the badge
+              is the filterable taxonomy value, this is the person's own
+              narrower description of the same work. */}
+          {talent.skill_specialty ? (
+            <p className="mt-0.5 text-sm text-ink-500">{talent.skill_specialty}</p>
+          ) : null}
         </div>
       </div>
 

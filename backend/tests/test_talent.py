@@ -591,3 +591,50 @@ def test_a_profile_takes_a_video_link_and_publishes_an_id(
     assert rejected.status_code == 422
     assert accepted.status_code == 200
     assert accepted.json()["youtube_video_id"] == "3Np8hKhrbB4"
+
+
+def test_the_specialty_and_preferred_channel_round_trip_and_are_searchable(
+    client: TestClient, db: Session, admin: User, skill: TalentSkill, location: Location
+) -> None:
+    """The specialty is one level below the taxonomy skill, and findable.
+
+    Someone looking for a teacher of one particular subject searches the
+    specialty, not the broad skill name, so indexing only the skill would
+    hide exactly the profiles this field exists to describe. The search term
+    itself comes from the fixture catalog, like every other Arabic string in
+    these tests.
+    """
+    headers = sign_in(client, "03950141")
+    profile = _create_profile(client, headers, skill, location)
+
+    saved = client.put(
+        "/api/my/talent",
+        headers=headers,
+        json={
+            "skill_specialty": ar("talent.specialty"),
+            "preferred_contact": "WHATSAPP",
+        },
+    )
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["skill_specialty"] == ar("talent.specialty")
+    assert saved.json()["preferred_contact"] == "WHATSAPP"
+
+    _approve(client, db, admin, profile["id"])
+
+    found = client.get("/api/talent", params={"q": ar("talent.specialty")})
+    assert found.status_code == 200
+    assert [item["slug"] for item in found.json()["items"]] == [profile["slug"]]
+
+
+def test_a_profile_without_a_preferred_channel_is_still_valid(
+    client: TestClient, skill: TalentSkill, location: Location
+) -> None:
+    """Optional means optional: the page just falls back to its own order."""
+    headers = sign_in(client, "03950142")
+    _create_profile(client, headers, skill, location)
+
+    response = client.get("/api/my/talent", headers=headers)
+
+    assert response.status_code == 200
+    assert response.json()["preferred_contact"] is None
+    assert response.json()["skill_specialty"] is None

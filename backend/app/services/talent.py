@@ -61,6 +61,8 @@ class TalentService:
             years_experience=payload.years_experience,
             skill_id=payload.skill_id,
             custom_skill_text=payload.custom_skill_text,
+            skill_specialty=payload.skill_specialty,
+            preferred_contact=payload.preferred_contact,
             location_id=payload.location_id,
             phone=payload.phone,
             whatsapp=payload.whatsapp,
@@ -234,6 +236,12 @@ class TalentService:
             profile.display_name,
             profile.bio,
             skill,
+            # Indexed beside the taxonomy skill rather than instead of it.
+            # Someone looking for a teacher of one particular subject is
+            # searching the specialty; without this, only the broad skill
+            # name would match, hiding exactly the profiles this field
+            # exists to describe.
+            profile.skill_specialty,
             location,
             profile.skills_text,
             profile.services_offered,

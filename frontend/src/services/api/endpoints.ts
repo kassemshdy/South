@@ -7,6 +7,7 @@
 
 import { apiDownload, apiRequest } from '@/services/api/client'
 import type {
+  ContactChannel,
   AdminArticle,
   AdminBusiness,
   AdminTalent,
@@ -108,6 +109,8 @@ export interface TalentPayload {
   years_experience?: number | null
   skill_id?: string | null
   custom_skill_text?: string | null
+  skill_specialty?: string | null
+  preferred_contact?: ContactChannel | null
   location_id?: string | null
   phone?: string | null
   whatsapp?: string | null

@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import type { ReactNode } from 'react'
 import {
   BadgeCheck,
   Globe,
@@ -24,7 +25,11 @@ import { EMPLOYMENT_TYPE_KEYS, PROFICIENCY_KEYS } from '@/features/talent/labels
 import { ServiceRequestForm } from '@/features/talent/ServiceRequestForm'
 import { publicTalentApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
+import type { ContactChannel } from '@/types/api'
 import { formatDate, telHref, whatsappHref } from '@/utils/format'
+
+/** Default order, most immediate first; a preference moves one to the front. */
+const DEFAULT_CONTACT_ORDER: ContactChannel[] = ['PHONE', 'EMAIL', 'WEBSITE', 'WHATSAPP']
 
 export function TalentProfilePage() {
   const { slug = '' } = useParams()
@@ -131,6 +136,56 @@ export function TalentProfilePage() {
   }
   const professional = [...textFields, ...derivedFields]
 
+  /* Default order, most immediate first. The preferred channel is moved to
+     the front of this rather than replacing it. */
+  const contactEntries: Record<ContactChannel, ReactNode | null> = {
+    WHATSAPP: whatsapp ? (
+      <Button asChild block>
+        <a href={whatsapp} target="_blank" rel="noopener noreferrer">
+          <MessageCircle className="h-4 w-4" aria-hidden="true" />
+          {t('business.whatsappCta')}
+        </a>
+      </Button>
+    ) : null,
+    PHONE: data.phone ? (
+      <a
+        href={phone ?? '#'}
+        className="flex items-center gap-3 text-ink-700 hover:text-brand-700"
+      >
+        <Phone className="h-5 w-5 shrink-0 text-brand-600" aria-hidden="true" />
+        <span className="ltr-nums">{data.phone}</span>
+      </a>
+    ) : null,
+    EMAIL: data.email ? (
+      <a
+        href={`mailto:${data.email}`}
+        className="flex items-center gap-3 break-all text-ink-700 hover:text-brand-700"
+      >
+        <Mail className="h-5 w-5 shrink-0 text-brand-600" aria-hidden="true" />
+        {data.email}
+      </a>
+    ) : null,
+    WEBSITE: data.website ? (
+      <a
+        href={data.website}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-3 break-all text-ink-700 hover:text-brand-700"
+      >
+        <Globe className="h-5 w-5 shrink-0 text-brand-600" aria-hidden="true" />
+        {data.website}
+      </a>
+    ) : null,
+  }
+
+  const contactOrder = data.preferred_contact
+    ? [
+        data.preferred_contact,
+        ...DEFAULT_CONTACT_ORDER.filter((channel) => channel !== data.preferred_contact),
+      ]
+    : DEFAULT_CONTACT_ORDER
+
+
   return (
     <article className="pb-16">
       <div className="container-page pt-10">
@@ -167,6 +222,11 @@ export function TalentProfilePage() {
                 >
                   {skillLabel}
                 </Link>
+              ) : null}
+              {/* The taxonomy value links to a filtered list; the specialty
+                  does not, because nothing filters on free text. */}
+              {data.skill_specialty ? (
+                <span className="text-ink-500">{data.skill_specialty}</span>
               ) : null}
               {data.location ? (
                 <span className="inline-flex items-center gap-1">
@@ -295,46 +355,25 @@ export function TalentProfilePage() {
               <CardBody className="space-y-4">
                 <h2 className="text-lg font-bold">{t('business.contactHeading')}</h2>
 
-                {data.phone ? (
-                  <a
-                    href={phone ?? '#'}
-                    className="flex items-center gap-3 text-ink-700 hover:text-brand-700"
-                  >
-                    <Phone className="h-5 w-5 shrink-0 text-brand-600" aria-hidden="true" />
-                    <span className="ltr-nums">{data.phone}</span>
-                  </a>
-                ) : null}
-
-                {data.email ? (
-                  <a
-                    href={`mailto:${data.email}`}
-                    className="flex items-center gap-3 break-all text-ink-700 hover:text-brand-700"
-                  >
-                    <Mail className="h-5 w-5 shrink-0 text-brand-600" aria-hidden="true" />
-                    {data.email}
-                  </a>
-                ) : null}
-
-                {data.website ? (
-                  <a
-                    href={data.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 break-all text-ink-700 hover:text-brand-700"
-                  >
-                    <Globe className="h-5 w-5 shrink-0 text-brand-600" aria-hidden="true" />
-                    {data.website}
-                  </a>
-                ) : null}
-
-                {whatsapp ? (
-                  <Button asChild block>
-                    <a href={whatsapp} target="_blank" rel="noopener noreferrer">
-                      <MessageCircle className="h-4 w-4" aria-hidden="true" />
-                      {t('business.whatsappCta')}
-                    </a>
-                  </Button>
-                ) : null}
+                {/* Ordered, not filtered: everything the person filled in is
+                    here, and `preferred_contact` only decides which comes
+                    first. A profile offering four ways to be reached is
+                    really offering none — a visitor takes the first one,
+                    which may be the one nobody answers. */}
+                {contactOrder.map((channel) => {
+                  const entry = contactEntries[channel]
+                  if (!entry) return null
+                  return (
+                    <div key={channel} className="space-y-1">
+                      {channel === data.preferred_contact ? (
+                        <p className="text-xs font-semibold uppercase tracking-wide text-brand-600">
+                          {t('talent.preferredBadge')}
+                        </p>
+                      ) : null}
+                      {entry}
+                    </div>
+                  )
+                })}
               </CardBody>
             </Card>
 
