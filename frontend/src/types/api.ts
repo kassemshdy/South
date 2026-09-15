@@ -194,6 +194,12 @@ export interface BusinessDetail extends BusinessSummary {
   years_of_experience: number | null
   email: string | null
   website: string | null
+  /**
+   * The owner's introduction video, as a YouTube id — never a URL. The page
+   * composes the embed address from it, so nothing an owner typed is handed
+   * to a browser.
+   */
+  youtube_video_id: string | null
   address_text: string | null
   latitude: number | null
   longitude: number | null
@@ -321,6 +327,12 @@ export interface TalentDetail extends TalentSummary {
   bio: string | null
   email: string | null
   website: string | null
+  /**
+   * The owner's introduction video, as a YouTube id — never a URL. The page
+   * composes the embed address from it, so nothing an owner typed is handed
+   * to a browser.
+   */
+  youtube_video_id: string | null
   /** Professional detail — published on the public profile. */
   highest_degree: string | null
   specialization: string | null

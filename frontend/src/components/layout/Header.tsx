@@ -58,7 +58,7 @@ const NAV_LINK =
 const MENU_ITEM =
   'flex cursor-pointer select-none items-center gap-2.5 rounded-lg px-3 py-2.5 text-[15px] text-ink-700 outline-none data-[highlighted]:bg-sand-100 data-[highlighted]:text-ink-900'
 
-function CartLink({ compact = false }: { compact?: boolean }) {
+function CartLink() {
   const t = useT()
   const { count } = useCart()
 
@@ -68,32 +68,44 @@ function CartLink({ compact = false }: { compact?: boolean }) {
   if (count === 0) return null
 
   return (
-    <Button asChild variant="ghost" size={compact ? 'icon' : 'sm'} aria-label={t('cart.link')}>
+    <Button
+      asChild
+      variant="ghost"
+      size="icon"
+      // Icon alone, at every width. The count badge is the label that
+      // matters — it says there is something waiting — and the word beside
+      // it bought nothing the bag and the number did not already say, while
+      // widening the row it shares with the account menu. `title` is the
+      // pointer affordance and `aria-label` the assistive one; both carry
+      // the same string, so neither audience is guessing at a glyph.
+      title={t('cart.link')}
+      aria-label={t('cart.link')}
+    >
       <Link to="/cart" className="relative">
         <ShoppingBag className="h-5 w-5" aria-hidden="true" />
         <span className="absolute -end-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-clay-500 px-1 text-[10px] font-bold text-white ltr-nums">
           {count}
         </span>
-        {compact ? null : <span className="ms-1.5">{t('cart.link')}</span>}
       </Link>
     </Button>
   )
 }
 
-function FavouritesLink({ compact = false }: { compact?: boolean }) {
+function FavouritesLink() {
   const t = useT()
   const { count } = useFavourites()
 
   // Same rule as the cart: absent until there is something in it. A heart on
   // an empty list is a feature advertising itself rather than a way back to
-  // something someone chose.
+  // something someone chose. Icon-only for the same reason as the cart.
   if (count === 0) return null
 
   return (
     <Button
       asChild
       variant="ghost"
-      size={compact ? 'icon' : 'sm'}
+      size="icon"
+      title={t('favourites.link')}
       aria-label={t('favourites.link')}
     >
       <Link to="/favourites" className="relative">
@@ -101,7 +113,6 @@ function FavouritesLink({ compact = false }: { compact?: boolean }) {
         <span className="absolute -end-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-clay-500 px-1 text-[10px] font-bold text-white ltr-nums">
           {count}
         </span>
-        {compact ? null : <span className="ms-1.5">{t('favourites.link')}</span>}
       </Link>
     </Button>
   )
@@ -258,8 +269,8 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-1 md:hidden">
-          <CartLink compact />
-          <FavouritesLink compact />
+          <CartLink />
+          <FavouritesLink />
           <LocaleToggle compact />
           <Button asChild variant="ghost" size="icon" aria-label={t('nav.searchAria')}>
             <Link to="/businesses">

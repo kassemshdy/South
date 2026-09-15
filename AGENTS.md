@@ -66,6 +66,14 @@ below has nothing to say about register, so it is on the author and the
 reviewer. Markers to watch for: مش، هون، هلق، بعدين، فيك، بدّك، شو، هيك،
 عم + verb، يلّا، and the ب- present tense (بتعمل، بيصير).
 
+**One string deliberately does not live here: the WhatsApp code message.** When
+`OTP_PROVIDER=whatsapp`, the sign-in code is delivered as a WhatsApp
+*authentication template*, whose wording is registered and approved at Meta and
+referenced by name — the API sends only the code. So `auth.sms.body` is not what
+a WhatsApp recipient reads, and the template's language, not this repository,
+decides which language they read it in. This is the only exception, and it
+exists because the text is not ours to ship — see `docs/WHATSAPP_OTP.md`.
+
 `backend/tests/test_i18n.py` scans `backend/app`, `backend/scripts`, `backend/tests` and
 `frontend/src`/`frontend/e2e` for Arabic codepoints outside the catalogs and fixture files
 and fails the build if it finds one. That test is the actual guard — treat any Arabic
@@ -88,6 +96,7 @@ one person's head.
 | `.claude/commands/verify.md` | Slash command; it invokes the skill rather than restating it, so there is one copy to keep correct. |
 | `.claude/settings.json` | Pre-approved tools. Read-only commands and MCP reads are allowed; anything that writes still prompts. |
 | `docs/MCP.md` | The agent-facing MCP server: read the whole directory, write only to the ticket board. |
+| `docs/WHATSAPP_OTP.md` | Delivering the sign-in code over WhatsApp: what the Meta account needs, why the code message is not in a locale catalog, and the order the switch must happen in. |
 
 **When a mistake repeats, fix the artifact rather than the instance.** A skill
 or a line in this file is worth more than a correction in one conversation,

@@ -13,6 +13,7 @@ import { Link, useParams } from 'react-router-dom'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
+import { YouTubePlayer } from '@/components/ui/YouTubePlayer'
 import { ShareButton } from '@/components/ui/ShareButton'
 import { FavouriteButton } from '@/features/favourites/FavouriteButton'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -202,6 +203,25 @@ export function TalentProfilePage() {
                 <p className="whitespace-pre-line leading-relaxed text-ink-700" dir="auto">
                   {data.bio}
                 </p>
+              </section>
+            ) : null}
+
+            {/* After the written bio and before the credentials table: a
+                person introducing themselves in their own voice belongs where
+                the reader is still deciding whether to keep reading. Their
+                own photo is the poster, so no third-party request is made
+                until someone taps. */}
+            {data.youtube_video_id ? (
+              <section aria-labelledby="video-heading">
+                <h2 id="video-heading" className="mb-3 text-xl">
+                  {t('talent.videoHeading')}
+                </h2>
+                <YouTubePlayer
+                  videoId={data.youtube_video_id}
+                  poster={data.photo_url}
+                  title={data.display_name}
+                  playLabel={t('video.playAria')}
+                />
               </section>
             ) : null}
 

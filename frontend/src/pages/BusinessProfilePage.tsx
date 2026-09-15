@@ -17,6 +17,7 @@ import { Link, useParams } from 'react-router-dom'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
+import { YouTubePlayer } from '@/components/ui/YouTubePlayer'
 import { ShareButton } from '@/components/ui/ShareButton'
 import { AddToCartButton } from '@/features/cart/AddToCartButton'
 import { FavouriteButton } from '@/features/favourites/FavouriteButton'
@@ -208,6 +209,25 @@ export function BusinessProfilePage() {
               </section>
             ) : null}
 
+            {/* Directly after the written description, because it is the same
+                thing said out loud — and before the product list, which is
+                what someone does next if the introduction convinced them.
+                The cover photo is the poster, so the frame shows the listing
+                rather than a black rectangle and the page still makes no
+                third-party request until a visitor taps. */}
+            {data.youtube_video_id ? (
+              <section aria-labelledby="video-heading">
+                <h2 id="video-heading" className="mb-3 text-xl">
+                  {t('business.videoHeading')}
+                </h2>
+                <YouTubePlayer
+                  videoId={data.youtube_video_id}
+                  poster={data.cover_url ?? data.logo_url}
+                  title={data.name}
+                  playLabel={t('video.playAria')}
+                />
+              </section>
+            ) : null}
 
             {data.institution_name || data.founding_date || data.production_nature ? (
               <section aria-labelledby="producer-heading">

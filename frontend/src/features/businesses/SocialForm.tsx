@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Facebook, Globe, Instagram, MessageCircle, Music2, Youtube } from 'lucide-react'
+import { Facebook, Globe, Instagram, MessageCircle, Music2, Video, Youtube } from 'lucide-react'
 import { useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 
@@ -58,6 +58,11 @@ export function SocialForm({ business, submitLabel, pending, onSubmit, serverErr
       youtube: existing.get('YOUTUBE') ?? '',
       whatsapp_url: existing.get('WHATSAPP') ?? '',
       website: existing.get('WEBSITE') ?? '',
+      // Not a social link: its own column, holding an id rather than a URL,
+      // so it round-trips through a canonical watch link.
+      video_url: business?.youtube_video_id
+        ? `https://www.youtube.com/watch?v=${business.youtube_video_id}`
+        : '',
     },
   })
 
@@ -68,12 +73,41 @@ export function SocialForm({ business, submitLabel, pending, onSubmit, serverErr
       const url = values[key]?.trim()
       return url ? [{ platform, url }] : []
     })
-    onSubmit({ social_links })
+    // Empty clears it, which is the only way an owner takes the video down.
+    onSubmit({ social_links, video_url: values.video_url?.trim() || null })
   })
 
   return (
     <form onSubmit={submit} className="space-y-5" noValidate>
       <p className="text-ink-500">{t('form.socialIntro')}</p>
+
+      {/* First, and separated from the account links below: this one is
+          embedded in the page rather than added to the row of icons, and an
+          owner who pastes a video into the YouTube field below gets a link
+          to it instead of a player. The hint says which is which. */}
+      <Field
+        label={t('form.videoUrl')}
+        hint={t('form.videoUrlHint')}
+        error={errors.video_url?.message}
+      >
+        {(props) => (
+          <div className="relative">
+            <Video
+              className="pointer-events-none absolute inset-y-0 start-3.5 my-auto h-5 w-5 text-ink-300"
+              aria-hidden="true"
+            />
+            <Input
+              {...props}
+              {...register('video_url')}
+              type="url"
+              dir="ltr"
+              placeholder="youtube.com/watch?v=..."
+              className="ltr-nums ps-11"
+              invalid={Boolean(errors.video_url)}
+            />
+          </div>
+        )}
+      </Field>
 
       {FIELDS.map(({ key, labelKey, icon: Icon, placeholder }) => (
         <Field key={key} label={t(labelKey)} error={errors[key]?.message}>

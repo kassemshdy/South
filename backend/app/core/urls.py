@@ -8,7 +8,8 @@ hosts, so an "Instagram" link cannot point somewhere else entirely.
 
 from __future__ import annotations
 
-from urllib.parse import urlparse, urlunparse
+import re
+from urllib.parse import parse_qs, urlparse, urlunparse
 
 from app.core.errors import ValidationError
 from app.core.i18n import LazyText
@@ -88,6 +89,57 @@ def normalize_social_url(platform: SocialPlatform, raw: str) -> str:
             params={"platform": label},
         )
     return url
+
+
+# A YouTube id is exactly eleven characters of an unreserved alphabet. Pinning
+# the shape is what lets the id be interpolated into an embed URL later
+# without re-validating it there.
+_YOUTUBE_ID = re.compile(r"^[A-Za-z0-9_-]{11}$")
+
+# The path prefixes YouTube itself hands out. `watch` is the odd one: its id
+# lives in the query string rather than the path.
+_YOUTUBE_PATH_PREFIXES = ("embed", "live", "shorts", "v")
+
+_YOUTUBE_HOSTS = PLATFORM_HOSTS[SocialPlatform.YOUTUBE] | frozenset(
+    {"youtube-nocookie.com", "www.youtube-nocookie.com"}
+)
+
+
+def youtube_video_id(raw: str) -> str:
+    """Extract the video id from any shape of YouTube link an owner may paste.
+
+    Returns the id, not the URL, and that is the point: the page composes
+    ``youtube-nocookie.com/embed/<id>`` from it, so nothing a visitor's browser
+    is handed was ever typed by an owner. A column holding eleven characters of
+    ``[A-Za-z0-9_-]`` cannot carry a ``javascript:`` scheme, an open redirect
+    or a tracking parameter, which a column holding "whatever they pasted"
+    can — see this module's docstring.
+
+    Accepts watch, youtu.be, shorts, live, embed and /v/ links, with or
+    without a scheme, extra query parameters or a timestamp.
+    """
+    field = LazyText("url.field.video")
+    url = normalize_url(raw, field=field)
+    parsed = urlparse(url)
+
+    host = _base_host(parsed.netloc.split(":")[0])
+    if host not in {_base_host(item) for item in _YOUTUBE_HOSTS}:
+        raise ValidationError("url.invalid_youtube", code="invalid_youtube_url")
+
+    segments = [segment for segment in parsed.path.split("/") if segment]
+    candidate: str | None = None
+
+    if host in {"youtu.be"}:
+        # youtu.be/<id> — the whole path is the id.
+        candidate = segments[0] if segments else None
+    elif segments and segments[0] == "watch":
+        candidate = next(iter(parse_qs(parsed.query).get("v", [])), None)
+    elif len(segments) >= 2 and segments[0] in _YOUTUBE_PATH_PREFIXES:
+        candidate = segments[1]
+
+    if not candidate or not _YOUTUBE_ID.match(candidate):
+        raise ValidationError("url.invalid_youtube", code="invalid_youtube_url")
+    return candidate
 
 
 def normalize_maps_url(raw: str) -> str:

@@ -58,6 +58,10 @@ export function TalentForm({ profile, submitLabel, pending, onSubmit, serverErro
       whatsapp: profile?.whatsapp ?? '',
       email: profile?.email ?? '',
       website: profile?.website ?? '',
+      // Stored as an id; shown as the link the person originally pasted.
+      video_url: profile?.youtube_video_id
+        ? `https://www.youtube.com/watch?v=${profile.youtube_video_id}`
+        : '',
       highest_degree: profile?.highest_degree ?? '',
       specialization: profile?.specialization ?? '',
       university: profile?.university ?? '',
@@ -105,6 +109,7 @@ export function TalentForm({ profile, submitLabel, pending, onSubmit, serverErro
       whatsapp: values.whatsapp || null,
       email: values.email || null,
       website: values.website || null,
+      video_url: values.video_url || null,
       highest_degree: values.highest_degree || null,
       specialization: values.specialization || null,
       university: values.university || null,
@@ -314,6 +319,29 @@ export function TalentForm({ profile, submitLabel, pending, onSubmit, serverErro
             />
           )}
         </Field>
+
+        {/* Spans both columns: the hint explaining what the video is for
+            needs the width, and a half-width field beside a phone number
+            reads as another contact detail rather than a page section. */}
+        <div className="sm:col-span-2">
+          <Field
+            label={t('form.videoUrl')}
+            hint={t('form.videoUrlHint')}
+            error={errors.video_url?.message}
+          >
+            {(props) => (
+              <Input
+                {...props}
+                {...register('video_url')}
+                type="url"
+                dir="ltr"
+                className="ltr-nums"
+                placeholder="youtube.com/watch?v=..."
+                invalid={Boolean(errors.video_url)}
+              />
+            )}
+          </Field>
+        </div>
       </div>
 
       <p className="rounded-xl bg-sand-100 p-3.5 text-sm text-clay-800">

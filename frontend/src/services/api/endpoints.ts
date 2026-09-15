@@ -77,6 +77,8 @@ export interface BusinessPayload {
   whatsapp?: string | null
   email?: string | null
   website?: string | null
+  /** A link; the server stores the video id it resolves to. */
+  video_url?: string | null
   address_text?: string | null
   latitude?: number | null
   longitude?: number | null
@@ -111,6 +113,8 @@ export interface TalentPayload {
   whatsapp?: string | null
   email?: string | null
   website?: string | null
+  /** A link; the server stores the video id it resolves to. */
+  video_url?: string | null
 
   // Published professional detail.
   highest_degree?: string | null

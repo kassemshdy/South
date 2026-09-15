@@ -568,3 +568,26 @@ def test_services_offered_is_searchable_but_identity_is_not(
 
     hidden = client.get("/api/talent", params={"q": ar("identity.registration_place")})
     assert hidden.json()["meta"]["total"] == 0
+
+
+def test_a_profile_takes_a_video_link_and_publishes_an_id(
+    client: TestClient, skill: TalentSkill, location: Location
+) -> None:
+    """The talent write path converts the link too, not just the business one."""
+    headers = sign_in(client, "03950140")
+    _create_profile(client, headers, skill, location)
+
+    rejected = client.put(
+        "/api/my/talent",
+        headers=headers,
+        json={"video_url": "https://example.com/not-youtube"},
+    )
+    accepted = client.put(
+        "/api/my/talent",
+        headers=headers,
+        json={"video_url": "https://www.youtube.com/shorts/3Np8hKhrbB4"},
+    )
+
+    assert rejected.status_code == 422
+    assert accepted.status_code == 200
+    assert accepted.json()["youtube_video_id"] == "3Np8hKhrbB4"

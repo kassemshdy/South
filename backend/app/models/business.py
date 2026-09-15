@@ -99,6 +99,12 @@ class Business(Base, TimestampMixin):
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     website: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
+    # An owner-recorded introduction, stored as the eleven-character YouTube
+    # id rather than the link they pasted: the page composes the embed URL
+    # from it, so no owner-supplied string is ever handed to a browser. See
+    # ``app.core.urls.youtube_video_id``.
+    youtube_video_id: Mapped[str | None] = mapped_column(String(20), nullable=True)
+
     logo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     logo_storage_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
     cover_url: Mapped[str | None] = mapped_column(String(500), nullable=True)

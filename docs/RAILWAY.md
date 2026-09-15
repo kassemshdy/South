@@ -107,9 +107,15 @@ It is idempotent: re-running adds only what is missing.
 
 ## Going to production
 
-1. Obtain SMS credentials and set `OTP_PROVIDER=twilio` plus the three
-   `TWILIO_*` variables.
+1. Configure a real OTP provider:
+   - `OTP_PROVIDER=whatsapp` plus the `WHATSAPP_*` variables — see
+     `WHATSAPP_OTP.md`. This is the live route, because Twilio's signup
+     verification does not reach Lebanese numbers.
+   - or `OTP_PROVIDER=twilio` plus the three `TWILIO_*` variables, if an SMS
+     gateway becomes available.
 2. Change `APP_ENV` to `production`.
 
 The API refuses to boot as production with the mock provider, so the switch
-either works completely or fails loudly.
+either works completely or fails loudly. Do step 1 and step 2 as one change:
+production with the mock provider will not start, and `OTP_PROVIDER` set to a
+value the deployed build does not know will not start either.

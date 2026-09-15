@@ -10,7 +10,12 @@ from sqlalchemy.orm import Session
 from app.core.arabic import build_search_text
 from app.core.errors import ConflictError, NotFoundError, ValidationError
 from app.core.i18n import LazyJoin
-from app.core.urls import normalize_maps_url, normalize_social_url, normalize_url
+from app.core.urls import (
+    normalize_maps_url,
+    normalize_social_url,
+    normalize_url,
+    youtube_video_id,
+)
 from app.models.business import Business, BusinessSocialLink
 from app.models.enums import BusinessStatus, ImageKind, ViewSubject
 from app.models.user import User
@@ -63,6 +68,9 @@ class BusinessService:
             whatsapp=payload.whatsapp,
             email=payload.email,
             website=normalize_url(payload.website) if payload.website else None,
+            youtube_video_id=(
+                youtube_video_id(payload.video_url) if payload.video_url else None
+            ),
             address_text=payload.address_text,
             latitude=payload.latitude,
             longitude=payload.longitude,
@@ -90,6 +98,12 @@ class BusinessService:
     def update(self, business: Business, payload: BusinessUpdateIn) -> Business:
         data = payload.model_dump(exclude_unset=True)
         social_links = data.pop("social_links", None)
+        # Popped, not set: the request carries a link and the column holds an
+        # id, so leaving it in `data` would setattr a `video_url` attribute
+        # onto the model that no column ever reads.
+        if "video_url" in data:
+            raw_video = data.pop("video_url")
+            data["youtube_video_id"] = youtube_video_id(raw_video) if raw_video else None
 
         if "category_id" in data or "location_id" in data:
             self._validate_taxonomy(

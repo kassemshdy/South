@@ -183,6 +183,10 @@ export const socialLinksSchema = (t: Translate) =>
     youtube: optionalUrl(t),
     whatsapp_url: optionalUrl(t),
     website: optionalUrl(t),
+    // The introduction video, which is a link here and an id once stored.
+    // Shape is checked server-side, where the parser that extracts the id
+    // lives; this only keeps an obviously-not-a-URL out of the request.
+    video_url: optionalUrl(t),
   })
 
 export const itemSchema = (t: Translate) =>
@@ -253,6 +257,8 @@ export const talentSchema = (t: Translate, otherSkillId?: string) =>
       whatsapp: optionalPhone(t),
       email: z.string().trim().email(t('validation.emailInvalid')).optional().or(z.literal('')),
       website: optionalUrl(t),
+      // An introduction video. A link here, an id once the server stores it.
+      video_url: optionalUrl(t),
 
       // Published professional detail.
       highest_degree: z.string().trim().max(160).optional().or(z.literal('')),

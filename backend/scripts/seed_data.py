@@ -85,6 +85,13 @@ class TalentSeed(TypedDict, total=False):
     slug: str
 
 
+class ArticleSeed(TypedDict):
+    section: str
+    slug: str
+    title: str
+    body: str
+
+
 DATA_DIR = Path(__file__).resolve().parent / "data"
 
 REQUIRED_FIELDS: dict[str, tuple[str, ...]] = {
@@ -93,6 +100,7 @@ REQUIRED_FIELDS: dict[str, tuple[str, ...]] = {
     "businesses": ("name", "owner_phone", "category", "location", "status"),
     "talent_skills": ("name_ar", "slug", "sort_order"),
     "talents": ("display_name", "owner_phone", "skill", "location", "status"),
+    "articles": ("section", "slug", "title", "body"),
 }
 
 
@@ -125,3 +133,4 @@ LOCATIONS: list[LocationSeed] = _load("locations")  # type: ignore[assignment]
 BUSINESSES: list[BusinessSeed] = _load("businesses")  # type: ignore[assignment]
 TALENT_SKILLS: list[TalentSkillSeed] = _load("talent_skills")  # type: ignore[assignment]
 TALENTS: list[TalentSeed] = _load("talents")  # type: ignore[assignment]
+ARTICLES: list[ArticleSeed] = _load("articles")  # type: ignore[assignment]

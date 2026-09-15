@@ -91,6 +91,10 @@ class TalentDetailOut(TalentSummaryOut):
     bio: str | None = None
     email: str | None = None
     website: str | None = None
+    # The person's introduction video, as a YouTube id. An id rather than a
+    # URL so the client composes the embed itself and never renders a string
+    # the profile's owner typed — see app.core.urls.youtube_video_id.
+    youtube_video_id: str | None = None
     images: list[TalentImageOut] = Field(default_factory=list)
     approved_at: datetime | None = None
 
@@ -180,6 +184,8 @@ class TalentCreateIn(TalentProfileFieldsIn):
     whatsapp: OptionalPhone = None
     email: EmailStr | None = None
     website: str | None = Field(default=None, max_length=500)
+    # A link, because that is what the person has; stored as an id.
+    video_url: str | None = Field(default=None, max_length=500)
 
     @field_validator("display_name")
     @classmethod
@@ -213,6 +219,8 @@ class TalentUpdateIn(TalentProfileFieldsIn):
     whatsapp: OptionalPhone = None
     email: EmailStr | None = None
     website: str | None = Field(default=None, max_length=500)
+    # A link, because that is what the person has; stored as an id.
+    video_url: str | None = Field(default=None, max_length=500)
 
     @field_validator("phone", "whatsapp")
     @classmethod

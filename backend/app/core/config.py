@@ -52,7 +52,7 @@ class Settings(BaseSettings):
     )
 
     # --- OTP ---------------------------------------------------------------
-    otp_provider: Literal["mock", "twilio"] = "mock"
+    otp_provider: Literal["mock", "twilio", "whatsapp"] = "mock"
     otp_code_length: int = 6
     otp_ttl_seconds: int = 300
     otp_max_verify_attempts: int = 5
@@ -99,6 +99,18 @@ class Settings(BaseSettings):
     twilio_account_sid: str | None = None
     twilio_auth_token: str | None = None
     twilio_from_number: str | None = None
+
+    # WhatsApp Cloud API. The recipient reads the wording of the *template*,
+    # registered and approved at Meta, so the locale catalogs do not carry it —
+    # see app/auth/otp/whatsapp.py. Register an `ar` template and name its
+    # language here, or Arabic-speaking users receive an English code message.
+    whatsapp_phone_number_id: str | None = None
+    whatsapp_access_token: str | None = None
+    whatsapp_template_name: str | None = None
+    whatsapp_template_locale: str = "ar"
+    # Authentication templates normally carry a copy-code button, which takes
+    # the code as a second component. One created without a button rejects it.
+    whatsapp_template_has_button: bool = True
 
     # --- Storage -----------------------------------------------------------
     storage_backend: Literal["local", "s3"] = "local"
@@ -205,6 +217,14 @@ class Settings(BaseSettings):
             [self.twilio_account_sid, self.twilio_auth_token, self.twilio_from_number]
         ):
             problems.append("Twilio credentials are incomplete")
+        if self.otp_provider == "whatsapp" and not all(
+            [
+                self.whatsapp_phone_number_id,
+                self.whatsapp_access_token,
+                self.whatsapp_template_name,
+            ]
+        ):
+            problems.append("WhatsApp Cloud API credentials are incomplete")
         if self.storage_backend == "s3" and not self.s3_bucket:
             problems.append("S3_BUCKET is required when STORAGE_BACKEND=s3")
         if self.debug:
