@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from app.core.errors import ValidationError
-from app.core.urls import normalize_social_url, normalize_url
+from app.core.urls import normalize_social_url, normalize_url, youtube_video_id
 from app.models.enums import SocialPlatform
 from app.models.taxonomy import Category, Location
 from tests.conftest import sign_in
@@ -187,3 +187,86 @@ def test_social_link_saved_through_the_api_is_validated(
     assert rejected.status_code == 422
     assert accepted.status_code == 200
     assert accepted.json()["social_links"][0]["url"] == "https://instagram.com/shop"
+
+
+# Every shape YouTube itself hands out, since an owner pastes whatever the
+# share sheet gave them: a watch link with a timestamp, a youtu.be short
+# link, a Short, a live URL, the mobile host, an embed.
+@pytest.mark.parametrize(
+    "link",
+    [
+        "https://www.youtube.com/watch?v=3Np8hKhrbB4",
+        "youtube.com/watch?v=3Np8hKhrbB4&t=42s",
+        "https://youtu.be/3Np8hKhrbB4",
+        "https://youtu.be/3Np8hKhrbB4?t=10",
+        "https://www.youtube.com/shorts/3Np8hKhrbB4",
+        "https://m.youtube.com/watch?v=3Np8hKhrbB4",
+        "https://www.youtube.com/live/3Np8hKhrbB4",
+        "https://www.youtube-nocookie.com/embed/3Np8hKhrbB4",
+        "  https://www.youtube.com/watch?v=3Np8hKhrbB4  ",
+    ],
+)
+def test_every_youtube_link_shape_yields_the_bare_id(link: str) -> None:
+    assert youtube_video_id(link) == "3Np8hKhrbB4"
+
+
+@pytest.mark.parametrize(
+    "link",
+    [
+        "https://vimeo.com/12345",
+        "javascript:alert(1)",
+        # A channel is not a video, and neither is the bare homepage.
+        "https://www.youtube.com/channel/UCabcdefghij",
+        "https://www.youtube.com/",
+        # Too short to be an id, and a host that merely mentions YouTube in
+        # its path — the case a substring check would wave through.
+        "https://youtube.com/watch?v=short",
+        "https://evil.example.com/youtube.com/watch?v=3Np8hKhrbB4",
+    ],
+)
+def test_anything_that_is_not_a_youtube_video_is_rejected(link: str) -> None:
+    with pytest.raises(ValidationError):
+        youtube_video_id(link)
+
+
+def test_owner_submits_a_video_link_and_the_listing_publishes_an_id(
+    client: TestClient, business: tuple[str, dict[str, str]]
+) -> None:
+    """The API takes a link and hands back an id, never the pasted string."""
+    business_id, headers = business
+
+    rejected = client.put(
+        f"/api/businesses/{business_id}",
+        headers=headers,
+        json={"video_url": "https://vimeo.com/12345"},
+    )
+    accepted = client.put(
+        f"/api/businesses/{business_id}",
+        headers=headers,
+        json={"video_url": "https://youtu.be/3Np8hKhrbB4?t=30"},
+    )
+
+    assert rejected.status_code == 422
+    assert accepted.status_code == 200
+    body = accepted.json()
+    assert body["youtube_video_id"] == "3Np8hKhrbB4"
+    # The link itself is not stored, so it cannot be echoed back either.
+    assert "video_url" not in body
+
+
+def test_clearing_the_video_link_removes_the_id(
+    client: TestClient, business: tuple[str, dict[str, str]]
+) -> None:
+    business_id, headers = business
+    client.put(
+        f"/api/businesses/{business_id}",
+        headers=headers,
+        json={"video_url": "https://www.youtube.com/watch?v=3Np8hKhrbB4"},
+    )
+
+    cleared = client.put(
+        f"/api/businesses/{business_id}", headers=headers, json={"video_url": None}
+    )
+
+    assert cleared.status_code == 200
+    assert cleared.json()["youtube_video_id"] is None
