@@ -72,7 +72,8 @@ reviewer. Markers to watch for: مش، هون، هلق، بعدين، فيك، �
 referenced by name — the API sends only the code. So `auth.sms.body` is not what
 a WhatsApp recipient reads, and registering an Arabic template is part of
 configuring that provider rather than an optional nicety. This is the only
-exception, and it exists because the text is not ours to ship.
+exception, and it exists because the text is not ours to ship — see
+`docs/WHATSAPP_OTP.md`.
 
 `backend/tests/test_i18n.py` scans `backend/app`, `backend/scripts`, `backend/tests` and
 `frontend/src`/`frontend/e2e` for Arabic codepoints outside the catalogs and fixture files
@@ -96,6 +97,7 @@ one person's head.
 | `.claude/commands/verify.md` | Slash command; it invokes the skill rather than restating it, so there is one copy to keep correct. |
 | `.claude/settings.json` | Pre-approved tools. Read-only commands and MCP reads are allowed; anything that writes still prompts. |
 | `docs/MCP.md` | The agent-facing MCP server: read the whole directory, write only to the ticket board. |
+| `docs/WHATSAPP_OTP.md` | Delivering the sign-in code over WhatsApp: what the Meta account needs, why the code message is not in a locale catalog, and the order the switch must happen in. |
 
 **When a mistake repeats, fix the artifact rather than the instance.** A skill
 or a line in this file is worth more than a correction in one conversation,
