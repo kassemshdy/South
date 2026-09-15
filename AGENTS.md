@@ -70,10 +70,9 @@ reviewer. Markers to watch for: مش، هون، هلق، بعدين، فيك، �
 `OTP_PROVIDER=whatsapp`, the sign-in code is delivered as a WhatsApp
 *authentication template*, whose wording is registered and approved at Meta and
 referenced by name — the API sends only the code. So `auth.sms.body` is not what
-a WhatsApp recipient reads, and registering an Arabic template is part of
-configuring that provider rather than an optional nicety. This is the only
-exception, and it exists because the text is not ours to ship — see
-`docs/WHATSAPP_OTP.md`.
+a WhatsApp recipient reads, and the template's language, not this repository,
+decides which language they read it in. This is the only exception, and it
+exists because the text is not ours to ship — see `docs/WHATSAPP_OTP.md`.
 
 `backend/tests/test_i18n.py` scans `backend/app`, `backend/scripts`, `backend/tests` and
 `frontend/src`/`frontend/e2e` for Arabic codepoints outside the catalogs and fixture files

@@ -65,13 +65,21 @@ registered with Meta, reviewed, and then referenced by name. The API sends only
 the code, substituted into the approved body.
 
 The consequence is in `AGENTS.md`: **`auth.sms.body` is not what a WhatsApp
-recipient reads.** Their message comes from Meta's approved template, so
-registering an Arabic one is part of configuring this provider rather than a
-nicety. It is the only user-facing string in this project that deliberately
-does not live in a locale catalog, because it is not ours to ship.
+recipient reads.** Their message comes from Meta's approved template, and it is
+the only user-facing string in this project that deliberately does not live in
+a locale catalog, because it is not ours to ship.
+
+So the template's language is a product decision, not a detail of the setup.
+An Arabic template matches the rest of an Arabic-first site; an English one is
+defensible when the message is a six-digit code and the digits are the
+content, which is the call currently in force —
+`WHATSAPP_TEMPLATE_LOCALE=en`. Changing it later means registering the other
+template and setting that one variable; no code changes and no logic is
+redeployed.
 
 Create it in WhatsApp Manager (<https://business.facebook.com/wa/manage/message-templates/>)
-with category **Authentication** and language **Arabic**, or with one request:
+with category **Authentication** and the language you want, or with one
+request:
 
 ```bash
 curl -X POST "https://graph.facebook.com/v21.0/<WABA_ID>/message_templates" \
@@ -79,7 +87,7 @@ curl -X POST "https://graph.facebook.com/v21.0/<WABA_ID>/message_templates" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "janoubona_code",
-    "language": "ar",
+    "language": "en",
     "category": "AUTHENTICATION",
     "components": [
       { "type": "BODY", "add_security_recommendation": true },
@@ -99,7 +107,7 @@ the message promises a lifetime the server does not honour.
 | `WHATSAPP_PHONE_NUMBER_ID` | from API Setup; not the phone number |
 | `WHATSAPP_ACCESS_TOKEN` | a System user token for anything but a demo |
 | `WHATSAPP_TEMPLATE_NAME` | the approved template's `name` |
-| `WHATSAPP_TEMPLATE_LOCALE` | `ar` |
+| `WHATSAPP_TEMPLATE_LOCALE` | must match the registered template's language, or Meta cannot find it |
 | `WHATSAPP_TEMPLATE_HAS_BUTTON` | `true` unless the template has no OTP button |
 
 ## Order of operations
