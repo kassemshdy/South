@@ -265,6 +265,7 @@ def talent_summary(profile: TalentProfile) -> TalentSummaryOut:
         years_experience=profile.years_experience,
         skill=talent_skill_out(profile.skill),
         custom_skill_text=profile.custom_skill_text,
+        skill_specialty=profile.skill_specialty,
         location=location_out(profile.location),
         created_at=profile.created_at,
     )
@@ -283,6 +284,7 @@ def talent_detail(profile: TalentProfile) -> TalentDetailOut:
         bio=profile.bio,
         email=profile.email,
         website=profile.website,
+        preferred_contact=profile.preferred_contact,
         youtube_video_id=profile.youtube_video_id,
         images=_talent_gallery(profile),
         approved_at=profile.approved_at,

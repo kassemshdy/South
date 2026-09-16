@@ -47,16 +47,25 @@ class TestimonialRepository(BaseRepository[Testimonial]):
         return list(self.db.execute(stmt).scalars().all())
 
     def owned(
-        self, testimonial_id: uuid.UUID, business_id: uuid.UUID
+        self,
+        testimonial_id: uuid.UUID,
+        business_id: uuid.UUID,
+        *,
+        statuses: Sequence[TestimonialStatus] | None = None,
     ) -> Testimonial | None:
         """Scoped by business id, which is what stops an owner reaching
-        another listing's testimonial by swapping the id in the URL."""
-        return self.db.execute(
-            select(Testimonial).where(
-                Testimonial.id == testimonial_id,
-                Testimonial.business_id == business_id,
-            )
-        ).scalar_one_or_none()
+        another listing's testimonial by swapping the id in the URL.
+
+        ``statuses`` narrows it further, which is how the owner routes avoid
+        reaching a row the platform has not cleared: absent from the list is
+        also absent by id."""
+        stmt = select(Testimonial).where(
+            Testimonial.id == testimonial_id,
+            Testimonial.business_id == business_id,
+        )
+        if statuses is not None:
+            stmt = stmt.where(Testimonial.status.in_(list(statuses)))
+        return self.db.execute(stmt).scalar_one_or_none()
 
     def count_approved(self, business_id: uuid.UUID) -> int:
         return len(

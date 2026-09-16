@@ -309,6 +309,8 @@ export interface TalentSummary {
   skill: TalentSkill | null
   /** The person's own words, shown instead of the literal "Other" skill name. */
   custom_skill_text: string | null
+  /** The trade in their own words, one level below the taxonomy skill. */
+  skill_specialty: string | null
   location: LocationNode | null
   created_at: string
 }
@@ -323,8 +325,12 @@ export interface TalentLanguage {
   sort_order: number
 }
 
+export type ContactChannel = 'PHONE' | 'WHATSAPP' | 'EMAIL' | 'WEBSITE'
+
 export interface TalentDetail extends TalentSummary {
   bio: string | null
+  /** Which contact detail the page leads with. Never narrows what is shown. */
+  preferred_contact: ContactChannel | null
   email: string | null
   website: string | null
   /**
@@ -562,7 +568,12 @@ export interface OwnerViews {
   listings: ListingViews[]
 }
 
-export type TestimonialStatus = 'PENDING' | 'APPROVED' | 'HIDDEN'
+export type TestimonialStatus =
+  | 'PENDING_REVIEW'
+  | 'PENDING_OWNER'
+  | 'APPROVED'
+  | 'HIDDEN'
+  | 'REJECTED'
 
 /**
  * Owner-selected praise, never a review — the owner decides what appears, so
