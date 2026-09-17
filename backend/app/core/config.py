@@ -112,6 +112,27 @@ class Settings(BaseSettings):
     # the code as a second component. One created without a button rejects it.
     whatsapp_template_has_button: bool = True
 
+    # Password sign-in: the guess budget for one phone number. Low, because a
+    # person signing in knows their password and a person who does not is
+    # guessing — see AuthService.login_with_password.
+    password_login_per_phone_limit: int = 10
+    password_login_per_phone_window_seconds: int = 900
+
+    # --- Human verification ------------------------------------------------
+    # Cloudflare Turnstile. Unset means the public forms are not captcha
+    # protected at all — see app/core/captcha.py for why that is the chosen
+    # behaviour rather than a failure.
+    turnstile_secret_key: str | None = None
+
+    # --- Public registration ----------------------------------------------
+    # Anonymous, so rate limited on the same pattern as testimonials: per
+    # address first, then per day across the whole site, so one rotating
+    # sender cannot bury the review queue.
+    registration_per_ip_limit: int = 3
+    registration_per_ip_window_seconds: int = 3600
+    registration_per_day_limit: int = 100
+    registration_per_day_window_seconds: int = 86400
+
     # --- Storage -----------------------------------------------------------
     storage_backend: Literal["local", "s3"] = "local"
     storage_local_dir: str = "var/media"

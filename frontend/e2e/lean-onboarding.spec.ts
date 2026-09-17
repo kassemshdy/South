@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { signInWithCode } from './support/sign-in'
+
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
   JSON.parse(readFileSync(resolve(here, relative), 'utf-8')) as T
@@ -15,7 +17,6 @@ const fixture = load<{ name: string; shortDescription: string }>(
 const t = (key: string): string => ar[key]!
 
 const OWNER_PHONE = '03966501'
-const DEV_OTP = '123456'
 
 // The same tiny-but-valid JPEG the acceptance spec uses. The upload sniffs
 // real magic bytes and rejects anything it cannot decode, so a hand-rolled
@@ -46,12 +47,7 @@ const JPEG = Buffer.from(
  */
 test.describe('Lean onboarding', () => {
   test('an owner reaches review without touching an optional step', async ({ page }) => {
-    await page.goto('/login')
-    await page.getByLabel(t('login.phoneLabel')).fill(OWNER_PHONE)
-    await page.getByRole('button', { name: t('login.sendCode') }).click()
-    await page.getByLabel(t('login.codeLabel')).fill(DEV_OTP)
-    await page.getByRole('button', { name: t('login.confirm') }).click()
-    await expect(page).toHaveURL(/\/dashboard/)
+    await signInWithCode(page, OWNER_PHONE)
 
     await page.goto('/dashboard/businesses/new')
 

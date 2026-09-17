@@ -5,7 +5,12 @@ import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { AssistedListing } from '@/features/onboarding/AssistedListing'
 import { DOOR_CARD, DoorBody } from '@/features/onboarding/DoorCard'
-import { OFFER_DOORS, SEEK_DOORS, type Door } from '@/features/onboarding/destinations'
+import {
+  destinationFor,
+  OFFER_DOORS,
+  SEEK_DOORS,
+  type Door,
+} from '@/features/onboarding/destinations'
 import { useT, type TranslationKey } from '@/i18n'
 
 /**
@@ -114,8 +119,11 @@ export function AudienceChooser({ isAuthenticated = false }: { isAuthenticated?:
 
   const branch = BRANCHES.find((candidate) => candidate.intent === intent) ?? null
 
-  // Step three: the account explanation, for an anonymous visitor who chose to
-  // list something. Shown before the phone-number prompt, never after it.
+  // Step three: how listing here actually works, for an anonymous visitor who
+  // chose to list something. Shown before the form, never after it — the
+  // sequence is not the one people expect, and finding out that an
+  // administrator reviews the application *after* filling it in reads as a
+  // refusal rather than as the process.
   if (expanded) {
     return (
       <div className="mx-auto w-full max-w-2xl rounded-2xl border-2 border-clay-200 bg-sand-50 p-6">
@@ -138,7 +146,10 @@ export function AudienceChooser({ isAuthenticated = false }: { isAuthenticated?:
 
         <div className="mt-6 flex flex-wrap gap-3">
           <Button asChild size="lg">
-            <Link to="/login">
+            {/* Straight to the application form, not to /login: there is no
+                account to sign into yet, and the form is step one of the
+                three this panel just described. */}
+            <Link to={destinationFor(expanded, isAuthenticated)}>
               <Check className="h-5 w-5" aria-hidden="true" />
               {t('onboarding.start')}
             </Link>
@@ -198,7 +209,7 @@ export function AudienceChooser({ isAuthenticated = false }: { isAuthenticated?:
             </Button>
           ) : (
             <Button asChild size="lg">
-              <Link to={pending.href}>
+              <Link to={destinationFor(pending, isAuthenticated)}>
                 <Check className="h-5 w-5" aria-hidden="true" />
                 {t('consent.agree')}
               </Link>

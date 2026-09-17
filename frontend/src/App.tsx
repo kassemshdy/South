@@ -95,6 +95,19 @@ const EditBusinessPage = lazy(() =>
 const ItemsPage = lazy(() =>
   import('@/pages/dashboard/ItemsPage').then((m) => ({ default: m.ItemsPage })),
 )
+// The two application forms reuse the dashboard's own form components, so
+// they carry the same weight; a visitor who never applies should not download
+// them. `ChangePasswordPage` rides along for the same reason.
+const ChangePasswordPage = lazy(() =>
+  import('@/pages/ChangePasswordPage').then((m) => ({ default: m.ChangePasswordPage })),
+)
+const RegisterBusinessPage = lazy(() =>
+  import('@/pages/RegisterBusinessPage').then((m) => ({ default: m.RegisterBusinessPage })),
+)
+const RegisterTalentPage = lazy(() =>
+  import('@/pages/RegisterTalentPage').then((m) => ({ default: m.RegisterTalentPage })),
+)
+
 const TalentDashboardPage = lazy(() =>
   import('@/pages/dashboard/TalentDashboardPage').then((m) => ({
     default: m.TalentDashboardPage,
@@ -122,6 +135,12 @@ export function App() {
           <Route path="about" element={<AboutPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="admin/login" element={<AdminLoginPage />} />
+          {/* Applying needs no account — it is how you get one. */}
+          <Route path="register/business" element={<RegisterBusinessPage />} />
+          <Route path="register/talent" element={<RegisterTalentPage />} />
+          {/* Outside RequireAuth on purpose: that guard sends an account with
+              an issued password *here*, so guarding this with it would loop. */}
+          <Route path="change-password" element={<ChangePasswordPage />} />
 
           {/* Business owner */}
           <Route

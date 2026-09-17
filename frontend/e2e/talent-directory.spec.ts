@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { signInWithCode } from './support/sign-in'
+
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
   JSON.parse(readFileSync(resolve(here, relative), 'utf-8')) as T
@@ -33,7 +35,6 @@ const districtName = locations
   .find((district) => district.slug === fixture.locationSlug)!.name_ar
 
 const OWNER_PHONE = '03955443'
-const DEV_OTP = '123456'
 const ADMIN_EMAIL = 'admin@example.com'
 const ADMIN_PASSWORD = 'ChangeMe!123'
 
@@ -49,13 +50,7 @@ function jpeg(): { name: string; mimeType: string; buffer: Buffer } {
 }
 
 async function signInAsOwner(page: Page) {
-  await page.goto('/login')
-  await page.getByLabel(t('login.phoneLabel')).fill(OWNER_PHONE)
-  await page.getByRole('button', { name: t('login.sendCode') }).click()
-  await expect(page.getByRole('heading', { name: t('login.codeTitle') })).toBeVisible()
-  await page.getByLabel(t('login.codeLabel')).fill(DEV_OTP)
-  await page.getByRole('button', { name: t('login.confirm') }).click()
-  await expect(page).toHaveURL(/\/dashboard/)
+  await signInWithCode(page, OWNER_PHONE)
 }
 
 async function signInAsAdmin(page: Page) {

@@ -19,8 +19,17 @@ export const DialogContent = forwardRef<
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-ink-900/40 backdrop-blur-sm" />
       <DialogPrimitive.Content
         ref={ref}
+        // `max-h` + `overflow-y-auto` are load-bearing on a phone, not
+        // polish. The panel is `fixed` and vertically centred, so a form
+        // taller than the viewport hangs off both ends with no way to reach
+        // either — and because it is fixed, scrolling the page behind it does
+        // not move it. On a Pixel 7 the add-item form's submit button sat
+        // below the fold and could not be pressed at all; the acceptance spec
+        // caught it as a click that never lands. Anything that makes this
+        // panel scroll with the page instead brings that back.
         className={cn(
-          'fixed inset-x-4 top-1/2 z-50 mx-auto w-auto max-w-lg -translate-y-1/2 rounded-2xl bg-white p-6 shadow-lift focus:outline-none sm:inset-x-0',
+          'fixed inset-x-4 top-1/2 z-50 mx-auto w-auto max-w-lg -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-6 shadow-lift focus:outline-none sm:inset-x-0',
+          'max-h-[calc(100dvh-2rem)]',
           className,
         )}
         {...props}

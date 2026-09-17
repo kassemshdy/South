@@ -73,15 +73,40 @@ def get_current_user_optional(request: Request, db: DbSession) -> User | None:
     return user
 
 
-def get_current_user(
+def get_signed_in_user(
     user: Annotated[User | None, Depends(get_current_user_optional)],
 ) -> User:
+    """The caller, whatever state their account is in.
+
+    Used only by the two routes an account with an issued password may still
+    reach: reading itself, and replacing that password. Everything else goes
+    through ``get_current_user`` below.
+    """
     if user is None:
         raise AuthenticationError()
     return user
 
 
+def get_current_user(
+    user: Annotated[User, Depends(get_signed_in_user)],
+) -> User:
+    """The caller, refused while an issued password has not been replaced.
+
+    A password an administrator generated travelled to its owner through a
+    WhatsApp message, so anyone who has seen that chat can sign in with it.
+    Blocking every other route until it is replaced is what makes it a way in
+    exactly once rather than a standing credential. Enforced here rather than
+    per route so a new owner endpoint is covered by default.
+    """
+    if user.must_change_password:
+        raise PermissionDeniedError(
+            "auth.password_change_required", code="password_change_required"
+        )
+    return user
+
+
 CurrentUser = Annotated[User, Depends(get_current_user)]
+SignedInUser = Annotated[User, Depends(get_signed_in_user)]
 OptionalUser = Annotated[User | None, Depends(get_current_user_optional)]
 
 

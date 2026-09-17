@@ -27,7 +27,7 @@ function toAsciiDigits(value: string): string {
   })
 }
 
-function isLebanesePhone(value: string): boolean {
+export function isLebanesePhone(value: string): boolean {
   const digits = toAsciiDigits(value)
     .replace(/[^\d]/g, '')
     .replace(/^00/, '')
@@ -78,6 +78,39 @@ export const otpSchema = (t: Translate) =>
   })
 
 export const phoneSchema = (t: Translate) => z.object({ phone_number: lebanesePhone(t) })
+
+/** Phone and password — how an owner signs in while no gateway exists. */
+export const ownerLoginSchema = (t: Translate) =>
+  z.object({
+    phone_number: lebanesePhone(t),
+    password: z.string().min(1, t('validation.passwordRequired')),
+  })
+
+/**
+ * Choosing a password to replace the one an administrator issued.
+ *
+ * The confirmation field is checked here rather than server-side because it
+ * is a typing aid, not a rule: the API takes one password and has nothing to
+ * compare a second against.
+ */
+export const changePasswordSchema = (t: Translate) =>
+  z
+    .object({
+      current_password: z.string().min(1, t('validation.passwordRequired')),
+      new_password: z.string().min(8, t('validation.passwordShort')),
+      confirm_password: z.string().min(1, t('validation.passwordRequired')),
+    })
+    .refine((values) => values.new_password === values.confirm_password, {
+      path: ['confirm_password'],
+      message: t('validation.passwordMismatch'),
+    })
+
+/**
+ * The one field a registration form adds to the listing form it wraps: the
+ * number that becomes the account's login, which is also where the
+ * credentials are sent. Required, unlike the listing's published phone.
+ */
+export const loginPhoneSchema = (t: Translate) => z.object({ login_phone: lebanesePhone(t) })
 
 export const adminLoginSchema = (t: Translate) =>
   z.object({

@@ -12,10 +12,15 @@ from app.core.dependencies import (
     CurrentUser,
     DbSession,
     OtpProviderDep,
+    SignedInUser,
 )
+from app.core.errors import AuthenticationError
+from app.core.security import verify_password
 from app.models.enums import VerificationDocumentKind
 from app.schemas.auth import (
     AdminLoginIn,
+    ChangePasswordIn,
+    OwnerLoginIn,
     RequestOtpIn,
     RequestOtpOut,
     TokenOut,
@@ -81,8 +86,52 @@ def admin_login(
     )
 
 
+@router.post("/auth/login", response_model=TokenOut)
+def owner_login(
+    payload: OwnerLoginIn,
+    db: DbSession,
+    settings: AppSettings,
+    provider: OtpProviderDep,
+    client_ip: ClientIp,
+) -> TokenOut:
+    """Sign in with a phone number and password.
+
+    The route that works without an SMS or WhatsApp gateway. Administrators
+    sign in at /auth/admin/login instead, and this refuses them.
+    """
+    service = AuthService(db, settings, provider)
+    user, token, expires_at = service.login_with_password(
+        payload.phone_number, payload.password, client_ip=client_ip
+    )
+    return TokenOut(
+        access_token=token, expires_at=expires_at, user=UserOut.model_validate(user)
+    )
+
+
+@router.post("/me/password", response_model=UserOut)
+def change_my_password(
+    payload: ChangePasswordIn,
+    user: SignedInUser,
+    db: DbSession,
+    settings: AppSettings,
+    provider: OtpProviderDep,
+) -> UserOut:
+    """Replace one's own password, ending every other session.
+
+    Reachable while ``must_change_password`` is set — it is the one thing such
+    an account may do.
+    """
+    service = AuthService(db, settings, provider)
+    if not verify_password(payload.current_password, user.password_hash):
+        raise AuthenticationError("auth.invalid_credentials", code="invalid_credentials")
+    service.set_password(user, payload.new_password)
+    return UserOut.model_validate(user)
+
+
 @router.get("/me", response_model=UserOut)
-def read_me(user: CurrentUser) -> UserOut:
+def read_me(user: SignedInUser) -> UserOut:
+    """Readable even while a password change is outstanding: the client needs
+    this to know that it is."""
     return UserOut.model_validate(user)
 
 

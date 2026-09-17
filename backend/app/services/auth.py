@@ -1,4 +1,11 @@
-"""Authentication: OTP challenge/verify for owners, password login for admins."""
+"""Authentication: OTP or password for owners, password for administrators.
+
+Owners have two ways in, deliberately, and both land on the same account
+because it is keyed by phone number. The OTP challenge is the one that needs a
+working SMS or WhatsApp gateway; the password is the one that does not, and it
+exists because that gateway has not been obtainable. A password an
+administrator issued is a way in exactly once — see ``must_change_password``.
+"""
 
 from __future__ import annotations
 
@@ -14,11 +21,14 @@ from app.core.errors import (
     RateLimitedError,
     ValidationError,
 )
+from app.core.passwords import generate_temporary_password
+from app.core.phone import normalize_phone
 from app.core.rate_limit import DatabaseRateLimiter, RateLimitRule
 from app.core.security import (
     create_access_token,
     generate_otp_code,
     hash_otp_code,
+    hash_password,
     verify_otp_code,
     verify_password,
 )
@@ -49,6 +59,17 @@ class AuthService:
             bucket="otp_send_ip",
             limit=settings.otp_send_per_ip_limit,
             window_seconds=settings.otp_send_per_ip_window_seconds,
+        )
+        # Password sign-in has no second factor and no code that expires, so
+        # the only thing standing between a guessable password and an account
+        # is how many guesses fit in the window. Keyed on the phone number,
+        # because that is what an attacker is working through: an address
+        # limit alone lets one host walk a list of numbers, and lets a shared
+        # connection lock out a whole village.
+        self._login_rule = RateLimitRule(
+            bucket="password_login",
+            limit=settings.password_login_per_phone_limit,
+            window_seconds=settings.password_login_per_phone_window_seconds,
         )
 
     # --- OTP ---------------------------------------------------------------
@@ -148,3 +169,96 @@ class AuthService:
             user_id=user.id, role=user.role.value, token_version=user.token_version
         )
         return user, token, expires_at
+
+    def login_with_password(
+        self, phone_number: str, password: str, *, client_ip: str | None = None
+    ) -> tuple[User, str, datetime]:
+        """Sign an owner in with the phone number and a password.
+
+        Deliberately not `login_admin` with a different lookup: that one refuses
+        anything but an administrator, and this one refuses an administrator —
+        an admin signs in on the admin form, and keeping the two apart means a
+        leaked owner password can never reach the admin panel.
+
+        One error for every failure, as above, so the endpoint cannot be used
+        to discover which numbers have accounts. An account with no password
+        set — every account starts that way, before an administrator issues
+        one — fails here too, because `verify_password` refuses a null hash.
+
+        The budget is checked before anything is looked up, so it applies to a
+        number with no account as well; spending it only on real accounts would
+        make the difference measurable. Only *failures* are recorded, so
+        signing in correctly never uses it up, and a run of wrong guesses ages
+        out of the window on its own.
+        """
+        normalized = normalize_phone(phone_number)
+
+        status = self._limiter.check(self._login_rule, normalized)
+        if not status.allowed:
+            raise RateLimitedError(status.retry_after_seconds, "auth.login.rate_limited")
+
+        user = self._users.get_by_phone(normalized)
+
+        if user is None or not verify_password(password, user.password_hash):
+            self._record_failed_login(normalized)
+            logger.warning(
+                "Failed owner login",
+                extra={"phone_number": normalized, "request_ip": client_ip},
+            )
+            raise AuthenticationError(
+                "auth.invalid_credentials", code="invalid_credentials"
+            )
+        if user.role is UserRole.ADMIN or not user.is_active:
+            self._record_failed_login(normalized)
+            logger.warning(
+                "Owner login refused for role", extra={"user_id": str(user.id)}
+            )
+            raise AuthenticationError(
+                "auth.invalid_credentials", code="invalid_credentials"
+            )
+
+        token, expires_at = create_access_token(
+            user_id=user.id, role=user.role.value, token_version=user.token_version
+        )
+        return user, token, expires_at
+
+    def _record_failed_login(self, phone_number: str) -> None:
+        """Spend one guess, and commit it before the failure is raised.
+
+        The commit is the point. The limiter only flushes, and the request
+        that is about to raise never reaches a commit of its own — so without
+        this the attempt is rolled back with the error and the budget never
+        goes down, which is the whole of the protection.
+        """
+        self._limiter.hit(self._login_rule, phone_number)
+        self._db.commit()
+
+    def set_password(self, user: User, password: str) -> None:
+        """Replace the account's password and end every other session.
+
+        Bumping ``token_version`` invalidates tokens issued before this point,
+        which is the whole value of the change when the old password went out
+        over WhatsApp: whoever else read that chat is signed out.
+        """
+        user.password_hash = hash_password(password)
+        user.must_change_password = False
+        user.token_version += 1
+        self._db.commit()
+        logger.info("Password changed", extra={"user_id": str(user.id)})
+
+    def issue_password(self, user: User) -> str:
+        """Generate a password for ``user`` and return it once.
+
+        The plaintext is returned to the caller and never stored, logged or
+        sent anywhere by this application — an administrator relays it over
+        their own WhatsApp. It is a way in exactly once: `must_change_password`
+        blocks every owner route until it has been replaced.
+        """
+        password = generate_temporary_password()
+        user.password_hash = hash_password(password)
+        user.must_change_password = True
+        # Any session opened with a previous password stops here.
+        user.token_version += 1
+        self._db.commit()
+        logger.info("Password issued to account", extra={"user_id": str(user.id)})
+        return password

@@ -1,13 +1,19 @@
 # Railway deployment (project `southwork`)
 
-**Live:** <https://janoubona.up.railway.app>
-**Staging:** <https://web-develop-production-bce3.up.railway.app>
+**Live:** <https://janoubona.net> — also reachable at
+<https://janoubona.up.railway.app>
+**Staging:** <https://janoubona-develop.up.railway.app>
 
-<!-- The previous value here, web-production-b8196, answers Railway's
-     "Application not found" and had been wrong long enough that the
-     ship-release skill carries a note telling operators not to trust this
-     line. Confirmed against both hosts before changing it: b8196 -> 404,
-     janoubona -> 200. -->
+<!-- This line has been wrong twice, and it is the line people trust when a
+     deploy looks broken, so here is where these came from: the Railway API's
+     own domain list for the `web` and `web-develop` services, which is the
+     configuration of record. `janoubona.net` is a custom domain on `web` and
+     is the one to give people. Two dead hosts that used to be recorded here
+     and must not come back: `web-production-b8196` and
+     `web-develop-production-bce3`, both of which answer "Application not
+     found". If a probe 404s, re-read the domain list from Railway before
+     concluding the deploy failed — the host is the likelier thing to have
+     changed. -->
 
 | | |
 |---|---|
@@ -15,7 +21,7 @@
 | Environment | `production` (running `APP_ENV=staging` — see below) |
 | Branch | `master-claude` (live) and `develop-claude` (staging), both auto-deploy on push |
 | Admin sign-in | `/admin/login` — `ADMIN_EMAIL` / `ADMIN_PASSWORD` from the api service variables |
-| Owner sign-in | any Lebanese number; the OTP code is **123456** while `APP_ENV=staging` |
+| Owner sign-in | phone number + the password an administrator issued — see *Going to production* below. The OTP path also works with the fixed code **123456** while `APP_ENV=staging`, but no code is ever delivered |
 
 Change `ADMIN_PASSWORD` before sharing the URL with anyone.
 
@@ -119,3 +125,37 @@ The API refuses to boot as production with the mock provider, so the switch
 either works completely or fails loudly. Do step 1 and step 2 as one change:
 production with the mock provider will not start, and `OTP_PROVIDER` set to a
 value the deployed build does not know will not start either.
+
+**Neither step blocks owners from signing in any more.** That used to be the
+whole reason this page mattered: without a gateway there was no code, and
+without a code nobody could get in. There is now a route that needs no
+gateway — a public application, an administrator's audit, and a password
+handed over from the administrator's own WhatsApp (see *How Somebody Gets
+Onto This Site* in `AGENTS.md`). So the OTP switch is an improvement to make
+when a phone number becomes available, not an outage to clear.
+
+### Optional: the registration captcha
+
+The public application forms carry a Cloudflare Turnstile widget when, and
+only when, both halves are configured:
+
+- `TURNSTILE_SECRET_KEY` on `api` / `api-develop` — an ordinary service
+  variable, read at runtime.
+- `VITE_TURNSTILE_SITE_KEY` as a **build argument**, because Vite inlines it
+  when the bundle is compiled. It is declared in `backend/Dockerfile` (the
+  stage that builds the bundle the API serves) and `frontend/Dockerfile`;
+  setting it only on `web` leaves the served bundle's copy undefined and the
+  widget silently absent, so it goes on `api` and `api-develop` as well.
+
+The keys come from a free Cloudflare account — dashboard → Turnstile → Add
+widget; the domain does not need to be on Cloudflare DNS. The widget's
+hostname list has to name every host the form is served from, or it fails on
+the ones it does not:
+
+- `janoubona.net`
+- `janoubona.up.railway.app`
+- `janoubona-develop.up.railway.app`
+
+With neither set, the forms work and nothing is verified — which is the
+correct state for local development and for the test suite, and an acceptable
+one in production only while the rate limits are carrying the load alone.

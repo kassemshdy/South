@@ -1,8 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { FileCheck2, FileText, Loader2, ShieldCheck, Upload } from 'lucide-react'
+import { FileCheck2, FileText, KeyRound, Loader2, ShieldCheck, Upload } from 'lucide-react'
 import { useRef, type ReactNode } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import { Link } from 'react-router-dom'
 
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody, CardHeader } from '@/components/ui/Card'
@@ -74,6 +75,7 @@ export function AccountPage() {
           read={authApi.getCvDocument}
           upload={authApi.uploadCvDocument}
         />
+        <PasswordCard />
       </div>
     </div>
   )
@@ -277,6 +279,37 @@ function ProfileCard({ user, onSaved }: { user: User; onSaved: () => Promise<voi
             {t('account.saveProfile')}
           </Button>
         </form>
+      </CardBody>
+    </Card>
+  )
+}
+
+/**
+ * Changing the password voluntarily.
+ *
+ * A link rather than a form, because the screen it points at is the same one
+ * an account with an administrator-issued password is forced through — one
+ * implementation, one place to get the "every other session ends" behaviour
+ * right.
+ */
+function PasswordCard() {
+  const t = useT()
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <KeyRound className="h-5 w-5 text-brand-700" aria-hidden="true" />
+          <h2 className="font-bold">{t('password.title')}</h2>
+        </div>
+      </CardHeader>
+      <CardBody className="space-y-3">
+        <p className="text-sm text-ink-500">{t('account.passwordHint')}</p>
+        <Link
+          to="/change-password"
+          className="inline-flex items-center rounded-xl bg-olive-500 px-4 py-2.5 font-semibold text-white hover:bg-olive-600"
+        >
+          {t('password.submit')}
+        </Link>
       </CardBody>
     </Card>
   )

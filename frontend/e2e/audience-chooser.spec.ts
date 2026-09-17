@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { signInWithCode } from './support/sign-in'
+
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
   JSON.parse(readFileSync(resolve(here, relative), 'utf-8')) as T
@@ -12,7 +14,6 @@ const ar = load<Record<string, string>>('../src/i18n/locales/ar.json')
 const t = (key: string): string => ar[key]!
 
 const OWNER_PHONE = '03966401'
-const DEV_OTP = '123456'
 
 /**
  * The ways into the site.
@@ -60,7 +61,7 @@ test.describe('Audience chooser', () => {
     await expect(page.getByRole('heading', { name: t('home.heroTitle') })).toBeVisible()
 
     // Choosing to list a business explains what that involves, in place,
-    // rather than jumping to a phone-number prompt.
+    // rather than jumping straight to a form.
     // Two levels now: the intent first, then which kind.
     await page.getByRole('button', { name: t('home.actionOffer') }).click()
     await page.getByRole('button', { name: t('onboarding.ownerTitle') }).click()
@@ -74,9 +75,11 @@ test.describe('Audience chooser', () => {
     await expect(page.getByText(t('onboarding.step3'))).toBeVisible()
     expect(new URL(page.url()).pathname).toBe('/')
 
-    // And only then does it offer the way in.
+    // And only then does it offer the way in — the public application form,
+    // not the login page. Somebody at this point has no account and no way to
+    // get one except by applying, so /login was a door onto nothing.
     await page.getByRole('link', { name: t('onboarding.start') }).click()
-    await expect(page).toHaveURL(/\/login/)
+    await expect(page).toHaveURL(/\/register\/business/)
 
     // Still there on the way back — permanent navigation, not a prompt that
     // spends itself on first use.
@@ -109,12 +112,7 @@ test.describe('Audience chooser', () => {
   test('someone signed in gets the same doors, pointing at their dashboard', async ({
     page,
   }) => {
-    await page.goto('/login')
-    await page.getByLabel(t('login.phoneLabel')).fill(OWNER_PHONE)
-    await page.getByRole('button', { name: t('login.sendCode') }).click()
-    await page.getByLabel(t('login.codeLabel')).fill(DEV_OTP)
-    await page.getByRole('button', { name: t('login.confirm') }).click()
-    await expect(page).toHaveURL(/\/dashboard/)
+    await signInWithCode(page, OWNER_PHONE)
 
     await page.goto('/')
     await expect(page.getByRole('heading', { name: t('onboarding.heading') })).toBeVisible()

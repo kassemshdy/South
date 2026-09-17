@@ -64,6 +64,9 @@ class UserOut(ORMModel):
     email: str | None
     display_name: str | None
     role: UserRole
+    # True while an administrator-issued password has not been replaced. The
+    # client routes on this; the server enforces it regardless.
+    must_change_password: bool = False
     created_at: datetime
 
     # Identity, returned only to the account itself. Every listing this
@@ -74,6 +77,37 @@ class UserOut(ORMModel):
     marital_status: MaritalStatus | None = None
     registration_place: str | None = None
     residence_place: str | None = None
+
+
+class OwnerLoginIn(BaseModel):
+    """Phone and password, for an account an administrator issued one to."""
+
+    phone_number: str = Field(min_length=6, max_length=25)
+    password: str = Field(min_length=1, max_length=200)
+
+
+class ChangePasswordIn(BaseModel):
+    """Replacing one's own password.
+
+    The current password is required even while ``must_change_password`` is
+    set: the session was opened with it moments ago, and asking again is what
+    stops a borrowed unlocked phone from taking the account over.
+    """
+
+    current_password: str = Field(min_length=1, max_length=200)
+    new_password: str = Field(min_length=8, max_length=200)
+
+
+class IssuedPasswordOut(BaseModel):
+    """An administrator-issued password, returned exactly once.
+
+    Never stored in plaintext, never logged, and not readable again after this
+    response — losing it means issuing another. The account holder receives it
+    out of band, from the administrator's own WhatsApp.
+    """
+
+    phone_number: str
+    password: str
 
 
 class TokenOut(BaseModel):
