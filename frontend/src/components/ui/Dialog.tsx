@@ -20,13 +20,18 @@ export const DialogContent = forwardRef<
       <DialogPrimitive.Content
         ref={ref}
         // `max-h` + `overflow-y-auto` are load-bearing on a phone, not
-        // polish. The panel is `fixed` and vertically centred, so a form
+        // polish. The panel is `fixed` and vertically centred, so anything
         // taller than the viewport hangs off both ends with no way to reach
         // either — and because it is fixed, scrolling the page behind it does
-        // not move it. On a Pixel 7 the add-item form's submit button sat
-        // below the fold and could not be pressed at all; the acceptance spec
-        // caught it as a click that never lands. Anything that makes this
-        // panel scroll with the page instead brings that back.
+        // not move it. That is not hypothetical: on a Pixel 7 the add-item
+        // form's submit button sat below the fold and could not be pressed at
+        // all, and the acceptance spec caught it as a click that never lands.
+        //
+        // That form is a page now (`features/items/ItemManager.tsx`), which is
+        // the real fix for a form that long — this is the floor for the ones
+        // still in a dialog, the longest being the feedback widget. Read it as
+        // a guard rather than a licence: a form that needs the scrollbar this
+        // provides has probably outgrown a dialog and wants a page.
         className={cn(
           'fixed inset-x-4 top-1/2 z-50 mx-auto w-auto max-w-lg -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-6 shadow-lift focus:outline-none sm:inset-x-0',
           'max-h-[calc(100dvh-2rem)]',
