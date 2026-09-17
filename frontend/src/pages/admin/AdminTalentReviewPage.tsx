@@ -23,6 +23,7 @@ import { Field } from '@/components/ui/Field'
 import { Textarea } from '@/components/ui/Input'
 import { ErrorState, InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
+import { IssueCredentialsCard } from '@/features/admin/IssueCredentialsCard'
 import { OwnerIdentityCard } from '@/features/admin/OwnerIdentityCard'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
 import { EMPLOYMENT_TYPE_KEYS, PROFICIENCY_KEYS } from '@/features/talent/labels'
@@ -334,6 +335,11 @@ export function AdminTalentReviewPage() {
               )}
             </CardBody>
           </Card>
+
+          {/* Right where the approve button is, because handing over the
+              login is the next thing that has to happen for an applicant who
+              has no other way in. Still a separate press: see the card. */}
+          <IssueCredentialsCard userId={data.owner_id} phoneNumber={data.owner_phone} />
 
           <OwnerIdentityCard identity={data.owner_identity} />
 

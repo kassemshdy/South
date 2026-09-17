@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { signInWithCode } from './support/sign-in'
+
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
   JSON.parse(readFileSync(resolve(here, relative), 'utf-8')) as T
@@ -26,7 +28,6 @@ const t = (key: string): string => ar[key]!
 const categoryName = categories.find((c) => c.slug === 'restaurants')!.name_ar
 
 const OWNER_PHONE = '03966101'
-const DEV_OTP = '123456'
 const ADMIN_EMAIL = 'admin@example.com'
 const ADMIN_PASSWORD = 'ChangeMe!123'
 const PERSONAL_PHONE = '03966102'
@@ -49,12 +50,7 @@ function pdf(name = 'id.pdf'): { name: string; mimeType: string; buffer: Buffer 
 test.describe('Private owner verification', () => {
   test('owner sets personal info; admin views and downloads it', async ({ page }) => {
     // --- Owner: sign in and open the Account page --------------------------
-    await page.goto('/login')
-    await page.getByLabel(t('login.phoneLabel')).fill(OWNER_PHONE)
-    await page.getByRole('button', { name: t('login.sendCode') }).click()
-    await page.getByLabel(t('login.codeLabel')).fill(DEV_OTP)
-    await page.getByRole('button', { name: t('login.confirm') }).click()
-    await expect(page).toHaveURL(/\/dashboard/)
+    await signInWithCode(page, OWNER_PHONE)
 
     await page.goto('/dashboard/account')
     await expect(page.getByRole('heading', { name: t('account.heading') })).toBeVisible()

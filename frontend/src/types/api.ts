@@ -72,7 +72,27 @@ export interface User extends OwnerIdentity {
   /** A second, private contact number used only for identity verification. */
   personal_phone_number: string | null
   role: UserRole
+  /**
+   * Set when an administrator issued the password this session was opened
+   * with. While it is true the API answers 403 `password_change_required` on
+   * every owner route, so the app has nowhere to send the person but the
+   * change-password screen.
+   */
+  must_change_password: boolean
   created_at: string
+}
+
+/**
+ * A password an administrator generated, returned by the API exactly once.
+ *
+ * There is no route that reads it back: it is stored only as a hash, so
+ * closing the panel that shows it means issuing a new one. It is never put in
+ * component state that outlives the panel, never persisted, and never sent
+ * anywhere by this app — the administrator relays it from their own WhatsApp.
+ */
+export interface IssuedPassword {
+  phone_number: string
+  password: string
 }
 
 /** Metadata only — the document bytes are never exposed by a URL. */

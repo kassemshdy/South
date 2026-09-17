@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { signInWithCode } from './support/sign-in'
+
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
   JSON.parse(readFileSync(resolve(here, relative), 'utf-8')) as T
@@ -22,16 +24,9 @@ const t = (key: string): string => ar[key]!
 // is loaded with rather than named here, so the two cannot drift apart, and
 // their login phone is what lets the second half sign in as them.
 const provider = talents.find((entry) => entry.status === 'APPROVED')!
-const DEV_OTP = '123456'
 
 async function signInAsProvider(page: Page) {
-  await page.goto('/login')
-  await page.getByLabel(t('login.phoneLabel')).fill(provider.owner_phone)
-  await page.getByRole('button', { name: t('login.sendCode') }).click()
-  await expect(page.getByRole('heading', { name: t('login.codeTitle') })).toBeVisible()
-  await page.getByLabel(t('login.codeLabel')).fill(DEV_OTP)
-  await page.getByRole('button', { name: t('login.confirm') }).click()
-  await expect(page).toHaveURL(/\/dashboard/)
+  await signInWithCode(page, provider.owner_phone)
 }
 
 /**

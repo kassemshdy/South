@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { signInWithCode } from './support/sign-in'
+
 const here = dirname(fileURLToPath(import.meta.url))
 // Read rather than import: Playwright's ESM loader would require import
 // attributes for JSON, and reading keeps the spec working either way.
@@ -54,7 +56,6 @@ const districtName = locations
  */
 
 const OWNER_PHONE = '03987654'
-const DEV_OTP = '123456'
 const ADMIN_EMAIL = 'admin@example.com'
 const ADMIN_PASSWORD = 'ChangeMe!123'
 const BUSINESS_NAME = fixture.businessName
@@ -72,13 +73,7 @@ function jpeg(): { name: string; mimeType: string; buffer: Buffer } {
 }
 
 async function signInAsOwner(page: Page) {
-  await page.goto('/login')
-  await page.getByLabel(t('login.phoneLabel')).fill(OWNER_PHONE)
-  await page.getByRole('button', { name: t('login.sendCode') }).click()
-  await expect(page.getByRole('heading', { name: t('login.codeTitle') })).toBeVisible()
-  await page.getByLabel(t('login.codeLabel')).fill(DEV_OTP)
-  await page.getByRole('button', { name: t('login.confirm') }).click()
-  await expect(page).toHaveURL(/\/dashboard/)
+  await signInWithCode(page, OWNER_PHONE)
 }
 
 test.describe('MVP acceptance flow', () => {

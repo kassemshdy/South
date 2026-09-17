@@ -69,6 +69,13 @@ class User(Base, TimestampMixin):
         index=True,
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # Set when an administrator issues a password rather than the person
+    # choosing one. While it is true the account can do nothing but change it:
+    # a password that travelled through a WhatsApp message is readable by
+    # anyone who sees that chat, so it is a way in exactly once.
+    must_change_password: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
     # Bumped to invalidate every JWT previously issued to this user.
     token_version: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 

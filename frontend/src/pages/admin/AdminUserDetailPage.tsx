@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
+import { IssueCredentialsCard } from '@/features/admin/IssueCredentialsCard'
 import { OwnerIdentityCard } from '@/features/admin/OwnerIdentityCard'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
 import { useI18n } from '@/i18n'
@@ -143,6 +144,14 @@ export function AdminUserDetailPage() {
         ) : (
           <p className="text-sm text-ink-500">{t('admin.userNoBusinesses')}</p>
         )}
+      </section>
+
+      <section className="max-w-md">
+        <IssueCredentialsCard
+          userId={data.id}
+          phoneNumber={data.phone_number}
+          isAdmin={data.role === 'ADMIN'}
+        />
       </section>
 
       <section className="max-w-md">

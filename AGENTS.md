@@ -147,6 +147,49 @@ Not adopted: its Django access and performance review skills, which do not
 apply — this backend is FastAPI and SQLAlchemy, so a Django-shaped review
 would mislead rather than help.
 
+## How Somebody Gets Onto This Site
+
+There is **no self-service sign-up**, and there is no working SMS or WhatsApp
+gateway. What there is, end to end:
+
+```
+public form (+ Turnstile)  →  User(OWNER, password_hash NULL)
+                              + Business/TalentProfile(PENDING_REVIEW)
+administrator audits it    →  approve / reject, in the queue that already existed
+"issue credentials"        →  password generated, shown ONCE, wa.me link opens
+                              WhatsApp Web with the message written
+owner signs in (phone+pw)  →  forced password change  →  dashboard
+```
+
+Four things about it are load-bearing rather than incidental:
+
+- **An application is stored as the listing itself**, pending review — not as a
+  separate "application" table. The moderation queue, the serializers and the
+  admin screens then work unchanged and approval has nothing to migrate. What
+  makes that safe is the account having no password: the row exists, but nobody
+  can act as its owner until a person has looked at it.
+- **Both registration routes answer the same sentence whatever happened**,
+  including for a phone number that already has an account — which is silently
+  discarded rather than refused. Answering differently would turn the form into
+  a way to ask which numbers are registered, and attaching the listing to the
+  existing account would let a stranger put a listing in someone else's
+  dashboard. `tests/test_registration.py` pins both.
+- **An issued password is returned exactly once** by
+  `POST /api/admin/users/{id}/credentials`, stored only as a hash, and relayed
+  by the administrator from their own WhatsApp. This application never sends
+  it anywhere. Issuing a second one replaces the first and signs out any
+  session opened with it.
+- **`must_change_password` shuts every owner route with a 403** until the
+  password is replaced, enforced once in `get_current_user` rather than per
+  route, so a new owner endpoint is covered by default. The password travelled
+  through a chat message; the forced change is what makes it a way in exactly
+  once instead of a standing credential, and replacing it bumps `token_version`
+  so whoever else read that chat is signed out.
+
+The OTP provider work is still there and still wired up, unused. The account is
+keyed by phone number either way, so a gateway arriving later is a **second
+door onto the same account**, not a migration — see `docs/WHATSAPP_OTP.md`.
+
 ## Security Musts
 
 - **Never commit secrets.** `SECRET_KEY`, `ADMIN_PASSWORD`, Twilio credentials, and the
@@ -253,6 +296,7 @@ Dockerfiles, not just the Railway dashboard.
 | `VITE_SENTRY_DSN` | The frontend SDK does not initialise. |
 | `VITE_GA_MEASUREMENT_ID` | No analytics script is injected and no page view is sent (`src/services/analytics.ts`). |
 | `VITE_SOCIAL_INSTAGRAM` / `_FACEBOOK` / `_TIKTOK` | That link is not rendered; with none set the whole footer block disappears (`src/components/layout/SocialLinks.tsx`). |
+| `VITE_TURNSTILE_SITE_KEY` | No captcha widget on the public registration forms, and no token is sent (`src/components/ui/Turnstile.tsx`). The backend follows the same rule from its side: with `TURNSTILE_SECRET_KEY` unset it verifies nothing, so the two halves are never half-configured. |
 | `VITE_SUPPORT_WHATSAPP` | The assisted-listing offer — "contact us and we will list it for you" — is not rendered anywhere (`src/features/onboarding/AssistedListing.tsx`). A number with no digits in it counts as unset, because the guard is `whatsappHref` itself. |
 
 Analytics additionally **drops the query string and skips `/dashboard` and

@@ -13,6 +13,7 @@ from app.api.v1 import (
     images,
     items,
     orders,
+    registration,
     service_requests,
     talent,
     talent_images,
@@ -61,6 +62,7 @@ api_router.include_router(testimonials.public_router)
 api_router.include_router(orders.public_router)
 api_router.include_router(businesses.public_router)
 api_router.include_router(articles.router)
+api_router.include_router(registration.router)
 api_router.include_router(items.public_router)
 api_router.include_router(service_requests.public_router)
 api_router.include_router(talent.public_router)

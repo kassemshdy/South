@@ -119,3 +119,28 @@ The API refuses to boot as production with the mock provider, so the switch
 either works completely or fails loudly. Do step 1 and step 2 as one change:
 production with the mock provider will not start, and `OTP_PROVIDER` set to a
 value the deployed build does not know will not start either.
+
+**Neither step blocks owners from signing in any more.** That used to be the
+whole reason this page mattered: without a gateway there was no code, and
+without a code nobody could get in. There is now a route that needs no
+gateway — a public application, an administrator's audit, and a password
+handed over from the administrator's own WhatsApp (see *How Somebody Gets
+Onto This Site* in `AGENTS.md`). So the OTP switch is an improvement to make
+when a phone number becomes available, not an outage to clear.
+
+### Optional: the registration captcha
+
+The public application forms carry a Cloudflare Turnstile widget when, and
+only when, both halves are configured:
+
+- `TURNSTILE_SECRET_KEY` on `api` / `api-develop` — an ordinary service
+  variable, read at runtime.
+- `VITE_TURNSTILE_SITE_KEY` as a **build argument**, because Vite inlines it
+  when the bundle is compiled. It is declared in `backend/Dockerfile` (the
+  stage that builds the bundle the API serves) and `frontend/Dockerfile`;
+  setting it only in the Railway dashboard leaves it undefined and the widget
+  silently absent.
+
+With neither set, the forms work and nothing is verified — which is the
+correct state for local development and for the test suite, and an acceptable
+one in production only while the rate limits are carrying the load alone.

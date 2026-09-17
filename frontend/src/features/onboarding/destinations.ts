@@ -26,7 +26,23 @@ export interface Door {
   descriptionKey: TranslationKey
   /** One or two words, for the switcher strip where space is a row. */
   shortKey: TranslationKey
+  /** Where someone who already has an account goes. */
   href: string
+  /**
+   * Where someone with no account goes, when that is somewhere else.
+   *
+   * Only the offering doors set it. There is no self-service sign-up here, so
+   * an anonymous visitor cannot be sent to the wizard — they apply on a public
+   * form, an administrator audits it, and the login arrives afterwards. A
+   * signed-in owner adding a second listing must still land on the wizard, so
+   * the two destinations have to coexist rather than one replacing the other.
+   */
+  applyHref?: string
+}
+
+/** The door's destination for this visitor. */
+export function destinationFor(door: Door, isAuthenticated: boolean): string {
+  return isAuthenticated ? door.href : (door.applyHref ?? door.href)
 }
 
 /**
@@ -104,9 +120,14 @@ export const SEEK_DOORS: Door[] = [productsDoor, talentDoor]
  * reads as "sell, or look for work" on this side and "buy, or offer work" on
  * the other, which is what the board ticket asked for.
  *
- * **Both of these need an account**, which is a property of the set rather
- * than of either door —— you cannot list anything anonymously —— so it is
- * stated here once instead of as a flag repeated on each entry.
+ * **Each of these has two destinations**, because the visitor decides which
+ * one is right: `href` for somebody who already has an account, `applyHref`
+ * for somebody who does not. Pointing both at the dashboard, which is what
+ * this used to do, sent every new applicant to a login page they had no way
+ * through — there is no self-service sign-up, so the anonymous route is the
+ * public application form and nothing else. Pointing both at that form would
+ * be the opposite mistake: an owner adding a second shop would be made to
+ * apply for an account they already have.
  */
 export const OFFER_DOORS: Door[] = [
   {
@@ -116,6 +137,7 @@ export const OFFER_DOORS: Door[] = [
     descriptionKey: 'onboarding.ownerDescription',
     shortKey: 'onboarding.ownerShort',
     href: '/dashboard/businesses/new',
+    applyHref: '/register/business',
   },
   {
     key: 'talent',
@@ -124,6 +146,7 @@ export const OFFER_DOORS: Door[] = [
     descriptionKey: 'onboarding.talentDescription',
     shortKey: 'onboarding.talentShort',
     href: '/dashboard/talent',
+    applyHref: '/register/talent',
   },
 ]
 

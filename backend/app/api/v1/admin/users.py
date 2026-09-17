@@ -14,14 +14,16 @@ import uuid
 from fastapi import APIRouter, Response
 
 from app.api.serializers import admin_user_detail
-from app.core.dependencies import AdminUser, AppSettings, DbSession
-from app.core.errors import NotFoundError
-from app.models.enums import VerificationDocumentKind
+from app.core.dependencies import AdminUser, AppSettings, DbSession, OtpProviderDep
+from app.core.errors import NotFoundError, ValidationError
+from app.models.enums import UserRole, VerificationDocumentKind
 from app.repositories.business import BusinessRepository
 from app.repositories.talent import TalentRepository
 from app.repositories.user import UserRepository
+from app.schemas.auth import IssuedPasswordOut
 from app.schemas.moderation import AdminUserDetailOut
 from app.schemas.verification import VerificationDocumentOut
+from app.services.auth import AuthService
 from app.services.verification import VerificationDocumentService
 from app.storage.factory import get_storage
 
@@ -90,3 +92,36 @@ def download_cv_document(
     user_id: uuid.UUID, db: DbSession, admin: AdminUser, settings: AppSettings
 ) -> Response:
     return _download(_load_document(db, user_id, VerificationDocumentKind.CV), settings)
+
+
+@router.post("/users/{user_id}/credentials", response_model=IssuedPasswordOut)
+def issue_credentials(
+    user_id: uuid.UUID,
+    admin: AdminUser,
+    db: DbSession,
+    settings: AppSettings,
+    provider: OtpProviderDep,
+) -> IssuedPasswordOut:
+    """Issue a password for an account, and return it once.
+
+    How an approved applicant gets in while no SMS or WhatsApp gateway is
+    available: an administrator issues this and relays it over their own
+    WhatsApp. The plaintext exists in this response and nowhere else — it is
+    stored only as a hash, never logged, and cannot be read again. Issuing a
+    second one replaces the first.
+
+    Refused for an administrator account: an admin password is not something
+    another admin hands out, and the account it is issued to must be one that
+    signs in at /auth/login.
+    """
+    user = UserRepository(db).get(user_id)
+    if user is None:
+        raise NotFoundError("user.not_found")
+    if user.role is UserRole.ADMIN:
+        raise ValidationError("user.credentials_not_for_admin", code="admin_account")
+    if user.phone_number is None:
+        # Nothing to sign in with, and nowhere to send it.
+        raise ValidationError("user.credentials_need_phone", code="missing_phone")
+
+    password = AuthService(db, settings, provider).issue_password(user)
+    return IssuedPasswordOut(phone_number=user.phone_number, password=password)
