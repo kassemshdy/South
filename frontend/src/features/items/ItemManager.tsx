@@ -1,17 +1,17 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, ArrowRight, ImagePlus, Package, Pencil, Plus, Trash2 } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import { useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
-import { Dialog, DialogContent } from '@/components/ui/Dialog'
 import { Field } from '@/components/ui/Field'
 import { Input, Textarea } from '@/components/ui/Input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 import { Skeleton } from '@/components/ui/Skeleton'
-import { EmptyState, ErrorState } from '@/components/ui/States'
+import { EmptyState, ErrorState, InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
 import { useT } from '@/i18n'
 import { useApplyServerFieldErrors } from '@/utils/serverFieldErrors'
@@ -27,13 +27,33 @@ import { itemSchema, type ItemValues } from '@/utils/validation'
  *
  * One concept covers all three: a restaurant sees a menu, a shop sees products,
  * a tradesperson sees services.
+ *
+ * The editor is **a page, not a popup**. It used to be a centred modal, and
+ * the form is long enough — title, description, price, availability, six
+ * optional product fields, a photo and a gallery — that on a phone it hung off
+ * both ends of the viewport with its submit button somewhere below the fold,
+ * unreachable. A modal is the wrong container for a form that cannot fit in
+ * one: it takes the form out of the document's own scrolling and gives it a
+ * smaller box to fail in. So the editor takes over this panel instead, in
+ * normal flow, and scrolls the way every other page does.
+ *
+ * Which item is open lives in the URL (`?item=new` or `?item=<id>`) rather
+ * than in component state, so the back button closes the editor and returns
+ * to the list. With state, back would leave the dashboard entirely and take a
+ * half-filled form with it — on a phone, where back is the gesture people
+ * actually use, that is the difference between a correction and a lost
+ * evening's typing.
  */
+
+/** The search param naming the open item, and the value meaning "a new one". */
+const ITEM_PARAM = 'item'
+const NEW_ITEM = 'new'
+
 export function ItemManager({ businessId }: { businessId: string }) {
   const queryClient = useQueryClient()
   const toast = useToast()
   const t = useT()
-  const [editing, setEditing] = useState<BusinessItem | null>(null)
-  const [dialogOpen, setDialogOpen] = useState(false)
+  const [params, setParams] = useSearchParams()
 
   const items = useQuery({
     queryKey: queryKeys.myBusinessItems(businessId),
@@ -70,21 +90,54 @@ export function ItemManager({ businessId }: { businessId: string }) {
       ),
   })
 
-  const openCreate = () => {
-    setEditing(null)
-    setDialogOpen(true)
+  const open = params.get(ITEM_PARAM)
+
+  // Pushed, not replaced, so each of these is one press of back to undo.
+  // Other params are carried through: this component does not own the query
+  // string, it only owns one key in it.
+  const setOpen = (value: string | null) => {
+    const next = new URLSearchParams(params)
+    if (value === null) next.delete(ITEM_PARAM)
+    else next.set(ITEM_PARAM, value)
+    setParams(next)
   }
 
-  const openEdit = (item: BusinessItem) => {
-    setEditing(item)
-    setDialogOpen(true)
+  const editing =
+    open !== null && open !== NEW_ITEM
+      ? (items.data?.find((candidate) => candidate.id === open) ?? null)
+      : null
+
+  // An id that names nothing — a deleted item, or a stale link. Once the list
+  // has actually loaded and still has no match, drop it rather than leave the
+  // URL claiming to be editing something.
+  const missing = open !== null && open !== NEW_ITEM && items.isSuccess && editing === null
+  useEffect(() => {
+    if (missing) setOpen(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [missing])
+
+  if (open !== null && !missing) {
+    // An id still resolving: wait, rather than briefly offering a create form
+    // in place of the edit form that was asked for.
+    if (open !== NEW_ITEM && editing === null) return <InlineSpinner />
+    return (
+      <ItemForm
+        businessId={businessId}
+        item={editing}
+        onCancel={() => setOpen(null)}
+        onDone={() => {
+          setOpen(null)
+          invalidate()
+        }}
+      />
+    )
   }
 
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
         <p className="text-ink-500">{t('items.intro')}</p>
-        <Button onClick={openCreate}>
+        <Button onClick={() => setOpen(NEW_ITEM)}>
           <Plus className="h-4 w-4" aria-hidden="true" />
           {t('items.addItem')}
         </Button>
@@ -103,7 +156,7 @@ export function ItemManager({ businessId }: { businessId: string }) {
             <li key={item.id}>
               <ItemRow
                 item={item}
-                onEdit={() => openEdit(item)}
+                onEdit={() => setOpen(item.id)}
                 onDelete={() => remove.mutate(item.id)}
                 onUploadImage={(file) => uploadImage.mutate({ itemId: item.id, file })}
                 uploading={uploadImage.isPending && uploadImage.variables?.itemId === item.id}
@@ -116,22 +169,9 @@ export function ItemManager({ businessId }: { businessId: string }) {
           icon={<Package className="h-7 w-7" aria-hidden="true" />}
           title={t('items.emptyTitle')}
           description={t('items.emptyDescription')}
-          action={<Button onClick={openCreate}>{t('items.addItem')}</Button>}
+          action={<Button onClick={() => setOpen(NEW_ITEM)}>{t('items.addItem')}</Button>}
         />
       )}
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        {dialogOpen ? (
-          <ItemDialog
-            businessId={businessId}
-            item={editing}
-            onDone={() => {
-              setDialogOpen(false)
-              invalidate()
-            }}
-          />
-        ) : null}
-      </Dialog>
     </div>
   )
 }
@@ -214,13 +254,22 @@ function ItemRow({
   )
 }
 
-function ItemDialog({
+/**
+ * The editor, as a panel rather than a popup — see the note on `ItemManager`.
+ *
+ * `onCancel` and `onDone` are separate because they mean different things to
+ * the caller: leaving without saving should not invalidate queries or claim
+ * anything changed.
+ */
+function ItemForm({
   businessId,
   item,
+  onCancel,
   onDone,
 }: {
   businessId: string
   item: BusinessItem | null
+  onCancel: () => void
   onDone: () => void
 }) {
   const toast = useToast()
@@ -301,7 +350,21 @@ function ItemDialog({
   useApplyServerFieldErrors(save.error, setError, getValues)
 
   return (
-    <DialogContent title={isEdit ? t('items.dialogEdit') : t('items.dialogAdd')}>
+    <section className="space-y-5">
+      <div>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="mb-3 inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-brand-700"
+        >
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          {t('items.backToList')}
+        </button>
+        <h3 className="text-xl font-bold text-ink-900">
+          {isEdit ? t('items.formEdit') : t('items.formAdd')}
+        </h3>
+      </div>
+
       <form onSubmit={handleSubmit((values) => save.mutate(values))} className="space-y-4" noValidate>
         <div className="flex items-center gap-4">
           <button
@@ -450,13 +513,19 @@ function ItemDialog({
 
         {isEdit ? <ItemGalleryManager businessId={businessId} item={item} /> : null}
 
-        <div className="flex gap-3 pt-2">
-          <Button type="submit" block loading={save.isPending}>
+        {/* Both controls at the end of the form, in the flow, where a long
+            form's controls belong — not pinned to the bottom of a box the
+            form has already outgrown. */}
+        <div className="flex flex-wrap gap-3 pt-2">
+          <Button type="submit" loading={save.isPending}>
             {isEdit ? t('items.saveAction') : t('items.addAction')}
+          </Button>
+          <Button type="button" variant="ghost" onClick={onCancel}>
+            {t('common.cancel')}
           </Button>
         </div>
       </form>
-    </DialogContent>
+    </section>
   )
 }
 

@@ -161,7 +161,21 @@ test.describe('MVP acceptance flow', () => {
       await page.getByRole('button', { name: t('items.addItem') }).first().click()
       await page.getByLabel(t('items.nameLabel')).fill(title)
       await page.getByLabel(t('items.priceLabel')).fill(price)
-      await page.getByRole('button', { name: t('items.addAction') }).click()
+
+      // This project runs at phone size, and that is the point of the next
+      // three lines rather than a plain click. The item editor used to be a
+      // centred modal; the form is long enough that on a Pixel 7 it hung off
+      // both ends of a fixed, vertically centred box, and this button sat
+      // below the fold where scrolling could not reach it — the page scrolls,
+      // the box does not. An owner on a phone simply could not add an item.
+      // The editor is a page now, so scrolling works; if it is ever put back
+      // in a container the form outgrows, this fails here rather than in
+      // somebody's shop.
+      const submit = page.getByRole('button', { name: t('items.addAction') })
+      await submit.scrollIntoViewIfNeeded()
+      await expect(submit).toBeInViewport()
+      await submit.click()
+
       await expect(page.getByRole('heading', { name: title, level: 4 })).toBeVisible()
     }
     await page.screenshot({ path: 'e2e/screenshots/03-items.png', fullPage: false })
