@@ -297,6 +297,7 @@ Dockerfiles, not just the Railway dashboard.
 | `VITE_GA_MEASUREMENT_ID` | No analytics script is injected and no page view is sent (`src/services/analytics.ts`). |
 | `VITE_SOCIAL_INSTAGRAM` / `_FACEBOOK` / `_TIKTOK` | That link is not rendered; with none set the whole footer block disappears (`src/components/layout/SocialLinks.tsx`). |
 | `VITE_TURNSTILE_SITE_KEY` | No captcha widget on the public registration forms, and no token is sent (`src/components/ui/Turnstile.tsx`). The backend follows the same rule from its side: with `TURNSTILE_SECRET_KEY` unset it verifies nothing, so the two halves are never half-configured. |
+| `VITE_CLARITY_PROJECT_ID` | No Clarity tag is injected and no session is recorded (`src/services/clarity.ts`). Gated harder than the rest — see below. |
 | `VITE_SUPPORT_WHATSAPP` | The assisted-listing offer — "contact us and we will list it for you" — is not rendered anywhere (`src/features/onboarding/AssistedListing.tsx`). A number with no digits in it counts as unset, because the guard is `whatsappHref` itself. |
 
 Analytics additionally **drops the query string and skips `/dashboard` and
@@ -304,6 +305,32 @@ Analytics additionally **drops the query string and skips `/dashboard` and
 person's or a shop's name, and counting our own moderation clicks would corrupt
 the only question analytics exists to answer. Widen those exclusions rather than
 narrowing them.
+
+**Clarity is not a page counter and is not gated like one.** It records the
+session and replays the page, so the same exclusions applied per page view
+would be worth nothing: a recording cannot be un-started, and once the tag is
+on the page it captures the rest of the session, SPA navigations included. The
+screens behind a sign-in are not pages of a catalogue — the account page holds
+the identity fields named in the Security Musts, the moderation queue holds
+them for every owner plus documents and CVs, and the credentials panel puts an
+issued password on screen in plaintext. A replay of any of those is a
+disclosure.
+
+So the decision is made **before the script loads**, which is the only moment
+it can be made, and `initClarity()` refuses on either of two conditions: a
+session token exists in local storage, or the current path is already private.
+Signing in is a full navigation to `/dashboard`, so an owner or administrator
+is never recorded at all. The deliberate consequence is that Clarity here
+measures **anonymous visitors on the public directory** and says nothing about
+how owners use their dashboard. Do not add a way to start it later from a
+route change — that is the gate.
+
+Masking is a setting in the Clarity dashboard rather than a tag parameter, so
+the project is set to **Strict**. The gates should mean no recording ever
+contains a private screen; strict masking is what makes that survive a
+mistake, including on the one screen a signed-out visitor types into — the
+public application form, where they enter the phone number that becomes their
+login.
 
 ## Deploy Gotchas (learned the hard way)
 
