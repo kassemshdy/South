@@ -1,6 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { FileCheck2, FileText, KeyRound, Loader2, ShieldCheck, Upload } from 'lucide-react'
+import {
+  FileCheck2,
+  FileText,
+  ImagePlus,
+  KeyRound,
+  Loader2,
+  ShieldCheck,
+  Upload,
+  UserRound,
+} from 'lucide-react'
 import { useRef, type ReactNode } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { Link } from 'react-router-dom'
@@ -59,6 +68,7 @@ export function AccountPage() {
 
       <div className="space-y-6">
         <ProfileCard user={user} onSaved={refresh} />
+        <PhotoCard user={user} onSaved={refresh} />
         <DocumentCard
           icon={<ShieldCheck className="h-5 w-5 text-brand-700" aria-hidden="true" />}
           titleKey="account.documentTitle"
@@ -279,6 +289,127 @@ function ProfileCard({ user, onSaved }: { user: User; onSaved: () => Promise<voi
             {t('account.saveProfile')}
           </Button>
         </form>
+      </CardBody>
+    </Card>
+  )
+}
+
+/**
+ * The account holder's own photo.
+ *
+ * Beside the identity fields rather than on any listing, because that is what
+ * it is: one account owns one face however many shops it has, and a person
+ * who opens a second business should not be asked for it twice.
+ *
+ * **Not published.** A talent profile's photo is public — there the person is
+ * the service being offered — but a shop owner's is shown only to a reviewer
+ * checking that an application is a real person from the South. That is
+ * enforced by the API keeping it out of every public schema, which
+ * `backend/tests/test_identity.py` pins; the note under the picture is so the
+ * person uploading it knows.
+ */
+function PhotoCard({ user, onSaved }: { user: User; onSaved: () => Promise<void> }) {
+  const t = useT()
+  const toast = useToast()
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const upload = useMutation({
+    mutationFn: (file: File) => authApi.uploadPhoto(file),
+    onSuccess: async () => {
+      toast.success(t('account.photoSaved'))
+      await onSaved()
+    },
+    onError: (error) =>
+      toast.error(t('account.photoFailed'), error instanceof ApiError ? error.message : undefined),
+  })
+
+  const remove = useMutation({
+    mutationFn: () => authApi.deletePhoto(),
+    onSuccess: async () => {
+      toast.success(t('account.photoRemoved'))
+      await onSaved()
+    },
+    onError: (error) =>
+      toast.error(t('account.photoFailed'), error instanceof ApiError ? error.message : undefined),
+  })
+
+  const busy = upload.isPending || remove.isPending
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <UserRound className="h-5 w-5 text-brand-700" aria-hidden="true" />
+          <h2 className="font-bold">{t('account.photoTitle')}</h2>
+        </div>
+      </CardHeader>
+      <CardBody className="space-y-4">
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={busy}
+            className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border-2 border-dashed border-ink-100 bg-sand-50 disabled:opacity-60"
+            aria-label={t('account.photoChoose')}
+          >
+            {user.photo_url ? (
+              <img src={user.photo_url} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <span className="flex h-full items-center justify-center text-ink-300">
+                {busy ? (
+                  <Loader2 className="h-6 w-6 animate-spin" aria-hidden="true" />
+                ) : (
+                  <ImagePlus className="h-6 w-6" aria-hidden="true" />
+                )}
+              </span>
+            )}
+          </button>
+
+          <div className="min-w-0 space-y-2">
+            <p className="text-sm text-ink-500">{t('account.photoHint')}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                loading={upload.isPending}
+                onClick={() => inputRef.current?.click()}
+              >
+                <Upload className="h-4 w-4" aria-hidden="true" />
+                {user.photo_url ? t('account.photoReplace') : t('account.photoChoose')}
+              </Button>
+              {user.photo_url ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-clay-600"
+                  loading={remove.isPending}
+                  onClick={() => remove.mutate()}
+                >
+                  {t('common.delete')}
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        </div>
+
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="sr-only"
+          disabled={busy}
+          onChange={(event) => {
+            const file = event.target.files?.[0]
+            if (file) upload.mutate(file)
+            event.target.value = ''
+          }}
+        />
+
+        <p className="rounded-xl bg-sand-100 p-3.5 text-sm text-clay-800">
+          {t('account.photoPrivacyNote')}
+        </p>
       </CardBody>
     </Card>
   )

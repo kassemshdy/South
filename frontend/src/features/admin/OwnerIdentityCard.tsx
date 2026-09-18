@@ -1,3 +1,5 @@
+import { UserRound } from 'lucide-react'
+
 import { Card, CardBody, CardHeader } from '@/components/ui/Card'
 import { GENDER_KEYS, MARITAL_STATUS_KEYS } from '@/features/identity/labels'
 import { useI18n, type TranslationKey } from '@/i18n'
@@ -55,7 +57,26 @@ export function OwnerIdentityCard({ identity }: { identity: OwnerIdentity | null
         {identity === null ? (
           <p className="text-sm text-ink-500">{t('admin.identityNotProvided')}</p>
         ) : (
-          rows.map((row) => (
+          <>
+            {/* The face beside the name, which is the whole reason a reviewer
+                sees either. It is not published anywhere — the API keeps it
+                out of every public schema, pinned by test_identity.py. */}
+            <div className="flex items-center gap-3 pb-1">
+              <span className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl border-2 border-dashed border-ink-100 bg-sand-50">
+                {identity.photo_url ? (
+                  <img src={identity.photo_url} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="flex h-full items-center justify-center text-ink-300">
+                    <UserRound className="h-6 w-6" aria-hidden="true" />
+                  </span>
+                )}
+              </span>
+              {!identity.photo_url ? (
+                <p className="text-sm text-ink-300">{t('admin.identityNoPhoto')}</p>
+              ) : null}
+            </div>
+
+            {rows.map((row) => (
             <div key={row.key}>
               <p className="text-sm font-semibold text-ink-700">{t(row.label)}</p>
               <p
@@ -65,8 +86,9 @@ export function OwnerIdentityCard({ identity }: { identity: OwnerIdentity | null
               >
                 {row.value || t('common.notSet')}
               </p>
-            </div>
-          ))
+              </div>
+            ))}
+          </>
         )}
         <p className="text-xs text-ink-300">{t('admin.identityHint')}</p>
       </CardBody>

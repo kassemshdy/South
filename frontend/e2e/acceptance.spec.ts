@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { openBusinessWizard } from './support/wizard'
+
 import { signInWithCode } from './support/sign-in'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -116,7 +118,7 @@ test.describe('MVP acceptance flow', () => {
     await expect(page.getByRole('heading', { name: t('dashboard.heading') })).toBeVisible()
 
     // --- 3. Create the business --------------------------------------------
-    await page.goto('/dashboard/businesses/new')
+    await openBusinessWizard(page)
     await page.getByLabel(t('form.name')).fill(BUSINESS_NAME)
     await page.getByLabel(t('form.shortDescription')).fill(fixture.shortDescription)
 

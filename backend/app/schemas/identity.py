@@ -37,6 +37,10 @@ class OwnerIdentityOut(ORMModel):
     marital_status: MaritalStatus | None = None
     registration_place: str | None = None
     residence_place: str | None = None
+    # Part of the same block for the same reason: a reviewer checking that an
+    # application is a real person from the South needs the face alongside the
+    # name, and nobody else needs either.
+    photo_url: str | None = None
 
 
 class IdentityFieldsIn(BaseModel):
