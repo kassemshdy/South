@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.core.arabic import build_search_text
 from app.core.errors import ConflictError, NotFoundError, ValidationError
 from app.core.i18n import LazyJoin
-from app.core.urls import normalize_url
+from app.core.urls import normalize_url, youtube_video_id
 from app.models.enums import BusinessStatus, ViewSubject
 from app.models.talent import TalentLanguage, TalentProfile
 from app.models.user import User
@@ -61,11 +61,16 @@ class TalentService:
             years_experience=payload.years_experience,
             skill_id=payload.skill_id,
             custom_skill_text=payload.custom_skill_text,
+            skill_specialty=payload.skill_specialty,
+            preferred_contact=payload.preferred_contact,
             location_id=payload.location_id,
             phone=payload.phone,
             whatsapp=payload.whatsapp,
             email=payload.email,
             website=normalize_url(payload.website) if payload.website else None,
+            youtube_video_id=(
+                youtube_video_id(payload.video_url) if payload.video_url else None
+            ),
             status=BusinessStatus.DRAFT,
             highest_degree=payload.highest_degree,
             specialization=payload.specialization,
@@ -109,6 +114,11 @@ class TalentService:
 
         if "website" in data:
             data["website"] = normalize_url(data["website"]) if data["website"] else None
+        # The request carries a link and the column holds an id, so this key
+        # is replaced rather than passed through to setattr.
+        if "video_url" in data:
+            raw_video = data.pop("video_url")
+            data["youtube_video_id"] = youtube_video_id(raw_video) if raw_video else None
 
         # A relationship, not a column: model_dump turned it into a list of
         # dicts, which setattr would happily assign and then fail on flush.
@@ -226,6 +236,12 @@ class TalentService:
             profile.display_name,
             profile.bio,
             skill,
+            # Indexed beside the taxonomy skill rather than instead of it.
+            # Someone looking for a teacher of one particular subject is
+            # searching the specialty; without this, only the broad skill
+            # name would match, hiding exactly the profiles this field
+            # exists to describe.
+            profile.skill_specialty,
             location,
             profile.skills_text,
             profile.services_offered,

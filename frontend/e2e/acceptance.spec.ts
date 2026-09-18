@@ -4,6 +4,10 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { openBusinessWizard } from './support/wizard'
+
+import { signInWithCode } from './support/sign-in'
+
 const here = dirname(fileURLToPath(import.meta.url))
 // Read rather than import: Playwright's ESM loader would require import
 // attributes for JSON, and reading keeps the spec working either way.
@@ -54,7 +58,6 @@ const districtName = locations
  */
 
 const OWNER_PHONE = '03987654'
-const DEV_OTP = '123456'
 const ADMIN_EMAIL = 'admin@example.com'
 const ADMIN_PASSWORD = 'ChangeMe!123'
 const BUSINESS_NAME = fixture.businessName
@@ -72,13 +75,7 @@ function jpeg(): { name: string; mimeType: string; buffer: Buffer } {
 }
 
 async function signInAsOwner(page: Page) {
-  await page.goto('/login')
-  await page.getByLabel(t('login.phoneLabel')).fill(OWNER_PHONE)
-  await page.getByRole('button', { name: t('login.sendCode') }).click()
-  await expect(page.getByRole('heading', { name: t('login.codeTitle') })).toBeVisible()
-  await page.getByLabel(t('login.codeLabel')).fill(DEV_OTP)
-  await page.getByRole('button', { name: t('login.confirm') }).click()
-  await expect(page).toHaveURL(/\/dashboard/)
+  await signInWithCode(page, OWNER_PHONE)
 }
 
 test.describe('MVP acceptance flow', () => {
@@ -121,7 +118,7 @@ test.describe('MVP acceptance flow', () => {
     await expect(page.getByRole('heading', { name: t('dashboard.heading') })).toBeVisible()
 
     // --- 3. Create the business --------------------------------------------
-    await page.goto('/dashboard/businesses/new')
+    await openBusinessWizard(page)
     await page.getByLabel(t('form.name')).fill(BUSINESS_NAME)
     await page.getByLabel(t('form.shortDescription')).fill(fixture.shortDescription)
 
@@ -166,7 +163,21 @@ test.describe('MVP acceptance flow', () => {
       await page.getByRole('button', { name: t('items.addItem') }).first().click()
       await page.getByLabel(t('items.nameLabel')).fill(title)
       await page.getByLabel(t('items.priceLabel')).fill(price)
-      await page.getByRole('button', { name: t('items.addAction') }).click()
+
+      // This project runs at phone size, and that is the point of the next
+      // three lines rather than a plain click. The item editor used to be a
+      // centred modal; the form is long enough that on a Pixel 7 it hung off
+      // both ends of a fixed, vertically centred box, and this button sat
+      // below the fold where scrolling could not reach it — the page scrolls,
+      // the box does not. An owner on a phone simply could not add an item.
+      // The editor is a page now, so scrolling works; if it is ever put back
+      // in a container the form outgrows, this fails here rather than in
+      // somebody's shop.
+      const submit = page.getByRole('button', { name: t('items.addAction') })
+      await submit.scrollIntoViewIfNeeded()
+      await expect(submit).toBeInViewport()
+      await submit.click()
+
       await expect(page.getByRole('heading', { name: title, level: 4 })).toBeVisible()
     }
     await page.screenshot({ path: 'e2e/screenshots/03-items.png', fullPage: false })

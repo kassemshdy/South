@@ -7,6 +7,7 @@
 
 import { apiDownload, apiRequest } from '@/services/api/client'
 import type {
+  ContactChannel,
   AdminArticle,
   AdminBusiness,
   AdminTalent,
@@ -26,6 +27,7 @@ import type {
   EmploymentType,
   Gender,
   ImageKind,
+  IssuedPassword,
   LanguageProficiency,
   LocationNode,
   MaritalStatus,
@@ -77,6 +79,8 @@ export interface BusinessPayload {
   whatsapp?: string | null
   email?: string | null
   website?: string | null
+  /** A link; the server stores the video id it resolves to. */
+  video_url?: string | null
   address_text?: string | null
   latitude?: number | null
   longitude?: number | null
@@ -106,11 +110,15 @@ export interface TalentPayload {
   years_experience?: number | null
   skill_id?: string | null
   custom_skill_text?: string | null
+  skill_specialty?: string | null
+  preferred_contact?: ContactChannel | null
   location_id?: string | null
   phone?: string | null
   whatsapp?: string | null
   email?: string | null
   website?: string | null
+  /** A link; the server stores the video id it resolves to. */
+  video_url?: string | null
 
   // Published professional detail.
   highest_degree?: string | null
@@ -161,6 +169,22 @@ export const authApi = {
       method: 'POST',
       body: { email, password },
     }),
+  /**
+   * Phone and password — the way in that needs no SMS or WhatsApp gateway,
+   * and therefore the only one that currently works. Administrators use
+   * `adminLogin`; this route refuses them.
+   */
+  login: (phone_number: string, password: string) =>
+    apiRequest<AuthToken>('/api/auth/login', {
+      method: 'POST',
+      body: { phone_number, password },
+    }),
+  /** Replaces one's own password, which ends every other session. */
+  changePassword: (current_password: string, new_password: string) =>
+    apiRequest<User>('/api/me/password', {
+      method: 'POST',
+      body: { current_password, new_password },
+    }),
   me: () => apiRequest<User>('/api/me'),
   updateProfile: (
     payload: IdentityPayload & {
@@ -168,6 +192,14 @@ export const authApi = {
       personal_phone_number?: string | null
     },
   ) => apiRequest<User>('/api/me', { method: 'PATCH', body: payload }),
+
+  /** Replaces the account holder's photo; the previous file is deleted. */
+  uploadPhoto: (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return apiRequest<User>('/api/me/photo', { method: 'POST', formData: form })
+  },
+  deletePhoto: () => apiRequest<User>('/api/me/photo', { method: 'DELETE' }),
 
   getVerificationDocument: () =>
     apiRequest<VerificationDocument | null>('/api/me/verification-document'),
@@ -444,6 +476,13 @@ export const adminApi = {
   users: (page = 1) =>
     apiRequest<Paginated<AdminUser>>('/api/admin/users', { query: { page } }),
   user: (id: string) => apiRequest<AdminUserDetail>(`/api/admin/users/${id}`),
+  /**
+   * Generates a password for an account and returns it **once**. There is no
+   * route that reads it back, so a second call replaces it rather than
+   * repeating it — and invalidates any session opened with the first.
+   */
+  issueCredentials: (userId: string) =>
+    apiRequest<IssuedPassword>(`/api/admin/users/${userId}/credentials`, { method: 'POST' }),
 
   getVerificationDocument: (userId: string) =>
     apiRequest<VerificationDocument>(`/api/admin/users/${userId}/verification-document`),
@@ -504,6 +543,11 @@ export const adminApi = {
     }),
   removeTestimonial: (id: string) =>
     apiRequest<{ message: string }>(`/api/admin/testimonials/${id}`, { method: 'DELETE' }),
+  /** Pass the platform gate. Not a publish — the owner still decides. */
+  clearTestimonial: (id: string) =>
+    apiRequest<AdminTestimonial>(`/api/admin/testimonials/${id}/clear`, { method: 'POST' }),
+  rejectTestimonial: (id: string) =>
+    apiRequest<AdminTestimonial>(`/api/admin/testimonials/${id}/reject`, { method: 'POST' }),
 
   articles: (section?: ArticleSection) =>
     apiRequest<AdminArticle[]>('/api/admin/articles', { query: section ? { section } : {} }),
@@ -626,4 +670,29 @@ export const feedbackApi = {
     ),
   attachmentUrl: (id: string, attachmentId: string) =>
     `/api/admin/feedback/tickets/${id}/attachments/${attachmentId}/download`,
+}
+
+/**
+ * Applying for a listing without an account.
+ *
+ * Unauthenticated by design: this is how someone gets onto the site at all.
+ * The response carries a message and nothing else — no id, no status — so a
+ * number that already has an account is answered exactly like a new one, and
+ * the form cannot be used to ask who is registered.
+ */
+export interface RegistrationResult {
+  message: string
+}
+
+export const registrationApi = {
+  business: (login_phone: string, business: BusinessPayload, captcha_token: string | null) =>
+    apiRequest<RegistrationResult>('/api/register/business', {
+      method: 'POST',
+      body: { login_phone, business, captcha_token },
+    }),
+  talent: (login_phone: string, talent: TalentPayload, captcha_token: string | null) =>
+    apiRequest<RegistrationResult>('/api/register/talent', {
+      method: 'POST',
+      body: { login_phone, talent, captcha_token },
+    }),
 }

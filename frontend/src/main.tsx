@@ -12,6 +12,7 @@ import { CartProvider } from '@/features/cart/CartContext'
 import { FavouritesProvider } from '@/features/favourites/FavouritesContext'
 import { I18nProvider, useI18n } from '@/i18n'
 import { initAnalytics } from '@/services/analytics'
+import { initClarity } from '@/services/clarity'
 import { ApiError } from '@/services/api/client'
 import '@/index.css'
 
@@ -31,6 +32,12 @@ if (sentryDsn) {
 
 // Same discipline as the DSN above: no measurement id, no script, no request.
 initAnalytics()
+
+// And the same again, with a harder gate. Clarity records the session rather
+// than counting pages, and a recording cannot be un-started, so it refuses to
+// load at all for anyone signed in or already on a private path — see
+// services/clarity.ts for why that is the only place the decision can be made.
+initClarity()
 
 const queryClient = new QueryClient({
   defaultOptions: {

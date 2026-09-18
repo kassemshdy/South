@@ -31,7 +31,7 @@ from app.schemas.testimonial import (
     OwnerTestimonialOut,
     TestimonialSubmitIn,
 )
-from app.services.testimonial import TestimonialService
+from app.services.testimonial import OWNER_VISIBLE_STATUSES, TestimonialService
 
 public_router = APIRouter(tags=["testimonials"])
 owner_router = APIRouter(tags=["my-testimonials"])
@@ -76,20 +76,28 @@ def submit_testimonial(
 def list_my_testimonials(
     business: OwnedBusiness, db: DbSession, settings: AppSettings
 ) -> list[OwnerTestimonialOut]:
-    """Every testimonial on the caller's listing, in any state."""
+    """Every testimonial the platform has cleared, in any owner state.
+
+    Not every testimonial on the listing: text still awaiting review, or
+    refused, is not shown here. An owner asked to moderate abuse has already
+    read it, which is what the platform gate exists to avoid.
+    """
     return [
         owner_testimonial(entry)
-        for entry in TestimonialService(db, settings).all_for(business)
+        for entry in TestimonialService(db, settings).owner_for(business)
     ]
 
 
 def _owned_testimonial(
     db: DbSession, business: OwnedBusiness, testimonial_id: uuid.UUID
 ) -> Testimonial:
-    testimonial = TestimonialRepository(db).owned(testimonial_id, business.id)
+    testimonial = TestimonialRepository(db).owned(
+        testimonial_id, business.id, statuses=list(OWNER_VISIBLE_STATUSES)
+    )
     if testimonial is None:
         # 404 rather than 403: this must not confirm that an id exists on
-        # some other listing.
+        # some other listing — nor that one exists here awaiting review or
+        # already refused, which an owner has no business acting on.
         raise NotFoundError("testimonial.not_found")
     return testimonial
 
@@ -145,6 +153,49 @@ def list_testimonials(
     return [admin_testimonial(entry) for entry in entries]
 
 
+def _any_testimonial(db: DbSession, testimonial_id: uuid.UUID) -> Testimonial:
+    testimonial = TestimonialRepository(db).get(testimonial_id)
+    if testimonial is None:
+        raise NotFoundError("testimonial.not_found")
+    return testimonial
+
+
+@admin_router.post(
+    "/testimonials/{testimonial_id}/clear", response_model=AdminTestimonialOut
+)
+def clear_testimonial(
+    testimonial_id: uuid.UUID,
+    admin: AdminUser,
+    db: DbSession,
+    settings: AppSettings,
+) -> AdminTestimonialOut:
+    """Pass the platform gate: hand it to the owner to decide on.
+
+    Not a publish. The owner still chooses whether it appears, which is what
+    keeps a testimonial selected praise rather than a review.
+    """
+    testimonial = _any_testimonial(db, testimonial_id)
+    return admin_testimonial(TestimonialService(db, settings).clear(testimonial))
+
+
+@admin_router.post(
+    "/testimonials/{testimonial_id}/reject", response_model=AdminTestimonialOut
+)
+def reject_testimonial(
+    testimonial_id: uuid.UUID,
+    admin: AdminUser,
+    db: DbSession,
+    settings: AppSettings,
+) -> AdminTestimonialOut:
+    """Refuse it. It never reaches the owner or the listing.
+
+    Kept rather than deleted so the same text cannot be resubmitted and
+    cleared by accident; ``remove`` is still there for a real delete.
+    """
+    testimonial = _any_testimonial(db, testimonial_id)
+    return admin_testimonial(TestimonialService(db, settings).reject(testimonial))
+
+
 @admin_router.delete("/testimonials/{testimonial_id}", response_model=MessageResponse)
 def remove_testimonial(
     testimonial_id: uuid.UUID,
@@ -153,8 +204,6 @@ def remove_testimonial(
     settings: AppSettings,
 ) -> MessageResponse:
     """Delete outright. For abuse the owner cannot or will not deal with."""
-    testimonial = TestimonialRepository(db).get(testimonial_id)
-    if testimonial is None:
-        raise NotFoundError("testimonial.not_found")
+    testimonial = _any_testimonial(db, testimonial_id)
     TestimonialService(db, settings).remove(testimonial)
     return MessageResponse(message=translate("testimonial.removed"))

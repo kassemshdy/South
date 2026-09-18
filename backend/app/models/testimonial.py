@@ -1,6 +1,7 @@
-"""Owner-approved testimonials.
+"""Testimonials, cleared by the platform and then chosen by the owner.
 
-A visitor writes praise; the owner decides whether it appears. That trade is
+A visitor writes praise; an administrator checks it is not abuse, and the
+owner then decides whether it appears. That trade is
 deliberate: open public reviews on a community directory in a small region
 carry real social risk -- one angry review about a village shop is a
 different thing from one about a chain -- and a moderation load nobody has
@@ -55,7 +56,7 @@ class Testimonial(Base, TimestampMixin):
     status: Mapped[TestimonialStatus] = mapped_column(
         pg_enum(TestimonialStatus, "testimonial_status"),
         nullable=False,
-        default=TestimonialStatus.PENDING,
+        default=TestimonialStatus.PENDING_REVIEW,
     )
     approved_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True

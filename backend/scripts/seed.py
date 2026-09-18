@@ -41,6 +41,7 @@ from app.core.logging import configure_logging
 from app.core.phone import normalize_phone
 from app.core.security import hash_password
 from app.database.session import session_scope
+from app.models.article import Article
 from app.models.auth import OtpRequest, RateLimitEvent
 from app.models.business import (
     Business,
@@ -50,6 +51,7 @@ from app.models.business import (
     ModerationAction,
 )
 from app.models.enums import (
+    ArticleSection,
     BusinessStatus,
     Currency,
     ImageKind,
@@ -71,6 +73,7 @@ from app.models.user import User
 from app.services.images import ImageService
 from app.storage.factory import get_storage
 from scripts.seed_data import (
+    ARTICLES,
     BUSINESSES,
     CATEGORIES,
     LOCATIONS,
@@ -332,6 +335,67 @@ def seed_businesses(db, categories, locations, admin) -> int:  # type: ignore[no
 
     db.flush()
     logger.info("Businesses seeded", extra={"created_count": created})
+    return created
+
+
+def _reattach_article_cover(  # type: ignore[no-untyped-def]
+    db, images: ImageService, article: Article, index: int
+) -> None:
+    """(Re)generate the cover placeholder for ``article``.
+
+    Also the repair path for an article row that survived a deploy whose
+    image bytes never reached storage, the same hazard ``seed_businesses``
+    guards against.
+    """
+    images.delete(article.cover_storage_key)
+    stored = images.process_and_store(
+        data=_placeholder_image(article.title, index, (1200, 675)),
+        content_type="image/jpeg",
+        owner_id=article.id,
+        kind=ImageKind.COVER,
+        prefix="articles",
+    )
+    article.cover_url, article.cover_storage_key = stored.url, stored.key
+    db.flush()
+
+
+def seed_articles(db) -> int:  # type: ignore[no-untyped-def]
+    """Publish the sample articles, so /blog and /news are not empty.
+
+    Seeded as published rather than draft: an empty section renders its
+    "nothing here yet" state, which is exactly what these fixtures exist to
+    replace. Matched on slug, so re-running never duplicates one and an
+    administrator's own edits to the title or body survive a redeploy.
+    """
+    settings = get_settings()
+    images = ImageService(get_storage(), settings)
+    created = 0
+
+    for index, entry in enumerate(ARTICLES):
+        slug = entry["slug"]
+        existing = db.execute(select(Article).where(Article.slug == slug)).scalar_one_or_none()
+        if existing is not None:
+            if not images.exists(existing.cover_storage_key):
+                _reattach_article_cover(db, images, existing, index)
+            continue
+
+        published_at = datetime.now(UTC) - timedelta(days=len(ARTICLES) - index)
+        article = Article(
+            section=ArticleSection(entry["section"]),
+            slug=slug,
+            title=entry["title"],
+            body=entry["body"],
+            is_published=True,
+            published_at=published_at,
+            created_at=published_at,
+        )
+        db.add(article)
+        db.flush()
+        _reattach_article_cover(db, images, article, index)
+        created += 1
+
+    db.flush()
+    logger.info("Articles seeded", extra={"created_count": created})
     return created
 
 
@@ -697,7 +761,7 @@ def reset(db) -> None:  # type: ignore[no-untyped-def]
     """Remove seeded content. Never run against production data."""
     for model in (
         TalentModerationAction, TalentImage, TalentProfile, TalentSkill,
-        ModerationAction, BusinessItem, BusinessImage, BusinessSocialLink,
+        Article, ModerationAction, BusinessItem, BusinessImage, BusinessSocialLink,
         Business, OtpRequest, RateLimitEvent, Category, Location, User,
     ):
         db.execute(delete(model))
@@ -757,6 +821,7 @@ def main() -> int:
         admin = seed_admin(db)
         seed_businesses(db, categories, locations, admin)
         seed_talents(db, skills, locations, admin)
+        seed_articles(db)
 
     print("\nDevelopment data ready.")
     if settings.admin_email:

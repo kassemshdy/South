@@ -32,6 +32,8 @@ SENSITIVE_KEYS = frozenset(
         "authorization",
         "code",
         "cookie",
+        "current_password",
+        "new_password",
         "otp",
         "otp_code",
         "password",

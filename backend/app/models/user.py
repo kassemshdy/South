@@ -69,6 +69,21 @@ class User(Base, TimestampMixin):
         index=True,
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # The account holder's own photo — a face, not a logo, and therefore part
+    # of the identity block above rather than of any listing. One account, one
+    # photo, shared by every business it owns. Admin-only: it is excluded from
+    # every public schema exactly as the identity columns are, which is the
+    # boundary tests/test_identity.py pins.
+    photo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    photo_storage_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+    # Set when an administrator issues a password rather than the person
+    # choosing one. While it is true the account can do nothing but change it:
+    # a password that travelled through a WhatsApp message is readable by
+    # anyone who sees that chat, so it is a way in exactly once.
+    must_change_password: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
     # Bumped to invalidate every JWT previously issued to this user.
     token_version: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 

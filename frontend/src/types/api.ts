@@ -41,6 +41,12 @@ export interface OwnerIdentity {
   marital_status: MaritalStatus | null
   registration_place: string | null
   residence_place: string | null
+  /**
+   * The account holder's own photo — a face, not a logo, and admin-only for
+   * the same reason as every field beside it. It is in this block rather than
+   * on a listing because one account owns one face however many shops it has.
+   */
+  photo_url: string | null
 }
 
 export type SocialPlatform =
@@ -72,7 +78,27 @@ export interface User extends OwnerIdentity {
   /** A second, private contact number used only for identity verification. */
   personal_phone_number: string | null
   role: UserRole
+  /**
+   * Set when an administrator issued the password this session was opened
+   * with. While it is true the API answers 403 `password_change_required` on
+   * every owner route, so the app has nowhere to send the person but the
+   * change-password screen.
+   */
+  must_change_password: boolean
   created_at: string
+}
+
+/**
+ * A password an administrator generated, returned by the API exactly once.
+ *
+ * There is no route that reads it back: it is stored only as a hash, so
+ * closing the panel that shows it means issuing a new one. It is never put in
+ * component state that outlives the panel, never persisted, and never sent
+ * anywhere by this app — the administrator relays it from their own WhatsApp.
+ */
+export interface IssuedPassword {
+  phone_number: string
+  password: string
 }
 
 /** Metadata only — the document bytes are never exposed by a URL. */
@@ -194,6 +220,12 @@ export interface BusinessDetail extends BusinessSummary {
   years_of_experience: number | null
   email: string | null
   website: string | null
+  /**
+   * The owner's introduction video, as a YouTube id — never a URL. The page
+   * composes the embed address from it, so nothing an owner typed is handed
+   * to a browser.
+   */
+  youtube_video_id: string | null
   address_text: string | null
   latitude: number | null
   longitude: number | null
@@ -303,6 +335,8 @@ export interface TalentSummary {
   skill: TalentSkill | null
   /** The person's own words, shown instead of the literal "Other" skill name. */
   custom_skill_text: string | null
+  /** The trade in their own words, one level below the taxonomy skill. */
+  skill_specialty: string | null
   location: LocationNode | null
   created_at: string
 }
@@ -317,10 +351,20 @@ export interface TalentLanguage {
   sort_order: number
 }
 
+export type ContactChannel = 'PHONE' | 'WHATSAPP' | 'EMAIL' | 'WEBSITE'
+
 export interface TalentDetail extends TalentSummary {
   bio: string | null
+  /** Which contact detail the page leads with. Never narrows what is shown. */
+  preferred_contact: ContactChannel | null
   email: string | null
   website: string | null
+  /**
+   * The owner's introduction video, as a YouTube id — never a URL. The page
+   * composes the embed address from it, so nothing an owner typed is handed
+   * to a browser.
+   */
+  youtube_video_id: string | null
   /** Professional detail — published on the public profile. */
   highest_degree: string | null
   specialization: string | null
@@ -550,7 +594,12 @@ export interface OwnerViews {
   listings: ListingViews[]
 }
 
-export type TestimonialStatus = 'PENDING' | 'APPROVED' | 'HIDDEN'
+export type TestimonialStatus =
+  | 'PENDING_REVIEW'
+  | 'PENDING_OWNER'
+  | 'APPROVED'
+  | 'HIDDEN'
+  | 'REJECTED'
 
 /**
  * Owner-selected praise, never a review — the owner decides what appears, so

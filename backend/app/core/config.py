@@ -52,7 +52,7 @@ class Settings(BaseSettings):
     )
 
     # --- OTP ---------------------------------------------------------------
-    otp_provider: Literal["mock", "twilio"] = "mock"
+    otp_provider: Literal["mock", "twilio", "whatsapp"] = "mock"
     otp_code_length: int = 6
     otp_ttl_seconds: int = 300
     otp_max_verify_attempts: int = 5
@@ -99,6 +99,39 @@ class Settings(BaseSettings):
     twilio_account_sid: str | None = None
     twilio_auth_token: str | None = None
     twilio_from_number: str | None = None
+
+    # WhatsApp Cloud API. The recipient reads the wording of the *template*,
+    # registered and approved at Meta, so the locale catalogs do not carry it —
+    # see app/auth/otp/whatsapp.py. Register an `ar` template and name its
+    # language here, or Arabic-speaking users receive an English code message.
+    whatsapp_phone_number_id: str | None = None
+    whatsapp_access_token: str | None = None
+    whatsapp_template_name: str | None = None
+    whatsapp_template_locale: str = "ar"
+    # Authentication templates normally carry a copy-code button, which takes
+    # the code as a second component. One created without a button rejects it.
+    whatsapp_template_has_button: bool = True
+
+    # Password sign-in: the guess budget for one phone number. Low, because a
+    # person signing in knows their password and a person who does not is
+    # guessing — see AuthService.login_with_password.
+    password_login_per_phone_limit: int = 10
+    password_login_per_phone_window_seconds: int = 900
+
+    # --- Human verification ------------------------------------------------
+    # Cloudflare Turnstile. Unset means the public forms are not captcha
+    # protected at all — see app/core/captcha.py for why that is the chosen
+    # behaviour rather than a failure.
+    turnstile_secret_key: str | None = None
+
+    # --- Public registration ----------------------------------------------
+    # Anonymous, so rate limited on the same pattern as testimonials: per
+    # address first, then per day across the whole site, so one rotating
+    # sender cannot bury the review queue.
+    registration_per_ip_limit: int = 3
+    registration_per_ip_window_seconds: int = 3600
+    registration_per_day_limit: int = 100
+    registration_per_day_window_seconds: int = 86400
 
     # --- Storage -----------------------------------------------------------
     storage_backend: Literal["local", "s3"] = "local"
@@ -205,6 +238,14 @@ class Settings(BaseSettings):
             [self.twilio_account_sid, self.twilio_auth_token, self.twilio_from_number]
         ):
             problems.append("Twilio credentials are incomplete")
+        if self.otp_provider == "whatsapp" and not all(
+            [
+                self.whatsapp_phone_number_id,
+                self.whatsapp_access_token,
+                self.whatsapp_template_name,
+            ]
+        ):
+            problems.append("WhatsApp Cloud API credentials are incomplete")
         if self.storage_backend == "s3" and not self.s3_bucket:
             problems.append("S3_BUCKET is required when STORAGE_BACKEND=s3")
         if self.debug:

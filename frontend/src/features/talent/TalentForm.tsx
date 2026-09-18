@@ -11,7 +11,7 @@ import { useLocationGroups, useTalentSkills } from '@/hooks/useTaxonomy'
 import { useT } from '@/i18n'
 import { useApplyServerFieldErrors } from '@/utils/serverFieldErrors'
 import type { TalentPayload } from '@/services/api/endpoints'
-import type { OwnerTalent } from '@/types/api'
+import type { ContactChannel, OwnerTalent } from '@/types/api'
 import { talentSchema, type TalentValues } from '@/utils/validation'
 
 import { LANGUAGE_PROFICIENCIES, PROFICIENCY_KEYS } from './labels'
@@ -28,6 +28,9 @@ interface TalentFormProps {
 
 /** The whole profile on one form — a talent profile is small enough not to
  * need the multi-step wizard a business listing gets. */
+/** Ordered as a person would read them, most immediate first. */
+const CONTACT_CHANNELS: ContactChannel[] = ['WHATSAPP', 'PHONE', 'EMAIL', 'WEBSITE']
+
 export function TalentForm({ profile, submitLabel, pending, onSubmit, serverError, footer }: TalentFormProps) {
   const skills = useTalentSkills()
   const { groups } = useLocationGroups()
@@ -53,11 +56,17 @@ export function TalentForm({ profile, submitLabel, pending, onSubmit, serverErro
           : '',
       skill_id: profile?.skill?.id ?? '',
       custom_skill_text: profile?.custom_skill_text ?? '',
+      skill_specialty: profile?.skill_specialty ?? '',
+      preferred_contact: profile?.preferred_contact ?? '',
       location_id: profile?.location?.id ?? '',
       phone: profile?.phone ?? '',
       whatsapp: profile?.whatsapp ?? '',
       email: profile?.email ?? '',
       website: profile?.website ?? '',
+      // Stored as an id; shown as the link the person originally pasted.
+      video_url: profile?.youtube_video_id
+        ? `https://www.youtube.com/watch?v=${profile.youtube_video_id}`
+        : '',
       highest_degree: profile?.highest_degree ?? '',
       specialization: profile?.specialization ?? '',
       university: profile?.university ?? '',
@@ -100,11 +109,14 @@ export function TalentForm({ profile, submitLabel, pending, onSubmit, serverErro
       years_experience: values.years_experience ? Number(values.years_experience) : null,
       skill_id: values.skill_id || null,
       custom_skill_text: values.custom_skill_text || null,
+      skill_specialty: values.skill_specialty || null,
+      preferred_contact: values.preferred_contact || null,
       location_id: values.location_id || null,
       phone: values.phone || null,
       whatsapp: values.whatsapp || null,
       email: values.email || null,
       website: values.website || null,
+      video_url: values.video_url || null,
       highest_degree: values.highest_degree || null,
       specialization: values.specialization || null,
       university: values.university || null,
@@ -202,6 +214,25 @@ export function TalentForm({ profile, submitLabel, pending, onSubmit, serverErro
           )}
         </Field>
       </div>
+
+      {/* Shown for every skill, not only "other": the taxonomy names the
+          trade and this names the person's corner of it. `custom_skill_text`
+          below is a different thing — it stands in for the skill name
+          itself when the list has no row for the work. */}
+      <Field
+        label={t('talentForm.specialtyLabel')}
+        hint={t('talentForm.specialtyHint')}
+        error={errors.skill_specialty?.message}
+      >
+        {(props) => (
+          <Input
+            {...props}
+            {...register('skill_specialty')}
+            placeholder={t('talentForm.specialtyPlaceholder')}
+            invalid={Boolean(errors.skill_specialty)}
+          />
+        )}
+      </Field>
 
       {isOtherSkill ? (
         <Field
@@ -314,6 +345,63 @@ export function TalentForm({ profile, submitLabel, pending, onSubmit, serverErro
             />
           )}
         </Field>
+
+        {/* Which of the details above to lead with. Beside them rather than
+            in its own section, because it is a question about them — and it
+            is genuinely optional: empty means the page keeps its own order. */}
+        <Field
+          label={t('talentForm.preferredContactLabel')}
+          hint={t('talentForm.preferredContactHint')}
+          error={errors.preferred_contact?.message}
+        >
+          {(props) => (
+            <Controller
+              control={control}
+              name="preferred_contact"
+              render={({ field }) => (
+                <Select value={field.value || undefined} onValueChange={field.onChange}>
+                  <SelectTrigger
+                    id={props.id}
+                    aria-describedby={props['aria-describedby']}
+                    invalid={Boolean(errors.preferred_contact)}
+                  >
+                    <SelectValue placeholder={t('talentForm.preferredContactNone')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CONTACT_CHANNELS.map((channel) => (
+                      <SelectItem key={channel} value={channel}>
+                        {t(`contactChannel.${channel}`)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          )}
+        </Field>
+
+        {/* Spans both columns: the hint explaining what the video is for
+            needs the width, and a half-width field beside a phone number
+            reads as another contact detail rather than a page section. */}
+        <div className="sm:col-span-2">
+          <Field
+            label={t('form.videoUrl')}
+            hint={t('form.videoUrlHint')}
+            error={errors.video_url?.message}
+          >
+            {(props) => (
+              <Input
+                {...props}
+                {...register('video_url')}
+                type="url"
+                dir="ltr"
+                className="ltr-nums"
+                placeholder="youtube.com/watch?v=..."
+                invalid={Boolean(errors.video_url)}
+              />
+            )}
+          </Field>
+        </div>
       </div>
 
       <p className="rounded-xl bg-sand-100 p-3.5 text-sm text-clay-800">

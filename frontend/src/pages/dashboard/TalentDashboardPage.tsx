@@ -32,7 +32,11 @@ export function TalentDashboardPage() {
   const t = useT()
   const toast = useToast()
   const queryClient = useQueryClient()
-  const [tab, setTab] = useState('details')
+  // Opens on the photo tab while there is no photo. Submitting for review
+  // *requires* one (see the readiness rules the submit endpoint enforces), so
+  // a profile that lands on "details" sends someone through the whole form
+  // only to be refused at the end for a field no screen had offered them.
+  const [tab, setTab] = useState<string | null>(null)
 
   useSeo({ title: t('talentDashboard.seoTitle'), noIndex: true })
 
@@ -219,7 +223,10 @@ export function TalentDashboardPage() {
       ) : null}
 
       <Card>
-        <Tabs.Root value={tab} onValueChange={setTab}>
+        <Tabs.Root
+          value={tab ?? (data.photo_url ? 'details' : 'images')}
+          onValueChange={setTab}
+        >
           <Tabs.List
             className="flex gap-1 overflow-x-auto border-b border-ink-100 p-2"
             aria-label={t('talentDashboard.tabsAria')}

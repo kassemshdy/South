@@ -10,7 +10,14 @@ recorded here rather than inferred from the enum:
   their own testimonial under any auth model, so verification buys the
   appearance of trust rather than trust itself. What keeps this honest is
   labelling it as owner-selected praise everywhere it is shown.
-- **approve** is the owner's, and is the only route to a public payload.
+- **clear** and **reject** are the platform's, and come first. Submitted
+  text is not shown to the owner until an administrator has looked at it:
+  forwarding abuse to the person it was written about is precisely what a
+  review gate is for, and "the owner can just hide it" means they read it.
+- **approve** is the owner's, and is still the only route to a public
+  payload. Both gates are load-bearing — the platform's answers for abuse,
+  the owner's is what keeps this selected praise rather than a review
+  system.
 - **hide** takes one down again without deleting it, so the same text
   cannot quietly be resubmitted and re-approved, and an administrator can
   still see what was once published.
@@ -37,6 +44,15 @@ from app.schemas.testimonial import TestimonialSubmitIn
 # definition rather than a status comparison repeated at each call site.
 PUBLIC_STATUSES = (TestimonialStatus.APPROVED,)
 
+# What the owner may see and act on: everything the platform has cleared.
+# PENDING_REVIEW and REJECTED are deliberately absent — an owner is never
+# shown text an administrator has not passed, which is the point of the gate.
+OWNER_VISIBLE_STATUSES = (
+    TestimonialStatus.PENDING_OWNER,
+    TestimonialStatus.APPROVED,
+    TestimonialStatus.HIDDEN,
+)
+
 
 class TestimonialService:
     def __init__(self, db: Session, settings: Settings) -> None:
@@ -59,8 +75,14 @@ class TestimonialService:
     def public_for(self, business: Business) -> list[Testimonial]:
         return self._repo.for_business(business.id, statuses=list(PUBLIC_STATUSES))
 
+    def owner_for(self, business: Business) -> list[Testimonial]:
+        """What the owner may act on -- platform-cleared states only."""
+        return self._repo.for_business(
+            business.id, statuses=list(OWNER_VISIBLE_STATUSES)
+        )
+
     def all_for(self, business: Business) -> list[Testimonial]:
-        """Every status -- the owner's own view, and an administrator's."""
+        """Every status, including the ones only an administrator sees."""
         return self._repo.for_business(business.id)
 
     # --- Writing -----------------------------------------------------------
@@ -72,7 +94,8 @@ class TestimonialService:
         *,
         client_ip: str | None,
     ) -> Testimonial:
-        """Record praise as PENDING. Never visible until the owner approves."""
+        """Record praise for review. Not shown to the owner, let alone a
+        visitor, until an administrator has cleared it."""
         # Per-business first: it protects the person who would otherwise have
         # to read the flood, and it holds even when the sender rotates address.
         business_status = self._limiter.hit(self._business_rule, str(business.id))
@@ -91,9 +114,21 @@ class TestimonialService:
             business_id=business.id,
             author_name=payload.author_name.strip(),
             body=payload.body.strip(),
-            status=TestimonialStatus.PENDING,
+            status=TestimonialStatus.PENDING_REVIEW,
         )
         self._repo.add(testimonial)
+        self._db.commit()
+        return testimonial
+
+    def clear(self, testimonial: Testimonial) -> Testimonial:
+        """Platform gate passed: hand it to the owner to decide on."""
+        testimonial.status = TestimonialStatus.PENDING_OWNER
+        self._db.commit()
+        return testimonial
+
+    def reject(self, testimonial: Testimonial) -> Testimonial:
+        """Refused by the platform. Never reaches the owner or the page."""
+        testimonial.status = TestimonialStatus.REJECTED
         self._db.commit()
         return testimonial
 

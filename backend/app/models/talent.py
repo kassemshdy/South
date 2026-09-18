@@ -31,6 +31,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.base import Base, TimestampMixin, pg_enum, uuid_pk
 from app.models.enums import (
     BusinessStatus,
+    ContactChannel,
     EmploymentType,
     ImageKind,
     LanguageProficiency,
@@ -85,6 +86,12 @@ class TalentProfile(Base, TimestampMixin):
     # Set only when skill is the seeded "other" row (slug "other"); the
     # person's own words for work that doesn't fit the fixed list.
     custom_skill_text: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    # The trade in the person's own words, one level below the chosen skill:
+    # a teacher picks "teacher" from the taxonomy and names the subject they
+    # teach here. Distinct from ``custom_skill_text``, which stands in for the
+    # skill name itself when the skill is "other", and from
+    # ``specialization``, which is what a degree was in.
+    skill_specialty: Mapped[str | None] = mapped_column(String(160), nullable=True)
     location_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("locations.id", ondelete="SET NULL"), nullable=True, index=True
     )
@@ -102,6 +109,17 @@ class TalentProfile(Base, TimestampMixin):
     whatsapp: Mapped[str | None] = mapped_column(String(20), nullable=True)
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     website: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # Which of the above the page leads with. See ContactChannel: it orders
+    # the contact block rather than narrowing it.
+    preferred_contact: Mapped[ContactChannel | None] = mapped_column(
+        pg_enum(ContactChannel, "contact_channel"), nullable=True
+    )
+
+    # An owner-recorded introduction, stored as the eleven-character YouTube
+    # id rather than the link they pasted: the page composes the embed URL
+    # from it, so no owner-supplied string is ever handed to a browser. See
+    # ``app.core.urls.youtube_video_id``.
+    youtube_video_id: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
     photo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     photo_storage_key: Mapped[str | None] = mapped_column(String(500), nullable=True)

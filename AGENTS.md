@@ -66,6 +66,14 @@ below has nothing to say about register, so it is on the author and the
 reviewer. Markers to watch for: مش، هون، هلق، بعدين، فيك، بدّك، شو، هيك،
 عم + verb، يلّا، and the ب- present tense (بتعمل، بيصير).
 
+**One string deliberately does not live here: the WhatsApp code message.** When
+`OTP_PROVIDER=whatsapp`, the sign-in code is delivered as a WhatsApp
+*authentication template*, whose wording is registered and approved at Meta and
+referenced by name — the API sends only the code. So `auth.sms.body` is not what
+a WhatsApp recipient reads, and the template's language, not this repository,
+decides which language they read it in. This is the only exception, and it
+exists because the text is not ours to ship — see `docs/WHATSAPP_OTP.md`.
+
 `backend/tests/test_i18n.py` scans `backend/app`, `backend/scripts`, `backend/tests` and
 `frontend/src`/`frontend/e2e` for Arabic codepoints outside the catalogs and fixture files
 and fails the build if it finds one. That test is the actual guard — treat any Arabic
@@ -88,6 +96,7 @@ one person's head.
 | `.claude/commands/verify.md` | Slash command; it invokes the skill rather than restating it, so there is one copy to keep correct. |
 | `.claude/settings.json` | Pre-approved tools. Read-only commands and MCP reads are allowed; anything that writes still prompts. |
 | `docs/MCP.md` | The agent-facing MCP server: read the whole directory, write only to the ticket board. |
+| `docs/WHATSAPP_OTP.md` | Delivering the sign-in code over WhatsApp: what the Meta account needs, why the code message is not in a locale catalog, and the order the switch must happen in. |
 
 **When a mistake repeats, fix the artifact rather than the instance.** A skill
 or a line in this file is worth more than a correction in one conversation,
@@ -137,6 +146,49 @@ reading before writing a new one. Borrowed deliberately:
 Not adopted: its Django access and performance review skills, which do not
 apply — this backend is FastAPI and SQLAlchemy, so a Django-shaped review
 would mislead rather than help.
+
+## How Somebody Gets Onto This Site
+
+There is **no self-service sign-up**, and there is no working SMS or WhatsApp
+gateway. What there is, end to end:
+
+```
+public form (+ Turnstile)  →  User(OWNER, password_hash NULL)
+                              + Business/TalentProfile(PENDING_REVIEW)
+administrator audits it    →  approve / reject, in the queue that already existed
+"issue credentials"        →  password generated, shown ONCE, wa.me link opens
+                              WhatsApp Web with the message written
+owner signs in (phone+pw)  →  forced password change  →  dashboard
+```
+
+Four things about it are load-bearing rather than incidental:
+
+- **An application is stored as the listing itself**, pending review — not as a
+  separate "application" table. The moderation queue, the serializers and the
+  admin screens then work unchanged and approval has nothing to migrate. What
+  makes that safe is the account having no password: the row exists, but nobody
+  can act as its owner until a person has looked at it.
+- **Both registration routes answer the same sentence whatever happened**,
+  including for a phone number that already has an account — which is silently
+  discarded rather than refused. Answering differently would turn the form into
+  a way to ask which numbers are registered, and attaching the listing to the
+  existing account would let a stranger put a listing in someone else's
+  dashboard. `tests/test_registration.py` pins both.
+- **An issued password is returned exactly once** by
+  `POST /api/admin/users/{id}/credentials`, stored only as a hash, and relayed
+  by the administrator from their own WhatsApp. This application never sends
+  it anywhere. Issuing a second one replaces the first and signs out any
+  session opened with it.
+- **`must_change_password` shuts every owner route with a 403** until the
+  password is replaced, enforced once in `get_current_user` rather than per
+  route, so a new owner endpoint is covered by default. The password travelled
+  through a chat message; the forced change is what makes it a way in exactly
+  once instead of a standing credential, and replacing it bumps `token_version`
+  so whoever else read that chat is signed out.
+
+The OTP provider work is still there and still wired up, unused. The account is
+keyed by phone number either way, so a gateway arriving later is a **second
+door onto the same account**, not a migration — see `docs/WHATSAPP_OTP.md`.
 
 ## Security Musts
 
@@ -244,6 +296,8 @@ Dockerfiles, not just the Railway dashboard.
 | `VITE_SENTRY_DSN` | The frontend SDK does not initialise. |
 | `VITE_GA_MEASUREMENT_ID` | No analytics script is injected and no page view is sent (`src/services/analytics.ts`). |
 | `VITE_SOCIAL_INSTAGRAM` / `_FACEBOOK` / `_TIKTOK` | That link is not rendered; with none set the whole footer block disappears (`src/components/layout/SocialLinks.tsx`). |
+| `VITE_TURNSTILE_SITE_KEY` | No captcha widget on the public registration forms, and no token is sent (`src/components/ui/Turnstile.tsx`). The backend follows the same rule from its side: with `TURNSTILE_SECRET_KEY` unset it verifies nothing, so the two halves are never half-configured. |
+| `VITE_CLARITY_PROJECT_ID` | No Clarity tag is injected and no session is recorded (`src/services/clarity.ts`). Gated harder than the rest — see below. |
 | `VITE_SUPPORT_WHATSAPP` | The assisted-listing offer — "contact us and we will list it for you" — is not rendered anywhere (`src/features/onboarding/AssistedListing.tsx`). A number with no digits in it counts as unset, because the guard is `whatsappHref` itself. |
 
 Analytics additionally **drops the query string and skips `/dashboard` and
@@ -251,6 +305,32 @@ Analytics additionally **drops the query string and skips `/dashboard` and
 person's or a shop's name, and counting our own moderation clicks would corrupt
 the only question analytics exists to answer. Widen those exclusions rather than
 narrowing them.
+
+**Clarity is not a page counter and is not gated like one.** It records the
+session and replays the page, so the same exclusions applied per page view
+would be worth nothing: a recording cannot be un-started, and once the tag is
+on the page it captures the rest of the session, SPA navigations included. The
+screens behind a sign-in are not pages of a catalogue — the account page holds
+the identity fields named in the Security Musts, the moderation queue holds
+them for every owner plus documents and CVs, and the credentials panel puts an
+issued password on screen in plaintext. A replay of any of those is a
+disclosure.
+
+So the decision is made **before the script loads**, which is the only moment
+it can be made, and `initClarity()` refuses on either of two conditions: a
+session token exists in local storage, or the current path is already private.
+Signing in is a full navigation to `/dashboard`, so an owner or administrator
+is never recorded at all. The deliberate consequence is that Clarity here
+measures **anonymous visitors on the public directory** and says nothing about
+how owners use their dashboard. Do not add a way to start it later from a
+route change — that is the gate.
+
+Masking is a setting in the Clarity dashboard rather than a tag parameter, so
+the project is set to **Strict**. The gates should mean no recording ever
+contains a private screen; strict masking is what makes that survive a
+mistake, including on the one screen a signed-out visitor types into — the
+public application form, where they enter the phone number that becomes their
+login.
 
 ## Deploy Gotchas (learned the hard way)
 

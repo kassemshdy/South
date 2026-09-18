@@ -1,4 +1,4 @@
-"""Owner-approved testimonials (#48).
+"""Testimonials: a platform gate, then the owner's (#48).
 
 The rule these tests exist for is structural and the same one that governs
 every other public payload here: **what is on the public schema is what is
@@ -8,6 +8,11 @@ testimonial must be absent from the business profile a visitor receives.
 The rest guard the decisions recorded on the issue: submission is anonymous
 and rate limited, the owner is the only route to visibility, hiding does not
 delete, and one owner can never reach another's testimonial.
+
+Submitted text now waits on an administrator before the owner sees it at
+all, so most of these go through ``_clear_all`` first. The two assertions
+that gate is for are their own tests below: unreviewed text does not reach
+the owner, and refused text never does.
 """
 
 from __future__ import annotations
@@ -75,6 +80,31 @@ def _submit(
     )
 
 
+def _clear(client: TestClient, testimonial_id: str) -> None:
+    """Pass the platform gate, which every owner action now sits behind."""
+    response = client.post(
+        f"/api/admin/testimonials/{testimonial_id}/clear",
+        headers=admin_headers(client),
+    )
+    assert response.status_code == 200, response.text
+
+
+def _clear_all(client: TestClient) -> None:
+    """Clear everything still awaiting review.
+
+    Used by the tests that are about what happens *after* the platform gate,
+    so they read as the owner flow they are testing rather than restating the
+    gate at every call site.
+    """
+    awaiting = client.get(
+        "/api/admin/testimonials",
+        params={"status": "PENDING_REVIEW"},
+        headers=admin_headers(client),
+    ).json()
+    for entry in awaiting:
+        _clear(client, entry["id"])
+
+
 # --- The disclosure rule ---------------------------------------------------
 
 
@@ -103,6 +133,7 @@ def test_an_approved_testimonial_appears_on_the_public_profile(
     client: TestClient,
     db: Session,
     business: Business,
+    admin: User,
     owner_headers: dict[str, str],
 ) -> None:
     _submit(
@@ -111,11 +142,12 @@ def test_an_approved_testimonial_appears_on_the_public_profile(
         author=ar("testimonial.author"),
         body=ar("testimonial.body"),
     )
+    _clear_all(client)
     pending = client.get(
         f"/api/businesses/{business.id}/testimonials", headers=owner_headers
     ).json()
     assert len(pending) == 1
-    assert pending[0]["status"] == "PENDING"
+    assert pending[0]["status"] == "PENDING_OWNER"
 
     approved = client.post(
         f"/api/businesses/{business.id}/testimonials/{pending[0]['id']}/approve",
@@ -137,6 +169,7 @@ def test_hiding_removes_it_from_the_public_profile_without_deleting_it(
     client: TestClient,
     db: Session,
     business: Business,
+    admin: User,
     owner_headers: dict[str, str],
 ) -> None:
     """Hidden rather than deleted, so the same text cannot quietly be
@@ -148,6 +181,7 @@ def test_hiding_removes_it_from_the_public_profile_without_deleting_it(
         author=ar("testimonial.author"),
         body=ar("testimonial.body"),
     )
+    _clear_all(client)
     entry = client.get(
         f"/api/businesses/{business.id}/testimonials", headers=owner_headers
     ).json()[0]
@@ -325,7 +359,7 @@ def test_one_owner_cannot_reach_another_listings_testimonial(
     )
 
     assert response.status_code == 404
-    assert db.get(Testimonial, target.id).status is TestimonialStatus.PENDING
+    assert db.get(Testimonial, target.id).status is TestimonialStatus.PENDING_REVIEW
 
 
 def test_listing_testimonials_requires_owning_the_listing(
@@ -358,7 +392,7 @@ def test_an_admin_can_remove_one_outright(
         body=ar("testimonial.body"),
     )
     entry = client.get(
-        f"/api/businesses/{business.id}/testimonials", headers=owner_headers
+        "/api/admin/testimonials", headers=admin_headers(client)
     ).json()[0]
 
     removed = client.delete(
@@ -393,7 +427,8 @@ def test_an_admin_can_survey_every_testimonial_in_any_state(
         body=ar("testimonial.second_body"),
         ip="198.51.100.2",
     )
-    # Approve one, leaving the other PENDING, so the survey must carry both.
+    _clear_all(client)
+    # Approve one, leaving the other with the owner, so the survey carries both.
     first = client.get(
         f"/api/businesses/{business.id}/testimonials", headers=owner_headers
     ).json()[-1]
@@ -406,7 +441,7 @@ def test_an_admin_can_survey_every_testimonial_in_any_state(
 
     assert survey.status_code == 200, survey.text
     entries = survey.json()
-    assert {entry["status"] for entry in entries} == {"PENDING", "APPROVED"}
+    assert {entry["status"] for entry in entries} == {"PENDING_OWNER", "APPROVED"}
     # Each carries the listing it is on, by public identity only.
     assert all(entry["business_slug"] == business.slug for entry in entries)
     assert all(entry["business_name"] == business.name for entry in entries)
@@ -435,6 +470,7 @@ def test_the_admin_survey_filters_by_status(
         body=ar("testimonial.second_body"),
         ip="198.51.100.4",
     )
+    _clear_all(client)
     approved = client.get(
         f"/api/businesses/{business.id}/testimonials", headers=owner_headers
     ).json()[-1]
@@ -445,11 +481,11 @@ def test_the_admin_survey_filters_by_status(
 
     pending_only = client.get(
         "/api/admin/testimonials",
-        params={"status": "PENDING"},
+        params={"status": "PENDING_OWNER"},
         headers=admin_headers(client),
     ).json()
 
-    assert [entry["status"] for entry in pending_only] == ["PENDING"]
+    assert [entry["status"] for entry in pending_only] == ["PENDING_OWNER"]
 
 
 def test_the_admin_survey_is_admin_only(
@@ -461,7 +497,7 @@ def test_the_admin_survey_is_admin_only(
 
 
 def test_removal_is_admin_only(
-    client: TestClient, business: Business, owner_headers: dict[str, str]
+    client: TestClient, business: Business, admin: User, owner_headers: dict[str, str]
 ) -> None:
     _submit(
         client,
@@ -470,7 +506,7 @@ def test_removal_is_admin_only(
         body=ar("testimonial.body"),
     )
     entry = client.get(
-        f"/api/businesses/{business.id}/testimonials", headers=owner_headers
+        "/api/admin/testimonials", headers=admin_headers(client)
     ).json()[0]
 
     response = client.delete(
@@ -505,3 +541,127 @@ def test_deleting_the_business_deletes_its_testimonials(
         Testimonial.__table__.select().where(Testimonial.business_id == business_id)
     ).all()
     assert remaining == []
+
+
+# --- The platform gate -----------------------------------------------------
+
+
+def test_unreviewed_text_never_reaches_the_owner(
+    client: TestClient, business: Business, owner_headers: dict[str, str]
+) -> None:
+    """The reason the platform gate exists.
+
+    An owner asked to hide abuse has already read it. So submitted text is
+    absent from the owner's list until an administrator has passed it —
+    absent, not merely marked.
+    """
+    submitted = _submit(
+        client,
+        business.slug,
+        author=ar("testimonial.author"),
+        body=ar("testimonial.body"),
+    )
+    assert submitted.status_code == 201
+
+    theirs = client.get(
+        f"/api/businesses/{business.id}/testimonials", headers=owner_headers
+    )
+
+    assert theirs.status_code == 200
+    assert theirs.json() == []
+
+
+def test_clearing_hands_it_to_the_owner_without_publishing_it(
+    client: TestClient, business: Business, admin: User, owner_headers: dict[str, str]
+) -> None:
+    """Clearing is not publishing: the owner still decides.
+
+    This is what keeps a testimonial selected praise rather than a review —
+    an administrator passing it does not put it on the page.
+    """
+    _submit(
+        client,
+        business.slug,
+        author=ar("testimonial.author"),
+        body=ar("testimonial.body"),
+    )
+    _clear_all(client)
+
+    theirs = client.get(
+        f"/api/businesses/{business.id}/testimonials", headers=owner_headers
+    ).json()
+
+    assert [entry["status"] for entry in theirs] == ["PENDING_OWNER"]
+    assert client.get(f"/api/businesses/{business.slug}").json()["testimonials"] == []
+
+
+def test_refused_text_reaches_neither_the_owner_nor_the_page(
+    client: TestClient,
+    db: Session,
+    business: Business,
+    admin: User,
+    owner_headers: dict[str, str],
+) -> None:
+    """Rejected is a dead end, and not reachable by guessing the id.
+
+    Kept in the table rather than deleted, so the same text cannot be
+    resubmitted and cleared by accident — but the owner can neither see it
+    nor act on it, which is the whole point of refusing it for them.
+    """
+    _submit(
+        client,
+        business.slug,
+        author=ar("testimonial.author"),
+        body=ar("testimonial.body"),
+    )
+    entry = client.get(
+        "/api/admin/testimonials", headers=admin_headers(client)
+    ).json()[0]
+
+    refused = client.post(
+        f"/api/admin/testimonials/{entry['id']}/reject", headers=admin_headers(client)
+    )
+
+    assert refused.status_code == 200, refused.text
+    assert refused.json()["status"] == "REJECTED"
+    assert (
+        client.get(
+            f"/api/businesses/{business.id}/testimonials", headers=owner_headers
+        ).json()
+        == []
+    )
+    # Not reachable by id either: absent from the list is absent by id.
+    reached = client.post(
+        f"/api/businesses/{business.id}/testimonials/{entry['id']}/approve",
+        headers=owner_headers,
+    )
+    assert reached.status_code == 404
+    assert client.get(f"/api/businesses/{business.slug}").json()["testimonials"] == []
+    # Still on record for the platform.
+    assert db.get(Testimonial, uuid.UUID(entry["id"])) is not None
+
+
+def test_the_platform_gate_is_admin_only(
+    client: TestClient, business: Business, owner_headers: dict[str, str]
+) -> None:
+    """An owner cannot clear their own listing's testimonials.
+
+    Otherwise the gate is decorative: whoever benefits from the praise would
+    be the one deciding it is not abuse.
+    """
+    _submit(
+        client,
+        business.slug,
+        author=ar("testimonial.author"),
+        body=ar("testimonial.body"),
+    )
+
+    cleared = client.post(
+        f"/api/admin/testimonials/{uuid.uuid4()}/clear", headers=owner_headers
+    )
+    rejected = client.post(
+        f"/api/admin/testimonials/{uuid.uuid4()}/reject", headers=owner_headers
+    )
+
+    assert cleared.status_code == 403
+    assert rejected.status_code == 403

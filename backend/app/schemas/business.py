@@ -74,6 +74,10 @@ class BusinessDetailOut(BusinessSummaryOut):
     years_of_experience: int | None = None
     email: str | None = None
     website: str | None = None
+    # The owner's introduction video, as a YouTube id. An id rather than a URL
+    # so the client composes the embed itself and never renders a string an
+    # owner typed — see app.core.urls.youtube_video_id.
+    youtube_video_id: str | None = None
     address_text: str | None = None
     latitude: float | None = None
     longitude: float | None = None
@@ -122,6 +126,8 @@ class BusinessCreateIn(BaseModel):
     whatsapp: OptionalPhone = None
     email: EmailStr | None = None
     website: str | None = Field(default=None, max_length=500)
+    # A link, because that is what an owner has; stored as an id.
+    video_url: str | None = Field(default=None, max_length=500)
     address_text: str | None = Field(default=None, max_length=400)
     latitude: float | None = Field(default=None, ge=-90, le=90)
     longitude: float | None = Field(default=None, ge=-180, le=180)
@@ -165,6 +171,8 @@ class BusinessUpdateIn(BaseModel):
     whatsapp: OptionalPhone = None
     email: EmailStr | None = None
     website: str | None = Field(default=None, max_length=500)
+    # A link, because that is what an owner has; stored as an id.
+    video_url: str | None = Field(default=None, max_length=500)
     address_text: str | None = Field(default=None, max_length=400)
     latitude: float | None = Field(default=None, ge=-90, le=90)
     longitude: float | None = Field(default=None, ge=-180, le=180)

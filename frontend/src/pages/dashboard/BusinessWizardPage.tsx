@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, PartyPopper, Send } from 'lucide-react'
+import { Check, PartyPopper, Send, UserRound } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -12,6 +12,7 @@ import { BasicsForm } from '@/features/businesses/BasicsForm'
 import { LocationForm } from '@/features/businesses/LocationForm'
 import { SocialForm } from '@/features/businesses/SocialForm'
 import { ImageManager } from '@/features/images/ImageManager'
+import { useAuth } from '@/features/auth/AuthContext'
 import { AssistedListing } from '@/features/onboarding/AssistedListing'
 import { ItemManager } from '@/features/items/ItemManager'
 import { OfferSwitcher } from '@/features/onboarding/OfferSwitcher'
@@ -23,10 +24,25 @@ import { queryKeys } from '@/services/api/queryKeys'
 import { cn } from '@/utils/cn'
 
 // `optional` marks the steps nothing in `SUBMISSION_REQUIREMENTS` depends on.
-// Six unlabelled chips read as six obligations; two of them are not, and an
-// owner who does not sell individual products or keep a social page should be
-// able to see that at a glance rather than walking through to find out.
+// Unlabelled chips read as obligations; two of these are not, and an owner who
+// does not sell individual products or keep a social page should be able to
+// see that at a glance rather than walking through to find out.
+//
+// **Personal info comes first**, which is the order asked for: who you are,
+// then what the business is, then what it sells. It is first for a reason
+// beyond sequence — it is the one step that is not about this listing at all.
+// The identity and the photo live on the account and are shared by every
+// business it owns, so the step is a check rather than a form: fill it once
+// and every later listing skips past it already satisfied.
+//
+// Social stays *after* images rather than joining location in a "profile"
+// group, which was tried and reverted. Grouping them reads well but puts an
+// optional step in front of a required one: the logo is the last thing the
+// API needs before review, and the shortest path to submittable should not
+// detour through a step nobody has to fill. `e2e/lean-onboarding.spec.ts`
+// exists to protect exactly that path, and it is what caught the mistake.
 const STEPS = [
+  { key: 'personal', labelKey: 'wizard.stepPersonal' },
   { key: 'basics', labelKey: 'wizard.stepBasics' },
   { key: 'location', labelKey: 'wizard.stepLocation' },
   { key: 'images', labelKey: 'wizard.stepImages' },
@@ -47,8 +63,82 @@ type StepKey = (typeof STEPS)[number]['key']
  * The listing is created as a DRAFT after step 1, so every later step is an
  * ordinary update and a half-finished wizard is never lost.
  */
+/**
+ * Step one: who is listing this.
+ *
+ * Deliberately a summary with a link rather than a copy of the account form.
+ * The legal name, the civil-record places and the photo live on the account
+ * and are shared by every business it owns — duplicating the inputs here
+ * would give two places to edit one fact, and the second listing an owner
+ * creates would ask for it all again. So this reads the account, says what is
+ * still missing, and sends them to the one page that owns those fields.
+ *
+ * Nothing here blocks the wizard. The submission requirements the API
+ * enforces are about the *listing*; identity is checked by a person at review
+ * time, and an owner who wants to fill in their business first and come back
+ * should be able to.
+ */
+function PersonalStep({ onContinue }: { onContinue: () => void }) {
+  const { user } = useAuth()
+  const t = useT()
+
+  const missing = [
+    !user?.full_name && t('wizard.personalMissingName'),
+    !user?.photo_url && t('wizard.personalMissingPhoto'),
+  ].filter((entry): entry is string => Boolean(entry))
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-xl font-bold text-ink-900">{t('wizard.personalHeading')}</h2>
+        <p className="mt-2 text-ink-500">{t('wizard.personalIntro')}</p>
+      </div>
+
+      <div className="flex items-center gap-4 rounded-2xl bg-sand-50 p-4">
+        <span className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border-2 border-dashed border-ink-100 bg-white">
+          {user?.photo_url ? (
+            <img src={user.photo_url} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <span className="flex h-full items-center justify-center text-ink-300">
+              <UserRound className="h-6 w-6" aria-hidden="true" />
+            </span>
+          )}
+        </span>
+        <div className="min-w-0">
+          <p className="truncate font-semibold text-ink-900">
+            {user?.full_name ?? t('wizard.personalNoName')}
+          </p>
+          {missing.length > 0 ? (
+            <p className="mt-0.5 text-sm text-clay-700">
+              {t('wizard.personalMissing', { fields: missing.join(t('common.listSeparator')) })}
+            </p>
+          ) : (
+            <p className="mt-0.5 text-sm text-olive-700">{t('wizard.personalComplete')}</p>
+          )}
+        </div>
+      </div>
+
+      <p className="rounded-xl bg-sand-100 p-3.5 text-sm text-clay-800">
+        {t('wizard.personalPrivacyNote')}
+      </p>
+
+      <div className="flex flex-wrap gap-3 pt-2">
+        <Button size="lg" onClick={onContinue}>
+          {t('common.continue')}
+        </Button>
+        <Button asChild variant="outline" size="lg">
+          <Link to="/dashboard/account">
+            <UserRound className="h-4 w-4" aria-hidden="true" />
+            {t('wizard.personalEdit')}
+          </Link>
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 export function BusinessWizardPage() {
-  const [step, setStep] = useState<StepKey>('basics')
+  const [step, setStep] = useState<StepKey>('personal')
   const [businessId, setBusinessId] = useState<string | null>(null)
   const queryClient = useQueryClient()
   const toast = useToast()
@@ -206,6 +296,8 @@ export function BusinessWizardPage() {
 
       <Card>
         <CardBody>
+          {step === 'personal' ? <PersonalStep onContinue={() => setStep('basics')} /> : null}
+
           {step === 'basics' ? (
             <BasicsForm
               serverError={create.error ?? update.error}
@@ -220,7 +312,7 @@ export function BusinessWizardPage() {
             />
           ) : null}
 
-          {businessId === null && step !== 'basics' ? (
+          {businessId === null && step !== 'basics' && step !== 'personal' ? (
             <p className="text-ink-500">{t('wizard.saveBasicsFirst')}</p>
           ) : business.isLoading ? (
             <InlineSpinner />

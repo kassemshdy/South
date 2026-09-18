@@ -10,6 +10,7 @@ from app.core.i18n import translate
 from app.core.phone import normalize_optional_phone
 from app.models.enums import (
     BusinessStatus,
+    ContactChannel,
     EmploymentType,
     ImageKind,
     LanguageProficiency,
@@ -76,6 +77,9 @@ class TalentSummaryOut(ORMModel):
     skill: TalentSkillOut | None = None
     # The person's own words, shown instead of the literal "Other" skill name.
     custom_skill_text: str | None = None
+    # One level below the skill and in their own words, which is what makes a
+    # card worth reading: the trade narrowed to what this person actually does.
+    skill_specialty: str | None = None
     location: LocationOut | None = None
     created_at: datetime
 
@@ -91,6 +95,13 @@ class TalentDetailOut(TalentSummaryOut):
     bio: str | None = None
     email: str | None = None
     website: str | None = None
+    # Which of the contact details above the page leads with. Never narrows
+    # what is shown — see ContactChannel.
+    preferred_contact: ContactChannel | None = None
+    # The person's introduction video, as a YouTube id. An id rather than a
+    # URL so the client composes the embed itself and never renders a string
+    # the profile's owner typed — see app.core.urls.youtube_video_id.
+    youtube_video_id: str | None = None
     images: list[TalentImageOut] = Field(default_factory=list)
     approved_at: datetime | None = None
 
@@ -146,6 +157,9 @@ class TalentProfileFieldsIn(BaseModel):
     (``PATCH /api/me``), so a person who also owns a business enters their
     legal name once rather than once per listing.
     """
+    # One level below the chosen skill, in the person's own words.
+    skill_specialty: str | None = Field(default=None, max_length=160)
+    preferred_contact: ContactChannel | None = None
 
     highest_degree: str | None = Field(default=None, max_length=160)
     specialization: str | None = Field(default=None, max_length=160)
@@ -180,6 +194,8 @@ class TalentCreateIn(TalentProfileFieldsIn):
     whatsapp: OptionalPhone = None
     email: EmailStr | None = None
     website: str | None = Field(default=None, max_length=500)
+    # A link, because that is what the person has; stored as an id.
+    video_url: str | None = Field(default=None, max_length=500)
 
     @field_validator("display_name")
     @classmethod
@@ -213,6 +229,8 @@ class TalentUpdateIn(TalentProfileFieldsIn):
     whatsapp: OptionalPhone = None
     email: EmailStr | None = None
     website: str | None = Field(default=None, max_length=500)
+    # A link, because that is what the person has; stored as an id.
+    video_url: str | None = Field(default=None, max_length=500)
 
     @field_validator("phone", "whatsapp")
     @classmethod
