@@ -193,6 +193,14 @@ export const authApi = {
     },
   ) => apiRequest<User>('/api/me', { method: 'PATCH', body: payload }),
 
+  /** Replaces the account holder's photo; the previous file is deleted. */
+  uploadPhoto: (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return apiRequest<User>('/api/me/photo', { method: 'POST', formData: form })
+  },
+  deletePhoto: () => apiRequest<User>('/api/me/photo', { method: 'DELETE' }),
+
   getVerificationDocument: () =>
     apiRequest<VerificationDocument | null>('/api/me/verification-document'),
   uploadVerificationDocument: (file: File) => {

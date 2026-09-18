@@ -12,7 +12,10 @@ that boundary is what these tests pin.
 
 from __future__ import annotations
 
+import io
+
 from fastapi.testclient import TestClient
+from PIL import Image
 from sqlalchemy.orm import Session
 
 from app.models.business import Business
@@ -28,6 +31,11 @@ IDENTITY_FIELDS = (
     "marital_status",
     "registration_place",
     "residence_place",
+    # A face is identity too, and is kept out of public payloads by the same
+    # rule. It is not in IDENTITY_PAYLOAD below because it is not settable by
+    # PATCH — it arrives as an upload — but every "must not appear publicly"
+    # assertion should cover it.
+    "photo_url",
 )
 
 IDENTITY_PAYLOAD = {
@@ -119,6 +127,110 @@ def test_identity_never_reaches_a_public_business_payload(
     # Nor is it findable — an owner's legal name is not a search term.
     found = client.get("/api/businesses", params={"q": ar("identity.full_name")})
     assert found.json()["meta"]["total"] == 0
+
+
+def _photo_bytes() -> bytes:
+    buffer = io.BytesIO()
+    Image.new("RGB", (400, 400), (120, 90, 70)).save(buffer, format="JPEG")
+    return buffer.getvalue()
+
+
+def _upload_photo(client: TestClient, headers: dict[str, str]) -> str:
+    response = client.post(
+        "/api/me/photo",
+        headers=headers,
+        files={"file": ("face.jpg", _photo_bytes(), "image/jpeg")},
+    )
+    assert response.status_code == 201, response.text
+    url = response.json()["photo_url"]
+    assert url
+    return str(url)
+
+
+def test_the_account_photo_is_returned_to_the_account_and_can_be_removed(
+    client: TestClient,
+) -> None:
+    headers = sign_in(client, "03960010")
+    assert client.get("/api/me", headers=headers).json()["photo_url"] is None
+
+    url = _upload_photo(client, headers)
+    assert client.get("/api/me", headers=headers).json()["photo_url"] == url
+
+    removed = client.delete("/api/me/photo", headers=headers)
+    assert removed.status_code == 200, removed.text
+    assert removed.json()["photo_url"] is None
+
+
+def test_the_account_photo_never_reaches_a_public_payload(
+    client: TestClient, db: Session, admin: User, category: Category, location: Location
+) -> None:
+    """The reason this file exists, applied to a face rather than a name: an
+    owner's photo is admin-only, and a public schema carrying it is the only
+    way it could reach the open internet."""
+    headers = sign_in(client, "03960011")
+    _upload_photo(client, headers)
+    created = client.post(
+        "/api/businesses",
+        headers=headers,
+        json={
+            "name": ar("business.manakish"),
+            "short_description": ar("business.manakish_short"),
+            "category_id": str(category.id),
+            "location_id": str(location.id),
+            "whatsapp": "03960011",
+        },
+    ).json()
+
+    # A logo is required before review; set it directly rather than uploading.
+    business = db.get(Business, created["id"])
+    assert business is not None
+    business.logo_url = "/media/test/logo.jpg"
+    db.commit()
+
+    assert (
+        client.post(
+            f"/api/businesses/{created['id']}/submit", headers=headers
+        ).status_code
+        == 200
+    )
+    assert (
+        client.post(
+            f"/api/admin/businesses/{created['id']}/approve",
+            headers=admin_headers(client),
+        ).status_code
+        == 200
+    )
+
+    detail = client.get(f"/api/businesses/{created['slug']}").json()
+    assert "photo_url" not in detail
+    assert "owner_identity" not in detail
+    assert "owner_photo_url" not in detail
+
+    listed = client.get("/api/businesses").json()["items"][0]
+    assert "photo_url" not in listed
+
+
+def test_admin_review_payload_carries_the_owner_photo(
+    client: TestClient, admin: User, category: Category, location: Location
+) -> None:
+    """A reviewer checking that an application is a real person needs the face
+    beside the name — and is the only reader who does."""
+    owner_headers = sign_in(client, "03960012")
+    photo_url = _upload_photo(client, owner_headers)
+    created = client.post(
+        "/api/businesses",
+        headers=owner_headers,
+        json={
+            "name": ar("business.manakish"),
+            "category_id": str(category.id),
+            "location_id": str(location.id),
+        },
+    ).json()
+
+    review = client.get(
+        f"/api/admin/businesses/{created['id']}", headers=admin_headers(client)
+    ).json()
+    assert review["owner_identity"]["photo_url"] == photo_url
 
 
 def test_admin_review_payload_carries_the_owner_identity(

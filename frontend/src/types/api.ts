@@ -41,6 +41,12 @@ export interface OwnerIdentity {
   marital_status: MaritalStatus | null
   registration_place: string | null
   residence_place: string | null
+  /**
+   * The account holder's own photo — a face, not a logo, and admin-only for
+   * the same reason as every field beside it. It is in this block rather than
+   * on a listing because one account owns one face however many shops it has.
+   */
+  photo_url: string | null
 }
 
 export type SocialPlatform =

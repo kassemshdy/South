@@ -77,6 +77,10 @@ class UserOut(ORMModel):
     marital_status: MaritalStatus | None = None
     registration_place: str | None = None
     residence_place: str | None = None
+    # The account holder's own photo, on the same footing as the fields above:
+    # returned to the account itself and to an administrator, and to nobody
+    # else.
+    photo_url: str | None = None
 
 
 class OwnerLoginIn(BaseModel):

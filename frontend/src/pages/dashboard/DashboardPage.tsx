@@ -20,6 +20,55 @@ import { queryKeys } from '@/services/api/queryKeys'
 import type { ListingViews, OwnerBusiness } from '@/types/api'
 import { formatRelativeDate } from '@/utils/format'
 
+/**
+ * Asks for the account holder's details until they are there, then stops.
+ *
+ * The wizard's first step covers this, but most owners never walk the wizard
+ * any more: they apply on the public form, an administrator approves it, and
+ * they arrive here with a listing already made. Without this, the identity
+ * fields and the photo would be asked for only on a screen those owners never
+ * open — so the prompt lives where everyone lands instead.
+ *
+ * It renders nothing once both are filled, and it never blocks anything. A
+ * listing is reviewed by a person, and chasing a photo with a modal would
+ * only teach people to dismiss modals.
+ */
+function IdentityPrompt() {
+  const { user } = useAuth()
+  const t = useT()
+
+  if (!user) return null
+  const needsName = !user.full_name
+  const needsPhoto = !user.photo_url
+  if (!needsName && !needsPhoto) return null
+
+  const missing = [
+    needsName && t('wizard.personalMissingName'),
+    needsPhoto && t('wizard.personalMissingPhoto'),
+  ].filter((entry): entry is string => Boolean(entry))
+
+  return (
+    <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border-2 border-dashed border-sand-300 bg-sand-50 p-4">
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-brand-700">
+          <UserRound className="h-5 w-5" aria-hidden="true" />
+        </span>
+        <div>
+          <p className="font-semibold text-ink-900">{t('dashboard.identityPromptTitle')}</p>
+          <p className="mt-0.5 text-sm text-ink-500">
+            {t('wizard.personalMissing', {
+              fields: missing.join(t('common.listSeparator')),
+            })}
+          </p>
+        </div>
+      </div>
+      <Button asChild variant="outline">
+        <Link to="/dashboard/account">{t('wizard.personalEdit')}</Link>
+      </Button>
+    </div>
+  )
+}
+
 export function DashboardPage() {
   const { user } = useAuth()
   const t = useT()
@@ -60,6 +109,8 @@ export function DashboardPage() {
           </Button>
         </div>
       </header>
+
+      <IdentityPrompt />
 
       {businesses.isLoading ? (
         <div className="grid gap-5 md:grid-cols-2">

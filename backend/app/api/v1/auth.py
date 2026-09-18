@@ -14,9 +14,9 @@ from app.core.dependencies import (
     OtpProviderDep,
     SignedInUser,
 )
-from app.core.errors import AuthenticationError
+from app.core.errors import AuthenticationError, PayloadTooLargeError
 from app.core.security import verify_password
-from app.models.enums import VerificationDocumentKind
+from app.models.enums import ImageKind, VerificationDocumentKind
 from app.schemas.auth import (
     AdminLoginIn,
     ChangePasswordIn,
@@ -31,6 +31,7 @@ from app.schemas.auth import (
 from app.schemas.identity import IDENTITY_FIELDS
 from app.schemas.verification import VerificationDocumentOut
 from app.services.auth import AuthService
+from app.services.images import ImageService
 from app.services.verification import VerificationDocumentService
 from app.storage.factory import get_storage
 
@@ -151,6 +152,57 @@ def update_me(payload: UpdateProfileIn, user: CurrentUser, db: DbSession) -> Use
         if field in data:
             setattr(user, field, data[field])
     db.commit()
+    return UserOut.model_validate(user)
+
+
+@router.post("/me/photo", response_model=UserOut, status_code=status.HTTP_201_CREATED)
+def upload_my_photo(
+    user: CurrentUser,
+    db: DbSession,
+    settings: AppSettings,
+    file: Annotated[UploadFile, File(description="Image file")],
+) -> UserOut:
+    """Replace the account holder's own photo.
+
+    Processed through ``ImageService`` rather than stored as sent, for the
+    reason every image here is: the bytes are decoded, resized and re-encoded,
+    so nothing a client uploads is ever served back verbatim. ``LOGO`` is the
+    variant — square and 600px, which is what a headshot wants — and is the
+    same one a talent profile photo uses.
+
+    The previous file is deleted rather than orphaned, since an account has
+    exactly one photo and a bucket of abandoned faces is its own problem.
+    """
+    data = file.file.read()
+    if len(data) > settings.max_upload_bytes:
+        raise PayloadTooLargeError()
+
+    service = ImageService(get_storage(), settings)
+    stored = service.process_and_store(
+        data=data,
+        content_type=file.content_type,
+        owner_id=user.id,
+        kind=ImageKind.LOGO,
+        prefix="owner",
+    )
+
+    if user.photo_storage_key:
+        service.delete(user.photo_storage_key)
+
+    user.photo_url, user.photo_storage_key = stored.url, stored.key
+    db.commit()
+    db.refresh(user)
+    return UserOut.model_validate(user)
+
+
+@router.delete("/me/photo", response_model=UserOut)
+def delete_my_photo(user: CurrentUser, db: DbSession, settings: AppSettings) -> UserOut:
+    """Remove the photo, file included."""
+    if user.photo_storage_key:
+        ImageService(get_storage(), settings).delete(user.photo_storage_key)
+    user.photo_url, user.photo_storage_key = None, None
+    db.commit()
+    db.refresh(user)
     return UserOut.model_validate(user)
 
 
