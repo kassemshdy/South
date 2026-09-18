@@ -34,12 +34,19 @@ import { cn } from '@/utils/cn'
 // The identity and the photo live on the account and are shared by every
 // business it owns, so the step is a check rather than a form: fill it once
 // and every later listing skips past it already satisfied.
+//
+// Social stays *after* images rather than joining location in a "profile"
+// group, which was tried and reverted. Grouping them reads well but puts an
+// optional step in front of a required one: the logo is the last thing the
+// API needs before review, and the shortest path to submittable should not
+// detour through a step nobody has to fill. `e2e/lean-onboarding.spec.ts`
+// exists to protect exactly that path, and it is what caught the mistake.
 const STEPS = [
   { key: 'personal', labelKey: 'wizard.stepPersonal' },
   { key: 'basics', labelKey: 'wizard.stepBasics' },
   { key: 'location', labelKey: 'wizard.stepLocation' },
-  { key: 'social', labelKey: 'wizard.stepSocial', optional: true },
   { key: 'images', labelKey: 'wizard.stepImages' },
+  { key: 'social', labelKey: 'wizard.stepSocial', optional: true },
   { key: 'items', labelKey: 'wizard.stepItems', optional: true },
   { key: 'review', labelKey: 'wizard.stepReview' },
 ] as const satisfies readonly {
@@ -317,7 +324,7 @@ export function BusinessWizardPage() {
                   business={data}
                   submitLabel={t('wizard.saveAndContinue')}
                   pending={update.isPending}
-                  onSubmit={(payload) => update.mutate({ payload, next: 'social' })}
+                  onSubmit={(payload) => update.mutate({ payload, next: 'images' })}
                   footer={
                     <Button type="button" variant="ghost" onClick={() => setStep('basics')}>
                       {t('common.back')}
@@ -330,10 +337,10 @@ export function BusinessWizardPage() {
                 <div className="space-y-6">
                   <ImageManager business={data} />
                   <div className="flex gap-3 border-t border-ink-100 pt-5">
-                    <Button size="lg" onClick={() => setStep('items')}>
+                    <Button size="lg" onClick={() => setStep('social')}>
                       {t('common.continue')}
                     </Button>
-                    <Button variant="ghost" onClick={() => setStep('social')}>
+                    <Button variant="ghost" onClick={() => setStep('location')}>
                       {t('common.back')}
                     </Button>
                   </div>
@@ -346,9 +353,9 @@ export function BusinessWizardPage() {
                   business={data}
                   submitLabel={t('wizard.saveAndContinue')}
                   pending={update.isPending}
-                  onSubmit={(payload) => update.mutate({ payload, next: 'images' })}
+                  onSubmit={(payload) => update.mutate({ payload, next: 'items' })}
                   footer={
-                    <Button type="button" variant="ghost" onClick={() => setStep('location')}>
+                    <Button type="button" variant="ghost" onClick={() => setStep('images')}>
                       {t('common.back')}
                     </Button>
                   }
@@ -362,7 +369,7 @@ export function BusinessWizardPage() {
                     <Button size="lg" onClick={() => setStep('review')}>
                       {t('wizard.continueToReview')}
                     </Button>
-                    <Button variant="ghost" onClick={() => setStep('images')}>
+                    <Button variant="ghost" onClick={() => setStep('social')}>
                       {t('common.back')}
                     </Button>
                   </div>

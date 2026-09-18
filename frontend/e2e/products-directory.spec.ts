@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { openBusinessWizard } from './support/wizard'
+
 import { signInWithCode } from './support/sign-in'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -67,7 +69,7 @@ test.describe('Products directory', () => {
     await signInAsOwner(page)
 
     // --- Create the business -------------------------------------------------
-    await page.goto('/dashboard/businesses/new')
+    await openBusinessWizard(page)
     await page.getByLabel(t('form.name')).fill(fixture.businessName)
     await page.getByLabel(t('form.shortDescription')).fill(fixture.shortDescription)
     // Producer detail and the long description are optional at submission, so

@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { openBusinessWizard } from './support/wizard'
+
 import { signInWithCode } from './support/sign-in'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -42,7 +44,7 @@ test.describe('"Other" business category', () => {
   test('requires and saves the custom category text', async ({ page }) => {
     await signInWithCode(page, OWNER_PHONE)
 
-    await page.goto('/dashboard/businesses/new')
+    await openBusinessWizard(page)
     await page.getByLabel(t('form.name')).fill(fixture.businessName)
     await page.getByLabel(t('form.shortDescription')).fill(fixture.shortDescription)
 

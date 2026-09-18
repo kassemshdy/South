@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { openBusinessWizard } from './support/wizard'
+
 import { signInWithCode } from './support/sign-in'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -49,7 +51,7 @@ test.describe('Lean onboarding', () => {
   test('an owner reaches review without touching an optional step', async ({ page }) => {
     await signInWithCode(page, OWNER_PHONE)
 
-    await page.goto('/dashboard/businesses/new')
+    await openBusinessWizard(page)
 
     // The optional fields are present but collapsed: a long description is not
     // required to be reviewed, so it does not share a column with the fields
