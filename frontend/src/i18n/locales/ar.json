@@ -635,6 +635,7 @@
   "items.formAdd": "إضافة عنصر",
   "items.formEdit": "تعديل العنصر",
   "items.galleryAdd": "إضافة صورة",
+  "items.galleryAfterSave": "يمكنك إضافة صور أخرى لهذا العنصر بعد حفظه، إلى جانب الصورة الرئيسية أعلاه.",
   "items.galleryEmpty": "لا توجد صور في المعرض بعد.",
   "items.galleryHeading": "معرض الصور",
   "items.goodDetailHeading": "تفاصيل السلعة",

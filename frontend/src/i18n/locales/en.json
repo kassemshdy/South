@@ -635,6 +635,7 @@
   "items.formAdd": "Add an item",
   "items.formEdit": "Edit the item",
   "items.galleryAdd": "Add photo",
+  "items.galleryAfterSave": "You can add more photos of this item after saving it, alongside the main photo above.",
   "items.galleryEmpty": "No gallery photos yet.",
   "items.galleryHeading": "Photo gallery",
   "items.goodDetailHeading": "Product detail",
