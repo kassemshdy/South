@@ -122,6 +122,12 @@ class User(Base, TimestampMixin):
         return self.document_of(VerificationDocumentKind.IDENTITY)
 
     @property
+    def verification_document_back(self) -> OwnerVerificationDocument | None:
+        """The reverse of the ID card, which carries the place of registration
+        a reviewer is checking the identity fields against."""
+        return self.document_of(VerificationDocumentKind.IDENTITY_BACK)
+
+    @property
     def cv_document(self) -> OwnerVerificationDocument | None:
         """The résumé a talent profile may attach. Admin-gated like the ID."""
         return self.document_of(VerificationDocumentKind.CV)

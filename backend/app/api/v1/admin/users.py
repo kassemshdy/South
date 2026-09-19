@@ -78,6 +78,27 @@ def download_verification_document(
     return _download(_load_document(db, user_id), settings)
 
 
+@router.get(
+    "/users/{user_id}/verification-document-back", response_model=VerificationDocumentOut
+)
+def get_verification_document_back(
+    user_id: uuid.UUID, db: DbSession, admin: AdminUser
+) -> VerificationDocumentOut:
+    """The reverse of the ID card, which carries the place of registration."""
+    return VerificationDocumentOut.model_validate(
+        _load_document(db, user_id, VerificationDocumentKind.IDENTITY_BACK)
+    )
+
+
+@router.get("/users/{user_id}/verification-document-back/download")
+def download_verification_document_back(
+    user_id: uuid.UUID, db: DbSession, admin: AdminUser, settings: AppSettings
+) -> Response:
+    return _download(
+        _load_document(db, user_id, VerificationDocumentKind.IDENTITY_BACK), settings
+    )
+
+
 @router.get("/users/{user_id}/cv-document", response_model=VerificationDocumentOut)
 def get_cv_document(
     user_id: uuid.UUID, db: DbSession, admin: AdminUser

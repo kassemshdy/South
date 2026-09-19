@@ -200,6 +200,42 @@ def upload_my_verification_document(
     return VerificationDocumentOut.model_validate(document)
 
 
+@router.get(
+    "/me/verification-document-back", response_model=VerificationDocumentOut | None
+)
+def read_my_verification_document_back(
+    user: CurrentUser,
+) -> VerificationDocumentOut | None:
+    """The reverse of the ID card. Metadata only, like the front."""
+    document = user.verification_document_back
+    if document is None:
+        return None
+    return VerificationDocumentOut.model_validate(document)
+
+
+@router.post(
+    "/me/verification-document-back",
+    response_model=VerificationDocumentOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def upload_my_verification_document_back(
+    user: CurrentUser,
+    db: DbSession,
+    settings: AppSettings,
+    file: Annotated[UploadFile, File(description="The back of the ID card")],
+) -> VerificationDocumentOut:
+    data = file.file.read()
+    service = VerificationDocumentService(get_storage(), settings)
+    document = service.store(
+        db=db,
+        user=user,
+        data=data,
+        original_filename=file.filename,
+        kind=VerificationDocumentKind.IDENTITY_BACK,
+    )
+    return VerificationDocumentOut.model_validate(document)
+
+
 @router.get("/me/cv-document", response_model=VerificationDocumentOut | None)
 def read_my_cv_document(user: CurrentUser) -> VerificationDocumentOut | None:
     """Metadata only, like the ID document above — a CV is a personal

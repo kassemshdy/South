@@ -89,6 +89,7 @@ def _register(
     kind: str,
     payload: dict[str, object],
     document: tuple[str, bytes, str] | None = None,
+    document_back: tuple[str, bytes, str] | None = None,
 ):
     """POST an application the way the forms do: JSON in one multipart field.
 
@@ -97,11 +98,15 @@ def _register(
     `app/api/v1/registration.py` for why that is not an anonymous upload
     endpoint.
     """
-    files = {"document": document} if document is not None else None
+    files: dict[str, tuple[str, bytes, str]] = {}
+    if document is not None:
+        files["document"] = document
+    if document_back is not None:
+        files["document_back"] = document_back
     return client.post(
         f"/api/register/{kind}",
         data={"application": json.dumps(payload)},
-        files=files,
+        files=files or None,
     )
 
 
@@ -109,8 +114,9 @@ def _apply(
     client: TestClient,
     payload: dict[str, object],
     document: tuple[str, bytes, str] | None = None,
+    document_back: tuple[str, bytes, str] | None = None,
 ) -> None:
-    response = _register(client, "business", payload, document)
+    response = _register(client, "business", payload, document, document_back)
     assert response.status_code == 202, response.text
 
 
@@ -218,22 +224,57 @@ def test_the_identity_never_reaches_the_public_listing(
     assert review.json()["owner_identity"]["full_name"] == ar("identity.full_name")
 
 
-def test_the_applicants_id_scan_is_stored_against_the_new_account(
+def test_both_sides_of_the_id_are_stored_against_the_new_account(
     client: TestClient, db: Session, category: Category, location: Location
 ) -> None:
-    """The evidence arrives with the application, not after the audit."""
+    """The evidence arrives with the application, not after the audit.
+
+    Two kinds rather than two rows of one kind: the table holds one document
+    per owner per kind, and a reviewer opening "the ID" means a side.
+    """
     _apply(
         client,
         _business_payload(category, location),
-        document=("id.png", PNG_BYTES, "image/png"),
+        document=("front.png", PNG_BYTES, "image/png"),
+        document_back=("back.png", PNG_BYTES, "image/png"),
     )
 
     owner = _owner(db)
     assert owner is not None
-    document = owner.document_of(VerificationDocumentKind.IDENTITY)
-    assert document is not None
-    assert document.content_type == "image/png"
-    assert document.size_bytes == len(PNG_BYTES)
+
+    front = owner.document_of(VerificationDocumentKind.IDENTITY)
+    assert front is not None
+    assert front.content_type == "image/png"
+    assert front.original_filename == "front.png"
+
+    back = owner.document_of(VerificationDocumentKind.IDENTITY_BACK)
+    assert back is not None
+    assert back.original_filename == "back.png"
+
+    # Separate storage prefixes, so an over-broad rule on one cannot expose
+    # the other — the reason `_FOLDERS` has an entry per kind.
+    assert front.storage_key != back.storage_key
+
+
+def test_a_bad_back_refuses_the_application_and_stores_no_front(
+    client: TestClient, db: Session, category: Category, location: Location
+) -> None:
+    """Both sides are checked before either is written.
+
+    Otherwise a good front and an unreadable back would leave the account
+    half evidenced, which is worse than refusing: the reviewer sees a
+    document and cannot tell that one is missing rather than never sent.
+    """
+    response = _register(
+        client,
+        "business",
+        _business_payload(category, location),
+        document=("front.png", PNG_BYTES, "image/png"),
+        document_back=("back.exe", b"MZ not a document", "image/png"),
+    )
+
+    assert response.status_code == 415, response.text
+    assert _owner(db) is None
 
 
 def test_an_application_without_a_scan_is_still_accepted(
@@ -246,6 +287,7 @@ def test_an_application_without_a_scan_is_still_accepted(
     owner = _owner(db)
     assert owner is not None
     assert owner.document_of(VerificationDocumentKind.IDENTITY) is None
+    assert owner.document_of(VerificationDocumentKind.IDENTITY_BACK) is None
 
 
 def test_a_file_that_is_not_a_document_refuses_the_whole_application(
@@ -304,11 +346,13 @@ def test_a_scan_cannot_be_hung_on_somebody_elses_account(
         "business",
         _business_payload(category, location),
         document=("id.png", PNG_BYTES, "image/png"),
+        document_back=("back.png", PNG_BYTES, "image/png"),
     )
 
     assert second.status_code == 202, second.text
     db.refresh(owner)
     assert owner.document_of(VerificationDocumentKind.IDENTITY) is None
+    assert owner.document_of(VerificationDocumentKind.IDENTITY_BACK) is None
 
 
 def test_a_talent_applicant_can_attach_one_too(

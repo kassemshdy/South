@@ -100,12 +100,16 @@ class FeedbackAttachmentKind(str, enum.Enum):
 class VerificationDocumentKind(str, enum.Enum):
     """Which personal document a stored file is.
 
-    ``IDENTITY`` is the ID scan every owner uploads; ``CV`` is the résumé a
-    talent profile may attach. Both are admin-gated — the kind only says what
-    the reviewer is looking at, never who may look.
+    ``IDENTITY`` and ``IDENTITY_BACK`` are the two sides of the ID card every
+    owner uploads — separate kinds rather than two rows of one kind, because
+    the table stores one document per owner per kind and a reviewer opening
+    "the ID" means a specific side. ``CV`` is the résumé a talent profile may
+    attach. All are admin-gated — the kind only says what the reviewer is
+    looking at, never who may look.
     """
 
     IDENTITY = "IDENTITY"
+    IDENTITY_BACK = "IDENTITY_BACK"
     CV = "CV"
 
 

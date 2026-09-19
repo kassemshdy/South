@@ -167,12 +167,18 @@ export interface ApplicantIdentity {
   residence_place: string
 }
 
+/** Both sides of the applicant's ID card. */
+export interface ApplicantDocuments {
+  front: File | null
+  back: File | null
+}
+
 /** An applicant, before they have an account. */
 export interface Applicant {
   phone: string
   identity: ApplicantIdentity
-  /** The ID scan, when they attached one. The API does not insist. */
-  document: File | null
+  /** The scans they attached. The API does not insist; the forms do. */
+  documents: ApplicantDocuments
 }
 
 export const authApi = {
@@ -229,6 +235,17 @@ export const authApi = {
     const form = new FormData()
     form.append('file', file)
     return apiRequest<VerificationDocument>('/api/me/verification-document', {
+      method: 'POST',
+      formData: form,
+    })
+  },
+
+  getVerificationDocumentBack: () =>
+    apiRequest<VerificationDocument | null>('/api/me/verification-document-back'),
+  uploadVerificationDocumentBack: (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return apiRequest<VerificationDocument>('/api/me/verification-document-back', {
       method: 'POST',
       formData: form,
     })
@@ -510,6 +527,8 @@ export const adminApi = {
     apiRequest<VerificationDocument>(`/api/admin/users/${userId}/verification-document`),
   downloadVerificationDocument: (userId: string) =>
     apiDownload(`/api/admin/users/${userId}/verification-document/download`),
+  downloadVerificationDocumentBack: (userId: string) =>
+    apiDownload(`/api/admin/users/${userId}/verification-document-back/download`),
   downloadCvDocument: (userId: string) =>
     apiDownload(`/api/admin/users/${userId}/cv-document/download`),
 
@@ -710,16 +729,17 @@ export interface RegistrationResult {
  * An application, as the register routes take it: the JSON in one field and
  * the applicant's ID scan beside it.
  *
- * Multipart rather than JSON because the scan travels with the application —
- * there is no account to upload it to yet, and the reviewer decides whether
- * this is a real person from the South. The shape stays JSON in one field
- * rather than being flattened into form fields, so there is still one
+ * Multipart rather than JSON because the scans travel with the application —
+ * there is no account to upload them to yet, and the reviewer decides whether
+ * this is a real person from the South. The application stays JSON in one
+ * field rather than being flattened into form fields, so there is still one
  * definition of what an application is.
  */
-function applicationForm(application: unknown, document: File | null): FormData {
+function applicationForm(application: unknown, documents: ApplicantDocuments): FormData {
   const form = new FormData()
   form.append('application', JSON.stringify(application))
-  if (document) form.append('document', document)
+  if (documents.front) form.append('document', documents.front)
+  if (documents.back) form.append('document_back', documents.back)
   return form
 }
 
@@ -738,7 +758,7 @@ export const registrationApi = {
           business,
           captcha_token,
         },
-        applicant.document,
+        applicant.documents,
       ),
     }),
   talent: (applicant: Applicant, talent: TalentPayload, captcha_token: string | null) =>
@@ -751,7 +771,7 @@ export const registrationApi = {
           talent,
           captcha_token,
         },
-        applicant.document,
+        applicant.documents,
       ),
     }),
 }

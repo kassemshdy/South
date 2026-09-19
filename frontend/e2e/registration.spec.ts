@@ -74,11 +74,17 @@ test.describe('Applying for a listing', () => {
     await page.getByLabel(t('account.registrationPlaceLabel')).fill(fixture.registrationPlace)
     await page.getByLabel(t('account.residencePlaceLabel')).fill(fixture.residencePlace)
 
-    // The ID scan travels with the application: there is no account to upload
-    // it to yet, and the reviewer is about to decide whether the four fields
-    // above describe a real person.
-    await page.locator('input[type="file"]').setInputFiles({
-      name: 'id.png',
+    // Both sides of the ID travel with the application: there is no account
+    // to upload them to yet, and the reviewer is about to decide whether the
+    // four fields above describe a real person.
+    const scans = page.locator('input[type="file"]')
+    await scans.nth(0).setInputFiles({
+      name: 'front.png',
+      mimeType: 'image/png',
+      buffer: PNG_BYTES,
+    })
+    await scans.nth(1).setInputFiles({
+      name: 'back.png',
       mimeType: 'image/png',
       buffer: PNG_BYTES,
     })
@@ -135,12 +141,16 @@ test.describe('Applying for a listing', () => {
     await expect(admin.getByText(fixture.fullName).first()).toBeVisible()
     await expect(admin.getByText(fixture.residencePlace).first()).toBeVisible()
 
-    // And the scan they attached, which is what the reviewer checks those
+    // And both sides they attached, which is what the reviewer checks those
     // against — downloaded here rather than merely present, because a
     // document that cannot be opened is not evidence.
-    const documentDownload = admin.waitForEvent('download')
+    const frontDownload = admin.waitForEvent('download')
     await admin.getByRole('button', { name: t('admin.downloadDocument') }).click()
-    expect((await documentDownload).suggestedFilename()).toBe('id.png')
+    expect((await frontDownload).suggestedFilename()).toBe('front.png')
+
+    const backDownload = admin.waitForEvent('download')
+    await admin.getByRole('button', { name: t('admin.downloadDocumentBack') }).click()
+    expect((await backDownload).suggestedFilename()).toBe('back.png')
 
     await admin.getByRole('button', { name: t('credentials.issue') }).click()
     await expect(admin.getByText(t('credentials.onceWarning'))).toBeVisible()

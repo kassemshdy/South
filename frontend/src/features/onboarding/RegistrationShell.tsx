@@ -20,13 +20,14 @@
  * payload carries it: the reviewer reads it back on the screen they are
  * already looking at.
  *
- * The ID scan sits in that same block, for the same reason, and the form
- * insists on it: the reviewer is checking the four fields above against a
- * document, and an application without one is one they cannot act on. The
- * API itself still accepts an application without a scan — it is a rule
- * about this form, not about the route, and an administrator attaching one
- * later on behalf of somebody who walked in is a path worth keeping open.
- * It never gets a public URL — see `app/services/verification.py`.
+ * Both sides of the ID card sit in that same block, for the same reason, and
+ * the form insists on them: the reviewer is checking the four fields above
+ * against a card, the place of registration is on the reverse, and an
+ * application missing a side is one they cannot finish acting on. The API
+ * itself still accepts an application without either — that is a rule about
+ * this form, not about the route, and an administrator attaching one later
+ * for somebody who walked in is a path worth keeping open. Neither ever
+ * gets a public URL — see `app/services/verification.py`.
  */
 
 import {
@@ -46,7 +47,11 @@ import { Input } from '@/components/ui/Input'
 import { Turnstile } from '@/components/ui/Turnstile'
 import { useT, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
-import type { Applicant, ApplicantIdentity } from '@/services/api/endpoints'
+import type {
+  Applicant,
+  ApplicantDocuments,
+  ApplicantIdentity,
+} from '@/services/api/endpoints'
 import { isLebanesePhone } from '@/utils/validation'
 
 /**
@@ -100,6 +105,84 @@ const DOCUMENT_TYPES = ['application/pdf', 'image/jpeg', 'image/png']
 /** Mirrors MAX_VERIFICATION_DOC_BYTES; the API is still the judge. */
 const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024
 
+type DocumentSide = keyof ApplicantDocuments
+
+const DOCUMENT_SIDES: DocumentSide[] = ['front', 'back']
+
+const DOCUMENT_LABELS: Record<DocumentSide, TranslationKey> = {
+  front: 'register.documentFrontLabel',
+  back: 'register.documentBackLabel',
+}
+
+const DOCUMENT_MISSING: Record<DocumentSide, TranslationKey> = {
+  front: 'register.documentFrontRequired',
+  back: 'register.documentBackRequired',
+}
+
+/**
+ * One side of the card.
+ *
+ * A component rather than the markup twice: the two sides differ only in
+ * their label, and a file input that has to be hidden and re-labelled is
+ * exactly the kind of thing that drifts when it is written out twice.
+ *
+ * The native control is hidden rather than styled, because a file input
+ * renders "Choose File / No file chosen" in the *browser's* language, which
+ * on an Arabic-first site is two English words nobody asked for and no
+ * attribute can translate. The label drives the same input, so clicking it
+ * still opens the picker and it stays a real file input for assistive
+ * technology.
+ */
+function DocumentField({
+  labelKey,
+  file,
+  error,
+  onPick,
+}: {
+  labelKey: TranslationKey
+  file: File | null
+  error: string | undefined
+  onPick: (file: File | null, error: string | null) => void
+}) {
+  const t = useT()
+
+  return (
+    <Field label={t(labelKey)} required error={error}>
+      {(props) => (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border-2 border-dashed border-sand-300 bg-sand-50 p-3">
+          <input
+            {...props}
+            type="file"
+            accept={DOCUMENT_TYPES.join(',')}
+            className="sr-only"
+            onChange={(event) => {
+              const picked = event.target.files?.[0] ?? null
+              // Checked here as well as at the API, because a phone photo
+              // over the cap would otherwise be a long upload that ends in a
+              // refusal.
+              if (picked && picked.size > MAX_DOCUMENT_BYTES) {
+                onPick(null, t('register.documentTooLarge'))
+                return
+              }
+              onPick(picked, null)
+            }}
+          />
+          <label
+            htmlFor={props.id}
+            className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800"
+          >
+            <Upload className="h-4 w-4" aria-hidden="true" />
+            {t('register.documentChoose')}
+          </label>
+          <span className="min-w-0 flex-1 truncate text-sm text-ink-500">
+            {file ? file.name : t('register.documentNone')}
+          </span>
+        </div>
+      )}
+    </Field>
+  )
+}
+
 const IDENTITY_MISSING: Record<IdentityField, TranslationKey> = {
   full_name: 'validation.fullNameRequired',
   birth_year: 'validation.birthYearInvalid',
@@ -147,8 +230,13 @@ export function RegistrationShell({
   const [identityErrors, setIdentityErrors] = useState<
     Partial<Record<IdentityField, string>>
   >({})
-  const [document, setDocument] = useState<File | null>(null)
-  const [documentError, setDocumentError] = useState<string | null>(null)
+  const [documents, setDocuments] = useState<ApplicantDocuments>({
+    front: null,
+    back: null,
+  })
+  const [documentErrors, setDocumentErrors] = useState<
+    Partial<Record<DocumentSide, string>>
+  >({})
 
   const requirePhone = (): string | null => {
     const value = loginPhone.trim()
@@ -187,12 +275,18 @@ export function RegistrationShell({
     }
   }
 
-  const requireDocument = (): File | null => {
-    if (!document) {
-      setDocumentError(t('register.documentRequired'))
-      return null
+  const requireDocuments = (): ApplicantDocuments | null => {
+    const errors: Partial<Record<DocumentSide, string>> = {}
+    for (const side of DOCUMENT_SIDES) {
+      if (!documents[side]) errors[side] = t(DOCUMENT_MISSING[side])
     }
-    return document
+    setDocumentErrors(errors)
+    return Object.keys(errors).length > 0 ? null : documents
+  }
+
+  const setSide = (side: DocumentSide, file: File | null, error: string | null) => {
+    setDocuments((current) => ({ ...current, [side]: file }))
+    setDocumentErrors((current) => ({ ...current, [side]: error ?? undefined }))
   }
 
   const requireApplicant = (): Applicant | null => {
@@ -200,9 +294,9 @@ export function RegistrationShell({
     // somebody who has left two fields blank should be told about two fields.
     const phone = requirePhone()
     const values = requireIdentity()
-    const scan = requireDocument()
-    if (!phone || !values || !scan) return null
-    return { phone, identity: values, document: scan }
+    const scans = requireDocuments()
+    if (!phone || !values || !scans) return null
+    return { phone, identity: values, documents: scans }
   }
 
   if (submitted) return <SubmittedPanel phone={loginPhone} />
@@ -292,54 +386,20 @@ export function RegistrationShell({
             ))}
           </div>
 
-          {/* The scan the reviewer checks the four fields above against. */}
-          <Field
-            label={t('register.documentLabel')}
-            required
-            error={documentError ?? undefined}
-            hint={t('register.documentHint')}
-          >
-            {(props) => (
-              // The native control is hidden rather than styled: a file input
-              // renders "Choose File / No file chosen" in the *browser's*
-              // language, which on an Arabic-first site is two English words
-              // nobody asked for and no attribute can translate. The label
-              // below drives the same input, so clicking it still opens the
-              // picker and the control stays a real file input for
-              // assistive technology.
-              <div className="flex flex-wrap items-center gap-3 rounded-xl border-2 border-dashed border-sand-300 bg-sand-50 p-3">
-                <input
-                  {...props}
-                  type="file"
-                  accept={DOCUMENT_TYPES.join(',')}
-                  className="sr-only"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0] ?? null
-                    // Checked here as well as at the API, because a phone
-                    // photo over the cap would otherwise be a long upload
-                    // that ends in a refusal.
-                    if (file && file.size > MAX_DOCUMENT_BYTES) {
-                      setDocument(null)
-                      setDocumentError(t('register.documentTooLarge'))
-                      return
-                    }
-                    setDocumentError(null)
-                    setDocument(file)
-                  }}
-                />
-                <label
-                  htmlFor={props.id}
-                  className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800"
-                >
-                  <Upload className="h-4 w-4" aria-hidden="true" />
-                  {t('register.documentChoose')}
-                </label>
-                <span className="min-w-0 flex-1 truncate text-sm text-ink-500">
-                  {document ? document.name : t('register.documentNone')}
-                </span>
-              </div>
-            )}
-          </Field>
+          {/* Both sides: the reviewer checks the name against the front and
+              the place of registration against the back. */}
+          <div className="grid gap-5 sm:grid-cols-2">
+            {DOCUMENT_SIDES.map((side) => (
+              <DocumentField
+                key={side}
+                labelKey={DOCUMENT_LABELS[side]}
+                file={documents[side]}
+                error={documentErrors[side]}
+                onPick={(file, error) => setSide(side, file, error)}
+              />
+            ))}
+          </div>
+          <p className="text-sm text-ink-500">{t('register.documentHint')}</p>
         </CardBody>
       </Card>
 

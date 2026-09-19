@@ -80,7 +80,7 @@ test.describe('Private owner verification', () => {
       name: t('account.documentReplace'),
     })
 
-    await page.getByLabel(t('account.documentTitle')).setInputFiles(pdf())
+    await page.getByLabel(t('account.documentFrontTitle')).setInputFiles(pdf())
     await expect(replaceButtons).toHaveCount(1)
 
     await page.getByLabel(t('account.cvTitle')).setInputFiles(pdf('cv.pdf'))

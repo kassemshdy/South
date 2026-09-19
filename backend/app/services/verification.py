@@ -1,7 +1,7 @@
 """Personal-document ingestion: validate, store, never expose a public URL.
 
-Covers both documents an account can attach — the ID scan every owner uploads
-and the CV a talent profile may add — told apart by
+Covers every document an account can attach — the two sides of the ID card
+every owner uploads, and the CV a talent profile may add — told apart by
 :class:`~app.models.enums.VerificationDocumentKind`.
 
 Unlike image uploads, a document must survive unmodified — a resized/
@@ -38,6 +38,7 @@ _EXTENSIONS = {"application/pdf": "pdf", "image/jpeg": "jpg", "image/png": "png"
 # accidentally over-broad rule on one prefix cannot expose the other.
 _FOLDERS = {
     VerificationDocumentKind.IDENTITY: "owner-verification",
+    VerificationDocumentKind.IDENTITY_BACK: "owner-verification-back",
     VerificationDocumentKind.CV: "owner-cv",
 }
 

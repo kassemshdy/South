@@ -11,6 +11,7 @@ import type {
 export const queryKeys = {
   me: ['me'] as const,
   myVerificationDocument: ['me', 'verification-document'] as const,
+  myVerificationDocumentBack: ['me', 'verification-document-back'] as const,
   myCvDocument: ['me', 'cv-document'] as const,
   categories: ['categories'] as const,
   locations: ['locations'] as const,

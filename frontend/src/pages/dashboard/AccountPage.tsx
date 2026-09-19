@@ -71,11 +71,23 @@ export function AccountPage() {
         <PhotoCard user={user} onSaved={refresh} />
         <DocumentCard
           icon={<ShieldCheck className="h-5 w-5 text-brand-700" aria-hidden="true" />}
-          titleKey="account.documentTitle"
+          titleKey="account.documentFrontTitle"
           hintKey="account.documentHint"
           queryKey={queryKeys.myVerificationDocument}
           read={authApi.getVerificationDocument}
           upload={authApi.uploadVerificationDocument}
+        />
+        {/* The reverse carries the place of registration, which the
+            reviewer checks the identity fields above against. Its own card
+            because it is its own file, replaceable without touching the
+            front. */}
+        <DocumentCard
+          icon={<ShieldCheck className="h-5 w-5 text-brand-700" aria-hidden="true" />}
+          titleKey="account.documentBackTitle"
+          hintKey="account.documentBackHint"
+          queryKey={queryKeys.myVerificationDocumentBack}
+          read={authApi.getVerificationDocumentBack}
+          upload={authApi.uploadVerificationDocumentBack}
         />
         <DocumentCard
           icon={<FileText className="h-5 w-5 text-brand-700" aria-hidden="true" />}

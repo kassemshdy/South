@@ -11,10 +11,10 @@ a way to ask which numbers are registered.
 
 ## Why these take multipart rather than JSON
 
-An application carries the applicant's ID scan, and the reviewer is deciding
-whether this is a real person from the South — asking for the document after
-the audit puts the decision before the evidence. There is no account to upload
-it to yet, so the file arrives with the application.
+An application carries both sides of the applicant's ID card, and the reviewer
+is deciding whether this is a real person from the South — asking for the
+documents after the audit puts the decision before the evidence. There is no
+account to upload them to yet, so they arrive with the application.
 
 That does *not* make an anonymous upload endpoint. The file is only ever
 accepted as part of an application that succeeds: it passes the same captcha
@@ -47,7 +47,11 @@ from app.schemas.registration import (
     RegistrationOut,
     TalentRegistrationIn,
 )
-from app.services.registration import ApplicantDocument, RegistrationService
+from app.services.registration import (
+    ApplicantDocument,
+    ApplicantDocuments,
+    RegistrationService,
+)
 
 router = APIRouter(tags=["registration"])
 
@@ -57,10 +61,14 @@ ModelT = TypeVar("ModelT", bound=BaseModel)
 ApplicationField = Annotated[
     str, Form(description="The application itself, as a JSON object")
 ]
-#: The applicant's ID scan. Optional at the API — whether a form insists on it
-#: is the form's business, and an administrator can still ask for one later.
+#: The two sides of the applicant's ID card. Optional at the API — whether a
+#: form insists on them is the form's business, and an administrator can still
+#: attach one later for somebody who applied by walking in.
 DocumentField = Annotated[
-    UploadFile | None, File(description="A national ID, passport, or similar document")
+    UploadFile | None, File(description="The front of the applicant's ID card")
+]
+DocumentBackField = Annotated[
+    UploadFile | None, File(description="The back of the applicant's ID card")
 ]
 
 
@@ -92,6 +100,10 @@ def _document(file: UploadFile | None) -> ApplicantDocument | None:
     return ApplicantDocument(data=data, original_filename=file.filename)
 
 
+def _documents(front: UploadFile | None, back: UploadFile | None) -> ApplicantDocuments:
+    return ApplicantDocuments(front=_document(front), back=_document(back))
+
+
 @router.post(
     "/register/business",
     response_model=RegistrationOut,
@@ -103,12 +115,13 @@ def register_business(
     client_ip: ClientIp,
     application: ApplicationField,
     document: DocumentField = None,
+    document_back: DocumentBackField = None,
 ) -> RegistrationOut:
     """Apply to list a business. 202: received, not yet published."""
     RegistrationService(db, settings).register_business(
         _parse(BusinessRegistrationIn, application),
         client_ip=client_ip,
-        document=_document(document),
+        documents=_documents(document, document_back),
     )
     return RegistrationOut(message=translate("registration.received"))
 
@@ -124,11 +137,12 @@ def register_talent(
     client_ip: ClientIp,
     application: ApplicationField,
     document: DocumentField = None,
+    document_back: DocumentBackField = None,
 ) -> RegistrationOut:
     """Apply to list a talent profile."""
     RegistrationService(db, settings).register_talent(
         _parse(TalentRegistrationIn, application),
         client_ip=client_ip,
-        document=_document(document),
+        documents=_documents(document, document_back),
     )
     return RegistrationOut(message=translate("registration.received"))

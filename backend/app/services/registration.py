@@ -27,7 +27,7 @@ from app.core.captcha import verify_captcha
 from app.core.config import Settings
 from app.core.errors import RateLimitedError
 from app.core.rate_limit import DatabaseRateLimiter, RateLimitRule
-from app.models.enums import BusinessStatus
+from app.models.enums import BusinessStatus, VerificationDocumentKind
 from app.models.user import User
 from app.repositories.user import UserRepository
 from app.schemas.identity import IDENTITY_FIELDS
@@ -47,10 +47,35 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class ApplicantDocument:
-    """The ID scan an applicant attached, before there is an account for it."""
+    """One side of the ID card, before there is an account to attach it to."""
 
     data: bytes
     original_filename: str | None
+
+
+@dataclass(frozen=True)
+class ApplicantDocuments:
+    """Both sides, as the form sends them.
+
+    A pair rather than two arguments threaded through every call: they are
+    validated together, stored together, and neither means much alone.
+    """
+
+    front: ApplicantDocument | None = None
+    back: ApplicantDocument | None = None
+
+    def pairs(
+        self,
+    ) -> tuple[tuple[VerificationDocumentKind, ApplicantDocument], ...]:
+        """The sides that were actually sent, each with the kind it is stored as."""
+        return tuple(
+            (kind, document)
+            for kind, document in (
+                (VerificationDocumentKind.IDENTITY, self.front),
+                (VerificationDocumentKind.IDENTITY_BACK, self.back),
+            )
+            if document is not None
+        )
 
 
 class RegistrationService:
@@ -111,31 +136,35 @@ class RegistrationService:
 
     # --- The applicant's document -------------------------------------------
 
-    def _check_document(self, document: ApplicantDocument | None) -> None:
-        """Refuse a bad file while there is still nothing to clean up."""
-        if document is None:
-            return
-        self._documents.validate(document.data)
+    def _check_documents(self, documents: ApplicantDocuments) -> None:
+        """Refuse a bad file while there is still nothing to clean up.
 
-    def _attach_document(self, owner: User, document: ApplicantDocument | None) -> None:
-        """Store the scan against the account this application just created.
+        Both sides before either is written, so an application with a good
+        front and an unreadable back is refused whole rather than half
+        stored.
+        """
+        for _, document in documents.pairs():
+            self._documents.validate(document.data)
+
+    def _attach_documents(self, owner: User, documents: ApplicantDocuments) -> None:
+        """Store the scans against the account this application just created.
 
         Only ever reached for an application that is being created: a number
         that already has an account never gets here, so an applicant cannot
         put a document on somebody else's account by guessing their number.
 
         ``store`` commits, which is what makes this one transaction rather
-        than two — the account, the listing and the document land together or
-        not at all.
+        than two — the account, the listing and the documents land together
+        or not at all.
         """
-        if document is None:
-            return
-        self._documents.store(
-            db=self._db,
-            user=owner,
-            data=document.data,
-            original_filename=document.original_filename,
-        )
+        for kind, document in documents.pairs():
+            self._documents.store(
+                db=self._db,
+                user=owner,
+                data=document.data,
+                original_filename=document.original_filename,
+                kind=kind,
+            )
 
     # --- Applications -------------------------------------------------------
 
@@ -144,13 +173,14 @@ class RegistrationService:
         payload: BusinessRegistrationIn,
         *,
         client_ip: str | None,
-        document: ApplicantDocument | None = None,
+        documents: ApplicantDocuments | None = None,
     ) -> None:
         self._guard(payload.captcha_token, client_ip)
+        scans = documents or ApplicantDocuments()
         # Before anything is created, so a file that is too large or is not a
         # document refuses the application rather than leaving an account
         # behind with nothing usable attached to it.
-        self._check_document(document)
+        self._check_documents(scans)
 
         owner = self._claim_account(payload)
         if owner is None:
@@ -162,7 +192,7 @@ class RegistrationService:
         # submit from, so creating it as a DRAFT would leave it invisible to
         # everyone including the administrator who has to act on it.
         business.status = BusinessStatus.PENDING_REVIEW
-        self._attach_document(owner, document)
+        self._attach_documents(owner, scans)
         self._db.commit()
         logger.info(
             "Business application received",
@@ -174,10 +204,11 @@ class RegistrationService:
         payload: TalentRegistrationIn,
         *,
         client_ip: str | None,
-        document: ApplicantDocument | None = None,
+        documents: ApplicantDocuments | None = None,
     ) -> None:
         self._guard(payload.captcha_token, client_ip)
-        self._check_document(document)
+        scans = documents or ApplicantDocuments()
+        self._check_documents(scans)
 
         owner = self._claim_account(payload)
         if owner is None:
@@ -186,7 +217,7 @@ class RegistrationService:
 
         profile = TalentService(self._db).create(owner, payload.talent)
         profile.status = BusinessStatus.PENDING_REVIEW
-        self._attach_document(owner, document)
+        self._attach_documents(owner, scans)
         self._db.commit()
         logger.info(
             "Talent application received",

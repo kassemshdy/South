@@ -77,6 +77,12 @@ export function AdminTalentReviewPage() {
     onError: onDownloadError,
   })
 
+  const downloadDocumentBack = useMutation({
+    mutationFn: () => adminApi.downloadVerificationDocumentBack(talent.data?.owner_id ?? ''),
+    onSuccess: saveBlob,
+    onError: onDownloadError,
+  })
+
   const downloadCv = useMutation({
     mutationFn: () => adminApi.downloadCvDocument(talent.data?.owner_id ?? ''),
     onSuccess: saveBlob,
@@ -317,6 +323,25 @@ export function AdminTalentReviewPage() {
                 </Button>
               ) : (
                 <p className="text-sm text-ink-500">{t('admin.noDocument')}</p>
+              )}
+
+              {/* The reverse carries the place of registration, which is one
+                  of the fields above it. Offered separately because it is a
+                  separate file, and a reviewer checking a name against a card
+                  needs the side that has it. */}
+              {data.owner_has_verification_document_back ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  loading={downloadDocumentBack.isPending}
+                  onClick={() => downloadDocumentBack.mutate()}
+                >
+                  <Download className="h-4 w-4" aria-hidden="true" />
+                  {t('admin.downloadDocumentBack')}
+                </Button>
+              ) : (
+                <p className="text-sm text-ink-500">{t('admin.noDocumentBack')}</p>
               )}
 
               {data.owner_has_cv_document ? (

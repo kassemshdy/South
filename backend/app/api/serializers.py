@@ -185,6 +185,9 @@ def admin_business(business: Business) -> AdminBusinessOut:
         owner_has_verification_document=bool(
             business.owner and business.owner.verification_document is not None
         ),
+        owner_has_verification_document_back=bool(
+            business.owner and business.owner.verification_document_back is not None
+        ),
         owner_has_cv_document=bool(
             business.owner and business.owner.cv_document is not None
         ),
@@ -343,6 +346,9 @@ def admin_talent(profile: TalentProfile) -> AdminTalentOut:
         owner_identity=owner_identity(profile.owner),
         owner_has_verification_document=bool(
             profile.owner and profile.owner.verification_document is not None
+        ),
+        owner_has_verification_document_back=bool(
+            profile.owner and profile.owner.verification_document_back is not None
         ),
         owner_has_cv_document=bool(
             profile.owner and profile.owner.cv_document is not None
