@@ -48,11 +48,23 @@ def skill(db: Session) -> TalentSkill:
     return entity
 
 
+#: Who the applicant says they are. Required on the public form now: the
+#: reviewer is deciding whether this is a real person from the South, and
+#: without these they would have to ask over WhatsApp before they could.
+IDENTITY: dict[str, object] = {
+    "full_name": ar("identity.full_name"),
+    "birth_year": 1986,
+    "registration_place": ar("identity.registration_place"),
+    "residence_place": ar("identity.residence_place"),
+}
+
+
 def _business_payload(
     category: Category, location: Location, *, phone: str = APPLICANT_PHONE
 ) -> dict[str, object]:
     return {
         "login_phone": phone,
+        "identity": dict(IDENTITY),
         "business": {
             "name": ar("business.applicant"),
             "description": ar("business.applicant_description"),
@@ -96,7 +108,7 @@ def test_an_application_creates_a_pending_listing_nobody_can_sign_into(
 
     # No password means no way in, however the login route is asked.
     refused = client.post(
-        "/api/auth/login", json={"phone_number": APPLICANT_PHONE, "password": ""}
+        "/api/auth/login", json={"identifier": APPLICANT_PHONE, "password": ""}
     )
     assert refused.status_code in (401, 422)
 
@@ -112,6 +124,66 @@ def test_a_pending_application_is_invisible_to_the_public(
     assert listed.json()["items"] == []
 
 
+def test_the_applicants_identity_lands_on_their_account(
+    client: TestClient, db: Session, category: Category, location: Location
+) -> None:
+    """On the ``users`` row, which is where identity lives everywhere else.
+
+    One account holds one legal name however many businesses it owns, so the
+    application writes it there rather than onto the listing — and the field
+    an administrator later reads on the review screen is the same one the
+    account page edits.
+    """
+    _apply(client, _business_payload(category, location))
+
+    owner = _owner(db)
+    assert owner is not None
+    assert owner.full_name == ar("identity.full_name")
+    assert owner.birth_year == 1986
+    assert owner.registration_place == ar("identity.registration_place")
+    assert owner.residence_place == ar("identity.residence_place")
+
+
+def test_an_application_without_an_identity_is_refused(
+    client: TestClient, db: Session, category: Category, location: Location
+) -> None:
+    payload = _business_payload(category, location)
+    del payload["identity"]
+
+    response = client.post("/api/register/business", json=payload)
+
+    assert response.status_code == 422
+    assert _owner(db) is None
+
+
+def test_the_identity_never_reaches_the_public_listing(
+    client: TestClient, db: Session, category: Category, location: Location, admin: User
+) -> None:
+    """The boundary `tests/test_identity.py` pins, from this direction.
+
+    An application is stored as the listing itself, so it is worth asserting
+    here too that collecting identity on a public form did not put it on a
+    public payload.
+    """
+    _apply(client, _business_payload(category, location))
+    business = db.execute(select(Business)).scalar_one()
+
+    business.status = BusinessStatus.APPROVED
+    db.commit()
+
+    public = client.get(f"/api/businesses/{business.slug}")
+    assert public.status_code == 200, public.text
+    assert ar("identity.full_name") not in public.text
+    assert ar("identity.registration_place") not in public.text
+
+    # The reviewer, who needs it, still reads it through the identity block.
+    review = client.get(
+        f"/api/admin/businesses/{business.id}", headers=admin_headers(client)
+    )
+    assert review.status_code == 200, review.text
+    assert review.json()["owner_identity"]["full_name"] == ar("identity.full_name")
+
+
 def test_a_talent_application_lands_in_the_review_queue(
     client: TestClient,
     db: Session,
@@ -123,6 +195,7 @@ def test_a_talent_application_lands_in_the_review_queue(
         "/api/register/talent",
         json={
             "login_phone": APPLICANT_PHONE,
+            "identity": dict(IDENTITY),
             "talent": {
                 "display_name": ar("talent.applicant"),
                 "skill_id": str(skill.id),
@@ -393,7 +466,7 @@ def test_credentials_for_an_unknown_account_are_not_found(
 
 def _sign_in(client: TestClient, phone: str, password: str) -> dict[str, str]:
     response = client.post(
-        "/api/auth/login", json={"phone_number": phone, "password": password}
+        "/api/auth/login", json={"identifier": phone, "password": password}
     )
     assert response.status_code == 200, response.text
     return {"Authorization": f"Bearer {response.json()['access_token']}"}
@@ -408,7 +481,7 @@ def test_the_owner_signs_in_with_the_phone_number_and_the_issued_password(
     password = _issue(client, owner)
 
     body = client.post(
-        "/api/auth/login", json={"phone_number": APPLICANT_PHONE, "password": password}
+        "/api/auth/login", json={"identifier": APPLICANT_PHONE, "password": password}
     ).json()
     assert body["user"]["must_change_password"] is True
 
@@ -437,7 +510,7 @@ def test_a_failed_sign_in_says_the_same_thing_either_way(
     _issue(client, owner)
 
     refused = client.post(
-        "/api/auth/login", json={"phone_number": phone, "password": password}
+        "/api/auth/login", json={"identifier": phone, "password": password}
     )
     assert refused.status_code == 401
     assert refused.json()["error"]["code"] == "invalid_credentials"
@@ -454,16 +527,16 @@ def test_the_guess_budget_for_one_number_runs_out(
     assert owner is not None
     password = _issue(client, owner)
 
-    limit = get_settings().password_login_per_phone_limit
+    limit = get_settings().password_login_limit
     for _ in range(limit):
         attempt = client.post(
             "/api/auth/login",
-            json={"phone_number": APPLICANT_PHONE, "password": "wrong-password"},
+            json={"identifier": APPLICANT_PHONE, "password": "wrong-password"},
         )
         assert attempt.status_code == 401
 
     refused = client.post(
-        "/api/auth/login", json={"phone_number": APPLICANT_PHONE, "password": password}
+        "/api/auth/login", json={"identifier": APPLICANT_PHONE, "password": password}
     )
     assert refused.status_code == 429
     assert "Retry-After" in refused.headers
@@ -471,7 +544,7 @@ def test_the_guess_budget_for_one_number_runs_out(
     # Another number is unaffected: the budget is per phone number, so one
     # host cannot lock everybody out by guessing at one account.
     other = client.post(
-        "/api/auth/login", json={"phone_number": OTHER_PHONE, "password": "anything"}
+        "/api/auth/login", json={"identifier": OTHER_PHONE, "password": "anything"}
     )
     assert other.status_code == 401
 
@@ -480,18 +553,18 @@ def test_the_guess_budget_counts_numbers_with_no_account_too(
     client: TestClient, admin: User
 ) -> None:
     """Counting only real accounts would make the difference measurable."""
-    limit = get_settings().password_login_per_phone_limit
+    limit = get_settings().password_login_limit
     for _ in range(limit):
         assert (
             client.post(
                 "/api/auth/login",
-                json={"phone_number": OTHER_PHONE, "password": "wrong-password"},
+                json={"identifier": OTHER_PHONE, "password": "wrong-password"},
             ).status_code
             == 401
         )
 
     refused = client.post(
-        "/api/auth/login", json={"phone_number": OTHER_PHONE, "password": "wrong"}
+        "/api/auth/login", json={"identifier": OTHER_PHONE, "password": "wrong"}
     )
     assert refused.status_code == 429
 
@@ -509,7 +582,7 @@ def test_an_administrator_cannot_sign_in_on_the_owner_route(
 
     refused = client.post(
         "/api/auth/login",
-        json={"phone_number": APPLICANT_PHONE, "password": "AdminPass!123"},
+        json={"identifier": APPLICANT_PHONE, "password": "AdminPass!123"},
     )
     assert refused.status_code == 401
 

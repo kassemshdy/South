@@ -29,7 +29,13 @@ from app.core.rate_limit import DatabaseRateLimiter, RateLimitRule
 from app.models.enums import BusinessStatus
 from app.models.user import User
 from app.repositories.user import UserRepository
-from app.schemas.registration import BusinessRegistrationIn, TalentRegistrationIn
+from app.schemas.identity import IDENTITY_FIELDS
+from app.schemas.registration import (
+    BusinessRegistrationIn,
+    RegistrationBase,
+    RegistrationIdentityIn,
+    TalentRegistrationIn,
+)
 from app.services.business import BusinessService
 from app.services.talent import TalentService
 
@@ -70,7 +76,7 @@ class RegistrationService:
             )
         verify_captcha(captcha_token, self._settings, client_ip=client_ip)
 
-    def _claim_account(self, login_phone: str) -> User | None:
+    def _claim_account(self, payload: RegistrationBase) -> User | None:
         """The account this application belongs to, or None to discard it.
 
         None when the number already has an account. That case is silently
@@ -79,14 +85,17 @@ class RegistrationService:
         attaching the listing to the existing account would let a stranger
         put a listing inside someone else's dashboard.
         """
-        existing = self._users.get_by_phone(login_phone)
+        existing = self._users.get_by_phone(payload.login_phone)
         if existing is not None:
             logger.info(
                 "Registration for a number that already has an account; discarded",
                 extra={"user_id": str(existing.id)},
             )
             return None
-        return self._users.create_owner(login_phone)
+
+        owner = self._users.create_owner(payload.login_phone)
+        _apply_identity(owner, payload.identity)
+        return owner
 
     # --- Applications -------------------------------------------------------
 
@@ -94,7 +103,7 @@ class RegistrationService:
         self, payload: BusinessRegistrationIn, *, client_ip: str | None
     ) -> None:
         self._guard(payload.captcha_token, client_ip)
-        owner = self._claim_account(payload.login_phone)
+        owner = self._claim_account(payload)
         if owner is None:
             self._db.commit()
             return
@@ -114,7 +123,7 @@ class RegistrationService:
         self, payload: TalentRegistrationIn, *, client_ip: str | None
     ) -> None:
         self._guard(payload.captcha_token, client_ip)
-        owner = self._claim_account(payload.login_phone)
+        owner = self._claim_account(payload)
         if owner is None:
             self._db.commit()
             return
@@ -126,3 +135,22 @@ class RegistrationService:
             "Talent application received",
             extra={"profile_id": str(profile.id), "owner_id": str(owner.id)},
         )
+
+
+def _apply_identity(owner: User, identity: RegistrationIdentityIn) -> None:
+    """Write the applicant's identity onto the account they will sign into.
+
+    Onto the ``users`` row rather than the listing, which is where identity
+    lives everywhere else: one account holds one legal name however many
+    businesses it owns, and no public schema carries any of these columns.
+    The reviewer reads them back through ``OwnerIdentityOut`` on the review
+    payload they are already looking at.
+
+    Driven by ``IDENTITY_FIELDS`` rather than a written-out list, so a field
+    added to the identity block arrives here without a second edit — the same
+    reason ``PATCH /api/me`` iterates it.
+    """
+    values = identity.model_dump()
+    for field in IDENTITY_FIELDS:
+        if values.get(field) is not None:
+            setattr(owner, field, values[field])

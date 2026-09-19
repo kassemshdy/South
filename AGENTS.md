@@ -6,7 +6,7 @@ files (`CLAUDE.md`, etc.) should import this rather than duplicate it.
 ## What this is
 
 An Arabic-first business directory for South Lebanon. FastAPI + PostgreSQL backend,
-React/Vite frontend, phone/OTP auth, admin moderation workflow. Deployed to Railway as
+React/Vite frontend, password auth, admin moderation workflow. Deployed to Railway as
 two sets of three services — `postgres`/`api`/`web` and their `-develop`
 counterparts — under the `southwork` project — see
 `docs/RAILWAY.md` for the live topology and `docs/DEPLOYMENT.md` for environments.
@@ -66,14 +66,6 @@ below has nothing to say about register, so it is on the author and the
 reviewer. Markers to watch for: مش، هون، هلق، بعدين، فيك، بدّك، شو، هيك،
 عم + verb، يلّا، and the ب- present tense (بتعمل، بيصير).
 
-**One string deliberately does not live here: the WhatsApp code message.** When
-`OTP_PROVIDER=whatsapp`, the sign-in code is delivered as a WhatsApp
-*authentication template*, whose wording is registered and approved at Meta and
-referenced by name — the API sends only the code. So `auth.sms.body` is not what
-a WhatsApp recipient reads, and the template's language, not this repository,
-decides which language they read it in. This is the only exception, and it
-exists because the text is not ours to ship — see `docs/WHATSAPP_OTP.md`.
-
 `backend/tests/test_i18n.py` scans `backend/app`, `backend/scripts`, `backend/tests` and
 `frontend/src`/`frontend/e2e` for Arabic codepoints outside the catalogs and fixture files
 and fails the build if it finds one. That test is the actual guard — treat any Arabic
@@ -96,7 +88,6 @@ one person's head.
 | `.claude/commands/verify.md` | Slash command; it invokes the skill rather than restating it, so there is one copy to keep correct. |
 | `.claude/settings.json` | Pre-approved tools. Read-only commands and MCP reads are allowed; anything that writes still prompts. |
 | `docs/MCP.md` | The agent-facing MCP server: read the whole directory, write only to the ticket board. |
-| `docs/WHATSAPP_OTP.md` | Delivering the sign-in code over WhatsApp: what the Meta account needs, why the code message is not in a locale catalog, and the order the switch must happen in. |
 
 **When a mistake repeats, fix the artifact rather than the instance.** A skill
 or a line in this file is worth more than a correction in one conversation,
@@ -149,11 +140,11 @@ would mislead rather than help.
 
 ## How Somebody Gets Onto This Site
 
-There is **no self-service sign-up**, and there is no working SMS or WhatsApp
-gateway. What there is, end to end:
+There is **no self-service sign-up**, and no way in but a password. What
+there is, end to end:
 
 ```
-public form (+ Turnstile)  →  User(OWNER, password_hash NULL)
+public form (+ Turnstile)  →  User(OWNER, password_hash NULL, identity set)
                               + Business/TalentProfile(PENDING_REVIEW)
 administrator audits it    →  approve / reject, in the queue that already existed
 "issue credentials"        →  password generated, shown ONCE, wa.me link opens
@@ -161,7 +152,7 @@ administrator audits it    →  approve / reject, in the queue that already exis
 owner signs in (phone+pw)  →  forced password change  →  dashboard
 ```
 
-Four things about it are load-bearing rather than incidental:
+Five things about it are load-bearing rather than incidental:
 
 - **An application is stored as the listing itself**, pending review — not as a
   separate "application" table. The moderation queue, the serializers and the
@@ -185,16 +176,36 @@ Four things about it are load-bearing rather than incidental:
   through a chat message; the forced change is what makes it a way in exactly
   once instead of a standing credential, and replacing it bumps `token_version`
   so whoever else read that chat is signed out.
+- **The applicant's identity is collected on the public form**, and written
+  onto the `users` row rather than the listing. The reviewer is deciding
+  whether this is a real person from the South, so asking afterwards would put
+  the decision before the evidence. Everything in the Security Musts about
+  identity applies unchanged: no public schema carries any of it, and the
+  reviewer reads it through `OwnerIdentityOut` on the payload they are already
+  looking at.
 
-The OTP provider work is still there and still wired up, unused. The account is
-keyed by phone number either way, so a gateway arriving later is a **second
-door onto the same account**, not a migration — see `docs/WHATSAPP_OTP.md`.
+**Sign-in is one form for everybody.** `POST /api/auth/login` takes an
+`identifier` — a phone number for an owner, an email address for an
+administrator — and a password, and the account's role decides what the token
+opens. `POST /api/auth/admin/login` still exists, deliberately unlinked, as
+the way back in when the main form is broken; an administrator locked out of a
+deployment has nobody to ask.
+
+**OTP sign-in was removed, not disabled.** No SMS or WhatsApp gateway was ever
+obtainable, so the only provider that ever ran was the development one, which
+issues a fixed code — mounted on a deployment, that is a way in for anyone who
+knows a phone number, not a login. The account is still keyed by phone number,
+so a gateway arriving later is a **second door onto the same account**, not a
+migration; it would be new code rather than a flag, which is the right price
+for something that hands out sessions.
 
 ## Security Musts
 
-- **Never commit secrets.** `SECRET_KEY`, `ADMIN_PASSWORD`, Twilio credentials, and the
-  admin bootstrap password are Railway environment variables, never literals in code,
-  docs, or commit messages.
+- **Never commit secrets.** `SECRET_KEY`, `ADMIN_PASSWORD` and the admin bootstrap
+  password are Railway environment variables, never literals in code, docs, or commit
+  messages. `SEED_OWNER_PASSWORD` is the one deliberate exception and is therefore not
+  a secret: it is the demo accounts' password, it is in `.env.example`, and
+  `Settings.enforce_production_safety` refuses to boot production with it set.
 - **Scope every business query to its owner.** Dashboard/owner endpoints (`/api/my/*`)
   must filter by the authenticated user's id — never trust a business id alone from the
   request. See `app/repositories/business.py` for the existing scoping pattern before
@@ -225,9 +236,9 @@ door onto the same account**, not a migration — see `docs/WHATSAPP_OTP.md`.
   for a bad one, and the frontend attaches whatever token is in local storage
   to every request — so an expired session would 401 the public listing pages.
   `Viewer` degrades to anonymous. See `app/core/dependencies.py`.
-- Production refuses to boot with the mock OTP provider or a weak `SECRET_KEY` — see
-  `Settings.enforce_production_safety()` in `app/core/config.py`. Don't weaken this to
-  make a deploy easier; fix the underlying config instead.
+- Production refuses to boot with a weak `SECRET_KEY` or with `SEED_OWNER_PASSWORD`
+  set — see `Settings.enforce_production_safety()` in `app/core/config.py`. Don't
+  weaken this to make a deploy easier; fix the underlying config instead.
 - **Nothing an owner authenticates with may reach Sentry.** Both SDKs run with PII
   collection off, and `app/core/observability.py` additionally drops the query string
   and request body and recursively redacts credential-shaped keys. A business's

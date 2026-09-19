@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 
 import { openBusinessWizard } from './support/wizard'
 
-import { signInWithCode } from './support/sign-in'
+import { signIn } from './support/sign-in'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
@@ -49,7 +49,7 @@ const JPEG = Buffer.from(
  */
 test.describe('Lean onboarding', () => {
   test('an owner reaches review without touching an optional step', async ({ page }) => {
-    await signInWithCode(page, OWNER_PHONE)
+    await signIn(page, OWNER_PHONE)
 
     await openBusinessWizard(page)
 

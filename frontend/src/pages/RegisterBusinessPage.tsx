@@ -16,7 +16,11 @@ import { RegistrationShell, unwrapFieldErrors } from '@/features/onboarding/Regi
 import { useSeo } from '@/hooks/useSeo'
 import { useT } from '@/i18n'
 import { ApiError } from '@/services/api/client'
-import { registrationApi, type BusinessPayload } from '@/services/api/endpoints'
+import {
+  registrationApi,
+  type Applicant,
+  type BusinessPayload,
+} from '@/services/api/endpoints'
 
 export function RegisterBusinessPage() {
   const t = useT()
@@ -25,8 +29,11 @@ export function RegisterBusinessPage() {
   useSeo({ title: t('register.businessSeoTitle'), description: t('register.businessSubtitle') })
 
   const apply = useMutation({
-    mutationFn: (input: { phone: string; payload: BusinessPayload; token: string | null }) =>
-      registrationApi.business(input.phone, input.payload, input.token),
+    mutationFn: (input: {
+      applicant: Applicant
+      payload: BusinessPayload
+      token: string | null
+    }) => registrationApi.business(input.applicant, input.payload, input.token),
     onError: (error) =>
       toast.error(
         t('register.failed'),
@@ -40,15 +47,16 @@ export function RegisterBusinessPage() {
       subtitleKey="register.businessSubtitle"
       submitted={apply.isSuccess}
     >
-      {({ requireLoginPhone, captchaToken, captcha }) => (
+      {({ requireApplicant, captchaToken, captcha }) => (
         <BasicsForm
           submitLabel={t('register.submit')}
+          identityElsewhere={false}
           pending={apply.isPending}
           serverError={unwrapFieldErrors(apply.error, 'business')}
           onSubmit={(payload) => {
-            const phone = requireLoginPhone()
-            if (!phone) return
-            apply.mutate({ phone, payload, token: captchaToken })
+            const applicant = requireApplicant()
+            if (!applicant) return
+            apply.mutate({ applicant, payload, token: captchaToken })
           }}
           footer={
             <>

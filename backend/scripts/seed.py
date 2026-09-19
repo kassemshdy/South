@@ -42,7 +42,7 @@ from app.core.phone import normalize_phone
 from app.core.security import hash_password
 from app.database.session import session_scope
 from app.models.article import Article
-from app.models.auth import OtpRequest, RateLimitEvent
+from app.models.auth import RateLimitEvent
 from app.models.business import (
     Business,
     BusinessImage,
@@ -165,6 +165,38 @@ def seed_locations(db) -> dict[str, Location]:  # type: ignore[no-untyped-def]
     return existing
 
 
+def _demo_owner(db, owner_phone: str) -> User:  # type: ignore[no-untyped-def]
+    """The account a seeded listing belongs to, created if it is not there.
+
+    Sign-in is by password, so a seeded owner with no password is a listing
+    whose dashboard nobody can open — fine for a real account, which waits for
+    an administrator to issue credentials, and useless for demo data and for
+    the end-to-end suite, which both need to get in.
+
+    ``SEED_OWNER_PASSWORD`` is therefore applied here when it is set, on every
+    run rather than only at creation, so changing it in the environment is
+    enough to make these accounts usable again. It is refused in production by
+    ``Settings.enforce_production_safety`` — these phone numbers are in this
+    repository, so their password would be too.
+    """
+    phone = normalize_phone(owner_phone)
+    owner = db.execute(select(User).where(User.phone_number == phone)).scalar_one_or_none()
+    if owner is None:
+        owner = User(phone_number=phone, role=UserRole.OWNER)
+        db.add(owner)
+
+    password = get_settings().seed_owner_password
+    if password:
+        owner.password_hash = hash_password(password)
+        # Demo data is for looking at, not for walking through a first
+        # sign-in: the forced change would put a password screen in front of
+        # every one of these accounts.
+        owner.must_change_password = False
+
+    db.flush()
+    return owner
+
+
 def seed_admin(db) -> User | None:  # type: ignore[no-untyped-def]
     settings = get_settings()
     if not settings.admin_email or not settings.admin_password:
@@ -261,12 +293,7 @@ def seed_businesses(db, categories, locations, admin) -> int:  # type: ignore[no
             _backfill_business_detail(existing, entry)
             continue
 
-        phone = normalize_phone(entry["owner_phone"])
-        owner = db.execute(select(User).where(User.phone_number == phone)).scalar_one_or_none()
-        if owner is None:
-            owner = User(phone_number=phone, role=UserRole.OWNER)
-            db.add(owner)
-            db.flush()
+        owner = _demo_owner(db, entry["owner_phone"])
 
         category = categories[entry["category"]]
         location = locations[entry["location"]]
@@ -492,12 +519,7 @@ def seed_talents(db, skills, locations, admin) -> int:  # type: ignore[no-untype
             _backfill_talent_detail(existing, entry)
             continue
 
-        phone = normalize_phone(entry["owner_phone"])
-        owner = db.execute(select(User).where(User.phone_number == phone)).scalar_one_or_none()
-        if owner is None:
-            owner = User(phone_number=phone, role=UserRole.OWNER)
-            db.add(owner)
-            db.flush()
+        owner = _demo_owner(db, entry["owner_phone"])
 
         skill = skills[entry["skill"]]
         location = locations[entry["location"]]
@@ -762,7 +784,7 @@ def reset(db) -> None:  # type: ignore[no-untyped-def]
     for model in (
         TalentModerationAction, TalentImage, TalentProfile, TalentSkill,
         Article, ModerationAction, BusinessItem, BusinessImage, BusinessSocialLink,
-        Business, OtpRequest, RateLimitEvent, Category, Location, User,
+        Business, RateLimitEvent, Category, Location, User,
     ):
         db.execute(delete(model))
     db.flush()
@@ -826,7 +848,9 @@ def main() -> int:
     print("\nDevelopment data ready.")
     if settings.admin_email:
         print(f"   Admin panel: {settings.admin_email} / (ADMIN_PASSWORD from .env)")
-    print(f"   Development OTP code: {settings.dev_fixed_otp_code}\n")
+    if settings.seed_owner_password:
+        print("   Owner sign-in: any seeded owner_phone / (SEED_OWNER_PASSWORD from .env)")
+    print()
     return 0
 
 

@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { signInWithCode } from './support/sign-in'
+import { signIn } from './support/sign-in'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
@@ -112,7 +112,7 @@ test.describe('Audience chooser', () => {
   test('someone signed in gets the same doors, pointing at their dashboard', async ({
     page,
   }) => {
-    await signInWithCode(page, OWNER_PHONE)
+    await signIn(page, OWNER_PHONE)
 
     await page.goto('/')
     await expect(page.getByRole('heading', { name: t('onboarding.heading') })).toBeVisible()

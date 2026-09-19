@@ -32,15 +32,22 @@ these ways is not telling you what it appears to.
   literal anywhere on the command line is enough.
 - **Running the Playwright suite twice breaks it two different ways, and
   neither looks like what it is.** Both bit in one session.
-  1. **The per-IP OTP limiter.** Every owner/admin spec signs in, and
-     `OTP_SEND_PER_IP_LIMIT` counts them all against one address. Past the
-     limit `request-otp` answers `rate_limited` with a `retry_after_seconds`
-     near an hour, the code field never appears, and the failure reads as
-     `locator.fill: Test timeout ... waiting for getByLabel('رمز التحقق')`
-     — broken auth, apparently. Probe it directly to be sure:
-     `curl -s -X POST localhost:8000/api/auth/request-otp -H 'Content-Type:
-     application/json' -d '{"phone_number":"03911223"}'`. `TRUNCATE
+  1. **The sign-in guess limiter.** Every owner/admin spec signs in, and a
+     run that leaves failures behind — a mistyped fixture, a spec that got
+     as far as the password — spends that identifier's budget:
+     `PASSWORD_LOGIN_LIMIT` failures per fifteen minutes, keyed on the phone
+     number or email as typed. Past it the login answers `rate_limited` with
+     a `retry_after_seconds` in the hundreds *even when the password is
+     right*, and the failure reads as a sign-in that simply does not work.
+     Probe it directly to be sure: `curl -s -X POST
+     localhost:8000/api/auth/login -H 'Content-Type: application/json' -d
+     '{"identifier":"03911223","password":"x"}'`. `TRUNCATE
      rate_limit_events` clears it without waiting.
+
+     The specs sign in with `SEED_OWNER_PASSWORD`, so a run where *every*
+     sign-in fails is usually that variable missing from the API's
+     environment, or set to something the database was not seeded with —
+     re-seed after changing it, since the hash is written at seed time.
   2. **Duplicate rows.** Each run creates its listings again, so the second
      run fails with a Playwright *strict mode violation* — "resolved to 3
      elements" for one business name. Nothing is broken; the same shop exists

@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { signInWithCode } from './support/sign-in'
+import { signIn } from './support/sign-in'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
@@ -50,7 +50,7 @@ function jpeg(): { name: string; mimeType: string; buffer: Buffer } {
 }
 
 async function signInAsOwner(page: Page) {
-  await signInWithCode(page, OWNER_PHONE)
+  await signIn(page, OWNER_PHONE)
 }
 
 async function signInAsAdmin(page: Page) {

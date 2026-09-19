@@ -1,9 +1,10 @@
 """Error tracking: off by default, and never ships a credential when on.
 
 Sentry sees production tracebacks, so the interesting assertions here are all
-negative: what must *not* leave the service. Owner login phone numbers, OTP
-codes and bearer tokens are the three things this codebase treats as secret,
-and each is checked explicitly rather than trusted to ``send_default_pii``.
+negative: what must *not* leave the service. Owner login phone numbers,
+passwords and bearer tokens are the three things this codebase treats as
+secret, and each is checked explicitly rather than trusted to
+``send_default_pii``.
 """
 
 from __future__ import annotations

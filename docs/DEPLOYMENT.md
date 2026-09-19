@@ -25,15 +25,15 @@ Migrations run automatically when the API container starts.
 
 ## Choosing an environment
 
-| `APP_ENV` | Mock OTP | Use it for |
+| `APP_ENV` | Demo passwords | Use it for |
 |---|---|---|
 | `development` | yes | local work |
-| `staging` | yes | a deployed build people can actually sign into before an SMS gateway exists |
-| `production` | **never** | the real thing, once `OTP_PROVIDER=twilio` and credentials are set |
+| `staging` | yes | a deployed build people can sign into without issuing credentials by hand |
+| `production` | **never** | the real thing |
 
-`staging` applies every production safety check except the mock-OTP ban: a weak
-`SECRET_KEY` still refuses to boot, and security headers and HSTS still apply.
-Moving to production is a variable change plus SMS credentials — no code edit.
+`staging` applies every production safety check except the `SEED_OWNER_PASSWORD`
+ban: a weak `SECRET_KEY` still refuses to boot, and security headers and HSTS
+still apply. Moving to production is a variable change — no code edit.
 
 ---
 
@@ -46,9 +46,9 @@ python -c "import secrets; print(secrets.token_urlsafe(48))"
 ```
 
 The application refuses to start in production if `SECRET_KEY` is still the
-development default, if `OTP_PROVIDER=mock`, if Twilio credentials are
-incomplete, or if `DEBUG` is true. That check lives in
-`Settings.enforce_production_safety()`.
+development default, if `SEED_OWNER_PASSWORD` is set — it is the demo
+accounts' password and lives in this repository — or if `DEBUG` is true. That
+check lives in `Settings.enforce_production_safety()`.
 
 ### Required environment variables
 
@@ -59,8 +59,6 @@ incomplete, or if `DEBUG` is true. That check lives in
 | `DATABASE_URL` | `postgresql+psycopg://user:pass@host:5432/south` | note the `+psycopg` driver |
 | `PUBLIC_BASE_URL` | `https://daleeljanoub.com` | canonical URLs, OG tags, sitemap |
 | `CORS_ORIGINS` | `https://daleeljanoub.com` | comma-separated |
-| `OTP_PROVIDER` | `twilio` | `mock` is rejected in production |
-| `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_FROM_NUMBER` | | required for Twilio |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | | the seeded administrator |
 | `STORAGE_BACKEND` | `local` or `s3` | |
 
@@ -114,10 +112,6 @@ DOMAIN=daleeljanoub.com
 PUBLIC_BASE_URL=https://daleeljanoub.com
 POSTGRES_PASSWORD=<strong password>
 SECRET_KEY=<generated>
-OTP_PROVIDER=twilio
-TWILIO_ACCOUNT_SID=...
-TWILIO_AUTH_TOKEN=...
-TWILIO_FROM_NUMBER=...
 ENV
 
 docker compose -f docker-compose.prod.yml up -d

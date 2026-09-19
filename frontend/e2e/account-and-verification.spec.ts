@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 
 import { openBusinessWizard } from './support/wizard'
 
-import { signInWithCode } from './support/sign-in'
+import { signIn } from './support/sign-in'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
@@ -52,7 +52,7 @@ function pdf(name = 'id.pdf'): { name: string; mimeType: string; buffer: Buffer 
 test.describe('Private owner verification', () => {
   test('owner sets personal info; admin views and downloads it', async ({ page }) => {
     // --- Owner: sign in and open the Account page --------------------------
-    await signInWithCode(page, OWNER_PHONE)
+    await signIn(page, OWNER_PHONE)
 
     await page.goto('/dashboard/account')
     await expect(page.getByRole('heading', { name: t('account.heading') })).toBeVisible()

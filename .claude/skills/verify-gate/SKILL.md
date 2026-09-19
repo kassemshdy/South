@@ -55,6 +55,12 @@ CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npx playwright 
 
 Needs the API on `:8000`, Vite on `:5173`, and a **clean database**.
 
+It also needs `SEED_OWNER_PASSWORD` set in the API's environment *before the
+seed ran*, because that is when the hash is written. Every owner spec signs in
+with it — `e2e/support/sign-in.ts` defaults to the `.env.example` value, and
+`E2E_OWNER_PASSWORD` overrides it. Sign-ins failing across the board is this,
+not broken auth.
+
 ## 6. Look at it, from `frontend/`
 
 Only for a change that alters something a visitor or owner sees. Everything

@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 
 import { openBusinessWizard } from './support/wizard'
 
-import { signInWithCode } from './support/sign-in'
+import { signIn } from './support/sign-in'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
@@ -54,7 +54,7 @@ function jpeg(): { name: string; mimeType: string; buffer: Buffer } {
 }
 
 async function signInAsOwner(page: Page) {
-  await signInWithCode(page, OWNER_PHONE)
+  await signIn(page, OWNER_PHONE)
 }
 
 /**

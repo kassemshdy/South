@@ -140,10 +140,10 @@ def test_validation_errors_are_translated(client: TestClient) -> None:
     own untranslated English, in both languages. An Arabic reader filling in
     a form was told "String should have at least 6 characters".
     """
-    arabic = client.post("/api/auth/request-otp", json={"phone_number": "12"})
+    arabic = client.post("/api/auth/login", json={"identifier": "", "password": ""})
     english = client.post(
-        "/api/auth/request-otp",
-        json={"phone_number": "12"},
+        "/api/auth/login",
+        json={"identifier": "", "password": ""},
         headers={"Accept-Language": "en"},
     )
 
@@ -157,12 +157,12 @@ def test_validation_errors_are_translated(client: TestClient) -> None:
     assert (
         arabic.json()["error"]["details"]["fields"][0]["field"]
         == english.json()["error"]["details"]["fields"][0]["field"]
-        == "phone_number"
+        == "identifier"
     )
 
 
 def test_a_missing_field_is_reported_in_the_readers_language(client: TestClient) -> None:
-    arabic = client.post("/api/auth/request-otp", json={})
+    arabic = client.post("/api/auth/login", json={})
     assert arabic.status_code == 422
     assert all(ARABIC.search(message) for message in _field_messages(arabic))
 
@@ -343,29 +343,20 @@ def test_every_endonym_exception_is_still_used() -> None:
     assert not missing, f"stale endonym exceptions, remove them: {sorted(missing)}"
 
 
-def test_production_still_refuses_the_mock_otp_provider() -> None:
-    settings = Settings(app_env="production", secret_key="a-real-secret", otp_provider="mock")
-    with pytest.raises(RuntimeError, match="mock"):
-        settings.enforce_production_safety()
-
-
-def test_staging_allows_mock_otp_but_keeps_every_other_check() -> None:
+def test_staging_is_hardened_like_production_bar_one_thing() -> None:
+    """The demo password is the only shortcut staging is allowed."""
     Settings(
-        app_env="staging", secret_key="a-real-secret", otp_provider="mock"
+        app_env="staging",
+        secret_key="a-real-secret",
+        seed_owner_password="demo-password",
     ).enforce_production_safety()
 
     weak = Settings(
         app_env="staging",
         secret_key="dev-insecure-secret-change-me",
-        otp_provider="mock",
     )
     with pytest.raises(RuntimeError, match="SECRET_KEY"):
         weak.enforce_production_safety()
-
-
-def test_production_never_exposes_a_fixed_otp_code() -> None:
-    assert Settings(app_env="production", otp_dev_fixed_code="123456").dev_fixed_otp_code is None
-    assert Settings(app_env="staging", otp_dev_fixed_code="123456").dev_fixed_otp_code == "123456"
 
 
 def test_domain_error_carries_a_key_not_a_sentence() -> None:
