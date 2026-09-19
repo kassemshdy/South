@@ -11,6 +11,7 @@ from app.core.dependencies import (
     AppSettings,
     CurrentUser,
     DbSession,
+    ListingOwner,
     OwnedBusiness,
     Viewer,
 )
@@ -124,8 +125,13 @@ def list_my_businesses(user: CurrentUser, db: DbSession) -> list[OwnerBusinessOu
     "/businesses", response_model=OwnerBusinessOut, status_code=status.HTTP_201_CREATED
 )
 def create_business(
-    payload: BusinessCreateIn, user: CurrentUser, db: DbSession
+    payload: BusinessCreateIn, user: ListingOwner, db: DbSession
 ) -> OwnerBusinessOut:
+    """Create a listing owned by the caller.
+
+    `ListingOwner` rather than `CurrentUser`: an administrator judges the
+    review queue and may not put a listing of their own into it.
+    """
     business = BusinessService(db).create(user, payload)
     return owner_business(business)
 

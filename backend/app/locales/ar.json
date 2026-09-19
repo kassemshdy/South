@@ -70,6 +70,7 @@
   "item.title_required": "اسم العنصر مطلوب.",
   "item.too_many": "لا يمكن إضافة أكثر من {max} عنصر لنشاط واحد.",
   "item.unknown_in_order": "قائمة الترتيب تحتوي على عناصر غير موجودة.",
+  "listing.admin_cannot_own": "حساب الإدارة لا يمكنه إنشاء نشاط أو ملف مهني. الإدارة تراجع الطلبات، ولا تقدّم طلباً.",
   "moderation.invalid_transition": "لا يمكن تنفيذ هذا الإجراء والنشاط في حالة «{status}».",
   "moderation.reject_reason_required": "يرجى كتابة سبب واضح للرفض.",
   "order.not_found": "الطلب غير موجود.",

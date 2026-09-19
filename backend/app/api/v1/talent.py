@@ -12,7 +12,13 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Path, Query, status
 
 from app.api.serializers import owner_talent, paginate, talent_detail, talent_summary
-from app.core.dependencies import CurrentUser, DbSession, OwnTalentProfile, Viewer
+from app.core.dependencies import (
+    CurrentUser,
+    DbSession,
+    ListingOwner,
+    OwnTalentProfile,
+    Viewer,
+)
 from app.core.errors import NotFoundError
 from app.core.i18n import translate
 from app.core.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
@@ -97,8 +103,10 @@ def get_my_talent(profile: OwnTalentProfile) -> OwnerTalentOut:
     "/talent", response_model=OwnerTalentOut, status_code=status.HTTP_201_CREATED
 )
 def create_talent(
-    payload: TalentCreateIn, user: CurrentUser, db: DbSession
+    payload: TalentCreateIn, user: ListingOwner, db: DbSession
 ) -> OwnerTalentOut:
+    """Create the caller's talent profile. Refused for an administrator, for
+    the reason recorded on `get_listing_owner`."""
     profile = TalentService(db).create(user, payload)
     return owner_talent(profile)
 

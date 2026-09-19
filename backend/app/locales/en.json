@@ -70,6 +70,7 @@
   "item.title_required": "An item name is required.",
   "item.too_many": "A business cannot have more than {max} items.",
   "item.unknown_in_order": "The ordering list contains items that do not exist.",
+  "listing.admin_cannot_own": "An administrator account cannot create a listing or a talent profile. Administrators review applications; they do not submit one.",
   "moderation.invalid_transition": "This action is not possible while the business is “{status}”.",
   "moderation.reject_reason_required": "Please give a clear reason for the rejection.",
   "order.not_found": "Order not found.",
