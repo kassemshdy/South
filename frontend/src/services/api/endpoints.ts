@@ -167,10 +167,12 @@ export interface ApplicantIdentity {
   residence_place: string
 }
 
-/** An applicant, before they have an account: a login number and an identity. */
+/** An applicant, before they have an account. */
 export interface Applicant {
   phone: string
   identity: ApplicantIdentity
+  /** The ID scan, when they attached one. The API does not insist. */
+  document: File | null
 }
 
 export const authApi = {
@@ -704,6 +706,23 @@ export interface RegistrationResult {
   message: string
 }
 
+/**
+ * An application, as the register routes take it: the JSON in one field and
+ * the applicant's ID scan beside it.
+ *
+ * Multipart rather than JSON because the scan travels with the application —
+ * there is no account to upload it to yet, and the reviewer decides whether
+ * this is a real person from the South. The shape stays JSON in one field
+ * rather than being flattened into form fields, so there is still one
+ * definition of what an application is.
+ */
+function applicationForm(application: unknown, document: File | null): FormData {
+  const form = new FormData()
+  form.append('application', JSON.stringify(application))
+  if (document) form.append('document', document)
+  return form
+}
+
 export const registrationApi = {
   business: (
     applicant: Applicant,
@@ -712,21 +731,27 @@ export const registrationApi = {
   ) =>
     apiRequest<RegistrationResult>('/api/register/business', {
       method: 'POST',
-      body: {
-        login_phone: applicant.phone,
-        identity: applicant.identity,
-        business,
-        captcha_token,
-      },
+      formData: applicationForm(
+        {
+          login_phone: applicant.phone,
+          identity: applicant.identity,
+          business,
+          captcha_token,
+        },
+        applicant.document,
+      ),
     }),
   talent: (applicant: Applicant, talent: TalentPayload, captcha_token: string | null) =>
     apiRequest<RegistrationResult>('/api/register/talent', {
       method: 'POST',
-      body: {
-        login_phone: applicant.phone,
-        identity: applicant.identity,
-        talent,
-        captcha_token,
-      },
+      formData: applicationForm(
+        {
+          login_phone: applicant.phone,
+          identity: applicant.identity,
+          talent,
+          captcha_token,
+        },
+        applicant.document,
+      ),
     }),
 }

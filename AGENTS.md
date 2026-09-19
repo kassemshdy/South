@@ -144,7 +144,8 @@ There is **no self-service sign-up**, and no way in but a password. What
 there is, end to end:
 
 ```
-public form (+ Turnstile)  →  User(OWNER, password_hash NULL, identity set)
+public form (+ Turnstile)  →  User(OWNER, password_hash NULL, identity set,
+                                    ID scan attached)
                               + Business/TalentProfile(PENDING_REVIEW)
 administrator audits it    →  approve / reject, in the queue that already existed
 "issue credentials"        →  password generated, shown ONCE, wa.me link opens
@@ -183,6 +184,17 @@ Five things about it are load-bearing rather than incidental:
   identity applies unchanged: no public schema carries any of it, and the
   reviewer reads it through `OwnerIdentityOut` on the payload they are already
   looking at.
+- **The ID scan arrives with the application**, which is why the two register
+  routes take multipart rather than JSON. That is not an anonymous upload
+  endpoint: the file is accepted only as part of an application that
+  succeeds, behind the same captcha and the same rate limits, refused before
+  anything is created if it is too large or is not a document, and written
+  against the account that application creates in that application's
+  transaction. A number that already has an account is still discarded
+  silently, document and all — otherwise guessing a number would be a way to
+  put a file on somebody else's account. `VerificationDocumentService.validate`
+  exists to make the "refused before anything is created" half possible, and
+  `tests/test_registration.py` pins every clause of this paragraph.
 
 **Sign-in is one form for everybody.** `POST /api/auth/login` takes an
 `identifier` — a phone number for an owner, an email address for an

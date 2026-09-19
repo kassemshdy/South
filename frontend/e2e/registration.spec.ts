@@ -21,6 +21,12 @@ const fixture = load<{
 }>('./fixtures/registration-data.json')
 const t = (key: string): string => ar[key]!
 
+/** A one-pixel PNG. The API sniffs magic bytes, so it has to be a real one. */
+const PNG_BYTES = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  'base64',
+)
+
 const ADMIN_EMAIL = 'admin@example.com'
 const ADMIN_PASSWORD = 'ChangeMe!123'
 
@@ -67,6 +73,15 @@ test.describe('Applying for a listing', () => {
     await page.getByLabel(t('account.birthYearLabel')).fill(fixture.birthYear)
     await page.getByLabel(t('account.registrationPlaceLabel')).fill(fixture.registrationPlace)
     await page.getByLabel(t('account.residencePlaceLabel')).fill(fixture.residencePlace)
+
+    // The ID scan travels with the application: there is no account to upload
+    // it to yet, and the reviewer is about to decide whether the four fields
+    // above describe a real person.
+    await page.locator('input[type="file"]').setInputFiles({
+      name: 'id.png',
+      mimeType: 'image/png',
+      buffer: PNG_BYTES,
+    })
 
     await page.getByLabel(t('form.name')).fill(fixture.businessName)
     await page.getByLabel(t('form.shortDescription')).fill(fixture.shortDescription)
@@ -119,6 +134,13 @@ test.describe('Applying for a listing', () => {
     // that it is on this screen when the decision is made.
     await expect(admin.getByText(fixture.fullName).first()).toBeVisible()
     await expect(admin.getByText(fixture.residencePlace).first()).toBeVisible()
+
+    // And the scan they attached, which is what the reviewer checks those
+    // against — downloaded here rather than merely present, because a
+    // document that cannot be opened is not evidence.
+    const documentDownload = admin.waitForEvent('download')
+    await admin.getByRole('button', { name: t('admin.downloadDocument') }).click()
+    expect((await documentDownload).suggestedFilename()).toBe('id.png')
 
     await admin.getByRole('button', { name: t('credentials.issue') }).click()
     await expect(admin.getByText(t('credentials.onceWarning'))).toBeVisible()

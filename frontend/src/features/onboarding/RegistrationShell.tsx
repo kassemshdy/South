@@ -19,9 +19,24 @@
  * evidence. It is written onto the account, not the listing, and no public
  * payload carries it: the reviewer reads it back on the screen they are
  * already looking at.
+ *
+ * The ID scan sits in that same block, for the same reason, and the form
+ * insists on it: the reviewer is checking the four fields above against a
+ * document, and an application without one is one they cannot act on. The
+ * API itself still accepts an application without a scan — it is a rule
+ * about this form, not about the route, and an administrator attaching one
+ * later on behalf of somebody who walked in is a path worth keeping open.
+ * It never gets a public URL — see `app/services/verification.py`.
  */
 
-import { CheckCircle2, MessageCircle, Phone, ShieldCheck, UserRound } from 'lucide-react'
+import {
+  CheckCircle2,
+  MessageCircle,
+  Phone,
+  ShieldCheck,
+  Upload,
+  UserRound,
+} from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -79,6 +94,12 @@ const IDENTITY_LABELS: Record<IdentityField, TranslationKey> = {
   residence_place: 'account.residencePlaceLabel',
 }
 
+/** What `app/services/verification.py` sniffs for, as an accept hint. */
+const DOCUMENT_TYPES = ['application/pdf', 'image/jpeg', 'image/png']
+
+/** Mirrors MAX_VERIFICATION_DOC_BYTES; the API is still the judge. */
+const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024
+
 const IDENTITY_MISSING: Record<IdentityField, TranslationKey> = {
   full_name: 'validation.fullNameRequired',
   birth_year: 'validation.birthYearInvalid',
@@ -126,6 +147,8 @@ export function RegistrationShell({
   const [identityErrors, setIdentityErrors] = useState<
     Partial<Record<IdentityField, string>>
   >({})
+  const [document, setDocument] = useState<File | null>(null)
+  const [documentError, setDocumentError] = useState<string | null>(null)
 
   const requirePhone = (): string | null => {
     const value = loginPhone.trim()
@@ -164,13 +187,22 @@ export function RegistrationShell({
     }
   }
 
+  const requireDocument = (): File | null => {
+    if (!document) {
+      setDocumentError(t('register.documentRequired'))
+      return null
+    }
+    return document
+  }
+
   const requireApplicant = (): Applicant | null => {
-    // Both, always, rather than stopping at the first failure: somebody who
-    // has left two fields blank should be told about two fields.
+    // All of them, always, rather than stopping at the first failure:
+    // somebody who has left two fields blank should be told about two fields.
     const phone = requirePhone()
     const values = requireIdentity()
-    if (!phone || !values) return null
-    return { phone, identity: values }
+    const scan = requireDocument()
+    if (!phone || !values || !scan) return null
+    return { phone, identity: values, document: scan }
   }
 
   if (submitted) return <SubmittedPanel phone={loginPhone} />
@@ -259,6 +291,55 @@ export function RegistrationShell({
               </Field>
             ))}
           </div>
+
+          {/* The scan the reviewer checks the four fields above against. */}
+          <Field
+            label={t('register.documentLabel')}
+            required
+            error={documentError ?? undefined}
+            hint={t('register.documentHint')}
+          >
+            {(props) => (
+              // The native control is hidden rather than styled: a file input
+              // renders "Choose File / No file chosen" in the *browser's*
+              // language, which on an Arabic-first site is two English words
+              // nobody asked for and no attribute can translate. The label
+              // below drives the same input, so clicking it still opens the
+              // picker and the control stays a real file input for
+              // assistive technology.
+              <div className="flex flex-wrap items-center gap-3 rounded-xl border-2 border-dashed border-sand-300 bg-sand-50 p-3">
+                <input
+                  {...props}
+                  type="file"
+                  accept={DOCUMENT_TYPES.join(',')}
+                  className="sr-only"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] ?? null
+                    // Checked here as well as at the API, because a phone
+                    // photo over the cap would otherwise be a long upload
+                    // that ends in a refusal.
+                    if (file && file.size > MAX_DOCUMENT_BYTES) {
+                      setDocument(null)
+                      setDocumentError(t('register.documentTooLarge'))
+                      return
+                    }
+                    setDocumentError(null)
+                    setDocument(file)
+                  }}
+                />
+                <label
+                  htmlFor={props.id}
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800"
+                >
+                  <Upload className="h-4 w-4" aria-hidden="true" />
+                  {t('register.documentChoose')}
+                </label>
+                <span className="min-w-0 flex-1 truncate text-sm text-ink-500">
+                  {document ? document.name : t('register.documentNone')}
+                </span>
+              </div>
+            )}
+          </Field>
         </CardBody>
       </Card>
 

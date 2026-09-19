@@ -57,15 +57,7 @@ class VerificationDocumentService:
         kind: VerificationDocumentKind = VerificationDocumentKind.IDENTITY,
     ) -> OwnerVerificationDocument:
         """Replace ``user``'s document of ``kind`` (one per owner) with ``data``."""
-        if not data:
-            raise UnsupportedMediaTypeError("verification.empty")
-        if len(data) > self._settings.max_verification_doc_bytes:
-            limit_mb = self._settings.max_verification_doc_bytes / (1024 * 1024)
-            raise PayloadTooLargeError(
-                "verification.too_large", params={"limit": f"{limit_mb:.0f}"}
-            )
-
-        content_type = self._sniff(data)
+        content_type = self.validate(data)
 
         existing = user.document_of(kind)
         if existing is not None:
@@ -99,6 +91,25 @@ class VerificationDocumentService:
             },
         )
         return document
+
+    def validate(self, data: bytes) -> str:
+        """Check the bytes and return the content type they really are.
+
+        Split out of :meth:`store` so a caller with no row yet can refuse a
+        bad file *before* creating one. Public registration needs exactly
+        that: an application arrives with its ID scan attached, and a file
+        that is too large or is not a document at all must refuse the whole
+        application rather than leave an account behind with nothing usable
+        on it.
+        """
+        if not data:
+            raise UnsupportedMediaTypeError("verification.empty")
+        if len(data) > self._settings.max_verification_doc_bytes:
+            limit_mb = self._settings.max_verification_doc_bytes / (1024 * 1024)
+            raise PayloadTooLargeError(
+                "verification.too_large", params={"limit": f"{limit_mb:.0f}"}
+            )
+        return self._sniff(data)
 
     def read_bytes(self, document: OwnerVerificationDocument) -> bytes:
         return self._storage.read(document.storage_key)

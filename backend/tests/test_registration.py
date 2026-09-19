@@ -17,6 +17,8 @@ ways that arrangement could quietly betray somebody:
 
 from __future__ import annotations
 
+import base64
+import json
 import logging
 import uuid
 
@@ -28,7 +30,7 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.core.security import verify_password
 from app.models.business import Business
-from app.models.enums import BusinessStatus, UserRole
+from app.models.enums import BusinessStatus, UserRole, VerificationDocumentKind
 from app.models.talent import TalentProfile, TalentSkill
 from app.models.taxonomy import Category, Location
 from app.models.user import User
@@ -75,8 +77,40 @@ def _business_payload(
     }
 
 
-def _apply(client: TestClient, payload: dict[str, object]) -> None:
-    response = client.post("/api/register/business", json=payload)
+#: A one-pixel PNG, as the applicant's ID scan. The service sniffs magic
+#: bytes rather than trusting the content type, so this has to be a real one.
+PNG_BYTES = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+)
+
+
+def _register(
+    client: TestClient,
+    kind: str,
+    payload: dict[str, object],
+    document: tuple[str, bytes, str] | None = None,
+):
+    """POST an application the way the forms do: JSON in one multipart field.
+
+    The route takes multipart because an application carries the applicant's
+    ID scan and there is no account to upload it to yet — see
+    `app/api/v1/registration.py` for why that is not an anonymous upload
+    endpoint.
+    """
+    files = {"document": document} if document is not None else None
+    return client.post(
+        f"/api/register/{kind}",
+        data={"application": json.dumps(payload)},
+        files=files,
+    )
+
+
+def _apply(
+    client: TestClient,
+    payload: dict[str, object],
+    document: tuple[str, bytes, str] | None = None,
+) -> None:
+    response = _register(client, "business", payload, document)
     assert response.status_code == 202, response.text
 
 
@@ -150,7 +184,7 @@ def test_an_application_without_an_identity_is_refused(
     payload = _business_payload(category, location)
     del payload["identity"]
 
-    response = client.post("/api/register/business", json=payload)
+    response = _register(client, "business", payload)
 
     assert response.status_code == 422
     assert _owner(db) is None
@@ -184,6 +218,127 @@ def test_the_identity_never_reaches_the_public_listing(
     assert review.json()["owner_identity"]["full_name"] == ar("identity.full_name")
 
 
+def test_the_applicants_id_scan_is_stored_against_the_new_account(
+    client: TestClient, db: Session, category: Category, location: Location
+) -> None:
+    """The evidence arrives with the application, not after the audit."""
+    _apply(
+        client,
+        _business_payload(category, location),
+        document=("id.png", PNG_BYTES, "image/png"),
+    )
+
+    owner = _owner(db)
+    assert owner is not None
+    document = owner.document_of(VerificationDocumentKind.IDENTITY)
+    assert document is not None
+    assert document.content_type == "image/png"
+    assert document.size_bytes == len(PNG_BYTES)
+
+
+def test_an_application_without_a_scan_is_still_accepted(
+    client: TestClient, db: Session, category: Category, location: Location
+) -> None:
+    """The API does not insist: an administrator can ask for one later, and a
+    form is free to require it without the endpoint doing so."""
+    _apply(client, _business_payload(category, location))
+
+    owner = _owner(db)
+    assert owner is not None
+    assert owner.document_of(VerificationDocumentKind.IDENTITY) is None
+
+
+def test_a_file_that_is_not_a_document_refuses_the_whole_application(
+    client: TestClient, db: Session, category: Category, location: Location
+) -> None:
+    """Refused before anything is created.
+
+    The alternative — take the application and drop the file — leaves an
+    account whose reviewer has nothing to review, and tells the applicant
+    nothing about why.
+    """
+    response = _register(
+        client,
+        "business",
+        _business_payload(category, location),
+        document=("virus.exe", b"MZ\x90not a document at all", "image/png"),
+    )
+
+    assert response.status_code == 415, response.text
+    assert _owner(db) is None
+    assert db.execute(select(Business)).scalars().all() == []
+
+
+def test_an_oversized_scan_refuses_the_whole_application(
+    client: TestClient, db: Session, category: Category, location: Location
+) -> None:
+    oversized = PNG_BYTES + b"\x00" * (get_settings().max_verification_doc_bytes + 1)
+
+    response = _register(
+        client,
+        "business",
+        _business_payload(category, location),
+        document=("huge.png", oversized, "image/png"),
+    )
+
+    assert response.status_code == 413, response.text
+    assert _owner(db) is None
+
+
+def test_a_scan_cannot_be_hung_on_somebody_elses_account(
+    client: TestClient, db: Session, category: Category, location: Location
+) -> None:
+    """The discard path must stay a discard.
+
+    A number that already has an account is answered identically and nothing
+    is created — so attaching the file anyway would let a stranger put a
+    document on an account they guessed the number of.
+    """
+    _apply(client, _business_payload(category, location))
+    owner = _owner(db)
+    assert owner is not None
+    assert owner.document_of(VerificationDocumentKind.IDENTITY) is None
+
+    second = _register(
+        client,
+        "business",
+        _business_payload(category, location),
+        document=("id.png", PNG_BYTES, "image/png"),
+    )
+
+    assert second.status_code == 202, second.text
+    db.refresh(owner)
+    assert owner.document_of(VerificationDocumentKind.IDENTITY) is None
+
+
+def test_a_talent_applicant_can_attach_one_too(
+    client: TestClient,
+    db: Session,
+    skill: TalentSkill,
+    location: Location,
+) -> None:
+    response = _register(
+        client,
+        "talent",
+        {
+            "login_phone": APPLICANT_PHONE,
+            "identity": dict(IDENTITY),
+            "talent": {
+                "display_name": ar("talent.applicant"),
+                "skill_id": str(skill.id),
+                "location_id": str(location.id),
+                "whatsapp": APPLICANT_PHONE,
+            },
+        },
+        document=("id.png", PNG_BYTES, "image/png"),
+    )
+    assert response.status_code == 202, response.text
+
+    owner = _owner(db)
+    assert owner is not None
+    assert owner.document_of(VerificationDocumentKind.IDENTITY) is not None
+
+
 def test_a_talent_application_lands_in_the_review_queue(
     client: TestClient,
     db: Session,
@@ -191,9 +346,10 @@ def test_a_talent_application_lands_in_the_review_queue(
     location: Location,
     admin: User,
 ) -> None:
-    response = client.post(
-        "/api/register/talent",
-        json={
+    response = _register(
+        client,
+        "talent",
+        {
             "login_phone": APPLICANT_PHONE,
             "identity": dict(IDENTITY),
             "talent": {
@@ -226,8 +382,7 @@ def test_the_response_says_only_that_the_application_arrived(
 ) -> None:
     """No id and no status: an applicant has nothing to do with either, and
     returning them would make this endpoint answerable."""
-    body = client.post(
-        "/api/register/business", json=_business_payload(category, location)
+    body = _register(client, "business", _business_payload(category, location)
     ).json()
     assert set(body) == {"message"}
 
@@ -240,15 +395,14 @@ def test_a_known_number_is_answered_identically_and_creates_nothing(
 ) -> None:
     """The form must not be usable to ask whether a number is registered, and
     must not hang a second listing inside a stranger's dashboard."""
-    first = client.post(
-        "/api/register/business", json=_business_payload(category, location)
-    )
+    first = _register(client, "business", _business_payload(category, location))
     owner = _owner(db)
     assert owner is not None
 
-    second = client.post(
-        "/api/register/business",
-        json={
+    second = _register(
+        client,
+        "business",
+        {
             "login_phone": APPLICANT_PHONE,
             "identity": dict(IDENTITY),
             "business": {
@@ -287,11 +441,9 @@ def test_the_per_address_rate_limit_bites(
     settings = get_settings()
     for index in range(settings.registration_per_ip_limit):
         payload = _business_payload(category, location, phone=f"0397100{index}")
-        assert client.post("/api/register/business", json=payload).status_code == 202
+        assert _register(client, "business", payload).status_code == 202
 
-    refused = client.post(
-        "/api/register/business",
-        json=_business_payload(category, location, phone="03971099"),
+    refused = _register(client, "business", _business_payload(category, location, phone="03971099"),
     )
     assert refused.status_code == 429
     assert "Retry-After" in refused.headers
@@ -305,7 +457,7 @@ def test_no_captcha_is_required_while_turnstile_is_unconfigured(
     assert get_settings().turnstile_secret_key is None
     payload = _business_payload(category, location)
     assert "captcha_token" not in payload
-    assert client.post("/api/register/business", json=payload).status_code == 202
+    assert _register(client, "business", payload).status_code == 202
 
 
 def test_a_configured_captcha_refuses_a_submission_with_no_token(
@@ -316,8 +468,7 @@ def test_a_configured_captcha_refuses_a_submission_with_no_token(
 ) -> None:
     monkeypatch.setattr(get_settings(), "turnstile_secret_key", "secret")
 
-    refused = client.post(
-        "/api/register/business", json=_business_payload(category, location)
+    refused = _register(client, "business", _business_payload(category, location)
     )
     assert refused.status_code == 422
     assert refused.json()["error"]["code"] == "captcha_required"
@@ -339,7 +490,7 @@ def test_a_captcha_cloudflare_rejects_refuses_the_submission(
     )
 
     payload = _business_payload(category, location) | {"captcha_token": "forged"}
-    refused = client.post("/api/register/business", json=payload)
+    refused = _register(client, "business", payload)
     assert refused.status_code == 422
     assert refused.json()["error"]["code"] == "captcha_failed"
 
@@ -363,7 +514,7 @@ def test_a_captcha_that_cannot_be_checked_refuses_rather_than_admits(
     monkeypatch.setattr(captcha_module.httpx, "post", _explode)
 
     payload = _business_payload(category, location) | {"captcha_token": "anything"}
-    refused = client.post("/api/register/business", json=payload)
+    refused = _register(client, "business", payload)
     assert refused.status_code == 422
     assert refused.json()["error"]["code"] == "captcha_unavailable"
 
