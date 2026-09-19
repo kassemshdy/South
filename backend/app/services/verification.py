@@ -1,7 +1,7 @@
 """Personal-document ingestion: validate, store, never expose a public URL.
 
-Covers both documents an account can attach — the ID scan every owner uploads
-and the CV a talent profile may add — told apart by
+Covers every document an account can attach — the two sides of the ID card
+every owner uploads, and the CV a talent profile may add — told apart by
 :class:`~app.models.enums.VerificationDocumentKind`.
 
 Unlike image uploads, a document must survive unmodified — a resized/
@@ -38,6 +38,7 @@ _EXTENSIONS = {"application/pdf": "pdf", "image/jpeg": "jpg", "image/png": "png"
 # accidentally over-broad rule on one prefix cannot expose the other.
 _FOLDERS = {
     VerificationDocumentKind.IDENTITY: "owner-verification",
+    VerificationDocumentKind.IDENTITY_BACK: "owner-verification-back",
     VerificationDocumentKind.CV: "owner-cv",
 }
 
@@ -57,15 +58,7 @@ class VerificationDocumentService:
         kind: VerificationDocumentKind = VerificationDocumentKind.IDENTITY,
     ) -> OwnerVerificationDocument:
         """Replace ``user``'s document of ``kind`` (one per owner) with ``data``."""
-        if not data:
-            raise UnsupportedMediaTypeError("verification.empty")
-        if len(data) > self._settings.max_verification_doc_bytes:
-            limit_mb = self._settings.max_verification_doc_bytes / (1024 * 1024)
-            raise PayloadTooLargeError(
-                "verification.too_large", params={"limit": f"{limit_mb:.0f}"}
-            )
-
-        content_type = self._sniff(data)
+        content_type = self.validate(data)
 
         existing = user.document_of(kind)
         if existing is not None:
@@ -99,6 +92,25 @@ class VerificationDocumentService:
             },
         )
         return document
+
+    def validate(self, data: bytes) -> str:
+        """Check the bytes and return the content type they really are.
+
+        Split out of :meth:`store` so a caller with no row yet can refuse a
+        bad file *before* creating one. Public registration needs exactly
+        that: an application arrives with its ID scan attached, and a file
+        that is too large or is not a document at all must refuse the whole
+        application rather than leave an account behind with nothing usable
+        on it.
+        """
+        if not data:
+            raise UnsupportedMediaTypeError("verification.empty")
+        if len(data) > self._settings.max_verification_doc_bytes:
+            limit_mb = self._settings.max_verification_doc_bytes / (1024 * 1024)
+            raise PayloadTooLargeError(
+                "verification.too_large", params={"limit": f"{limit_mb:.0f}"}
+            )
+        return self._sniff(data)
 
     def read_bytes(self, document: OwnerVerificationDocument) -> bytes:
         return self._storage.read(document.storage_key)

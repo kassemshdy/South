@@ -10,6 +10,7 @@
 | The `mcp` / `pydantic` version conflict | `mcp-server/requirements.txt`, `backend/requirements.txt` |
 | The Chromium path | the installed `/opt/pw-browsers/` version |
 | The approximate backend test count | the actual suite |
+| `SEED_OWNER_PASSWORD` being what the e2e specs sign in with | `backend/scripts/seed.py`, `frontend/e2e/support/sign-in.ts` |
 
 ## What makes it wrong
 

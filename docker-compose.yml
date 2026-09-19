@@ -31,8 +31,7 @@ services:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/south_dev
       SECRET_KEY: dev-insecure-secret-change-me
       CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
-      OTP_PROVIDER: mock
-      OTP_DEV_FIXED_CODE: "123456"
+      SEED_OWNER_PASSWORD: DemoOwner!123
       ADMIN_EMAIL: admin@example.com
       ADMIN_PASSWORD: ChangeMe!123
       PUBLIC_BASE_URL: http://localhost:5173

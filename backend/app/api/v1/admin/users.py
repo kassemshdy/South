@@ -14,7 +14,7 @@ import uuid
 from fastapi import APIRouter, Response
 
 from app.api.serializers import admin_user_detail
-from app.core.dependencies import AdminUser, AppSettings, DbSession, OtpProviderDep
+from app.core.dependencies import AdminUser, AppSettings, DbSession
 from app.core.errors import NotFoundError, ValidationError
 from app.models.enums import UserRole, VerificationDocumentKind
 from app.repositories.business import BusinessRepository
@@ -78,6 +78,27 @@ def download_verification_document(
     return _download(_load_document(db, user_id), settings)
 
 
+@router.get(
+    "/users/{user_id}/verification-document-back", response_model=VerificationDocumentOut
+)
+def get_verification_document_back(
+    user_id: uuid.UUID, db: DbSession, admin: AdminUser
+) -> VerificationDocumentOut:
+    """The reverse of the ID card, which carries the place of registration."""
+    return VerificationDocumentOut.model_validate(
+        _load_document(db, user_id, VerificationDocumentKind.IDENTITY_BACK)
+    )
+
+
+@router.get("/users/{user_id}/verification-document-back/download")
+def download_verification_document_back(
+    user_id: uuid.UUID, db: DbSession, admin: AdminUser, settings: AppSettings
+) -> Response:
+    return _download(
+        _load_document(db, user_id, VerificationDocumentKind.IDENTITY_BACK), settings
+    )
+
+
 @router.get("/users/{user_id}/cv-document", response_model=VerificationDocumentOut)
 def get_cv_document(
     user_id: uuid.UUID, db: DbSession, admin: AdminUser
@@ -100,15 +121,14 @@ def issue_credentials(
     admin: AdminUser,
     db: DbSession,
     settings: AppSettings,
-    provider: OtpProviderDep,
 ) -> IssuedPasswordOut:
     """Issue a password for an account, and return it once.
 
-    How an approved applicant gets in while no SMS or WhatsApp gateway is
-    available: an administrator issues this and relays it over their own
-    WhatsApp. The plaintext exists in this response and nowhere else — it is
-    stored only as a hash, never logged, and cannot be read again. Issuing a
-    second one replaces the first.
+    How an approved applicant gets in: an administrator issues this and
+    relays it over their own WhatsApp — there is no other way onto the site.
+    The plaintext exists in this response and nowhere else — it is stored only
+    as a hash, never logged, and cannot be read again. Issuing a second one
+    replaces the first.
 
     Refused for an administrator account: an admin password is not something
     another admin hands out, and the account it is issued to must be one that
@@ -123,5 +143,5 @@ def issue_credentials(
         # Nothing to sign in with, and nowhere to send it.
         raise ValidationError("user.credentials_need_phone", code="missing_phone")
 
-    password = AuthService(db, settings, provider).issue_password(user)
+    password = AuthService(db, settings).issue_password(user)
     return IssuedPasswordOut(phone_number=user.phone_number, password=password)

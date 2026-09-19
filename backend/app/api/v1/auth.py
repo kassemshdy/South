@@ -1,4 +1,4 @@
-"""Authentication endpoints: phone OTP for owners, password login for admins."""
+"""Authentication endpoints: one sign-in form, and the account's own settings."""
 
 from __future__ import annotations
 
@@ -11,7 +11,6 @@ from app.core.dependencies import (
     ClientIp,
     CurrentUser,
     DbSession,
-    OtpProviderDep,
     SignedInUser,
 )
 from app.core.errors import AuthenticationError, PayloadTooLargeError
@@ -20,13 +19,10 @@ from app.models.enums import ImageKind, VerificationDocumentKind
 from app.schemas.auth import (
     AdminLoginIn,
     ChangePasswordIn,
-    OwnerLoginIn,
-    RequestOtpIn,
-    RequestOtpOut,
+    LoginIn,
     TokenOut,
     UpdateProfileIn,
     UserOut,
-    VerifyOtpIn,
 )
 from app.schemas.identity import IDENTITY_FIELDS
 from app.schemas.verification import VerificationDocumentOut
@@ -38,49 +34,20 @@ from app.storage.factory import get_storage
 router = APIRouter(tags=["auth"])
 
 
-@router.post("/auth/request-otp", response_model=RequestOtpOut)
-def request_otp(
-    payload: RequestOtpIn,
-    db: DbSession,
-    settings: AppSettings,
-    provider: OtpProviderDep,
-    client_ip: ClientIp,
-) -> RequestOtpOut:
-    """Send a one-time code to a Lebanese phone number."""
-    service = AuthService(db, settings, provider)
-    ttl, debug_code = service.request_otp(payload.phone_number, client_ip=client_ip)
-
-    # Second guard on top of the provider's: the fixed code is only ever
-    # returned to the client in environments that permit a mock provider.
-    return RequestOtpOut(
-        expires_in_seconds=ttl,
-        debug_code=debug_code if settings.allows_mock_otp else None,
-    )
-
-
-@router.post("/auth/verify-otp", response_model=TokenOut)
-def verify_otp(
-    payload: VerifyOtpIn,
-    db: DbSession,
-    settings: AppSettings,
-    provider: OtpProviderDep,
-) -> TokenOut:
-    """Verify the code, creating the account on first sign-in."""
-    service = AuthService(db, settings, provider)
-    user, token, expires_at = service.verify_otp(payload.phone_number, payload.code)
-    return TokenOut(
-        access_token=token, expires_at=expires_at, user=UserOut.model_validate(user)
-    )
-
-
 @router.post("/auth/admin/login", response_model=TokenOut)
 def admin_login(
     payload: AdminLoginIn,
     db: DbSession,
     settings: AppSettings,
-    provider: OtpProviderDep,
 ) -> TokenOut:
-    service = AuthService(db, settings, provider)
+    """The administrators-only door, deliberately unlinked.
+
+    /auth/login signs an administrator in too, and the form that calls it is
+    the one anybody is shown. This stays for two reasons: an administrator
+    locked out of a deployment has nobody to ask, and `mcp-server` signs in
+    here rather than through a form.
+    """
+    service = AuthService(db, settings)
     user, token, expires_at = service.login_admin(payload.email, payload.password)
     return TokenOut(
         access_token=token, expires_at=expires_at, user=UserOut.model_validate(user)
@@ -88,21 +55,21 @@ def admin_login(
 
 
 @router.post("/auth/login", response_model=TokenOut)
-def owner_login(
-    payload: OwnerLoginIn,
+def login(
+    payload: LoginIn,
     db: DbSession,
     settings: AppSettings,
-    provider: OtpProviderDep,
     client_ip: ClientIp,
 ) -> TokenOut:
-    """Sign in with a phone number and password.
+    """Sign in with a phone number or an email address, and a password.
 
-    The route that works without an SMS or WhatsApp gateway. Administrators
-    sign in at /auth/admin/login instead, and this refuses them.
+    The only sign-in route a client calls. It takes owners and administrators
+    alike: the account's role decides what the token opens, not which form it
+    was typed into.
     """
-    service = AuthService(db, settings, provider)
-    user, token, expires_at = service.login_with_password(
-        payload.phone_number, payload.password, client_ip=client_ip
+    service = AuthService(db, settings)
+    user, token, expires_at = service.login(
+        payload.identifier, payload.password, client_ip=client_ip
     )
     return TokenOut(
         access_token=token, expires_at=expires_at, user=UserOut.model_validate(user)
@@ -115,14 +82,13 @@ def change_my_password(
     user: SignedInUser,
     db: DbSession,
     settings: AppSettings,
-    provider: OtpProviderDep,
 ) -> UserOut:
     """Replace one's own password, ending every other session.
 
     Reachable while ``must_change_password`` is set — it is the one thing such
     an account may do.
     """
-    service = AuthService(db, settings, provider)
+    service = AuthService(db, settings)
     if not verify_password(payload.current_password, user.password_hash):
         raise AuthenticationError("auth.invalid_credentials", code="invalid_credentials")
     service.set_password(user, payload.new_password)
@@ -230,6 +196,42 @@ def upload_my_verification_document(
     service = VerificationDocumentService(get_storage(), settings)
     document = service.store(
         db=db, user=user, data=data, original_filename=file.filename
+    )
+    return VerificationDocumentOut.model_validate(document)
+
+
+@router.get(
+    "/me/verification-document-back", response_model=VerificationDocumentOut | None
+)
+def read_my_verification_document_back(
+    user: CurrentUser,
+) -> VerificationDocumentOut | None:
+    """The reverse of the ID card. Metadata only, like the front."""
+    document = user.verification_document_back
+    if document is None:
+        return None
+    return VerificationDocumentOut.model_validate(document)
+
+
+@router.post(
+    "/me/verification-document-back",
+    response_model=VerificationDocumentOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def upload_my_verification_document_back(
+    user: CurrentUser,
+    db: DbSession,
+    settings: AppSettings,
+    file: Annotated[UploadFile, File(description="The back of the ID card")],
+) -> VerificationDocumentOut:
+    data = file.file.read()
+    service = VerificationDocumentService(get_storage(), settings)
+    document = service.store(
+        db=db,
+        user=user,
+        data=data,
+        original_filename=file.filename,
+        kind=VerificationDocumentKind.IDENTITY_BACK,
     )
     return VerificationDocumentOut.model_validate(document)
 

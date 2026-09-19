@@ -4,7 +4,7 @@ Inert unless ``SENTRY_DSN`` is set, so a developer's tracebacks never leave
 their machine and the test suite never talks to the network.
 
 This service handles things that must not end up in a third-party error
-report: owner login phone numbers, OTP codes, and identity documents. Sentry's
+report: owner login phone numbers, passwords, and identity documents. Sentry's
 default PII collection is therefore off rather than scrubbed after the fact,
 and :func:`_scrub` strips the few fields that can still reach an event through
 a URL or a logged extra — matching the stance the frontend SDK takes in
@@ -33,7 +33,14 @@ SENSITIVE_KEYS = frozenset(
         "code",
         "cookie",
         "current_password",
+        # What somebody typed into the one sign-in box: an owner's login phone
+        # number or an administrator's email address. The same reason
+        # `phone_number` is here, under the name the login route receives it.
+        "identifier",
         "new_password",
+        # Nothing produces these any more — OTP sign-in is gone — and they
+        # stay because an over-wide scrub costs nothing and a narrowed one is
+        # the kind of change that gets made in a hurry.
         "otp",
         "otp_code",
         "password",

@@ -117,13 +117,6 @@ export interface AuthToken {
   user: User
 }
 
-export interface RequestOtpResponse {
-  message: string
-  expires_in_seconds: number
-  /** Present only when the backend runs in development mode. */
-  debug_code: string | null
-}
-
 export interface Category {
   id: string
   name_ar: string
@@ -265,6 +258,7 @@ export interface AdminBusiness extends OwnerBusiness {
   /** Null when the owner has filled in nothing — distinct from all-null. */
   owner_identity: OwnerIdentity | null
   owner_has_verification_document: boolean
+  owner_has_verification_document_back: boolean
   owner_has_cv_document: boolean
   owner_display_name: string | null
   moderation_actions: ModerationAction[]
@@ -401,6 +395,7 @@ export interface AdminTalent extends OwnerTalent {
   owner_personal_phone: string | null
   owner_identity: OwnerIdentity | null
   owner_has_verification_document: boolean
+  owner_has_verification_document_back: boolean
   owner_has_cv_document: boolean
   owner_display_name: string | null
   moderation_actions: ModerationAction[]

@@ -14,8 +14,18 @@ const fixture = load<{
   shortDescription: string
   loginPhone: string
   chosenPassword: string
+  fullName: string
+  birthYear: string
+  registrationPlace: string
+  residencePlace: string
 }>('./fixtures/registration-data.json')
 const t = (key: string): string => ar[key]!
+
+/** A one-pixel PNG. The API sniffs magic bytes, so it has to be a real one. */
+const PNG_BYTES = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  'base64',
+)
 
 const ADMIN_EMAIL = 'admin@example.com'
 const ADMIN_PASSWORD = 'ChangeMe!123'
@@ -56,6 +66,29 @@ test.describe('Applying for a listing', () => {
     await expect(page.getByText(t('register.stepCredentials'))).toBeVisible()
 
     await page.getByLabel(t('register.loginPhoneLabel')).fill(fixture.loginPhone)
+
+    // Who they are, asked here because the reviewer is about to decide
+    // whether this is a real person from the South.
+    await page.getByLabel(t('account.fullNameLabel')).fill(fixture.fullName)
+    await page.getByLabel(t('account.birthYearLabel')).fill(fixture.birthYear)
+    await page.getByLabel(t('account.registrationPlaceLabel')).fill(fixture.registrationPlace)
+    await page.getByLabel(t('account.residencePlaceLabel')).fill(fixture.residencePlace)
+
+    // Both sides of the ID travel with the application: there is no account
+    // to upload them to yet, and the reviewer is about to decide whether the
+    // four fields above describe a real person.
+    const scans = page.locator('input[type="file"]')
+    await scans.nth(0).setInputFiles({
+      name: 'front.png',
+      mimeType: 'image/png',
+      buffer: PNG_BYTES,
+    })
+    await scans.nth(1).setInputFiles({
+      name: 'back.png',
+      mimeType: 'image/png',
+      buffer: PNG_BYTES,
+    })
+
     await page.getByLabel(t('form.name')).fill(fixture.businessName)
     await page.getByLabel(t('form.shortDescription')).fill(fixture.shortDescription)
     await page.locator('button[role="combobox"]').first().click()
@@ -69,7 +102,7 @@ test.describe('Applying for a listing', () => {
     await expect(page.getByText(fixture.businessName)).toHaveCount(0)
 
     await page.goto('/login')
-    await page.getByLabel(t('login.phoneLabel')).fill(fixture.loginPhone)
+    await page.getByLabel(t('login.identifierLabel')).fill(fixture.loginPhone)
     await page.getByLabel(t('login.passwordLabel')).fill(fixture.chosenPassword)
     await page.getByRole('button', { name: t('login.signIn'), exact: true }).click()
     await expect(page).not.toHaveURL(/\/dashboard/)
@@ -103,6 +136,22 @@ test.describe('Applying for a listing', () => {
     // can see it — it is what they are about to send the credentials to.
     await expect(admin.getByText('+9613977012').first()).toBeVisible()
 
+    // So is who they said they are: the whole point of asking on the form is
+    // that it is on this screen when the decision is made.
+    await expect(admin.getByText(fixture.fullName).first()).toBeVisible()
+    await expect(admin.getByText(fixture.residencePlace).first()).toBeVisible()
+
+    // And both sides they attached, which is what the reviewer checks those
+    // against — downloaded here rather than merely present, because a
+    // document that cannot be opened is not evidence.
+    const frontDownload = admin.waitForEvent('download')
+    await admin.getByRole('button', { name: t('admin.downloadDocument') }).click()
+    expect((await frontDownload).suggestedFilename()).toBe('front.png')
+
+    const backDownload = admin.waitForEvent('download')
+    await admin.getByRole('button', { name: t('admin.downloadDocumentBack') }).click()
+    expect((await backDownload).suggestedFilename()).toBe('back.png')
+
     await admin.getByRole('button', { name: t('credentials.issue') }).click()
     await expect(admin.getByText(t('credentials.onceWarning'))).toBeVisible()
 
@@ -119,7 +168,7 @@ test.describe('Applying for a listing', () => {
 
     // --- 4. The issued password opens exactly one screen --------------------
     await page.goto('/login')
-    await page.getByLabel(t('login.phoneLabel')).fill(fixture.loginPhone)
+    await page.getByLabel(t('login.identifierLabel')).fill(fixture.loginPhone)
     await page.getByLabel(t('login.passwordLabel')).fill(issued)
     await page.getByRole('button', { name: t('login.signIn'), exact: true }).click()
     await expect(page).toHaveURL(/\/change-password/)

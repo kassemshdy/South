@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { signInWithCode } from './support/sign-in'
+import { signIn } from './support/sign-in'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
@@ -26,7 +26,7 @@ const t = (key: string): string => ar[key]!
 const provider = talents.find((entry) => entry.status === 'APPROVED')!
 
 async function signInAsProvider(page: Page) {
-  await signInWithCode(page, provider.owner_phone)
+  await signIn(page, provider.owner_phone)
 }
 
 /**

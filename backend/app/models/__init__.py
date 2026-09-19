@@ -2,7 +2,7 @@
 
 from app.models.analytics import ListingViewDaily
 from app.models.article import Article
-from app.models.auth import OtpRequest, RateLimitEvent
+from app.models.auth import RateLimitEvent
 from app.models.business import (
     Business,
     BusinessImage,
@@ -67,7 +67,6 @@ __all__ = [
     "Order",
     "OrderLine",
     "OrderStatus",
-    "OtpRequest",
     "OwnerVerificationDocument",
     "RateLimitEvent",
     "ServiceRequest",

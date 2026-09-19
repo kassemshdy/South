@@ -222,8 +222,8 @@ def test_a_listing_a_visitor_cannot_see_accepts_no_testimonial(
 
 
 def test_submission_needs_no_account(client: TestClient, business: Business) -> None:
-    """Decided on the issue: no sign-in and no OTP. Verifying the author
-    would imply an independence owner-approved praise does not have."""
+    """Decided on the issue: no sign-in at all. Verifying the author would
+    imply an independence owner-approved praise does not have."""
     response = _submit(
         client,
         business.slug,

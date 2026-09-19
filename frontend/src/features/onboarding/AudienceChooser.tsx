@@ -265,18 +265,22 @@ export function AudienceChooser({ isAuthenticated = false }: { isAuthenticated?:
   // a call to action and its afterthought. No line of explanation under
   // either: it was answering a question nobody had yet asked.
   return (
-    <div className="mx-auto w-full max-w-2xl">
-      {/* The question is asked out loud rather than implied by two cards.
-          Modest weight: the hero's own headline says what the site is, and
-          this labels the choice under it without competing. */}
-      <h2 className="text-center text-lg font-bold text-ink-900">
+    <div className="mx-auto w-full max-w-4xl">
+      {/* The question is asked out loud rather than implied by two cards. It
+          carries the section now: these two are the homepage's navigation for
+          someone who is not confident online, so the label above them is sized
+          to be read rather than skimmed past. */}
+      <h2 className="text-center text-xl font-bold text-ink-900 sm:text-2xl">
         {t('onboarding.heading')}
       </h2>
-      <p className="mx-auto mt-1 max-w-md text-center text-sm text-ink-500">
+      <p className="mx-auto mt-2 max-w-lg text-center text-ink-500 sm:text-lg">
         {t('onboarding.subtitle')}
       </p>
 
-      <ul className="mt-5 grid gap-4 sm:grid-cols-2">
+      {/* Wide gaps on purpose: two targets this large read as two choices
+          only when there is room between them. Below `sm` they stack, and the
+          gap becomes vertical breathing space rather than a gutter. */}
+      <ul className="mt-8 grid gap-6 sm:mt-10 sm:grid-cols-2 sm:gap-8">
         {BRANCHES.map((candidate) => {
           const Icon = candidate.icon
           return (
@@ -285,15 +289,18 @@ export function AudienceChooser({ isAuthenticated = false }: { isAuthenticated?:
                 type="button"
                 onClick={() => setIntent(candidate.intent)}
                 aria-expanded={false}
-                className="group flex h-full w-full flex-col items-center gap-3 rounded-2xl border-2 border-ink-100 bg-white p-6 text-center shadow-card transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
+                className="group flex h-full w-full flex-col items-center gap-5 rounded-3xl border-2 border-ink-100 bg-white p-8 text-center shadow-card transition-all duration-200 hover:-translate-y-1 hover:border-brand-400 hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 sm:p-10"
               >
-                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-sand-100 text-brand-700 transition-colors group-hover:bg-brand-700 group-hover:text-white">
-                  <Icon className="h-6 w-6" aria-hidden="true" />
+                <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-sand-100 text-brand-700 transition-colors group-hover:bg-brand-700 group-hover:text-white sm:h-20 sm:w-20">
+                  <Icon className="h-8 w-8 sm:h-9 sm:w-9" aria-hidden="true" />
                 </span>
-                <span className="text-lg font-bold leading-snug text-ink-900">
+                <span className="text-balance text-xl font-bold leading-snug text-ink-900 sm:text-2xl">
                   {t(candidate.titleKey)}
                 </span>
-                <span className="flex items-center gap-1.5 text-sm font-semibold text-brand-700">
+                {/* A filled pill rather than a line of coloured text: at this
+                    size the words under the title were reading as a caption,
+                    and this is the thing to press. */}
+                <span className="mt-auto inline-flex items-center gap-2 rounded-full bg-sand-100 px-5 py-2.5 font-semibold text-brand-800 transition-colors group-hover:bg-brand-700 group-hover:text-white">
                   {t('onboarding.choose')}
                   <ArrowLeft className="h-4 w-4 ltr:rotate-180" aria-hidden="true" />
                 </span>

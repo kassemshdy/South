@@ -8,8 +8,9 @@ from typing import Annotated, Literal
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
-# staging is production-hardened but permits the development OTP provider, so a
-# deployed build can actually be signed into before an SMS gateway exists.
+# staging is production-hardened, with one deliberate relaxation: it may carry
+# a known password for the demo accounts so a deployed build can be signed into
+# without an administrator issuing credentials by hand.
 Environment = Literal["development", "test", "staging", "production"]
 
 
@@ -51,19 +52,6 @@ class Settings(BaseSettings):
         default_factory=lambda: ["http://localhost:5173", "http://127.0.0.1:5173"]
     )
 
-    # --- OTP ---------------------------------------------------------------
-    otp_provider: Literal["mock", "twilio", "whatsapp"] = "mock"
-    otp_code_length: int = 6
-    otp_ttl_seconds: int = 300
-    otp_max_verify_attempts: int = 5
-    # When set in development, the mock provider always issues this code so the
-    # app stays testable without an SMS gateway. Ignored outside development.
-    otp_dev_fixed_code: str | None = "123456"
-    otp_send_per_phone_limit: int = 3
-    otp_send_per_phone_window_seconds: int = 900
-    otp_send_per_ip_limit: int = 10
-    otp_send_per_ip_window_seconds: int = 3600
-
     # Testimonial submission is an unauthenticated write of free text, so the
     # limits are part of the design rather than a later hardening pass. Two
     # rules, because they stop different things: per-IP stops one person
@@ -96,27 +84,15 @@ class Settings(BaseSettings):
     service_request_per_profile_limit: int = 15
     service_request_per_profile_window_seconds: int = 86400
 
-    twilio_account_sid: str | None = None
-    twilio_auth_token: str | None = None
-    twilio_from_number: str | None = None
-
-    # WhatsApp Cloud API. The recipient reads the wording of the *template*,
-    # registered and approved at Meta, so the locale catalogs do not carry it —
-    # see app/auth/otp/whatsapp.py. Register an `ar` template and name its
-    # language here, or Arabic-speaking users receive an English code message.
-    whatsapp_phone_number_id: str | None = None
-    whatsapp_access_token: str | None = None
-    whatsapp_template_name: str | None = None
-    whatsapp_template_locale: str = "ar"
-    # Authentication templates normally carry a copy-code button, which takes
-    # the code as a second component. One created without a button rejects it.
-    whatsapp_template_has_button: bool = True
-
-    # Password sign-in: the guess budget for one phone number. Low, because a
-    # person signing in knows their password and a person who does not is
-    # guessing — see AuthService.login_with_password.
-    password_login_per_phone_limit: int = 10
-    password_login_per_phone_window_seconds: int = 900
+    # Password sign-in: the guess budget for one identifier — the phone
+    # number or the email address as typed. Low, because a person signing in
+    # knows their password and a person who does not is guessing. Keyed on the
+    # identifier rather than the caller's IP, because the identifier is what
+    # an attacker works through: an IP limit alone lets one host walk a list
+    # of numbers, and lets a shared connection lock out a whole village.
+    # See AuthService.login.
+    password_login_limit: int = 10
+    password_login_window_seconds: int = 900
 
     # --- Human verification ------------------------------------------------
     # Cloudflare Turnstile. Unset means the public forms are not captcha
@@ -160,6 +136,13 @@ class Settings(BaseSettings):
     admin_password: str | None = "ChangeMe!123"
     # Falls back to a translated default in the seed script when unset.
     admin_display_name: str | None = None
+    # The password the seed script puts on the demo owner accounts. Sign-in is
+    # by password now, so without this nobody can open a seeded listing's
+    # dashboard without an administrator issuing credentials first — which is
+    # correct for real accounts and useless for a demo or an end-to-end run.
+    # Refused in production below: these accounts are in the repository, so
+    # their password would be too.
+    seed_owner_password: str | None = None
 
     # --- Error tracking ----------------------------------------------------
     # Unset locally: without a DSN the SDK is never initialised at all, so a
@@ -197,32 +180,17 @@ class Settings(BaseSettings):
         return self.app_env == "staging"
 
     @property
-    def allows_mock_otp(self) -> bool:
-        """Environments where a fixed, non-secret OTP code is acceptable."""
-        return self.app_env in ("development", "test", "staging")
-
-    @property
     def is_hardened(self) -> bool:
         """Environments that must pass the production safety checks."""
         return self.app_env in ("staging", "production")
 
-    @property
-    def dev_fixed_otp_code(self) -> str | None:
-        """The fixed OTP code, or None when it must not be honoured.
-
-        Guarded here rather than at the call site so there is exactly one place
-        that can enable it.
-        """
-        if not self.allows_mock_otp:
-            return None
-        return self.otp_dev_fixed_code
-
     def enforce_production_safety(self) -> None:
         """Refuse to boot a deployed process with development shortcuts.
 
-        Applies to staging as well as production. The single difference is the
-        mock OTP provider: staging may use it so the deployment is testable,
-        production may never, because a fixed code is an authentication bypass.
+        Applies to staging as well as production. The single difference is
+        ``seed_owner_password``: staging may set one so the demo accounts can
+        be signed into, production may never, because a password shared in a
+        repository is not a password.
         """
         if not self.is_hardened:
             return
@@ -230,22 +198,11 @@ class Settings(BaseSettings):
         problems: list[str] = []
         if self.secret_key == "dev-insecure-secret-change-me":
             problems.append("SECRET_KEY must be set to a strong random value")
-        if self.otp_provider == "mock" and not self.allows_mock_otp:
+        if self.seed_owner_password and self.is_production:
             problems.append(
-                "OTP_PROVIDER=mock is not allowed in production; configure a real provider"
+                "SEED_OWNER_PASSWORD is not allowed in production; "
+                "issue credentials per account instead"
             )
-        if self.otp_provider == "twilio" and not all(
-            [self.twilio_account_sid, self.twilio_auth_token, self.twilio_from_number]
-        ):
-            problems.append("Twilio credentials are incomplete")
-        if self.otp_provider == "whatsapp" and not all(
-            [
-                self.whatsapp_phone_number_id,
-                self.whatsapp_access_token,
-                self.whatsapp_template_name,
-            ]
-        ):
-            problems.append("WhatsApp Cloud API credentials are incomplete")
         if self.storage_backend == "s3" and not self.s3_bucket:
             problems.append("S3_BUCKET is required when STORAGE_BACKEND=s3")
         if self.debug:

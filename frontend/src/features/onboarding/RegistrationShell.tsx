@@ -7,14 +7,37 @@
  * input, and say it again at the end — someone who fills a long form and then
  * cannot find their shop on the site has been misled by the form.
  *
- * What this adds around the listing form it wraps is the two things an
+ * What this adds around the listing form it wraps is the three things an
  * applicant has and an owner does not: the phone number that will become
- * their login, and the captcha. Both live here rather than inside
- * `BasicsForm` / `TalentForm`, which are also used from the dashboard by
- * people who already have both.
+ * their login, who they are, and the captcha. All three live here rather than
+ * inside `BasicsForm` / `TalentForm`, which are also used from the dashboard
+ * by people who already have an account carrying the first two.
+ *
+ * The identity block is the same one the account page edits, asked here
+ * because the reviewer is deciding whether this is a real person from the
+ * South — collecting it after the audit would put the decision before the
+ * evidence. It is written onto the account, not the listing, and no public
+ * payload carries it: the reviewer reads it back on the screen they are
+ * already looking at.
+ *
+ * Both sides of the ID card sit in that same block, for the same reason, and
+ * the form insists on them: the reviewer is checking the four fields above
+ * against a card, the place of registration is on the reverse, and an
+ * application missing a side is one they cannot finish acting on. The API
+ * itself still accepts an application without either — that is a rule about
+ * this form, not about the route, and an administrator attaching one later
+ * for somebody who walked in is a path worth keeping open. Neither ever
+ * gets a public URL — see `app/services/verification.py`.
  */
 
-import { CheckCircle2, MessageCircle, Phone, ShieldCheck } from 'lucide-react'
+import {
+  CheckCircle2,
+  MessageCircle,
+  Phone,
+  ShieldCheck,
+  Upload,
+  UserRound,
+} from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -24,6 +47,11 @@ import { Input } from '@/components/ui/Input'
 import { Turnstile } from '@/components/ui/Turnstile'
 import { useT, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
+import type {
+  Applicant,
+  ApplicantDocuments,
+  ApplicantIdentity,
+} from '@/services/api/endpoints'
 import { isLebanesePhone } from '@/utils/validation'
 
 /**
@@ -55,15 +83,128 @@ export function unwrapFieldErrors(error: unknown, prefix: string): unknown {
   )
 }
 
+type IdentityField = keyof ApplicantIdentity
+
+const IDENTITY_FIELDS: IdentityField[] = [
+  'full_name',
+  'birth_year',
+  'registration_place',
+  'residence_place',
+]
+
+const IDENTITY_LABELS: Record<IdentityField, TranslationKey> = {
+  full_name: 'account.fullNameLabel',
+  birth_year: 'account.birthYearLabel',
+  registration_place: 'account.registrationPlaceLabel',
+  residence_place: 'account.residencePlaceLabel',
+}
+
+/** What `app/services/verification.py` sniffs for, as an accept hint. */
+const DOCUMENT_TYPES = ['application/pdf', 'image/jpeg', 'image/png']
+
+/** Mirrors MAX_VERIFICATION_DOC_BYTES; the API is still the judge. */
+const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024
+
+type DocumentSide = keyof ApplicantDocuments
+
+const DOCUMENT_SIDES: DocumentSide[] = ['front', 'back']
+
+const DOCUMENT_LABELS: Record<DocumentSide, TranslationKey> = {
+  front: 'register.documentFrontLabel',
+  back: 'register.documentBackLabel',
+}
+
+const DOCUMENT_MISSING: Record<DocumentSide, TranslationKey> = {
+  front: 'register.documentFrontRequired',
+  back: 'register.documentBackRequired',
+}
+
+/**
+ * One side of the card.
+ *
+ * A component rather than the markup twice: the two sides differ only in
+ * their label, and a file input that has to be hidden and re-labelled is
+ * exactly the kind of thing that drifts when it is written out twice.
+ *
+ * The native control is hidden rather than styled, because a file input
+ * renders "Choose File / No file chosen" in the *browser's* language, which
+ * on an Arabic-first site is two English words nobody asked for and no
+ * attribute can translate. The label drives the same input, so clicking it
+ * still opens the picker and it stays a real file input for assistive
+ * technology.
+ */
+function DocumentField({
+  labelKey,
+  file,
+  error,
+  onPick,
+}: {
+  labelKey: TranslationKey
+  file: File | null
+  error: string | undefined
+  onPick: (file: File | null, error: string | null) => void
+}) {
+  const t = useT()
+
+  return (
+    <Field label={t(labelKey)} required error={error}>
+      {(props) => (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border-2 border-dashed border-sand-300 bg-sand-50 p-3">
+          <input
+            {...props}
+            type="file"
+            accept={DOCUMENT_TYPES.join(',')}
+            className="sr-only"
+            onChange={(event) => {
+              const picked = event.target.files?.[0] ?? null
+              // Checked here as well as at the API, because a phone photo
+              // over the cap would otherwise be a long upload that ends in a
+              // refusal.
+              if (picked && picked.size > MAX_DOCUMENT_BYTES) {
+                onPick(null, t('register.documentTooLarge'))
+                return
+              }
+              onPick(picked, null)
+            }}
+          />
+          <label
+            htmlFor={props.id}
+            className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800"
+          >
+            <Upload className="h-4 w-4" aria-hidden="true" />
+            {t('register.documentChoose')}
+          </label>
+          <span className="min-w-0 flex-1 truncate text-sm text-ink-500">
+            {file ? file.name : t('register.documentNone')}
+          </span>
+        </div>
+      )}
+    </Field>
+  )
+}
+
+const IDENTITY_MISSING: Record<IdentityField, TranslationKey> = {
+  full_name: 'validation.fullNameRequired',
+  birth_year: 'validation.birthYearInvalid',
+  registration_place: 'validation.registrationPlaceRequired',
+  residence_place: 'validation.residencePlaceRequired',
+}
+
 interface RegistrationShellProps {
   titleKey: TranslationKey
   subtitleKey: TranslationKey
-  /** Rendered with the login phone and captcha token this frame collects. */
+  /** Rendered with the captcha token this frame collects. */
   children: (frame: {
     loginPhone: string
     captchaToken: string | null
-    /** Null when the phone is missing or unusable; the caller stops there. */
-    requireLoginPhone: () => string | null
+    /**
+     * Everything this frame collects, or null with the errors on screen.
+     *
+     * One call rather than one per block, so a caller cannot validate the
+     * phone number, forget the identity, and send an application the API
+     * then refuses for a field the form never marked.
+     */
+    requireApplicant: () => Applicant | null
     captcha: ReactNode
   }) => ReactNode
   /** Shown instead of the form once the application has been accepted. */
@@ -80,8 +221,24 @@ export function RegistrationShell({
   const [loginPhone, setLoginPhone] = useState('')
   const [phoneError, setPhoneError] = useState<string | null>(null)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [identity, setIdentity] = useState<Record<IdentityField, string>>({
+    full_name: '',
+    birth_year: '',
+    registration_place: '',
+    residence_place: '',
+  })
+  const [identityErrors, setIdentityErrors] = useState<
+    Partial<Record<IdentityField, string>>
+  >({})
+  const [documents, setDocuments] = useState<ApplicantDocuments>({
+    front: null,
+    back: null,
+  })
+  const [documentErrors, setDocumentErrors] = useState<
+    Partial<Record<DocumentSide, string>>
+  >({})
 
-  const requireLoginPhone = (): string | null => {
+  const requirePhone = (): string | null => {
     const value = loginPhone.trim()
     if (!value) {
       setPhoneError(t('validation.phoneRequired'))
@@ -93,6 +250,53 @@ export function RegistrationShell({
     }
     setPhoneError(null)
     return value
+  }
+
+  const requireIdentity = (): ApplicantIdentity | null => {
+    const errors: Partial<Record<IdentityField, string>> = {}
+    for (const field of IDENTITY_FIELDS) {
+      if (!identity[field].trim()) errors[field] = t(IDENTITY_MISSING[field])
+    }
+    // A year rather than an age: an age entered once is wrong a year later,
+    // and anything that needs one can work it out.
+    const year = Number(identity.birth_year.trim())
+    if (!errors.birth_year && (!Number.isInteger(year) || year < 1900 || year > 2100)) {
+      errors.birth_year = t('validation.birthYearInvalid')
+    }
+
+    setIdentityErrors(errors)
+    if (Object.keys(errors).length > 0) return null
+
+    return {
+      full_name: identity.full_name.trim(),
+      birth_year: year,
+      registration_place: identity.registration_place.trim(),
+      residence_place: identity.residence_place.trim(),
+    }
+  }
+
+  const requireDocuments = (): ApplicantDocuments | null => {
+    const errors: Partial<Record<DocumentSide, string>> = {}
+    for (const side of DOCUMENT_SIDES) {
+      if (!documents[side]) errors[side] = t(DOCUMENT_MISSING[side])
+    }
+    setDocumentErrors(errors)
+    return Object.keys(errors).length > 0 ? null : documents
+  }
+
+  const setSide = (side: DocumentSide, file: File | null, error: string | null) => {
+    setDocuments((current) => ({ ...current, [side]: file }))
+    setDocumentErrors((current) => ({ ...current, [side]: error ?? undefined }))
+  }
+
+  const requireApplicant = (): Applicant | null => {
+    // All of them, always, rather than stopping at the first failure:
+    // somebody who has left two fields blank should be told about two fields.
+    const phone = requirePhone()
+    const values = requireIdentity()
+    const scans = requireDocuments()
+    if (!phone || !values || !scans) return null
+    return { phone, identity: values, documents: scans }
   }
 
   if (submitted) return <SubmittedPanel phone={loginPhone} />
@@ -139,12 +343,72 @@ export function RegistrationShell({
         </CardBody>
       </Card>
 
+      <Card className="mb-6">
+        <CardBody className="space-y-4 p-6">
+          <div className="flex items-center gap-2 text-ink-900">
+            <UserRound className="h-5 w-5 text-brand-700" aria-hidden="true" />
+            <h2 className="text-lg">{t('register.identityHeading')}</h2>
+          </div>
+          <p className="text-sm text-ink-500">{t('register.identityHint')}</p>
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            {IDENTITY_FIELDS.map((field) => (
+              <Field
+                key={field}
+                label={t(IDENTITY_LABELS[field])}
+                required
+                error={identityErrors[field]}
+                hint={field === 'birth_year' ? t('account.birthYearHint') : undefined}
+              >
+                {(props) => (
+                  <Input
+                    {...props}
+                    value={identity[field]}
+                    onChange={(event) => {
+                      const value = event.target.value
+                      setIdentity((current) => ({ ...current, [field]: value }))
+                      if (identityErrors[field]) {
+                        setIdentityErrors((current) => ({ ...current, [field]: undefined }))
+                      }
+                    }}
+                    {...(field === 'birth_year'
+                      ? {
+                          inputMode: 'numeric' as const,
+                          dir: 'ltr' as const,
+                          placeholder: '1994',
+                          className: 'ltr-nums',
+                        }
+                      : {})}
+                    invalid={Boolean(identityErrors[field])}
+                  />
+                )}
+              </Field>
+            ))}
+          </div>
+
+          {/* Both sides: the reviewer checks the name against the front and
+              the place of registration against the back. */}
+          <div className="grid gap-5 sm:grid-cols-2">
+            {DOCUMENT_SIDES.map((side) => (
+              <DocumentField
+                key={side}
+                labelKey={DOCUMENT_LABELS[side]}
+                file={documents[side]}
+                error={documentErrors[side]}
+                onPick={(file, error) => setSide(side, file, error)}
+              />
+            ))}
+          </div>
+          <p className="text-sm text-ink-500">{t('register.documentHint')}</p>
+        </CardBody>
+      </Card>
+
       <Card>
         <CardBody className="p-6">
           {children({
             loginPhone,
             captchaToken,
-            requireLoginPhone,
+            requireApplicant,
             captcha: <Turnstile onToken={setCaptchaToken} />,
           })}
         </CardBody>

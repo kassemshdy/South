@@ -25,6 +25,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.core.phone import normalize_phone
 from app.core.security import hash_password
 from app.database.base import Base
 from app.database.session import SessionLocal, engine
@@ -116,16 +117,61 @@ def admin(db: Session) -> User:
     return entity
 
 
-def sign_in(client: TestClient, phone: str) -> dict[str, str]:
-    """Complete the OTP flow and return an auth header for ``phone``."""
-    response = client.post("/api/auth/request-otp", json={"phone_number": phone})
-    assert response.status_code == 200, response.text
-    code = response.json()["debug_code"]
-    assert code is not None
+#: The password every account this helper makes is given. A fixed value is
+#: right here for the same reason it would be wrong anywhere else: these
+#: accounts exist for the length of one test.
+OWNER_PASSWORD = "TestOwner!123"
 
-    verified = client.post("/api/auth/verify-otp", json={"phone_number": phone, "code": code})
-    assert verified.status_code == 200, verified.text
-    return {"Authorization": f"Bearer {verified.json()['access_token']}"}
+#: Hashed once, not per account. bcrypt is deliberately slow, and the suite
+#: creates hundreds of owners — hashing the same string each time spends
+#: minutes proving something bcrypt's own tests already prove.
+_OWNER_PASSWORD_HASH = hash_password(OWNER_PASSWORD)
+
+
+def make_owner(phone: str, **fields: object) -> User:
+    """An owner account with a password, created directly.
+
+    Signing in no longer creates an account — an administrator does, by
+    approving an application and issuing credentials — so a test that needs an
+    owner has to make one. Direct rather than through the registration
+    endpoint, because most tests want an owner, not an application: the
+    registration route's own behaviour is `tests/test_registration.py`.
+    """
+    session = SessionLocal()
+    try:
+        user = User(
+            phone_number=normalize_phone(phone),
+            role=UserRole.OWNER,
+            password_hash=_OWNER_PASSWORD_HASH,
+            **fields,
+        )
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        session.expunge(user)
+        return user
+    finally:
+        session.close()
+
+
+def sign_in(client: TestClient, phone: str) -> dict[str, str]:
+    """An auth header for ``phone``, creating the account if it is new."""
+    normalized = normalize_phone(phone)
+    session = SessionLocal()
+    try:
+        existing = (
+            session.query(User).filter(User.phone_number == normalized).one_or_none()
+        )
+    finally:
+        session.close()
+    if existing is None:
+        make_owner(normalized)
+
+    response = client.post(
+        "/api/auth/login", json={"identifier": phone, "password": OWNER_PASSWORD}
+    )
+    assert response.status_code == 200, response.text
+    return {"Authorization": f"Bearer {response.json()['access_token']}"}
 
 
 def admin_headers(client: TestClient, email: str = "admin@example.com") -> dict[str, str]:

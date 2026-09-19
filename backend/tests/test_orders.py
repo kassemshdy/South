@@ -145,7 +145,7 @@ def test_ordering_needs_no_account(
     client: TestClient, shop: Business, owner_headers: dict[str, str]
 ) -> None:
     """Decided on the issue: a junk order costs the owner one message, while
-    an OTP step would sit between a real customer and the one action this
+    a sign-in would sit between a real customer and the one action this
     feature exists to produce."""
     item_id = _add_item(client, shop, owner_headers, title=ar("item.generic"))
 

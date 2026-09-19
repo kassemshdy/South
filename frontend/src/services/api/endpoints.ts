@@ -44,7 +44,6 @@ import type {
   ProductQuery,
   ProductSummary,
   PublicStats,
-  RequestOtpResponse,
   FeedbackAttachmentKind,
   FeedbackPriority,
   FeedbackTicketDetail,
@@ -153,31 +152,60 @@ export interface IdentityPayload {
   residence_place?: string | null
 }
 
+/**
+ * Who an applicant says they are, as `POST /api/register/*` wants it.
+ *
+ * Required rather than optional, unlike `IdentityPayload` above: the
+ * reviewer is deciding whether this is a real person from the South, and
+ * these are what they decide on. Gender and marital status are not here,
+ * because nothing in that decision turns on them.
+ */
+export interface ApplicantIdentity {
+  full_name: string
+  birth_year: number
+  registration_place: string
+  residence_place: string
+}
+
+/** Both sides of the applicant's ID card. */
+export interface ApplicantDocuments {
+  front: File | null
+  back: File | null
+}
+
+/** An applicant, before they have an account. */
+export interface Applicant {
+  phone: string
+  identity: ApplicantIdentity
+  /** The scans they attached. The API does not insist; the forms do. */
+  documents: ApplicantDocuments
+}
+
 export const authApi = {
-  requestOtp: (phone_number: string) =>
-    apiRequest<RequestOtpResponse>('/api/auth/request-otp', {
+  /**
+   * The only sign-in a client calls.
+   *
+   * `identifier` is whatever was typed into the form's one box — a phone
+   * number for an owner, an email address for an administrator — and the API
+   * tells them apart. It answers both kinds of failure with the same
+   * sentence, so there is nothing here to branch on.
+   */
+  login: (identifier: string, password: string) =>
+    apiRequest<AuthToken>('/api/auth/login', {
       method: 'POST',
-      body: { phone_number },
+      body: { identifier, password },
     }),
-  verifyOtp: (phone_number: string, code: string) =>
-    apiRequest<AuthToken>('/api/auth/verify-otp', {
-      method: 'POST',
-      body: { phone_number, code },
-    }),
+  /**
+   * The administrators-only door, behind a URL nothing links to.
+   *
+   * `login` signs an administrator in too, so this is not the way in — it is
+   * the way in when the other one is broken, and an administrator locked out
+   * of a deployment has nobody to ask.
+   */
   adminLogin: (email: string, password: string) =>
     apiRequest<AuthToken>('/api/auth/admin/login', {
       method: 'POST',
       body: { email, password },
-    }),
-  /**
-   * Phone and password — the way in that needs no SMS or WhatsApp gateway,
-   * and therefore the only one that currently works. Administrators use
-   * `adminLogin`; this route refuses them.
-   */
-  login: (phone_number: string, password: string) =>
-    apiRequest<AuthToken>('/api/auth/login', {
-      method: 'POST',
-      body: { phone_number, password },
     }),
   /** Replaces one's own password, which ends every other session. */
   changePassword: (current_password: string, new_password: string) =>
@@ -207,6 +235,17 @@ export const authApi = {
     const form = new FormData()
     form.append('file', file)
     return apiRequest<VerificationDocument>('/api/me/verification-document', {
+      method: 'POST',
+      formData: form,
+    })
+  },
+
+  getVerificationDocumentBack: () =>
+    apiRequest<VerificationDocument | null>('/api/me/verification-document-back'),
+  uploadVerificationDocumentBack: (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return apiRequest<VerificationDocument>('/api/me/verification-document-back', {
       method: 'POST',
       formData: form,
     })
@@ -488,6 +527,8 @@ export const adminApi = {
     apiRequest<VerificationDocument>(`/api/admin/users/${userId}/verification-document`),
   downloadVerificationDocument: (userId: string) =>
     apiDownload(`/api/admin/users/${userId}/verification-document/download`),
+  downloadVerificationDocumentBack: (userId: string) =>
+    apiDownload(`/api/admin/users/${userId}/verification-document-back/download`),
   downloadCvDocument: (userId: string) =>
     apiDownload(`/api/admin/users/${userId}/cv-document/download`),
 
@@ -684,15 +725,53 @@ export interface RegistrationResult {
   message: string
 }
 
+/**
+ * An application, as the register routes take it: the JSON in one field and
+ * the applicant's ID scan beside it.
+ *
+ * Multipart rather than JSON because the scans travel with the application —
+ * there is no account to upload them to yet, and the reviewer decides whether
+ * this is a real person from the South. The application stays JSON in one
+ * field rather than being flattened into form fields, so there is still one
+ * definition of what an application is.
+ */
+function applicationForm(application: unknown, documents: ApplicantDocuments): FormData {
+  const form = new FormData()
+  form.append('application', JSON.stringify(application))
+  if (documents.front) form.append('document', documents.front)
+  if (documents.back) form.append('document_back', documents.back)
+  return form
+}
+
 export const registrationApi = {
-  business: (login_phone: string, business: BusinessPayload, captcha_token: string | null) =>
+  business: (
+    applicant: Applicant,
+    business: BusinessPayload,
+    captcha_token: string | null,
+  ) =>
     apiRequest<RegistrationResult>('/api/register/business', {
       method: 'POST',
-      body: { login_phone, business, captcha_token },
+      formData: applicationForm(
+        {
+          login_phone: applicant.phone,
+          identity: applicant.identity,
+          business,
+          captcha_token,
+        },
+        applicant.documents,
+      ),
     }),
-  talent: (login_phone: string, talent: TalentPayload, captcha_token: string | null) =>
+  talent: (applicant: Applicant, talent: TalentPayload, captcha_token: string | null) =>
     apiRequest<RegistrationResult>('/api/register/talent', {
       method: 'POST',
-      body: { login_phone, talent, captcha_token },
+      formData: applicationForm(
+        {
+          login_phone: applicant.phone,
+          identity: applicant.identity,
+          talent,
+          captcha_token,
+        },
+        applicant.documents,
+      ),
     }),
 }

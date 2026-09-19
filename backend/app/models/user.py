@@ -19,9 +19,14 @@ if TYPE_CHECKING:
 class User(Base, TimestampMixin):
     """A platform account.
 
-    Owners authenticate by phone + OTP and have no password; administrators
-    authenticate by email + password and have no phone. Both live in this table
-    so authorization is a single role check.
+    Everybody authenticates with a password. An owner is keyed by phone
+    number and an administrator by email address, so the two are told apart by
+    which of those was typed — but both live in this table, so authorization
+    is a single role check.
+
+    An owner's ``password_hash`` is null until an administrator issues one,
+    which is the state every application sits in while it waits for review:
+    the row exists and nobody can act as its owner.
     """
 
     __tablename__ = "users"
@@ -115,6 +120,12 @@ class User(Base, TimestampMixin):
     def verification_document(self) -> OwnerVerificationDocument | None:
         """The owner's ID scan, the document every account may upload."""
         return self.document_of(VerificationDocumentKind.IDENTITY)
+
+    @property
+    def verification_document_back(self) -> OwnerVerificationDocument | None:
+        """The reverse of the ID card, which carries the place of registration
+        a reviewer is checking the identity fields against."""
+        return self.document_of(VerificationDocumentKind.IDENTITY_BACK)
 
     @property
     def cv_document(self) -> OwnerVerificationDocument | None:

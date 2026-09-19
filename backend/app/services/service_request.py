@@ -5,7 +5,7 @@ they are restated here rather than cross-referenced because someone changing
 one should have to decide about the other:
 
 - **Anonymous, rate limited.** A junk request costs the person one message
-  and a row to mark handled. Against that, an OTP step would sit between a
+  and a row to mark handled. Against that, a sign-in would sit between a
   real customer and the single action the feature exists to produce.
 - **No notification.** There is no email infrastructure here and Twilio costs
   per message, so nothing pings the provider in this slice and no string

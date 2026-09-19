@@ -58,6 +58,7 @@ class AdminBusinessOut(OwnerBusinessOut):
     owner_personal_phone: str | None = None
     owner_identity: OwnerIdentityOut | None = None
     owner_has_verification_document: bool = False
+    owner_has_verification_document_back: bool = False
     owner_has_cv_document: bool = False
     owner_display_name: str | None = None
     owner_id: uuid.UUID
@@ -71,6 +72,7 @@ class AdminTalentOut(OwnerTalentOut):
     owner_personal_phone: str | None = None
     owner_identity: OwnerIdentityOut | None = None
     owner_has_verification_document: bool = False
+    owner_has_verification_document_back: bool = False
     owner_has_cv_document: bool = False
     owner_display_name: str | None = None
     owner_id: uuid.UUID

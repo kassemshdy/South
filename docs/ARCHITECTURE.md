@@ -17,8 +17,8 @@
 │  ├──────────────────────────────────────┤  │
 │  │ models/   SQLAlchemy                 │  │
 │  └──────────────────────────────────────┘  │
-│     auth/otp        storage/                │
-│     (protocol)      (protocol)              │
+│                     storage/                │
+│                     (protocol)              │
 └────────┬───────────────────┬────────────────┘
          ▼                   ▼
    PostgreSQL 16      Disk or S3-compatible
@@ -107,15 +107,30 @@ asserts the public payload never contains `owner_phone`, `owner_id`, `status`,
 
 ## Authentication
 
-Owners authenticate by phone and a one-time code; administrators by email and
-password. Both produce the same JWT (HS256) carrying `sub`, `role` and `tv`
-(token version). Bumping `User.token_version` invalidates every token previously
-issued to that user.
+One form, for everybody. `POST /api/auth/login` takes an `identifier` — a
+phone number for an owner, an email address for an administrator — and a
+password, and the account's role decides what the resulting token opens. It is
+a JWT (HS256) carrying `sub`, `role` and `tv` (token version); bumping
+`User.token_version` invalidates every token previously issued to that user.
 
-OTP codes are stored only as bcrypt hashes, expire in five minutes, are
-single-use, and allow five verification attempts. Requesting a code is rate
-limited to three per phone per fifteen minutes and ten per IP per hour, counted
-in the database so the limits hold across multiple workers.
+Passwords are stored only as bcrypt hashes, and an owner never chooses their
+first one: an administrator issues it from the review screen, it is shown once,
+and `must_change_password` shuts every owner route until it has been replaced.
+
+Guessing is capped per identifier — ten failures per fifteen minutes, counted
+in the database so the limit holds across workers — and only failures are
+recorded, so signing in correctly never spends the budget. The cap is the whole
+of the protection now that a password is the only factor, which is why the
+limiter commits its hit before the failure is raised rather than letting it
+roll back with the error.
+
+`POST /api/auth/admin/login` is the same administrator credentials on a route
+nothing links to, kept as the way back in when the main form is broken.
+
+OTP sign-in existed here and was removed rather than disabled: no gateway was
+ever obtainable, so the only provider that ever ran was the development one,
+which issues a fixed code — mounted on a deployment that is a way in for
+anyone who knows a phone number.
 
 ## SEO
 
@@ -165,7 +180,7 @@ download screens they will not open.
 
 | Want to… | Change |
 |---|---|
-| Use a different SMS/WhatsApp gateway | Add an `OtpProvider` in `app/auth/otp/`, register in `factory.py` |
+| Add a second way to sign in (a gateway, an SSO) | New code in `services/auth.py`; the account is keyed by phone number, so it is a second door onto the same accounts rather than a migration |
 | Store images elsewhere | Add a `StorageBackend` in `app/storage/` |
 | Moderate edits to approved listings | Extend the transition table in `services/moderation.py` |
 | Replace search with OpenSearch | Reimplement `BusinessRepository.search_public`; the API contract is unchanged |

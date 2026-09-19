@@ -5,45 +5,10 @@ from datetime import datetime
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
-from app.core.i18n import translate
-from app.core.phone import normalize_optional_phone, normalize_phone
+from app.core.phone import normalize_optional_phone
 from app.models.enums import Gender, MaritalStatus, UserRole
 from app.schemas.common import ORMModel
 from app.schemas.identity import IdentityFieldsIn
-
-
-class RequestOtpIn(BaseModel):
-    phone_number: str = Field(min_length=6, max_length=25, examples=["03123456"])
-
-    @field_validator("phone_number")
-    @classmethod
-    def _normalize(cls, value: str) -> str:
-        return normalize_phone(value)
-
-
-class RequestOtpOut(BaseModel):
-    message: str = Field(default_factory=lambda: translate("auth.otp.sent"))
-    expires_in_seconds: int
-    # Present only in development so the flow is testable without an SMS gateway.
-    debug_code: str | None = None
-
-
-class VerifyOtpIn(BaseModel):
-    phone_number: str = Field(min_length=6, max_length=25)
-    code: str = Field(min_length=4, max_length=8)
-
-    @field_validator("phone_number")
-    @classmethod
-    def _normalize(cls, value: str) -> str:
-        return normalize_phone(value)
-
-    @field_validator("code")
-    @classmethod
-    def _digits_only(cls, value: str) -> str:
-        cleaned = value.strip()
-        if not cleaned.isdigit():
-            raise ValueError(translate("auth.otp.digits_only"))
-        return cleaned
 
 
 class AdminLoginIn(BaseModel):
@@ -83,10 +48,21 @@ class UserOut(ORMModel):
     photo_url: str | None = None
 
 
-class OwnerLoginIn(BaseModel):
-    """Phone and password, for an account an administrator issued one to."""
+class LoginIn(BaseModel):
+    """What somebody types into the one sign-in form.
 
-    phone_number: str = Field(min_length=6, max_length=25)
+    ``identifier`` rather than a phone field and an email field, because the
+    form has one box: an owner fills it with the phone number their account is
+    keyed by, an administrator with their email address, and the service tells
+    them apart. Deliberately unvalidated beyond a length — normalizing it here
+    would answer "is that a real Lebanese number?" with a 422 to anyone who
+    asked, and the answer to every sign-in that does not work is the same
+    sentence. The minimum is one character rather than a plausible one for
+    the same reason: a length only a real identifier could reach is itself an
+    answer.
+    """
+
+    identifier: str = Field(min_length=1, max_length=255)
     password: str = Field(min_length=1, max_length=200)
 
 

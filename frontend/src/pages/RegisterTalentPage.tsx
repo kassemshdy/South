@@ -17,7 +17,11 @@ import { TalentForm } from '@/features/talent/TalentForm'
 import { useSeo } from '@/hooks/useSeo'
 import { useT } from '@/i18n'
 import { ApiError } from '@/services/api/client'
-import { registrationApi, type TalentPayload } from '@/services/api/endpoints'
+import {
+  registrationApi,
+  type Applicant,
+  type TalentPayload,
+} from '@/services/api/endpoints'
 
 export function RegisterTalentPage() {
   const t = useT()
@@ -26,8 +30,11 @@ export function RegisterTalentPage() {
   useSeo({ title: t('register.talentSeoTitle'), description: t('register.talentSubtitle') })
 
   const apply = useMutation({
-    mutationFn: (input: { phone: string; payload: TalentPayload; token: string | null }) =>
-      registrationApi.talent(input.phone, input.payload, input.token),
+    mutationFn: (input: {
+      applicant: Applicant
+      payload: TalentPayload
+      token: string | null
+    }) => registrationApi.talent(input.applicant, input.payload, input.token),
     onError: (error) =>
       toast.error(
         t('register.failed'),
@@ -41,15 +48,16 @@ export function RegisterTalentPage() {
       subtitleKey="register.talentSubtitle"
       submitted={apply.isSuccess}
     >
-      {({ requireLoginPhone, captchaToken, captcha }) => (
+      {({ requireApplicant, captchaToken, captcha }) => (
         <TalentForm
           submitLabel={t('register.submit')}
+          identityElsewhere={false}
           pending={apply.isPending}
           serverError={unwrapFieldErrors(apply.error, 'talent')}
           onSubmit={(payload) => {
-            const phone = requireLoginPhone()
-            if (!phone) return
-            apply.mutate({ phone, payload, token: captchaToken })
+            const applicant = requireApplicant()
+            if (!applicant) return
+            apply.mutate({ applicant, payload, token: captchaToken })
           }}
           footer={
             <>

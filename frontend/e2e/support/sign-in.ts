@@ -2,16 +2,15 @@
  * Signing an owner in, in one place.
  *
  * It used to be eight places: every spec that needed an owner carried its own
- * copy of "go to /login, type the number, press send, type the code". When the
- * login page grew a password step in front of the code step, all eight broke
- * at once — which is the same lesson `src/features/onboarding/destinations.ts`
- * records about three hand-written copies of one list.
+ * copy of the navigation. When the login page changed, all eight broke at
+ * once — which is the same lesson `src/features/onboarding/destinations.ts`
+ * records about three hand-written copies of one list. It has since changed
+ * twice more, and this file absorbed both.
  *
- * The code path is what these specs use because the development OTP provider
- * hands out a fixed code, so a test can complete it without a gateway. It is
- * no longer the first thing the login page shows — a password is, since that
- * is the route that works in production — so getting to it starts with the
- * link that switches steps.
+ * The password is the only way in now. The seeded owner accounts carry the
+ * one `SEED_OWNER_PASSWORD` puts on them, which the seed script refuses to
+ * apply in production — so this is a demo-and-test credential by construction,
+ * not a backdoor that happens to be unused.
  */
 
 import { expect, type Page } from '@playwright/test'
@@ -26,16 +25,41 @@ const ar = JSON.parse(
 ) as Record<string, string>
 const t = (key: string): string => ar[key]!
 
-/** The fixed code the development OTP provider always issues. */
-export const DEV_OTP = '123456'
+/** Must match SEED_OWNER_PASSWORD in the backend environment. */
+export const SEEDED_OWNER_PASSWORD = process.env.E2E_OWNER_PASSWORD ?? 'DemoOwner!123'
 
-export async function signInWithCode(page: Page, phone: string): Promise<void> {
+const demoOwners = JSON.parse(
+  readFileSync(resolve(here, '../../../backend/scripts/data/demo_owners.json'), 'utf-8'),
+) as { key: string; phone: string }[]
+
+/**
+ * The phone number of a seeded owner account with nothing listed under it.
+ *
+ * Read from the seed file the app is loaded with rather than written out
+ * here, so the number and the account it has to match cannot drift apart —
+ * the same reason `service-requests.spec.ts` takes its talent from
+ * `talents.json`. Signing in no longer creates the account it cannot find,
+ * so a number nobody seeded is simply a failed sign-in.
+ */
+export function demoOwnerPhone(key: string): string {
+  const owner = demoOwners.find((entry) => entry.key === key)
+  if (!owner) {
+    throw new Error(
+      `No demo owner "${key}" in backend/scripts/data/demo_owners.json — ` +
+        `add one there, and re-seed so the account exists.`,
+    )
+  }
+  return owner.phone
+}
+
+export async function signIn(
+  page: Page,
+  identifier: string,
+  password: string = SEEDED_OWNER_PASSWORD,
+): Promise<void> {
   await page.goto('/login')
-  await page.getByRole('button', { name: t('login.useCodeInstead') }).click()
-  await page.getByLabel(t('login.phoneLabel')).fill(phone)
-  await page.getByRole('button', { name: t('login.sendCode') }).click()
-  await expect(page.getByRole('heading', { name: t('login.codeTitle') })).toBeVisible()
-  await page.getByLabel(t('login.codeLabel')).fill(DEV_OTP)
-  await page.getByRole('button', { name: t('login.confirm') }).click()
+  await page.getByLabel(t('login.identifierLabel')).fill(identifier)
+  await page.getByLabel(t('login.passwordLabel')).fill(password)
+  await page.getByRole('button', { name: t('login.signIn'), exact: true }).click()
   await expect(page).toHaveURL(/\/dashboard/)
 }
