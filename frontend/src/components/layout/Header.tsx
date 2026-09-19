@@ -34,11 +34,23 @@ import { cn } from '@/utils/cn'
  * competing on one line. Everything personal lives behind one account menu
  * regardless of sign-in state.
  *
- * The public side grew too, once the site had marketing pages to point to
- * (news, a blog, an about page): rather than let the row keep widening one
- * link at a time, the three primary destinations (directory, products,
- * talent) stay direct links and the rest sit behind one `nav.more` menu —
- * still one tap away, just not one of the first things in the bar.
+ * The public side is the six headings the directory's owner asked for, in
+ * their order, each a direct link: home, products, services and skills, news,
+ * the blog, about us. They were briefly grouped — three visible and three
+ * behind a `nav.more` menu — to keep the row short; that was overruled,
+ * because a heading somebody has to find is not a heading.
+ *
+ * Six headings, two of them three words long, need the width: measured in a
+ * browser, the row fits at 1280 and overflows its container at 1024, so it
+ * appears at `xl` rather than the `md` three links used to need, and the
+ * drawer — which lists the same six, in the same order — covers everything
+ * narrower. Shrinking the type until it fitted a tablet was the alternative,
+ * and Arabic at 13px in a nav is not a kindness.
+ *
+ * The business directory is not one of the six. It keeps a home in the bar as
+ * the search icon, which is where it already lived at narrow widths, and in
+ * the footer — a directory nobody can reach from the header of a directory
+ * site would be a strange thing to ship.
  *
  * Signed out the bar ends in one button, `nav.login`. Signed in it ends in
  * the account menu and nothing after it. It used to end in `nav.addBusiness`
@@ -52,8 +64,11 @@ import { cn } from '@/utils/cn'
  * this directory for Arabic codepoints, comments included.)
  */
 
+// `whitespace-nowrap` is load-bearing with six headings in the row: two of
+// them are three words long, and left to wrap they turn a 64px bar into a
+// two-line one. Padding stays tight until there is room to spare.
 const NAV_LINK =
-  'rounded-lg px-3 py-2 text-[15px] font-medium text-ink-700 transition-colors hover:bg-sand-100 hover:text-ink-900'
+  'whitespace-nowrap rounded-lg px-2.5 py-2 text-[15px] font-medium text-ink-700 transition-colors hover:bg-sand-100 hover:text-ink-900 2xl:px-3'
 
 const MENU_ITEM =
   'flex cursor-pointer select-none items-center gap-2.5 rounded-lg px-3 py-2.5 text-[15px] text-ink-700 outline-none data-[highlighted]:bg-sand-100 data-[highlighted]:text-ink-900'
@@ -135,16 +150,19 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-ink-100 bg-sand-50/95 backdrop-blur">
       <div className="container-page flex h-16 items-center justify-between gap-4">
-        <Link to="/" className="flex items-center gap-2.5 font-display text-lg font-bold text-ink-900">
+        <Link
+          to="/"
+          className="flex shrink-0 items-center gap-2.5 whitespace-nowrap font-display text-lg font-bold text-ink-900"
+        >
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-700 text-white">
             <Store className="h-5 w-5" aria-hidden="true" />
           </span>
           {t('app.name')}
         </Link>
 
-        <nav className="hidden items-center gap-1 md:flex" aria-label={t('nav.mainAria')}>
-          <Link to="/businesses" className={NAV_LINK}>
-            {t('nav.directory')}
+        <nav className="hidden items-center gap-1 xl:flex" aria-label={t('nav.mainAria')}>
+          <Link to="/" className={NAV_LINK}>
+            {t('nav.home')}
           </Link>
           <Link to="/products" className={NAV_LINK}>
             {t('nav.products')}
@@ -152,36 +170,24 @@ export function Header() {
           <Link to="/talent" className={NAV_LINK}>
             {t('nav.talent')}
           </Link>
+          <Link to="/news" className={NAV_LINK}>
+            {t('nav.news')}
+          </Link>
+          <Link to="/blog" className={NAV_LINK}>
+            {t('nav.blog')}
+          </Link>
+          <Link to="/about" className={NAV_LINK}>
+            {t('nav.about')}
+          </Link>
 
-          {/* Lower-traffic marketing pages, grouped rather than given their
-              own slot each -- see the file-level note on why the row stays
-              short. Still one tap from the header, just not one of the first
-              three links in it. */}
-          <DropdownMenuPrimitive.Root>
-            <DropdownMenuPrimitive.Trigger asChild>
-              <button type="button" className={cn(NAV_LINK, 'flex items-center gap-1')}>
-                {t('nav.more')}
-                <ChevronDown className="h-3.5 w-3.5 text-ink-500" aria-hidden="true" />
-              </button>
-            </DropdownMenuPrimitive.Trigger>
-            <DropdownMenuPrimitive.Portal>
-              <DropdownMenuPrimitive.Content
-                align="start"
-                sideOffset={6}
-                className="z-50 min-w-48 overflow-hidden rounded-xl border border-ink-100 bg-white p-1 shadow-lift"
-              >
-                <DropdownMenuPrimitive.Item asChild className={MENU_ITEM}>
-                  <Link to="/news">{t('nav.news')}</Link>
-                </DropdownMenuPrimitive.Item>
-                <DropdownMenuPrimitive.Item asChild className={MENU_ITEM}>
-                  <Link to="/blog">{t('nav.blog')}</Link>
-                </DropdownMenuPrimitive.Item>
-                <DropdownMenuPrimitive.Item asChild className={MENU_ITEM}>
-                  <Link to="/about">{t('nav.about')}</Link>
-                </DropdownMenuPrimitive.Item>
-              </DropdownMenuPrimitive.Content>
-            </DropdownMenuPrimitive.Portal>
-          </DropdownMenuPrimitive.Root>
+          {/* The directory, as an icon rather than a seventh heading: the six
+              above are the ones that were asked for, and this is the same
+              control the narrow bar has carried all along. */}
+          <Button asChild variant="ghost" size="icon" aria-label={t('nav.searchAria')}>
+            <Link to="/businesses">
+              <Search className="h-5 w-5" aria-hidden="true" />
+            </Link>
+          </Button>
 
           <LocaleToggle />
 
@@ -259,7 +265,7 @@ export function Header() {
               lives on the hero chooser and inside the dashboard, where
               someone who wants it is already looking. */}
           {isAuthenticated ? null : (
-            <Button asChild size="sm" className="ms-2">
+            <Button asChild size="sm" className="ms-2 shrink-0 whitespace-nowrap">
               <Link to="/login">
                 <User className="h-4 w-4" aria-hidden="true" />
                 {t('nav.login')}
@@ -268,7 +274,7 @@ export function Header() {
           )}
         </nav>
 
-        <div className="flex items-center gap-1 md:hidden">
+        <div className="flex items-center gap-1 xl:hidden">
           <CartLink />
           <FavouritesLink />
           <LocaleToggle compact />
@@ -292,11 +298,11 @@ export function Header() {
 
       <div
         id="mobile-menu"
-        className={cn('border-t border-ink-100 bg-white md:hidden', menuOpen ? 'block' : 'hidden')}
+        className={cn('border-t border-ink-100 bg-white xl:hidden', menuOpen ? 'block' : 'hidden')}
       >
         <nav className="container-page flex flex-col gap-1 py-3" aria-label={t('nav.mobileAria')}>
-          <Link to="/businesses" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">
-            {t('nav.directory')}
+          <Link to="/" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">
+            {t('nav.home')}
           </Link>
           <Link to="/products" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">
             {t('nav.products')}
