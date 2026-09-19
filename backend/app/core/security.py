@@ -1,4 +1,4 @@
-"""Password hashing, OTP code hashing and JWT issuing/verification."""
+"""Password hashing and JWT issuing/verification."""
 
 from __future__ import annotations
 
@@ -31,26 +31,6 @@ def verify_password(password: str, password_hash: str | None) -> bool:
         return bcrypt.checkpw(password.encode(), password_hash.encode())
     except ValueError:
         # Malformed hash in the database — treat as a failed login, never a 500.
-        return False
-
-
-# --- OTP codes -------------------------------------------------------------
-
-
-def generate_otp_code(length: int) -> str:
-    """Cryptographically random numeric code, zero-padded to ``length``."""
-    upper = 10**length
-    return str(secrets.randbelow(upper)).zfill(length)
-
-
-def hash_otp_code(code: str) -> str:
-    return bcrypt.hashpw(code.encode(), bcrypt.gensalt()).decode()
-
-
-def verify_otp_code(code: str, code_hash: str) -> bool:
-    try:
-        return bcrypt.checkpw(code.encode(), code_hash.encode())
-    except ValueError:
         return False
 
 

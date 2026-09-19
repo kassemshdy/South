@@ -43,7 +43,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         "Application starting",
         extra={
             "env": settings.app_env,
-            "otp_provider": settings.otp_provider,
             "storage_backend": settings.storage_backend,
         },
     )

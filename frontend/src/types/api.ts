@@ -117,13 +117,6 @@ export interface AuthToken {
   user: User
 }
 
-export interface RequestOtpResponse {
-  message: string
-  expires_in_seconds: number
-  /** Present only when the backend runs in development mode. */
-  debug_code: string | null
-}
-
 export interface Category {
   id: string
   name_ar: string

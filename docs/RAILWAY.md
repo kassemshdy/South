@@ -20,8 +20,8 @@
 | Project | `southwork` (`323dd6ae-af69-4035-9e24-6de498989756`), workspace PulseX |
 | Environment | `production` (running `APP_ENV=staging` — see below) |
 | Branch | `master-claude` (live) and `develop-claude` (staging), both auto-deploy on push |
-| Admin sign-in | `/admin/login` — `ADMIN_EMAIL` / `ADMIN_PASSWORD` from the api service variables |
-| Owner sign-in | phone number + the password an administrator issued — see *Going to production* below. The OTP path also works with the fixed code **123456** while `APP_ENV=staging`, but no code is ever delivered |
+| Sign-in | `/login`, for everybody — an owner types their phone number, an administrator their `ADMIN_EMAIL`, both with a password. `/admin/login` is the same administrator credentials on an unlinked URL, kept as the way back in when the main form is broken |
+| Owner passwords | issued per account by an administrator, at *issue credentials* on the review screen, and relayed over their own WhatsApp |
 
 Change `ADMIN_PASSWORD` before sharing the URL with anyone.
 
@@ -72,7 +72,7 @@ Set per service (Settings → Build / Deploy, or via the MCP `update-service`):
 | `SECRET_KEY` | a generated 48-byte random string |
 | `DATABASE_URL` | `postgresql+psycopg://south:<password>@${{postgres.RAILWAY_PRIVATE_DOMAIN}}:5432/south` — note the `+psycopg` driver |
 | `PUBLIC_BASE_URL` / `CORS_ORIGINS` | the **web** service's public domain |
-| `OTP_PROVIDER` | `mock` while staging; `twilio` + credentials for production |
+| `SEED_OWNER_PASSWORD` | the demo accounts' password, so a deployed build can be signed into. Refused in production |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | the seeded administrator |
 | `STORAGE_BACKEND` | `local` (with the volume above) or `s3` |
 
@@ -113,26 +113,20 @@ It is idempotent: re-running adds only what is missing.
 
 ## Going to production
 
-1. Configure a real OTP provider:
-   - `OTP_PROVIDER=whatsapp` plus the `WHATSAPP_*` variables — see
-     `WHATSAPP_OTP.md`. This is the live route, because Twilio's signup
-     verification does not reach Lebanese numbers.
-   - or `OTP_PROVIDER=twilio` plus the three `TWILIO_*` variables, if an SMS
-     gateway becomes available.
-2. Change `APP_ENV` to `production`.
+Set `APP_ENV=production`. That is the whole of it now.
 
-The API refuses to boot as production with the mock provider, so the switch
-either works completely or fails loudly. Do step 1 and step 2 as one change:
-production with the mock provider will not start, and `OTP_PROVIDER` set to a
-value the deployed build does not know will not start either.
+The switch used to be blocked on an SMS or WhatsApp gateway, because without
+one no sign-in code was ever delivered and nobody could get in. That
+dependency is gone: OTP sign-in was removed, and the only way onto the site is
+a public application, an administrator's audit, and a password handed over
+from the administrator's own WhatsApp (see *How Somebody Gets Onto This Site*
+in `AGENTS.md`).
 
-**Neither step blocks owners from signing in any more.** That used to be the
-whole reason this page mattered: without a gateway there was no code, and
-without a code nobody could get in. There is now a route that needs no
-gateway — a public application, an administrator's audit, and a password
-handed over from the administrator's own WhatsApp (see *How Somebody Gets
-Onto This Site* in `AGENTS.md`). So the OTP switch is an improvement to make
-when a phone number becomes available, not an outage to clear.
+What production refuses to boot with is a weak `SECRET_KEY` and
+`SEED_OWNER_PASSWORD` — the demo accounts' password, which is in this
+repository, so it is not a password anywhere real. Clear it from the live
+`api` service before flipping `APP_ENV`, or the deploy will fail loudly rather
+than quietly running with a known credential on the seeded listings.
 
 ### Optional: the registration captcha
 

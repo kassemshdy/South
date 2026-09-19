@@ -25,8 +25,8 @@ or countable), `timestamptz` stored in UTC, and Alembic for every schema change.
                    │1
                    │N
             ┌──────▼─────────────┐        ┌───────────────┐  ┌──────────────────┐
-            │ moderation_actions │        │ otp_requests  │  │rate_limit_events │
-            │ (append-only)      │        └───────────────┘  └──────────────────┘
+            │ moderation_actions │                           │rate_limit_events │
+            │ (append-only)      │                           └──────────────────┘
             └────────────────────┘
 ```
 
@@ -97,11 +97,6 @@ Append-only audit trail. Each row records the action, the statuses it moved
 between, who did it, and any reason. `admin_id` is null for owner-initiated
 submissions; `actor_id` always identifies the person.
 
-### `otp_requests`
-One row per challenge. Only a bcrypt **hash** of the code is stored, with
-`expires_at`, `consumed_at` and `attempt_count`, so a database leak cannot be
-replayed into account takeovers.
-
 ### `rate_limit_events`
 One row per rate-limited action (`bucket`, `identifier`, `created_at`). Backing
 the limiter with the database rather than process memory means limits hold when
@@ -121,7 +116,7 @@ Beyond the primary and unique keys:
 | `ix_business_items_title_trgm` (GIN) | matching a product name to its shop |
 | `ix_business_items_business_sort` | ordered item lists |
 | `ix_business_images_business_kind_sort` | gallery rendering |
-| `ix_otp_requests_phone_created`, `ix_rate_limit_events_lookup` | auth throttling |
+| `ix_rate_limit_events_lookup` | auth throttling and the anonymous write limits |
 
 `pg_trgm` is created by the initial migration.
 

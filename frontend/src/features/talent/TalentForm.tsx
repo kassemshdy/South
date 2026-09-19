@@ -24,6 +24,15 @@ interface TalentFormProps {
   /** The parent's last save failure, so a 422 lands on the right input. */
   serverError?: unknown
   footer?: React.ReactNode
+  /**
+   * Whether to say that the identity fields live on the account page.
+   *
+   * True from the dashboard, where they do and this form deliberately omits
+   * them. False from the public application form, which collects them itself
+   * because there is no account yet — telling somebody their details are
+   * elsewhere while they are typing them in is worse than saying nothing.
+   */
+  identityElsewhere?: boolean
 }
 
 /** The whole profile on one form — a talent profile is small enough not to
@@ -31,7 +40,15 @@ interface TalentFormProps {
 /** Ordered as a person would read them, most immediate first. */
 const CONTACT_CHANNELS: ContactChannel[] = ['WHATSAPP', 'PHONE', 'EMAIL', 'WEBSITE']
 
-export function TalentForm({ profile, submitLabel, pending, onSubmit, serverError, footer }: TalentFormProps) {
+export function TalentForm({
+  profile,
+  submitLabel,
+  pending,
+  onSubmit,
+  serverError,
+  footer,
+  identityElsewhere = true,
+}: TalentFormProps) {
   const skills = useTalentSkills()
   const { groups } = useLocationGroups()
   const t = useT()
@@ -604,10 +621,14 @@ export function TalentForm({ profile, submitLabel, pending, onSubmit, serverErro
       </section>
 
       {/* Identity is set on the account, not here: one legal name per
-          person, however many listings they own. */}
-      <p className="rounded-xl bg-sand-100 p-3.5 text-sm text-clay-800">
-        {t('talentForm.identityMovedNote')}
-      </p>
+          person, however many listings they own. Hidden on the public
+          application form, which has no account to point at yet and asks for
+          the same fields a few centimetres above. */}
+      {identityElsewhere ? (
+        <p className="rounded-xl bg-sand-100 p-3.5 text-sm text-clay-800">
+          {t('talentForm.identityMovedNote')}
+        </p>
+      ) : null}
 
       <div className="flex flex-wrap gap-3 pt-2">
         <Button type="submit" size="lg" loading={pending}>

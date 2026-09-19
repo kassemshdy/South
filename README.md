@@ -67,7 +67,7 @@ sitemap, or reachable at `/business/{slug}`.
 | UI | Hand-rolled shadcn-style primitives on Radix UI, fully RTL |
 | Backend | Python 3.11 · FastAPI · SQLAlchemy 2.0 · Alembic · Pydantic v2 |
 | Database | PostgreSQL 16 (with `pg_trgm` for Arabic substring search) |
-| Auth | Phone + OTP for owners, email + password for admins, JWT bearer tokens |
+| Auth | One password form for everybody — phone number for owners, email for admins — JWT bearer tokens |
 | Storage | Pluggable: local disk (default) or any S3-compatible service |
 | Deployment | Three services (Postgres, API, web) on Railway, or `docker compose` on any VPS |
 
@@ -117,13 +117,20 @@ npm run dev                     # http://localhost:5173, /api proxied to :8000
 
 ### Signing in during development
 
+Both at `/login`, which is one form: the first box takes a phone number or an
+email address, and the account's role decides what opens.
+
 | Role | Credentials |
 |---|---|
-| Business owner | Any Lebanese number (e.g. `03123456`), OTP code **`123456`** |
-| Administrator | `ADMIN_EMAIL` / `ADMIN_PASSWORD` from `.env` (defaults: `admin@example.com` / `ChangeMe!123`) — sign in at `/admin/login` |
+| Business owner | Any seeded listing's `owner_phone` (see `scripts/data/`), with `SEED_OWNER_PASSWORD` from `.env` |
+| Business owner, with nothing listed yet | Any phone in `scripts/data/demo_owners.json`, same password — for walking the journey from an empty dashboard |
+| Administrator | `ADMIN_EMAIL` / `ADMIN_PASSWORD` from `.env` (defaults: `admin@example.com` / `ChangeMe!123`) |
 
-The fixed OTP code works **only** when `APP_ENV=development`. The application
-refuses to start in production with the mock OTP provider configured.
+`SEED_OWNER_PASSWORD` is applied by the seed script to the demo accounts, and
+the application refuses to start in production with it set — those phone
+numbers are in this repository, so their password would be too. A real owner's
+first password is issued by an administrator from the review screen, and must
+be replaced on first sign-in.
 
 ---
 
@@ -135,7 +142,7 @@ No user-facing string is written in source. Everything lives in JSON catalogs:
 |---|---|
 | `frontend/src/i18n/locales/{ar,en}.json` | every string the interface renders (419 keys) |
 | `backend/app/locales/{ar,en}.json` | API error and status messages (97 keys) |
-| `backend/scripts/data/*.json` | seed content — categories, locations, sample businesses |
+| `backend/scripts/data/*.json` | seed content — categories, locations, sample businesses, demo owner accounts |
 
 Arabic is the default and the source of truth. To change wording, edit
 `ar.json`; to add a language, copy it and translate.
@@ -165,18 +172,10 @@ The values you must change before a real deployment:
 | `SECRET_KEY` | Signs JWTs. Generate with `python -c "import secrets; print(secrets.token_urlsafe(48))"` |
 | `DATABASE_URL` | Your PostgreSQL instance |
 | `PUBLIC_BASE_URL` | Used for canonical URLs, OG tags and the sitemap |
-| `APP_ENV` | `staging` for a testable deployment, `production` once a real SMS gateway exists |
-| `OTP_PROVIDER` | `mock` is refused in production; allowed in staging; use `twilio` in production |
+| `APP_ENV` | `staging` for a testable deployment, `production` for the real thing |
+| `SEED_OWNER_PASSWORD` | The demo accounts' password. Allowed in staging, refused in production |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | The seeded administrator account |
 | `CORS_ORIGINS` | Comma-separated allowlist |
-
-### Swapping the OTP provider
-
-`app/auth/otp/base.py` defines a small `OtpProvider` protocol. `mock.py` logs
-codes for development and `twilio.py` sends SMS. To use a different gateway —
-a WhatsApp sender or a Lebanese SMS aggregator — add one file implementing
-`send()` and `fixed_code()`, register it in `factory.py`, and set
-`OTP_PROVIDER`. No authentication logic changes.
 
 ### Swapping image storage
 
@@ -199,7 +198,6 @@ backend/
     schemas/      Pydantic request/response DTOs
     repositories/ data access — the only layer that touches the ORM
     services/     business rules (moderation, business, items, images)
-    auth/otp/     OTP provider protocol + adapters
     storage/      storage protocol + adapters
   alembic/        migrations
   scripts/seed.py development seed data
@@ -228,8 +226,11 @@ Interactive docs are served at `/api/docs` when the backend is running.
 (`?q=&category=&location=&sort=&page=&page_size=`), `/api/businesses/latest`,
 `/api/businesses/{slug}`, `/sitemap.xml`, `/robots.txt`
 
-**Auth** — `POST /api/auth/request-otp`, `/api/auth/verify-otp`,
-`/api/auth/admin/login`; `GET|PATCH /api/me`
+**Auth** — `POST /api/auth/login` (phone number or email, plus password),
+`/api/auth/admin/login` (unlinked, administrators only), `/api/me/password`;
+`GET|PATCH /api/me`
+
+**Applying** — `POST /api/register/business`, `/api/register/talent`
 
 **Owner** — `GET /api/my/businesses`; `POST /api/businesses`;
 `GET|PUT|DELETE /api/businesses/{id}`; `POST /api/businesses/{id}/submit`;

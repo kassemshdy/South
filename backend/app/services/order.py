@@ -4,7 +4,7 @@ The decisions recorded on the issue, in the order they matter:
 
 - **Anonymous, rate limited.** A junk order costs the owner one message and
   a row to mark handled -- no money, no stock, no delivery, because this is
-  explicitly not e-commerce. Against that, an OTP step would sit between a
+  explicitly not e-commerce. Against that, a sign-in would sit between a
   real customer and the single action the feature exists to produce. The
   phone number is also checked by the owner using it, which is a weaker
   guarantee than verification and a far cheaper one.

@@ -26,6 +26,15 @@ interface BasicsFormProps {
    */
   serverError?: unknown
   footer?: React.ReactNode
+  /**
+   * Whether to say that the identity fields live on the account page.
+   *
+   * True from the dashboard, where they do and this form deliberately omits
+   * them. False from the public application form, which collects them itself
+   * because there is no account yet — telling somebody their details are
+   * elsewhere while they are typing them in is worse than saying nothing.
+   */
+  identityElsewhere?: boolean
 }
 
 /** Step 1 of the wizard, and the first tab of the edit screen. */
@@ -36,6 +45,7 @@ export function BasicsForm({
   onSubmit,
   serverError,
   footer,
+  identityElsewhere = true,
 }: BasicsFormProps) {
   const categories = useCategories()
   const t = useT()
@@ -331,10 +341,16 @@ export function BasicsForm({
       </details>
 
       {/* Identity is set on the account, not here: one legal name per
-          person, however many businesses they own. */}
-      <p className="rounded-xl bg-sand-100 p-3.5 text-sm text-clay-800">
-        {t('form.identityMovedNote')}
-      </p>
+          person, however many businesses they own. Hidden on the public
+          application form, which has no account to point at yet and asks for
+          the same fields a few centimetres above — the note would be telling
+          somebody their details are elsewhere while they are filling them
+          in. */}
+      {identityElsewhere ? (
+        <p className="rounded-xl bg-sand-100 p-3.5 text-sm text-clay-800">
+          {t('form.identityMovedNote')}
+        </p>
+      ) : null}
 
       <p className="rounded-xl bg-sand-100 p-3.5 text-sm text-clay-800">
         {t('form.privacyNote')}

@@ -11,8 +11,6 @@ from typing import Annotated
 from fastapi import Depends, Request
 from sqlalchemy.orm import Session
 
-from app.auth.otp.base import OtpProvider
-from app.auth.otp.factory import get_otp_provider
 from app.core.config import Settings, get_settings
 from app.core.errors import AuthenticationError, NotFoundError, PermissionDeniedError
 from app.core.security import decode_access_token
@@ -27,7 +25,6 @@ from app.repositories.user import UserRepository
 
 DbSession = Annotated[Session, Depends(get_db)]
 AppSettings = Annotated[Settings, Depends(get_settings)]
-OtpProviderDep = Annotated[OtpProvider, Depends(get_otp_provider)]
 
 
 def get_client_ip(request: Request) -> str | None:

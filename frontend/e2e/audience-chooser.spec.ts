@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { signInWithCode } from './support/sign-in'
+import { demoOwnerPhone, signIn } from './support/sign-in'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
@@ -13,7 +13,7 @@ const load = <T>(relative: string): T =>
 const ar = load<Record<string, string>>('../src/i18n/locales/ar.json')
 const t = (key: string): string => ar[key]!
 
-const OWNER_PHONE = '03966401'
+const OWNER_PHONE = demoOwnerPhone('audience')
 
 /**
  * The ways into the site.
@@ -112,7 +112,7 @@ test.describe('Audience chooser', () => {
   test('someone signed in gets the same doors, pointing at their dashboard', async ({
     page,
   }) => {
-    await signInWithCode(page, OWNER_PHONE)
+    await signIn(page, OWNER_PHONE)
 
     await page.goto('/')
     await expect(page.getByRole('heading', { name: t('onboarding.heading') })).toBeVisible()

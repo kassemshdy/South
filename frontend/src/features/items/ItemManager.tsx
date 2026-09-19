@@ -511,7 +511,20 @@ function ItemForm({
           </Field>
         </fieldset>
 
-        {isEdit ? <ItemGalleryManager businessId={businessId} item={item} /> : null}
+        {/* An item can carry a gallery beyond the thumbnail above, but only
+            once it exists: there is no id to attach files to until it is
+            saved. That is a reasonable constraint and an unreasonable thing to
+            leave unsaid — with nothing here, a new item looks like it takes
+            one photo and no more, so the gallery goes unfound. Saying so is
+            cheaper than uploading to a temporary place and moving the files
+            afterwards. */}
+        {isEdit ? (
+          <ItemGalleryManager businessId={businessId} item={item} />
+        ) : (
+          <p className="rounded-xl bg-sand-100 p-3.5 text-sm text-clay-800">
+            {t('items.galleryAfterSave')}
+          </p>
+        )}
 
         {/* Both controls at the end of the form, in the flow, where a long
             form's controls belong — not pinned to the bottom of a box the

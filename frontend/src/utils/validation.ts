@@ -36,6 +36,9 @@ export function isLebanesePhone(value: string): boolean {
   return /^[1-9]\d{6,7}$/.test(digits)
 }
 
+/** Loose on purpose: the server is the judge of an address, not this. */
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 function isUsableUrl(value: string): boolean {
   try {
     const url = new URL(value.includes('://') ? value : `https://${value}`)
@@ -69,20 +72,29 @@ export const optionalUrl = (t: Translate) =>
     .or(z.literal(''))
     .refine((value) => !value || isUsableUrl(value), t('validation.urlInvalid'))
 
-export const otpSchema = (t: Translate) =>
+/**
+ * The one sign-in form.
+ *
+ * A single box that takes either a phone number or an email address, because
+ * the form has one box: an owner knows the number their account is keyed by,
+ * an administrator knows their address, and asking which of the two somebody
+ * is before they have proved anything is a question with no useful answer.
+ *
+ * The "@" picks which rule applies — no Lebanese number contains one — and
+ * this is a typing aid only. The API answers every failed sign-in with the
+ * same sentence whatever was typed, deliberately, so nothing here decides
+ * anything.
+ */
+export const signInSchema = (t: Translate) =>
   z.object({
-    code: z
+    identifier: z
       .string()
       .trim()
-      .regex(/^\d{4,8}$/, t('validation.otpDigits')),
-  })
-
-export const phoneSchema = (t: Translate) => z.object({ phone_number: lebanesePhone(t) })
-
-/** Phone and password — how an owner signs in while no gateway exists. */
-export const ownerLoginSchema = (t: Translate) =>
-  z.object({
-    phone_number: lebanesePhone(t),
+      .min(1, t('validation.identifierRequired'))
+      .refine(
+        (value) => (value.includes('@') ? EMAIL_PATTERN.test(value) : isLebanesePhone(value)),
+        t('validation.identifierInvalid'),
+      ),
     password: z.string().min(1, t('validation.passwordRequired')),
   })
 
