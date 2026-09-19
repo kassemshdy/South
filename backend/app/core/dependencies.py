@@ -102,7 +102,25 @@ def get_current_user(
     return user
 
 
+def get_listing_owner(user: CurrentUser) -> User:
+    """The caller, refused if they are an administrator.
+
+    An administrator decides whether a listing may be published. Owning one
+    puts them on both sides of that decision, so the two create routes are
+    shut to them — not hidden in the interface and open at the API, which is
+    a rule in name only.
+
+    Deliberately narrow: an administrator still reads, moderates and edits
+    everything they could before. What they cannot do is bring a listing of
+    their own into the queue they judge.
+    """
+    if user.role is UserRole.ADMIN:
+        raise PermissionDeniedError("listing.admin_cannot_own", code="admin_account")
+    return user
+
+
 CurrentUser = Annotated[User, Depends(get_current_user)]
+ListingOwner = Annotated[User, Depends(get_listing_owner)]
 SignedInUser = Annotated[User, Depends(get_signed_in_user)]
 OptionalUser = Annotated[User | None, Depends(get_current_user_optional)]
 

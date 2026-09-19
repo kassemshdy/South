@@ -84,6 +84,8 @@
   "admin.businessesHeading": "النشاطات",
   "admin.businessesSubtitle": "راجع الطلبات وأدر حالة النشاطات المنشورة.",
   "admin.cancelAria": "إلغاء",
+  "admin.cannotOwnBody": "الإدارة تراجع الطلبات وتقرّر نشرها، فلا يمكنها أن تقدّم طلباً تراجعه بنفسها. لإدراج نشاط أو ملف مهني، استخدم حساب صاحب النشاط.",
+  "admin.cannotOwnTitle": "حساب الإدارة لا ينشئ نشاطاً أو ملفاً مهنياً",
   "admin.categoriesHeading": "التصنيفات",
   "admin.categoriesSubtitle": "التصنيفات تُحمَّل من قاعدة البيانات وتظهر مباشرة للزوار.",
   "admin.categoryAddFailed": "تعذر إضافة التصنيف",

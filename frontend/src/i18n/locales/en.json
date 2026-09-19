@@ -84,6 +84,8 @@
   "admin.businessesHeading": "Businesses",
   "admin.businessesSubtitle": "Review submissions and manage published businesses.",
   "admin.cancelAria": "Cancel",
+  "admin.cannotOwnBody": "Administrators review applications and decide whether they are published, so they cannot submit one for themselves. Use an owner account to list a business or a talent profile.",
+  "admin.cannotOwnTitle": "An administrator account cannot own a listing",
   "admin.categoriesHeading": "Categories",
   "admin.categoriesSubtitle": "Categories are loaded from the database and appear to visitors immediately.",
   "admin.categoryAddFailed": "Could not add the category",

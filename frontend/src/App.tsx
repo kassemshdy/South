@@ -3,7 +3,11 @@ import { Route, Routes } from 'react-router-dom'
 
 import { AppLayout } from '@/components/layout/AppLayout'
 import { InlineSpinner } from '@/components/ui/States'
-import { RequireAdmin, RequireAuth } from '@/features/auth/RouteGuards'
+import {
+  RequireAdmin,
+  RequireAuth,
+  RequireListingOwner,
+} from '@/features/auth/RouteGuards'
 import { AboutPage } from '@/pages/AboutPage'
 import { ArticleDetailPage } from '@/pages/ArticleDetailPage'
 import { BlogPage } from '@/pages/BlogPage'
@@ -159,11 +163,15 @@ export function App() {
               </RequireAuth>
             }
           />
+          {/* The create forms refuse an administrator, who reviews listings
+              rather than owning one; the API refuses it too. */}
           <Route
             path="dashboard/businesses/new"
             element={
               <RequireAuth>
-                <BusinessWizardPage />
+                <RequireListingOwner>
+                  <BusinessWizardPage />
+                </RequireListingOwner>
               </RequireAuth>
             }
           />
@@ -187,7 +195,9 @@ export function App() {
             path="dashboard/talent"
             element={
               <RequireAuth>
-                <TalentDashboardPage />
+                <RequireListingOwner>
+                  <TalentDashboardPage />
+                </RequireListingOwner>
               </RequireAuth>
             }
           />
