@@ -61,9 +61,13 @@ test.describe('Lean onboarding', () => {
     await page.getByText(t('form.optionalSectionTitle')).click()
     await expect(page.getByLabel(t('form.description'))).toBeVisible()
 
-    // The two steps nothing depends on say so, before they are walked into.
+    // The steps nothing depends on say so, before they are walked into.
+    // Three of them now: social links, official papers and the item
+    // catalogue. The papers are evidence a reviewer may want and a shop with
+    // none is still a shop, so the chip is what keeps a blank upload box from
+    // reading as an obligation.
     const optionalChips = page.getByRole('button', { name: new RegExp(t('wizard.optionalStep')) })
-    await expect(optionalChips).toHaveCount(2)
+    await expect(optionalChips).toHaveCount(3)
 
     // --- Required basics only ------------------------------------------------
     await page.getByLabel(t('form.name')).fill(fixture.name)

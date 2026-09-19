@@ -444,6 +444,24 @@ export const ownerApi = {
   },
   deleteImage: (id: string, imageId: string) =>
     apiRequest<OwnerBusiness>(`/api/businesses/${id}/images/${imageId}`, { method: 'DELETE' }),
+
+  /**
+   * Attach an official paper to the listing. Optional at every point -- a
+   * business with no paperwork submits and publishes exactly as before.
+   */
+  uploadDocument: (id: string, file: File, label?: string) => {
+    const form = new FormData()
+    form.append('file', file)
+    if (label) form.append('label', label)
+    return apiRequest<OwnerBusiness>(`/api/businesses/${id}/documents`, {
+      method: 'POST',
+      formData: form,
+    })
+  },
+  deleteDocument: (id: string, documentId: string) =>
+    apiRequest<OwnerBusiness>(`/api/businesses/${id}/documents/${documentId}`, {
+      method: 'DELETE',
+    }),
   reorderImages: (id: string, image_ids: string[]) =>
     apiRequest<OwnerBusiness>(`/api/businesses/${id}/images/order`, {
       method: 'PUT',
@@ -531,6 +549,10 @@ export const adminApi = {
     apiDownload(`/api/admin/users/${userId}/verification-document-back/download`),
   downloadCvDocument: (userId: string) =>
     apiDownload(`/api/admin/users/${userId}/cv-document/download`),
+
+  /** A listing's own paper. The only route to the bytes. */
+  downloadBusinessDocument: (businessId: string, documentId: string) =>
+    apiDownload(`/api/admin/businesses/${businessId}/documents/${documentId}/download`),
 
   categories: () => apiRequest<Category[]>('/api/admin/categories'),
   createCategory: (body: Partial<Category> & { name_ar: string }) =>

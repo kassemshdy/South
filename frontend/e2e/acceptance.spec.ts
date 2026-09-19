@@ -113,7 +113,7 @@ test.describe('MVP acceptance flow', () => {
     await expect(page.getByRole('article').first()).toBeVisible()
     await page.screenshot({ path: 'e2e/screenshots/01-directory.png', fullPage: false })
 
-    // --- 2. The owner signs in with a Lebanese number + OTP -----------------
+    // --- 2. The owner signs in with a Lebanese number + password ------------
     await signInAsOwner(page)
     await expect(page.getByRole('heading', { name: t('dashboard.heading') })).toBeVisible()
 
@@ -158,7 +158,13 @@ test.describe('MVP acceptance flow', () => {
     await page.getByLabel(t('platform.INSTAGRAM')).fill('instagram.com/manakish.aldayaa')
     await page.getByRole('button', { name: t('wizard.saveAndContinue') }).click()
 
-    // --- 7. Items with prices ------------------------------------------------
+    // --- 7. Official papers, which this owner does not have ------------------
+    // Optional by design: a shop with no commercial register is still a shop,
+    // so the step must be walkable past without attaching anything.
+    await expect(page.getByText(t('businessDocuments.empty'))).toBeVisible()
+    await page.getByRole('button', { name: t('common.continue'), exact: true }).click()
+
+    // --- 8. Items with prices ------------------------------------------------
     for (const { title, price } of fixture.items) {
       await page.getByRole('button', { name: t('items.addItem') }).first().click()
       await page.getByLabel(t('items.nameLabel')).fill(title)
@@ -182,7 +188,7 @@ test.describe('MVP acceptance flow', () => {
     }
     await page.screenshot({ path: 'e2e/screenshots/03-items.png', fullPage: false })
 
-    // --- 8. Submit for review ----------------------------------------------
+    // --- 9. Submit for review ----------------------------------------------
     await page.getByRole('button', { name: t('wizard.continueToReview') }).click()
     await expect(page.getByText(t('wizard.allComplete')).first()).toBeVisible()
     await page.getByRole('button', { name: t('dashboard.submitForReview') }).click()
@@ -191,7 +197,7 @@ test.describe('MVP acceptance flow', () => {
     await expect(page.getByText(t('status.PENDING_REVIEW'), { exact: true }).first()).toBeVisible()
     await page.screenshot({ path: 'e2e/screenshots/04-pending.png', fullPage: false })
 
-    // --- 9. The pending listing must NOT be publicly visible ----------------
+    // --- 10. The pending listing must NOT be publicly visible ---------------
     // Other approved listings may legitimately match this query, so assert on
     // the absence of *this* business rather than an empty result set.
     await page.goto(`/businesses?q=${encodeURIComponent(fixture.searchTerm)}`)
@@ -201,7 +207,7 @@ test.describe('MVP acceptance flow', () => {
     await page.goto(`/business/${encodeURIComponent(fixture.businessName.replace(/\s+/g, '-'))}`)
     await expect(page.getByText(backendAr['business.not_public']!)).toBeVisible()
 
-    // --- 10. Administrator approves ----------------------------------------
+    // --- 11. Administrator approves ----------------------------------------
     await page.goto('/admin/login')
     await page.getByLabel(t('adminLogin.email')).fill(ADMIN_EMAIL)
     await page.getByLabel(t('adminLogin.password')).fill(ADMIN_PASSWORD)
@@ -228,13 +234,13 @@ test.describe('MVP acceptance flow', () => {
     await page.getByRole('button', { name: t('common.confirm'), exact: true }).click()
     await expect(page.getByText(t('status.APPROVED'), { exact: true }).first()).toBeVisible()
 
-    // --- 11. Immediately searchable on the public site ----------------------
+    // --- 12. Immediately searchable on the public site ----------------------
     await page.goto(`/businesses?q=${encodeURIComponent(fixture.searchTerm)}`)
     const card = page.getByRole('article').filter({ hasText: BUSINESS_NAME })
     await expect(card).toHaveCount(1)
     await page.screenshot({ path: 'e2e/screenshots/06-search-result.png', fullPage: false })
 
-    // --- 12. The public profile shows everything the owner published --------
+    // --- 13. The public profile shows everything the owner published --------
     await card.getByRole('link', { name: t('business.viewDetails') }).click()
     await expect(page.getByRole('heading', { name: BUSINESS_NAME, level: 1 })).toBeVisible()
     await expect(page.getByText(t('business.verified')).first()).toBeVisible()

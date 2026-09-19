@@ -39,8 +39,15 @@ class BusinessRepository(BaseRepository[Business]):
         )
 
     def get_with_relations(self, business_id: uuid.UUID) -> Business | None:
+        """Load one business for its owner.
+
+        Carries ``documents`` because ``owner_business`` serializes them and
+        the public loaders deliberately do not — a visitor's query should not
+        pay for rows only a reviewer reads.
+        """
         return self.db.execute(
             self._with_relations(select(Business).where(Business.id == business_id))
+            .options(selectinload(Business.documents))
         ).unique().scalar_one_or_none()
 
     def get_by_slug(self, slug: str, *, public_only: bool = True) -> Business | None:
@@ -60,7 +67,7 @@ class BusinessRepository(BaseRepository[Business]):
             select(Business)
             .where(Business.owner_id == owner_id)
             .order_by(Business.created_at.desc())
-        )
+        ).options(selectinload(Business.documents))
         return list(self.db.execute(stmt).unique().scalars().all())
 
     # --- Querying ----------------------------------------------------------
@@ -173,7 +180,10 @@ class BusinessRepository(BaseRepository[Business]):
         rows = (
             self.db.execute(
                 self._with_relations(stmt)
-                .options(joinedload(Business.owner).selectinload(User.documents))
+                .options(
+                    joinedload(Business.owner).selectinload(User.documents),
+                    selectinload(Business.documents),
+                )
                 .order_by(order)
                 .limit(page_size)
                 .offset((page - 1) * page_size)
@@ -189,6 +199,7 @@ class BusinessRepository(BaseRepository[Business]):
             self._with_relations(select(Business).where(Business.id == business_id))
             .options(
                 joinedload(Business.owner).selectinload(User.documents),
+                selectinload(Business.documents),
                 selectinload(Business.moderation_actions),
             )
         )

@@ -33,7 +33,12 @@ _MAGIC_BYTES: tuple[tuple[bytes, str], ...] = (
     (b"\xff\xd8\xff", "image/jpeg"),
     (b"\x89PNG\r\n\x1a\n", "image/png"),
 )
-_EXTENSIONS = {"application/pdf": "pdf", "image/jpeg": "jpg", "image/png": "png"}
+# Public because a business's own papers are the same artefact — a scan or a
+# PDF a reviewer reads once — and are stored by
+# :class:`~app.services.business_documents.BusinessDocumentService`, which
+# composes this service for validation rather than sniffing bytes a second way.
+DOCUMENT_EXTENSIONS = {"application/pdf": "pdf", "image/jpeg": "jpg", "image/png": "png"}
+_EXTENSIONS = DOCUMENT_EXTENSIONS
 # Separate prefixes so a bucket listing still says what a file is, and so an
 # accidentally over-broad rule on one prefix cannot expose the other.
 _FOLDERS = {

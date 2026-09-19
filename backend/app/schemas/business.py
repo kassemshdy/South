@@ -13,6 +13,7 @@ from app.schemas.common import ORMModel
 from app.schemas.item import BusinessItemOut
 from app.schemas.taxonomy import CategoryOut, LocationOut
 from app.schemas.testimonial import TestimonialOut
+from app.schemas.verification import BusinessDocumentOut
 
 OptionalPhone = Annotated[str | None, Field(default=None, max_length=25)]
 
@@ -108,6 +109,11 @@ class OwnerBusinessOut(BusinessDetailOut):
     rejection_reason: str | None = None
     submitted_at: datetime | None = None
     updated_at: datetime
+    # The listing's official papers, optional and admin-readable only. Here
+    # rather than on ``BusinessDetailOut`` for the same reason as
+    # ``owner_relation`` above: a commercial register is evidence for a
+    # reviewer, not content for a visitor.
+    documents: list[BusinessDocumentOut] = Field(default_factory=list)
 
 
 class BusinessCreateIn(BaseModel):

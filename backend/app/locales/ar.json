@@ -30,6 +30,8 @@
   "business.not_public": "هذا النشاط غير متوفر أو لم تتم الموافقة عليه بعد.",
   "business.unknown_category": "التصنيف المحدد غير موجود.",
   "business.unknown_location": "الموقع المحدد غير موجود.",
+  "business_document.limit": "لا يمكن إرفاق أكثر من {max} مستندات لهذا النشاط.",
+  "business_document.not_found": "المستند غير موجود.",
   "captcha.failed": "تعذّر التحقق من أنك لست روبوتاً. يرجى المحاولة مجدداً.",
   "captcha.required": "يرجى إتمام التحقق من أنك لست روبوتاً.",
   "captcha.unavailable": "تعذّر إتمام التحقق حالياً. يرجى المحاولة لاحقاً.",

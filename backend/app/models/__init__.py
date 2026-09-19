@@ -5,6 +5,7 @@ from app.models.article import Article
 from app.models.auth import RateLimitEvent
 from app.models.business import (
     Business,
+    BusinessDocument,
     BusinessImage,
     BusinessItem,
     BusinessItemImage,
@@ -45,6 +46,7 @@ __all__ = [
     "Article",
     "ArticleSection",
     "Business",
+    "BusinessDocument",
     "BusinessImage",
     "BusinessItem",
     "BusinessItemImage",

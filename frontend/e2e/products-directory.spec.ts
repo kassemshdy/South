@@ -94,6 +94,10 @@ test.describe('Products directory', () => {
 
     await page.getByRole('button', { name: t('wizard.saveAndContinue') }).click()
 
+    // Official papers sit between the social links and the catalogue, and are
+    // optional: this owner has none, so the step is walked straight past.
+    await page.getByRole('button', { name: t('common.continue'), exact: true }).click()
+
     // --- Two items: one available, one not -----------------------------------
     await page.getByRole('button', { name: t('items.addItem') }).first().click()
     await page.getByLabel(t('items.nameLabel')).fill(fixture.availableItem.title)

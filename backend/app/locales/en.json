@@ -30,6 +30,8 @@
   "business.not_public": "This business is unavailable or has not been approved yet.",
   "business.unknown_category": "The selected category does not exist.",
   "business.unknown_location": "The selected location does not exist.",
+  "business_document.limit": "A listing may carry at most {max} documents.",
+  "business_document.not_found": "Document not found.",
   "captcha.failed": "Human verification failed. Please try again.",
   "captcha.required": "Please complete the human verification.",
   "captcha.unavailable": "Verification could not be completed right now. Please try again later.",
