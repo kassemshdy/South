@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 
 import { openBusinessWizard } from './support/wizard'
 
-import { signIn } from './support/sign-in'
+import { demoOwnerPhone, signIn } from './support/sign-in'
 
 const here = dirname(fileURLToPath(import.meta.url))
 // Read rather than import: Playwright's ESM loader would require import
@@ -57,7 +57,7 @@ const districtName = locations
  * it becomes searchable immediately afterwards.
  */
 
-const OWNER_PHONE = '03987654'
+const OWNER_PHONE = demoOwnerPhone('acceptance')
 const ADMIN_EMAIL = 'admin@example.com'
 const ADMIN_PASSWORD = 'ChangeMe!123'
 const BUSINESS_NAME = fixture.businessName

@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 
 import { openBusinessWizard } from './support/wizard'
 
-import { signIn } from './support/sign-in'
+import { demoOwnerPhone, signIn } from './support/sign-in'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
@@ -38,7 +38,7 @@ const districtName = locations
   .flatMap((governorate) => governorate.children ?? [])
   .find((district) => district.slug === fixture.locationSlug)!.name_ar
 
-const OWNER_PHONE = '03911122'
+const OWNER_PHONE = demoOwnerPhone('products')
 const ADMIN_EMAIL = 'admin@example.com'
 const ADMIN_PASSWORD = 'ChangeMe!123'
 

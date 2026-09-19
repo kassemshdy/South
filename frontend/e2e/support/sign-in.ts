@@ -28,6 +28,30 @@ const t = (key: string): string => ar[key]!
 /** Must match SEED_OWNER_PASSWORD in the backend environment. */
 export const SEEDED_OWNER_PASSWORD = process.env.E2E_OWNER_PASSWORD ?? 'DemoOwner!123'
 
+const demoOwners = JSON.parse(
+  readFileSync(resolve(here, '../../../backend/scripts/data/demo_owners.json'), 'utf-8'),
+) as { key: string; phone: string }[]
+
+/**
+ * The phone number of a seeded owner account with nothing listed under it.
+ *
+ * Read from the seed file the app is loaded with rather than written out
+ * here, so the number and the account it has to match cannot drift apart —
+ * the same reason `service-requests.spec.ts` takes its talent from
+ * `talents.json`. Signing in no longer creates the account it cannot find,
+ * so a number nobody seeded is simply a failed sign-in.
+ */
+export function demoOwnerPhone(key: string): string {
+  const owner = demoOwners.find((entry) => entry.key === key)
+  if (!owner) {
+    throw new Error(
+      `No demo owner "${key}" in backend/scripts/data/demo_owners.json — ` +
+        `add one there, and re-seed so the account exists.`,
+    )
+  }
+  return owner.phone
+}
+
 export async function signIn(
   page: Page,
   identifier: string,

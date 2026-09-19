@@ -56,10 +56,17 @@ CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npx playwright 
 Needs the API on `:8000`, Vite on `:5173`, and a **clean database**.
 
 It also needs `SEED_OWNER_PASSWORD` set in the API's environment *before the
-seed ran*, because that is when the hash is written. Every owner spec signs in
-with it — `e2e/support/sign-in.ts` defaults to the `.env.example` value, and
+seed ran*, because that is when the hash is written, and because the demo
+owner accounts the owner specs sign in as are only created when it is set.
+`e2e/support/sign-in.ts` defaults to the `.env.example` value, and
 `E2E_OWNER_PASSWORD` overrides it. Sign-ins failing across the board is this,
-not broken auth.
+not broken auth: re-seed after changing the variable.
+
+A spec needing an owner takes its number from
+`backend/scripts/data/demo_owners.json` via `demoOwnerPhone(key)`, never a
+literal. Signing in no longer creates the account it cannot find — the OTP
+flow did — so an invented number is just a failed sign-in. A new spec adds an
+entry there and re-seeds.
 
 ## 6. Look at it, from `frontend/`
 

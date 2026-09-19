@@ -76,6 +76,7 @@ from scripts.seed_data import (
     ARTICLES,
     BUSINESSES,
     CATEGORIES,
+    DEMO_OWNERS,
     LOCATIONS,
     TALENT_SKILLS,
     TALENTS,
@@ -195,6 +196,28 @@ def _demo_owner(db, owner_phone: str) -> User:  # type: ignore[no-untyped-def]
 
     db.flush()
     return owner
+
+
+def seed_demo_owners(db) -> int:  # type: ignore[no-untyped-def]
+    """Owner accounts with a password and nothing listed under them.
+
+    Every owner seeded alongside a business already has one, so neither a
+    person looking at a deployed demo nor the end-to-end suite can walk the
+    owner journey from its beginning: an empty dashboard, a first listing, a
+    first submission. These are for that.
+
+    Skipped entirely without ``SEED_OWNER_PASSWORD``, which production
+    refuses to boot with — an account nobody can sign into is not seed data.
+    """
+    if not get_settings().seed_owner_password:
+        logger.info("SEED_OWNER_PASSWORD not set; skipping demo owner accounts")
+        return 0
+
+    for entry in DEMO_OWNERS:
+        _demo_owner(db, entry["phone"])
+
+    logger.info("Demo owner accounts seeded", extra={"count": len(DEMO_OWNERS)})
+    return len(DEMO_OWNERS)
 
 
 def seed_admin(db) -> User | None:  # type: ignore[no-untyped-def]
@@ -841,6 +864,7 @@ def main() -> int:
         skills = seed_talent_skills(db)
         locations = seed_locations(db)
         admin = seed_admin(db)
+        seed_demo_owners(db)
         seed_businesses(db, categories, locations, admin)
         seed_talents(db, skills, locations, admin)
         seed_articles(db)

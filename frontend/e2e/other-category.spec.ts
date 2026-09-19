@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 
 import { openBusinessWizard } from './support/wizard'
 
-import { signIn } from './support/sign-in'
+import { demoOwnerPhone, signIn } from './support/sign-in'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
@@ -33,7 +33,7 @@ const districtName = locations
   .flatMap((governorate) => governorate.children ?? [])
   .find((district) => district.slug === fixture.locationSlug)!.name_ar
 
-const OWNER_PHONE = '03911223'
+const OWNER_PHONE = demoOwnerPhone('other_category')
 
 /**
  * Selecting the "Other" category must reveal a required free-text field, and

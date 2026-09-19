@@ -123,6 +123,7 @@ email address, and the account's role decides what opens.
 | Role | Credentials |
 |---|---|
 | Business owner | Any seeded listing's `owner_phone` (see `scripts/data/`), with `SEED_OWNER_PASSWORD` from `.env` |
+| Business owner, with nothing listed yet | Any phone in `scripts/data/demo_owners.json`, same password — for walking the journey from an empty dashboard |
 | Administrator | `ADMIN_EMAIL` / `ADMIN_PASSWORD` from `.env` (defaults: `admin@example.com` / `ChangeMe!123`) |
 
 `SEED_OWNER_PASSWORD` is applied by the seed script to the demo accounts, and
@@ -141,7 +142,7 @@ No user-facing string is written in source. Everything lives in JSON catalogs:
 |---|---|
 | `frontend/src/i18n/locales/{ar,en}.json` | every string the interface renders (419 keys) |
 | `backend/app/locales/{ar,en}.json` | API error and status messages (97 keys) |
-| `backend/scripts/data/*.json` | seed content — categories, locations, sample businesses |
+| `backend/scripts/data/*.json` | seed content — categories, locations, sample businesses, demo owner accounts |
 
 Arabic is the default and the source of truth. To change wording, edit
 `ar.json`; to add a language, copy it and translate.

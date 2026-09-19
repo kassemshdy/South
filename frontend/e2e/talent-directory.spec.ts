@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { signIn } from './support/sign-in'
+import { demoOwnerPhone, signIn } from './support/sign-in'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
@@ -34,7 +34,7 @@ const districtName = locations
   .flatMap((governorate) => governorate.children ?? [])
   .find((district) => district.slug === fixture.locationSlug)!.name_ar
 
-const OWNER_PHONE = '03955443'
+const OWNER_PHONE = demoOwnerPhone('talent')
 const ADMIN_EMAIL = 'admin@example.com'
 const ADMIN_PASSWORD = 'ChangeMe!123'
 

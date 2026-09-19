@@ -85,6 +85,24 @@ class TalentSeed(TypedDict, total=False):
     slug: str
 
 
+class DemoOwnerSeed(TypedDict):
+    """An owner account with a password and no listings.
+
+    Walking the owner journey from the beginning — an empty dashboard, then
+    a listing, then a submission — needs an account that has not already
+    done it, and every seeded owner above has. So these exist for that: a
+    deployed demo, and the end-to-end suite, which reads this same file so
+    the phone numbers cannot drift from the accounts.
+
+    Created only when ``SEED_OWNER_PASSWORD`` is set, which production
+    refuses to boot with. An account nobody can sign into is not seed data,
+    it is litter.
+    """
+
+    key: str
+    phone: str
+
+
 class ArticleSeed(TypedDict):
     section: str
     slug: str
@@ -101,6 +119,7 @@ REQUIRED_FIELDS: dict[str, tuple[str, ...]] = {
     "talent_skills": ("name_ar", "slug", "sort_order"),
     "talents": ("display_name", "owner_phone", "skill", "location", "status"),
     "articles": ("section", "slug", "title", "body"),
+    "demo_owners": ("key", "phone"),
 }
 
 
@@ -134,3 +153,4 @@ BUSINESSES: list[BusinessSeed] = _load("businesses")  # type: ignore[assignment]
 TALENT_SKILLS: list[TalentSkillSeed] = _load("talent_skills")  # type: ignore[assignment]
 TALENTS: list[TalentSeed] = _load("talents")  # type: ignore[assignment]
 ARTICLES: list[ArticleSeed] = _load("articles")  # type: ignore[assignment]
+DEMO_OWNERS: list[DemoOwnerSeed] = _load("demo_owners")  # type: ignore[assignment]

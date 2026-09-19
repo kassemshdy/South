@@ -1,0 +1,9 @@
+[
+  { "key": "acceptance", "phone": "03987654" },
+  { "key": "account", "phone": "03966101" },
+  { "key": "audience", "phone": "03966401" },
+  { "key": "onboarding", "phone": "03966501" },
+  { "key": "other_category", "phone": "03911223" },
+  { "key": "products", "phone": "03911122" },
+  { "key": "talent", "phone": "03955443" }
+]
