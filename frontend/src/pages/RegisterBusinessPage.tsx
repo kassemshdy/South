@@ -8,7 +8,6 @@
  */
 
 import { useMutation } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
 
 import { useToast } from '@/components/ui/Toast'
 import { BasicsForm } from '@/features/businesses/BasicsForm'
@@ -58,17 +57,7 @@ export function RegisterBusinessPage() {
             if (!applicant) return
             apply.mutate({ applicant, payload, token: captchaToken })
           }}
-          footer={
-            <>
-              {captcha}
-              <Link
-                to="/register/talent"
-                className="self-center text-sm text-brand-700 hover:underline"
-              >
-                {t('register.switchToTalent')}
-              </Link>
-            </>
-          }
+          footer={captcha}
         />
       )}
     </RegistrationShell>

@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Languages,
   Search,
   ShoppingBag,
   Shield,
@@ -16,7 +17,8 @@ import {
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
-import { LocaleToggle } from '@/components/layout/LocaleToggle'
+import { LocaleToggle, useLocaleSwitch } from '@/components/layout/LocaleToggle'
+import { SITE_SECTIONS } from '@/components/layout/navigation'
 import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useCart } from '@/features/cart/CartContext'
@@ -34,18 +36,25 @@ import { cn } from '@/utils/cn'
  * competing on one line. Everything personal lives behind one account menu
  * regardless of sign-in state.
  *
- * The public side is the six headings the directory's owner asked for, in
- * their order, each a direct link: home, products, services and skills, news,
- * the blog, about us. They were briefly grouped — three visible and three
- * behind a `nav.more` menu — to keep the row short; that was overruled,
- * because a heading somebody has to find is not a heading.
+ * The public side is the headings the directory's owner asked for, in their
+ * order, each a direct link: products, services and skills, news, the blog,
+ * about us. They were briefly grouped — three visible and three behind a
+ * `nav.more` menu — to keep the row short; that was overruled, because a
+ * heading somebody has to find is not a heading.
  *
- * Six headings, two of them three words long, need the width: measured in a
- * browser, the row fits at 1280 and overflows its container at 1024, so it
- * appears at `xl` rather than the `md` three links used to need, and the
- * drawer — which lists the same six, in the same order — covers everything
- * narrower. Shrinking the type until it fitted a tablet was the alternative,
- * and Arabic at 13px in a nav is not a kindness.
+ * `nav.more` came back for what is *not* a heading. The language switch lives
+ * there rather than in the row, because a button wide enough to carry the
+ * word «English» costs a heading's worth of width and is touched once.
+ *
+ * Home is not a heading either: the logo has always gone there, and every site
+ * a visitor has ever used taught them that.
+ *
+ * Long headings need the width all the same — two of them are three words —
+ * so the row appears at `xl` rather than the `md` three short links used to
+ * need, and the drawer covers everything narrower. Measured rather than
+ * guessed, and re-measured after the language switch moved into the menu:
+ * the row still overflows its container at 1024, where the sign-in button is
+ * the first thing pushed off the edge.
  *
  * The business directory is not one of the six. It keeps a home in the bar as
  * the search icon, which is where it already lived at narrow widths, and in
@@ -133,6 +142,47 @@ function FavouritesLink() {
   )
 }
 
+/**
+ * The row's overflow: what belongs in the header without belonging beside the
+ * headings.
+ *
+ * The language switch is the whole of it today. It used to sit in the row as
+ * a button wide enough to carry the word «English», which is a lot of width
+ * for something most visitors touch once and never again, and the headings
+ * need that width more than it does.
+ */
+function MoreMenu() {
+  const t = useT()
+  const { label, action, switchLocale } = useLocaleSwitch()
+
+  return (
+    <DropdownMenuPrimitive.Root>
+      <DropdownMenuPrimitive.Trigger asChild>
+        <button type="button" className={cn(NAV_LINK, 'flex items-center gap-1')}>
+          {t('nav.more')}
+          <ChevronDown className="h-3.5 w-3.5 text-ink-500" aria-hidden="true" />
+        </button>
+      </DropdownMenuPrimitive.Trigger>
+      <DropdownMenuPrimitive.Portal>
+        <DropdownMenuPrimitive.Content
+          align="end"
+          sideOffset={6}
+          className="z-50 min-w-48 overflow-hidden rounded-xl border border-ink-100 bg-white p-1 shadow-lift"
+        >
+          <DropdownMenuPrimitive.Item
+            className={MENU_ITEM}
+            onSelect={switchLocale}
+            aria-label={action}
+          >
+            <Languages className="h-4 w-4 text-ink-500" aria-hidden="true" />
+            {label}
+          </DropdownMenuPrimitive.Item>
+        </DropdownMenuPrimitive.Content>
+      </DropdownMenuPrimitive.Portal>
+    </DropdownMenuPrimitive.Root>
+  )
+}
+
 export function Header() {
   const { isAuthenticated, isAdmin, user, signOut } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -161,24 +211,11 @@ export function Header() {
         </Link>
 
         <nav className="hidden items-center gap-1 xl:flex" aria-label={t('nav.mainAria')}>
-          <Link to="/" className={NAV_LINK}>
-            {t('nav.home')}
-          </Link>
-          <Link to="/products" className={NAV_LINK}>
-            {t('nav.products')}
-          </Link>
-          <Link to="/talent" className={NAV_LINK}>
-            {t('nav.talent')}
-          </Link>
-          <Link to="/news" className={NAV_LINK}>
-            {t('nav.news')}
-          </Link>
-          <Link to="/blog" className={NAV_LINK}>
-            {t('nav.blog')}
-          </Link>
-          <Link to="/about" className={NAV_LINK}>
-            {t('nav.about')}
-          </Link>
+          {SITE_SECTIONS.map((section) => (
+            <Link key={section.href} to={section.href} className={NAV_LINK}>
+              {t(section.labelKey)}
+            </Link>
+          ))}
 
           {/* The directory, as an icon rather than a seventh heading: the six
               above are the ones that were asked for, and this is the same
@@ -189,7 +226,7 @@ export function Header() {
             </Link>
           </Button>
 
-          <LocaleToggle />
+          <MoreMenu />
 
           {/* One control, either way: a sign-in link or the account menu. The
               row never gains an item for being signed in. */}
@@ -301,24 +338,16 @@ export function Header() {
         className={cn('border-t border-ink-100 bg-white xl:hidden', menuOpen ? 'block' : 'hidden')}
       >
         <nav className="container-page flex flex-col gap-1 py-3" aria-label={t('nav.mobileAria')}>
-          <Link to="/" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">
-            {t('nav.home')}
-          </Link>
-          <Link to="/products" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">
-            {t('nav.products')}
-          </Link>
-          <Link to="/talent" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">
-            {t('nav.talent')}
-          </Link>
-          <Link to="/news" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">
-            {t('nav.news')}
-          </Link>
-          <Link to="/blog" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">
-            {t('nav.blog')}
-          </Link>
-          <Link to="/about" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100">
-            {t('nav.about')}
-          </Link>
+          {SITE_SECTIONS.map((section) => (
+            <Link
+              key={section.href}
+              to={section.href}
+              onClick={() => setMenuOpen(false)}
+              className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100"
+            >
+              {t(section.labelKey)}
+            </Link>
+          ))}
 
           {/* The drawer is already a submenu, so the personal links sit here
               under their own heading rather than behind a second tap. */}

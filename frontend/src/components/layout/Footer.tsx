@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Store } from 'lucide-react'
 
+import { SITE_SECTIONS } from '@/components/layout/navigation'
 import { SocialLinks } from '@/components/layout/SocialLinks'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useT } from '@/i18n'
@@ -11,7 +12,7 @@ export function Footer() {
 
   return (
     <footer className="mt-20 border-t border-ink-100 bg-white">
-      <div className="container-page grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="container-page grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <div className="flex items-center gap-2.5 font-display text-lg font-bold">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-700 text-white">
@@ -22,9 +23,13 @@ export function Footer() {
           <p className="mt-3 max-w-sm leading-relaxed text-ink-500">{t('footer.tagline')}</p>
         </div>
 
-        <nav aria-label={t('footer.quickLinksAria')}>
+        {/* Every heading in the header, from the same list the header reads,
+            plus the directory — which the header carries as a search icon
+            rather than a heading, and which somebody scanning a footer for
+            the site's parts would expect to find named. */}
+        <nav aria-label={t('footer.sectionsAria')}>
           <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-700">
-            {t('footer.quickLinks')}
+            {t('footer.sections')}
           </h2>
           <ul className="space-y-2 text-ink-500">
             <li>
@@ -32,6 +37,21 @@ export function Footer() {
                 {t('nav.directory')}
               </Link>
             </li>
+            {SITE_SECTIONS.map((section) => (
+              <li key={section.href}>
+                <Link to={section.href} className="hover:text-brand-700">
+                  {t(section.labelKey)}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <nav aria-label={t('footer.quickLinksAria')}>
+          <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-700">
+            {t('footer.quickLinks')}
+          </h2>
+          <ul className="space-y-2 text-ink-500">
             <li>
               <Link to="/dashboard/businesses/new" className="hover:text-brand-700">
                 {t('nav.addBusiness')}
