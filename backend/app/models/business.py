@@ -145,6 +145,11 @@ class Business(Base, TimestampMixin):
     social_links: Mapped[list[BusinessSocialLink]] = relationship(
         back_populates="business", cascade="all, delete-orphan"
     )
+    documents: Mapped[list[BusinessDocument]] = relationship(
+        back_populates="business",
+        cascade="all, delete-orphan",
+        order_by="BusinessDocument.created_at",
+    )
     items: Mapped[list[BusinessItem]] = relationship(
         back_populates="business",
         cascade="all, delete-orphan",
@@ -198,6 +203,53 @@ class BusinessImage(Base):
     )
 
     business: Mapped[Business] = relationship(back_populates="images")
+
+
+class BusinessDocument(Base):
+    """An official paper an owner attached to a listing — the commercial
+    register, a municipal licence, a health permit.
+
+    Deliberately its own table rather than a kind on
+    :class:`~app.models.verification.OwnerVerificationDocument`. That table
+    answers *is this a real person*, holds one row per owner per kind, and is
+    redacted out of every agent-facing payload because it is personal. This
+    one answers *is this a real establishment*, belongs to the business rather
+    than the account — one owner may hold papers for two shops — and describes
+    a trading entity, not a human being. Folding them together would mean
+    weakening the per-owner uniqueness that makes the first table's invariant
+    readable.
+
+    Like that table it has **no public url column**: the bytes are reachable
+    only through the admin-gated download route, never linked from a page. A
+    commercial register carries the owner's name and the establishment's
+    address, so publishing it is exactly the disclosure the identity boundary
+    exists to prevent.
+
+    ``label`` is the owner's own words for what the paper is. A fixed enum was
+    the obvious alternative and is wrong here: paperwork across the South is
+    not uniform, and a list that omits whatever a given municipality issues
+    would push people into filing the wrong thing.
+    """
+
+    __tablename__ = "business_documents"
+    __table_args__ = (
+        Index("ix_business_documents_business_created", "business_id", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    business_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("businesses.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    storage_key: Mapped[str] = mapped_column(String(500), nullable=False)
+    content_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    original_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    label: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    size_bytes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    business: Mapped[Business] = relationship(back_populates="documents")
 
 
 class BusinessSocialLink(Base, TimestampMixin):

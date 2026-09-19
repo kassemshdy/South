@@ -80,6 +80,15 @@ export function AdminReviewPage() {
     onError: onDownloadError,
   })
 
+  // The listing's own papers, as opposed to the three above, which are the
+  // account holder's. Separate question: whether the establishment is real,
+  // not whether the applicant is.
+  const downloadBusinessDocument = useMutation({
+    mutationFn: (documentId: string) => adminApi.downloadBusinessDocument(id, documentId),
+    onSuccess: saveBlob,
+    onError: onDownloadError,
+  })
+
   const act = useMutation({
     mutationFn: ({ action, reason }: { action: Exclude<ConfirmAction, null>; reason?: string }) => {
       switch (action) {
@@ -345,6 +354,43 @@ export function AdminReviewPage() {
                 </Button>
               ) : (
                 <p className="text-sm text-ink-500">{t('admin.noCv')}</p>
+              )}
+            </CardBody>
+          </Card>
+
+          {/* The listing's own paperwork, in its own card beside the owner's
+              documents rather than inside it: an empty list here means the
+              business filed nothing, which is allowed and common, and must
+              not read as a missing identity document. */}
+          <Card>
+            <CardHeader>
+              <h2 className="font-bold">{t('admin.businessDocumentsTitle')}</h2>
+            </CardHeader>
+            <CardBody className="space-y-3">
+              {data.documents.length === 0 ? (
+                <p className="text-sm text-ink-500">{t('admin.noBusinessDocuments')}</p>
+              ) : (
+                data.documents.map((document) => (
+                  <Button
+                    key={document.id}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start"
+                    loading={
+                      downloadBusinessDocument.isPending &&
+                      downloadBusinessDocument.variables === document.id
+                    }
+                    onClick={() => downloadBusinessDocument.mutate(document.id)}
+                  >
+                    <Download className="h-4 w-4" aria-hidden="true" />
+                    <span className="truncate">
+                      {document.label ??
+                        document.original_filename ??
+                        t('admin.untitledDocument')}
+                    </span>
+                  </Button>
+                ))
               )}
             </CardBody>
           </Card>

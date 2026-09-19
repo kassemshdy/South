@@ -11,6 +11,7 @@ import { ErrorState, InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
 import { BasicsForm } from '@/features/businesses/BasicsForm'
 import { LocationForm } from '@/features/businesses/LocationForm'
+import { DocumentManager } from '@/features/businesses/DocumentManager'
 import { SocialForm } from '@/features/businesses/SocialForm'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
 import { ImageManager } from '@/features/images/ImageManager'
@@ -28,6 +29,7 @@ const TABS: { value: string; labelKey: TranslationKey }[] = [
   { value: 'location', labelKey: 'wizard.stepLocation' },
   { value: 'images', labelKey: 'wizard.stepImages' },
   { value: 'social', labelKey: 'wizard.stepSocial' },
+  { value: 'documents', labelKey: 'wizard.stepDocuments' },
   { value: 'testimonials', labelKey: 'wizard.stepTestimonials' },
   { value: 'orders', labelKey: 'wizard.stepOrders' },
 ]
@@ -192,6 +194,9 @@ export function EditBusinessPage() {
                 pending={update.isPending}
                 onSubmit={(payload) => update.mutate(payload)}
               />
+            </Tabs.Content>
+            <Tabs.Content value="documents">
+              <DocumentManager business={data} />
             </Tabs.Content>
             <Tabs.Content value="testimonials">
               <OwnerTestimonials businessId={data.id} />

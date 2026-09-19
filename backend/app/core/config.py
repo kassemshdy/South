@@ -123,6 +123,10 @@ class Settings(BaseSettings):
     # rather than reusing either.
     max_feedback_attachment_bytes: int = 8 * 1024 * 1024
     max_feedback_attachments_per_ticket: int = 8
+    # A business's own papers — commercial register, licence, permit. Same
+    # formats and same cap as an identity document, because it is the same
+    # kind of artefact: a scan or a PDF a reviewer reads once.
+    max_business_documents: int = 6
 
     s3_bucket: str | None = None
     s3_region: str | None = None

@@ -110,6 +110,21 @@ export interface VerificationDocument {
   created_at: string
 }
 
+/**
+ * One of a listing's official papers -- commercial register, licence, permit.
+ * Metadata only: there is no url, because the bytes are reachable through the
+ * admin-gated download route and nowhere else.
+ */
+export interface BusinessDocument {
+  id: string
+  content_type: string
+  original_filename: string | null
+  /** The owner's own words for what the paper is. */
+  label: string | null
+  size_bytes: number | null
+  created_at: string
+}
+
 export interface AuthToken {
   access_token: string
   token_type: string
@@ -239,6 +254,8 @@ export interface OwnerBusiness extends BusinessDetail {
   rejection_reason: string | null
   submitted_at: string | null
   updated_at: string
+  /** Optional, and absent from every public payload. */
+  documents: BusinessDocument[]
 }
 
 export interface ModerationAction {

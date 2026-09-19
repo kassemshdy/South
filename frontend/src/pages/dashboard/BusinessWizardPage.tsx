@@ -9,6 +9,7 @@ import { Card, CardBody } from '@/components/ui/Card'
 import { InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
 import { BasicsForm } from '@/features/businesses/BasicsForm'
+import { DocumentManager } from '@/features/businesses/DocumentManager'
 import { LocationForm } from '@/features/businesses/LocationForm'
 import { SocialForm } from '@/features/businesses/SocialForm'
 import { ImageManager } from '@/features/images/ImageManager'
@@ -47,6 +48,7 @@ const STEPS = [
   { key: 'location', labelKey: 'wizard.stepLocation' },
   { key: 'images', labelKey: 'wizard.stepImages' },
   { key: 'social', labelKey: 'wizard.stepSocial', optional: true },
+  { key: 'documents', labelKey: 'wizard.stepDocuments', optional: true },
   { key: 'items', labelKey: 'wizard.stepItems', optional: true },
   { key: 'review', labelKey: 'wizard.stepReview' },
 ] as const satisfies readonly {
@@ -353,13 +355,27 @@ export function BusinessWizardPage() {
                   business={data}
                   submitLabel={t('wizard.saveAndContinue')}
                   pending={update.isPending}
-                  onSubmit={(payload) => update.mutate({ payload, next: 'items' })}
+                  onSubmit={(payload) => update.mutate({ payload, next: 'documents' })}
                   footer={
                     <Button type="button" variant="ghost" onClick={() => setStep('images')}>
                       {t('common.back')}
                     </Button>
                   }
                 />
+              ) : null}
+
+              {step === 'documents' && data ? (
+                <div className="space-y-6">
+                  <DocumentManager business={data} />
+                  <div className="flex gap-3 border-t border-ink-100 pt-5">
+                    <Button size="lg" onClick={() => setStep('items')}>
+                      {t('common.continue')}
+                    </Button>
+                    <Button variant="ghost" onClick={() => setStep('social')}>
+                      {t('common.back')}
+                    </Button>
+                  </div>
+                </div>
               ) : null}
 
               {step === 'items' && data ? (
@@ -369,7 +385,7 @@ export function BusinessWizardPage() {
                     <Button size="lg" onClick={() => setStep('review')}>
                       {t('wizard.continueToReview')}
                     </Button>
-                    <Button variant="ghost" onClick={() => setStep('social')}>
+                    <Button variant="ghost" onClick={() => setStep('documents')}>
                       {t('common.back')}
                     </Button>
                   </div>

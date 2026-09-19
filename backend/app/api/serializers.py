@@ -55,6 +55,7 @@ from app.schemas.talent import (
 )
 from app.schemas.taxonomy import CategoryOut, LocationOut
 from app.schemas.testimonial import AdminTestimonialOut, OwnerTestimonialOut, TestimonialOut
+from app.schemas.verification import BusinessDocumentOut
 
 RecordT = TypeVar("RecordT")
 SchemaT = TypeVar("SchemaT")
@@ -171,6 +172,10 @@ def owner_business(business: Business) -> OwnerBusinessOut:
         rejection_reason=business.rejection_reason,
         submitted_at=business.submitted_at,
         updated_at=business.updated_at,
+        documents=[
+            BusinessDocumentOut.model_validate(document)
+            for document in business.documents
+        ],
     )
 
 
