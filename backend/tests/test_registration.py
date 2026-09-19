@@ -250,6 +250,7 @@ def test_a_known_number_is_answered_identically_and_creates_nothing(
         "/api/register/business",
         json={
             "login_phone": APPLICANT_PHONE,
+            "identity": dict(IDENTITY),
             "business": {
                 "name": ar("business.applicant_second"),
                 "category_id": str(category.id),
@@ -569,22 +570,39 @@ def test_the_guess_budget_counts_numbers_with_no_account_too(
     assert refused.status_code == 429
 
 
-def test_an_administrator_cannot_sign_in_on_the_owner_route(
+def test_the_role_comes_from_the_account_not_the_form(
     client: TestClient, db: Session, admin: User
 ) -> None:
-    """Keeping the two forms apart is what stops a leaked owner password from
-    ever reaching the admin panel."""
-    admin.phone_number = APPLICANT_E164
+    """There is one sign-in form now, and it is not what decides anything.
+
+    This used to assert that the owner route refused administrators — two
+    forms, kept apart so a leaked owner password could not reach the admin
+    panel. The form is one form now, and the separation it was standing in
+    for is the real one: the token carries the *account's* role. An owner
+    password mints an owner token wherever it is typed, and an administrator
+    signing in here is an administrator because their account is, not because
+    of which URL they used.
+    """
     from app.core.security import hash_password
 
+    admin.phone_number = APPLICANT_E164
     admin.password_hash = hash_password("AdminPass!123")
     db.commit()
 
-    refused = client.post(
+    signed_in = client.post(
         "/api/auth/login",
         json={"identifier": APPLICANT_PHONE, "password": "AdminPass!123"},
     )
-    assert refused.status_code == 401
+    assert signed_in.status_code == 200, signed_in.text
+    assert signed_in.json()["user"]["role"] == "ADMIN"
+
+    # And the other direction, which is the half that was ever load-bearing:
+    # the unlinked administrators-only route still takes only administrators.
+    owner = client.post(
+        "/api/auth/admin/login",
+        json={"email": "nobody@example.com", "password": "AdminPass!123"},
+    )
+    assert owner.status_code == 401
 
 
 def test_every_owner_route_is_shut_until_the_password_is_replaced(
