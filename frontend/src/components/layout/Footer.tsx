@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import { Store } from 'lucide-react'
 
 import { SITE_SECTIONS } from '@/components/layout/navigation'
 import { SocialLinks } from '@/components/layout/SocialLinks'
@@ -15,9 +14,13 @@ export function Footer() {
       <div className="container-page grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <div className="flex items-center gap-2.5 font-display text-lg font-bold">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-700 text-white">
-              <Store className="h-5 w-5" aria-hidden="true" />
-            </span>
+            <img
+              src="/janoubna-mark.png"
+              alt=""
+              width={36}
+              height={36}
+              className="h-9 w-9 shrink-0 rounded-full bg-white object-cover"
+            />
             {t('app.name')}
           </div>
           <p className="mt-3 max-w-sm leading-relaxed text-ink-500">{t('footer.tagline')}</p>

@@ -9,7 +9,6 @@ import {
   Search,
   ShoppingBag,
   Shield,
-  Store,
   User,
   UserCog,
   X,
@@ -204,9 +203,16 @@ export function Header() {
           to="/"
           className="flex shrink-0 items-center gap-2.5 whitespace-nowrap font-display text-lg font-bold text-ink-900"
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-700 text-white">
-            <Store className="h-5 w-5" aria-hidden="true" />
-          </span>
+          {/* The real mark, not a stand-in glyph. Round rather than the
+              rounded square the placeholder used: the emblem is a circle, and
+              a circular frame crops only the white it was padded with. */}
+          <img
+            src="/janoubna-mark.png"
+            alt=""
+            width={36}
+            height={36}
+            className="h-9 w-9 shrink-0 rounded-full bg-white object-cover"
+          />
           {t('app.name')}
         </Link>
 

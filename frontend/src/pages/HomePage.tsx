@@ -128,6 +128,53 @@ export function HomePage() {
           </p>
         </div>
       </section>
+
+      {/* The last thing before the footer: the place itself.
+          A photograph rather than another band of type — the green band above
+          already says the claim loudly, and following it with a second loud
+          band would leave the page shouting twice. This one is quiet on
+          purpose: the message sits over the image in a scrim so the coastline
+          is the thing you look at, and the words are what you read while
+          looking at it.
+          `object-cover` with a fixed height rather than the image's own
+          aspect: a 16:9 photograph at phone width is a letterbox strip, and
+          this needs to feel like somewhere you could stand. */}
+      <section className="relative isolate" aria-label={t('home.southTitle')}>
+        <img
+          src="/south-coast.jpg"
+          alt={t('home.southImageAlt')}
+          width={1280}
+          height={714}
+          loading="lazy"
+          decoding="async"
+          className="h-[22rem] w-full object-cover sm:h-[26rem] lg:h-[30rem]"
+        />
+        {/* Heavy at the foot and quick to clear: the text lands over open
+            water, the brightest part of the photograph, and a gentler scrim
+            left white-on-pale-blue. Written out rather than assembled from
+            `from-`/`via-`/`to-` utilities because it needs four stops with
+            chosen positions, and the two-stop version was not dark enough
+            where the words actually sit. ink-900, the same colour the rest of
+            the page sets text in. */}
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              'linear-gradient(to top, rgba(31,30,28,0.94) 0%, rgba(31,30,28,0.82) 22%, rgba(31,30,28,0.35) 55%, rgba(31,30,28,0) 82%)',
+          }}
+          aria-hidden="true"
+        />
+        <div className="container-page absolute inset-x-0 bottom-0 pb-8 sm:pb-12">
+          <div className="max-w-2xl">
+            <h2 className="font-display text-2xl font-bold text-white sm:text-3xl lg:text-4xl">
+              {t('home.southTitle')}
+            </h2>
+            <p className="mt-3 text-base leading-relaxed text-white/90 sm:text-lg">
+              {t('home.southBody')}
+            </p>
+          </div>
+        </div>
+      </section>
     </>
   )
 }
