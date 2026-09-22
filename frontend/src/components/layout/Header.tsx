@@ -199,10 +199,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-ink-100 bg-sand-50/95 backdrop-blur">
       <div className="container-page flex h-16 items-center justify-between gap-4">
-        <Link
-          to="/"
-          className="flex shrink-0 items-center gap-2.5 whitespace-nowrap font-display text-lg font-bold text-ink-900"
-        >
+        <Link to="/" className="flex shrink-0 items-center gap-2.5 text-ink-900">
           {/* The real mark, not a stand-in glyph. Round rather than the
               rounded square the placeholder used: the emblem is a circle, and
               a circular frame crops only the white it was padded with. */}
@@ -213,7 +210,17 @@ export function Header() {
             height={36}
             className="h-9 w-9 shrink-0 rounded-full bg-white object-cover"
           />
-          {t('app.name')}
+          {/* The slogan sits under the name rather than beside it, and is
+              hidden below `sm`: the bar is 64px tall and a phone has no room
+              for a second line without crowding the name it belongs to. */}
+          <span className="min-w-0 leading-tight">
+            <span className="block whitespace-nowrap font-display text-lg font-bold">
+              {t('app.name')}
+            </span>
+            <span className="hidden text-[11px] font-medium text-ink-500 sm:block">
+              {t('app.slogan')}
+            </span>
+          </span>
         </Link>
 
         <nav className="hidden items-center gap-1 xl:flex" aria-label={t('nav.mainAria')}>

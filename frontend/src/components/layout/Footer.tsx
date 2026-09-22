@@ -13,7 +13,7 @@ export function Footer() {
     <footer className="mt-20 border-t border-ink-100 bg-white">
       <div className="container-page grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <div className="flex items-center gap-2.5 font-display text-lg font-bold">
+          <div className="flex items-center gap-2.5">
             <img
               src="/janoubna-mark.png"
               alt=""
@@ -21,7 +21,12 @@ export function Footer() {
               height={36}
               className="h-9 w-9 shrink-0 rounded-full bg-white object-cover"
             />
-            {t('app.name')}
+            {/* Room for the full slogan here, where the header only has room
+                for it from `sm` up. */}
+            <span className="leading-tight">
+              <span className="block font-display text-lg font-bold">{t('app.name')}</span>
+              <span className="block text-xs font-medium text-ink-500">{t('app.slogan')}</span>
+            </span>
           </div>
           <p className="mt-3 max-w-sm leading-relaxed text-ink-500">{t('footer.tagline')}</p>
         </div>
