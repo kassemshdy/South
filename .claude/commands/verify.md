@@ -1,5 +1,5 @@
 ---
-description: Run the full local verification gate (backend, MCP server, frontend, e2e, no-Arabic guard)
+description: Run the verification gate — fast static checks by default, the full suites (backend, MCP server, frontend, e2e) on request
 ---
 
 Invoke the `verify-gate` skill and follow it exactly.
