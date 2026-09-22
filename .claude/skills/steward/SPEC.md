@@ -5,7 +5,7 @@
 | This skill states | Authority |
 |---|---|
 | Branch names and which auto-deploys where | `AGENTS.md` § Pull Requests / Deploys, `docs/RAILWAY.md` |
-| The three CI jobs that must be green | `.github/workflows/ci.yml` |
+| The four CI jobs that must be green | `.github/workflows/ci.yml` |
 | The rules that outrank convenience | `AGENTS.md` § Security Musts |
 | Review tiers referenced when answering a finding | `REVIEW.md` |
 
