@@ -188,6 +188,8 @@ export const businessBasicsSchema = (t: Translate, otherCategoryId?: string) =>
       // rest of this step; the empty string is "not chosen", mapped to null
       // on submit alongside every other optional field here.
       owner_relation: z.enum(['OWNER', 'MANAGER', 'WORKER']).optional().or(z.literal('')),
+      // Always one or the other; the form starts it from the door chosen.
+      goods_origin: z.enum(['LOCAL', 'IMPORTED']),
 
       phone: optionalPhone(t),
       whatsapp: optionalPhone(t),

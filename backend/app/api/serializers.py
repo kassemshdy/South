@@ -108,6 +108,7 @@ def business_summary(business: Business) -> BusinessSummaryOut:
         category=category_out(business.category),
         custom_category_text=business.custom_category_text,
         location=location_out(business.location),
+        goods_origin=business.goods_origin,
         created_at=business.created_at,
     )
 

@@ -13,10 +13,11 @@ import { useT } from '@/i18n'
 /**
  * Looking for something: its own page, at `/browse`.
  *
- * The twin of `/offer`. Two doors rather than three is a deliberate call
- * recorded in `destinations.ts` — the businesses directory is reachable from
- * the header and from the switcher above each directory, and is not repeated
- * here.
+ * The twin of `/offer`, with the same three doors: goods made in the South,
+ * imported goods, and services and jobs. The two goods doors are one products
+ * directory filtered on origin. The businesses directory is deliberately not
+ * among them — see `destinations.ts`; it is reachable from the header and
+ * from the switcher above each directory.
  *
  * **The responsibility notice is on this half too**, which it was not. It
  * used to be the offering half's alone, on the reasoning that browsing
@@ -84,7 +85,7 @@ export function BrowsePage() {
     <ChoicePageShell title={t('browsePage.title')} subtitle={t('browsePage.subtitle')}>
       <div className="mx-auto max-w-3xl">
         <h2 className="text-lg font-bold text-ink-900">{t('browsePage.doorsTitle')}</h2>
-        <ul className="mt-5 grid gap-4 sm:grid-cols-2">
+        <ul className="mt-5 grid gap-4 sm:grid-cols-3">
           {SEEK_DOORS.map((door) => (
             <li key={door.key}>
               <Link to={door.href} className={DOOR_CARD}>

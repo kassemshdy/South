@@ -27,6 +27,13 @@ export type MaritalStatus = 'SINGLE' | 'MARRIED' | 'DIVORCED' | 'WIDOWED'
 export type OwnerRelation = 'OWNER' | 'MANAGER' | 'WORKER'
 
 /**
+ * Made in the South, or imported and sold by a southern store. One mark per
+ * business, set by the door its owner came through, and public: it is what
+ * the two goods doors on `/browse` filter on.
+ */
+export type GoodsOrigin = 'LOCAL' | 'IMPORTED'
+
+/**
  * The account holder's identity.
  *
  * Belongs to the person, not to any one listing — one account holds a single
@@ -214,6 +221,7 @@ export interface BusinessSummary {
   /** The owner's own words, shown instead of the literal "Other" category name. */
   custom_category_text: string | null
   location: LocationNode | null
+  goods_origin: GoodsOrigin
   created_at: string
 }
 
@@ -531,6 +539,7 @@ export interface BusinessQuery {
   q?: string
   category?: string
   location?: string
+  origin?: GoodsOrigin
   sort?: SortOption
   page?: number
   page_size?: number

@@ -226,6 +226,44 @@ test.describe('Audience chooser', () => {
     await expect(page).toHaveURL(/\/businesses/)
   })
 
+  test('goods made in the South and imported goods are separate doors, on both halves', async ({
+    page,
+  }) => {
+    // At the CEO's request: a southern store selling imported goods is
+    // welcome, but under its own door, so a buyer looking for what the South
+    // produces is never shown an import under that heading. The mark is the
+    // business's `goods_origin`, set by the door the owner came through.
+    //
+    // Anchored to the start of the card: the local door's own description
+    // mentions imported goods, so a plain substring would match both cards.
+    const startsWith = (key: string) =>
+      new RegExp(`^${t(key).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`)
+
+    await page.goto('/offer')
+    await expect(page.getByRole('button', { name: startsWith('onboarding.ownerTitle') })).toBeVisible()
+    await page.getByRole('button', { name: startsWith('onboarding.importedTitle') }).click()
+    await page.getByRole('button', { name: t('consent.agree') }).click()
+    await page.getByRole('link', { name: t('onboarding.start') }).click()
+
+    // The application form opens on the door chosen, and says so.
+    await expect(page).toHaveURL(/\/register\/business\?origin=IMPORTED/)
+    await expect(page.getByRole('combobox', { name: t('offerPage.doorsTitle') })).toHaveText(
+      t('onboarding.importedTitle'),
+    )
+
+    // The looking-for half has the same split, onto the products directory
+    // narrowed to that origin -- and the filter is visible there, so the
+    // narrowing is never silent.
+    await page.goto('/browse')
+    await page.getByRole('button', { name: t('consent.agree') }).click()
+    await expect(page.getByRole('link', { name: startsWith('onboarding.ownerTitle') })).toBeVisible()
+    await page.getByRole('link', { name: startsWith('onboarding.importedTitle') }).click()
+    await expect(page).toHaveURL(/\/products\?origin=IMPORTED/)
+    await expect(page.getByRole('combobox', { name: t('directory.origin') })).toHaveText(
+      t('onboarding.importedTitle'),
+    )
+  })
+
   test('a step change puts the top of the page back in view', async ({ page }) => {
     // `ScrollToTop` keys off the pathname, and the steps inside these two
     // pages are state rather than routes — so it never fired for them. The
