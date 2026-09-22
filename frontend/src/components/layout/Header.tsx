@@ -199,7 +199,18 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-ink-100 bg-sand-50/95 backdrop-blur">
       <div className="container-page flex h-16 items-center justify-between gap-4">
-        <Link to="/" className="flex shrink-0 items-center">
+        {/* The hit area is the bar's full height and reaches a little past
+            the artwork on each side. Sizing it to the image alone left a
+            106x40 target in a 64px bar — the logo looked dead to anyone whose
+            cursor landed above, below or just beside the glyphs, which is
+            most of the time. The negative margin cancels the padding, so the
+            target grows without the logo moving. `cursor-pointer` is stated
+            rather than inherited from the anchor, so the whole padded area
+            reads as clickable and not just the image inside it. */}
+        <Link
+          to="/"
+          className="-mx-2 flex h-full shrink-0 cursor-pointer items-center px-2"
+        >
           {/* The whole logo, wordmark and emblem together, rather than the
               emblem beside the name set in a UI font. The name in the logo is
               drawn lettering, so setting it again in the interface typeface
