@@ -199,27 +199,27 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-ink-100 bg-sand-50/95 backdrop-blur">
       <div className="container-page flex h-16 items-center justify-between gap-4">
-        <Link to="/" className="flex shrink-0 items-center gap-2.5 text-ink-900">
-          {/* The real mark, not a stand-in glyph. Round rather than the
-              rounded square the placeholder used: the emblem is a circle, and
-              a circular frame crops only the white it was padded with. */}
+        <Link to="/" className="flex shrink-0 flex-col items-start gap-0.5">
+          {/* The whole logo, wordmark and emblem together, rather than the
+              emblem beside the name set in a UI font. The name is drawn
+              lettering — rendering «جنوبنا» in the interface typeface next to
+              the mark was two versions of the same word in two different
+              hands. `alt` carries the name because the image *is* the name
+              now; an empty alt would leave a screen reader with nothing.
+
+              Transparent PNG, so the mark sits on the sand bar here and on
+              the white footer without a beige slab behind it. */}
           <img
-            src="/janoubna-mark.png"
-            alt=""
-            width={36}
-            height={36}
-            className="h-9 w-9 shrink-0 rounded-full bg-white object-cover"
+            src="/janoubna-logo.png"
+            alt={t('app.name')}
+            width={960}
+            height={361}
+            className="h-8 w-auto sm:h-9"
           />
-          {/* The slogan sits under the name rather than beside it, and is
-              hidden below `sm`: the bar is 64px tall and a phone has no room
-              for a second line without crowding the name it belongs to. */}
-          <span className="min-w-0 leading-tight">
-            <span className="block whitespace-nowrap font-display text-lg font-bold">
-              {t('app.name')}
-            </span>
-            <span className="hidden text-[11px] font-medium text-ink-500 sm:block">
-              {t('app.slogan')}
-            </span>
+          {/* Hidden below `sm`: the bar is 64px tall and a phone has no room
+              for a second line without crowding the mark it belongs to. */}
+          <span className="hidden text-[11px] font-medium leading-tight text-ink-500 sm:block">
+            {t('app.slogan')}
           </span>
         </Link>
 
