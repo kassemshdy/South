@@ -13,7 +13,8 @@ from sqlalchemy import select
 from app.core.arabic import build_search_text
 from app.core.config import get_settings
 from app.models.business import Business
-from app.models.talent import TalentProfile
+from app.models.talent import TalentProfile, TalentSkill
+from app.models.taxonomy import Category, Location
 from app.services.images import ImageService
 from app.storage.factory import get_storage
 from scripts.seed import (
@@ -128,3 +129,40 @@ def test_seed_businesses_backfills_producer_detail(db):
     assert healed.founding_date is not None
     assert healed.institution_name == owner_text
     assert build_search_text(healed.production_nature) in healed.search_text
+
+
+def test_a_production_seed_creates_structure_but_no_sample_content(
+    db, monkeypatch, capsys
+) -> None:
+    """The recovery path, pinned.
+
+    ``postgres`` has no persistent volume, so a redeploy of it empties the
+    database and the documented recovery is a redeploy of ``api`` — whose
+    start command runs the migrations and then this script. That only works
+    if the script restores the *structure*: without categories, locations and
+    talent skills there is nothing to choose on the listing form, and the
+    site comes back unusable rather than merely empty.
+
+    What must stay switched off in production is the sample content. Invented
+    shops on the live directory would be a lie told to every visitor.
+
+    Both halves are asserted here because they used to be one switch, and
+    turning production on turned the structure off with the demo data.
+    """
+    from scripts import seed as seed_module
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "app_env", "production")
+    monkeypatch.setattr(settings, "seed_owner_password", None)
+    monkeypatch.setattr(seed_module.sys, "argv", ["seed", "--ensure"])
+
+    assert seed_module.main() == 0
+
+    # Structure: present, so a real owner can actually fill the form in.
+    assert db.execute(select(Category)).scalars().first() is not None
+    assert db.execute(select(Location)).scalars().first() is not None
+    assert db.execute(select(TalentSkill)).scalars().first() is not None
+
+    # Sample content: absent, every time.
+    assert db.execute(select(Business)).scalars().first() is None
+    assert db.execute(select(TalentProfile)).scalars().first() is None

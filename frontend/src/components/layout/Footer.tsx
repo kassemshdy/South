@@ -13,16 +13,15 @@ export function Footer() {
     <footer className="mt-20 border-t border-ink-100 bg-white">
       <div className="container-page grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <div className="flex items-center gap-2.5 font-display text-lg font-bold">
-            <img
-              src="/janoubna-mark.png"
-              alt=""
-              width={36}
-              height={36}
-              className="h-9 w-9 shrink-0 rounded-full bg-white object-cover"
-            />
-            {t('app.name')}
-          </div>
+          {/* Bigger here than in the bar, because the footer has the room
+              the 64px header does not and this lockup rewards it. */}
+          <img
+            src="/janoubna-logo.png"
+            alt={t('app.name')}
+            width={1400}
+            height={598}
+            className="h-16 w-auto"
+          />
           <p className="mt-3 max-w-sm leading-relaxed text-ink-500">{t('footer.tagline')}</p>
         </div>
 

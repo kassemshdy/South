@@ -199,21 +199,38 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-ink-100 bg-sand-50/95 backdrop-blur">
       <div className="container-page flex h-16 items-center justify-between gap-4">
+        {/* The hit area is the bar's full height and reaches a little past
+            the artwork on each side. Sizing it to the image alone left a
+            106x40 target in a 64px bar — the logo looked dead to anyone whose
+            cursor landed above, below or just beside the glyphs, which is
+            most of the time. The negative margin cancels the padding, so the
+            target grows without the logo moving. `cursor-pointer` is stated
+            rather than inherited from the anchor, so the whole padded area
+            reads as clickable and not just the image inside it. */}
         <Link
           to="/"
-          className="flex shrink-0 items-center gap-2.5 whitespace-nowrap font-display text-lg font-bold text-ink-900"
+          className="-mx-2 flex h-full shrink-0 cursor-pointer items-center px-2"
         >
-          {/* The real mark, not a stand-in glyph. Round rather than the
-              rounded square the placeholder used: the emblem is a circle, and
-              a circular frame crops only the white it was padded with. */}
+          {/* The whole logo, wordmark and emblem together, rather than the
+              emblem beside the name set in a UI font. The name in the logo is
+              drawn lettering, so setting it again in the interface typeface
+              put two versions of the same word side by side in two different
+              hands. `alt` carries the name because the image *is* the name
+              now; an empty alt would leave a screen reader with nothing.
+
+              Transparent PNG, so the mark sits on the sand bar here and on
+              the white footer without a beige slab behind it. */}
           <img
-            src="/janoubna-mark.png"
-            alt=""
-            width={36}
-            height={36}
-            className="h-9 w-9 shrink-0 rounded-full bg-white object-cover"
+            src="/janoubna-logo.png"
+            alt={t('app.name')}
+            width={1400}
+            height={598}
+            /* Taller than a wordmark would need: this lockup carries the three
+               pillars and a sub-line under the name, and at 36px they were
+               strokes rather than letters. 48px is what the 64px bar allows
+               with the padding above still clearing the edge. */
+            className="h-11 w-auto sm:h-12"
           />
-          {t('app.name')}
         </Link>
 
         <nav className="hidden items-center gap-1 xl:flex" aria-label={t('nav.mainAria')}>

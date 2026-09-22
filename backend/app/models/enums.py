@@ -189,6 +189,21 @@ class OwnerRelation(str, enum.Enum):
     WORKER = "WORKER"
 
 
+class GoodsOrigin(str, enum.Enum):
+    """Whether a business offers goods made in the South or imported ones.
+
+    Two separate doors on both the offering and the looking-for pages, at the
+    CEO's request: a southern store selling imported goods is welcome, but a
+    buyer looking for what the South itself produces must be able to tell the
+    two apart. Per *business*, chosen by the door the owner came through --
+    one listing, one mark -- and public, because it is exactly what a visitor
+    filters on.
+    """
+
+    LOCAL = "LOCAL"
+    IMPORTED = "IMPORTED"
+
+
 class EmploymentType(str, enum.Enum):
     """What kind of job a talent profile is looking for, if anything."""
 

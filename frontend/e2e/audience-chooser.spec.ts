@@ -23,24 +23,36 @@ const OWNER_PHONE = demoOwnerPhone('audience')
  * memory, present on a return visit and present when signed in. It started out
  * as a once-only question; navigation you see once is not navigation.
  *
- * The second rule: choosing to list something explains the three steps before
- * asking for a phone number, because "sign in" is not an answer to "I have a
- * shop".
+ * **Each half is a page.** This is the rule that replaced "the second level
+ * replaces the first in place", and it replaced it on the CEO's reading of
+ * the screen: choosing a card used to swap two boxes while the hero, the
+ * video and everything below stayed put, so the most consequential choice on
+ * the site read as a toggle rather than as going somewhere. The old shape
+ * also had no URL — the back button left the homepage instead of stepping
+ * back, nothing could be sent to somebody over WhatsApp, and no search engine
+ * saw a word of it. Those three are asserted below, because a regression to
+ * an in-place panel would look correct to anyone clicking through it.
+ *
+ * The second rule, unchanged: choosing to list something explains who may
+ * list and the three steps before asking for a phone number, because "sign
+ * in" is not an answer to "I have a shop".
  *
  * The third, and the reason several of these tests have an extra click in
- * them: **the responsibility notice is the only way through an offering
- * door.** Listing something ends at a dealing between two strangers that the
- * platform does not stand behind, so the visitor reads that and agrees before
- * the page opens. Browsing carries none of that responsibility, so those
- * doors are real links straight through, with nothing in between. Pinned here
- * rather than trusted, because the failure mode is silent either way — an
- * offering door that quietly becomes a link skips the notice, and a browsing
- * door that quietly grows one adds a click nobody asked for.
+ * them: **both sides read the responsibility notice.** A dealing here ends
+ * between two strangers the platform does not stand behind, and that is as
+ * true of the person buying as of the person selling — so each half asks
+ * before it opens. This half of the rule is new: browsing used to go straight
+ * through on the reasoning that it carried no responsibility to accept, and
+ * the CEO's correction was that trusting a stranger's description of a thing
+ * is exactly such a responsibility.
  *
- * The second level replaces the first in place. A dialog was tried and read
- * as heavier than the choice deserves — these cards are navigation, and
- * navigation should not darken the page behind it to ask which of two
- * lists you want.
+ * What differs between the two is only what is left out. `consent.body`
+ * carries clauses that are the lister's alone — what you publish is yours,
+ * and a proven violation removes you — and `consent.buyerBody` drops them,
+ * because repeating them at a buyer teaches people to skip the box. Pinned
+ * here rather than trusted, because a door that quietly regresses to a plain
+ * link still behaves correctly to anyone clicking through it; the notice
+ * simply never appears.
  *
  * Locators here use plain substrings rather than `new RegExp(...)`: the two
  * top-level labels carry a parenthesised aside, and `(` inside a RegExp is a
@@ -48,9 +60,7 @@ const OWNER_PHONE = demoOwnerPhone('audience')
  * matching the label.
  */
 test.describe('Audience chooser', () => {
-  test('is always there, explains before signing in, and never blocks the page', async ({
-    page,
-  }) => {
+  test('both halves are real pages, reachable and reversible', async ({ page }) => {
     await page.goto('/')
 
     const question = page.getByRole('heading', { name: t('onboarding.heading') })
@@ -60,10 +70,45 @@ test.describe('Audience chooser', () => {
     // answering anything.
     await expect(page.getByRole('heading', { name: t('home.heroTitle') })).toBeVisible()
 
-    // Choosing to list a business explains what that involves, in place,
-    // rather than jumping straight to a form.
-    // Two levels now: the intent first, then which kind.
-    await page.getByRole('button', { name: t('home.actionOffer') }).click()
+    // Links, not buttons — the whole point of the change. A regression to an
+    // in-place panel fails right here.
+    await page.getByRole('link', { name: t('home.actionOffer') }).click()
+    await expect(page).toHaveURL(/\/offer/)
+    await expect(page.getByRole('heading', { name: t('offerPage.title') })).toBeVisible()
+
+    // The browser's own back button steps back, which it could not do when
+    // this was a state machine on the homepage.
+    await page.goBack()
+    await expect(page).toHaveURL(/\/$/)
+    await expect(question).toBeVisible()
+
+    // And the page offers its own way home, above the content rather than
+    // buried under it.
+    await page.getByRole('link', { name: t('home.actionOffer') }).click()
+    await page.getByRole('link', { name: t('choice.backHome') }).click()
+    await expect(question).toBeVisible()
+  })
+
+  test('the offer page says who may list before it asks for anything', async ({ page }) => {
+    // The platform is open to southerners in its first phase. Somebody who
+    // does not qualify must find that out here, not after filling a form and
+    // waiting for a rejection — so the rule is on the page, above the doors.
+    await page.goto('/offer')
+
+    await expect(
+      page.getByRole('heading', { name: t('offerPage.eligibilityTitle') }),
+    ).toBeVisible()
+    await expect(page.getByText(t('offerPage.eligibilityOne'))).toBeVisible()
+    await expect(page.getByText(t('offerPage.eligibilityTwo'))).toBeVisible()
+    await expect(page.getByText(t('offerPage.eligibilityNote'))).toBeVisible()
+
+    // The three steps are on the page too, not hidden behind a click.
+    await expect(page.getByText(t('onboarding.step1'))).toBeVisible()
+    await expect(page.getByText(t('onboarding.step3'))).toBeVisible()
+  })
+
+  test('explains before signing in, and ends at the application form', async ({ page }) => {
+    await page.goto('/offer')
     await page.getByRole('button', { name: t('onboarding.ownerTitle') }).click()
 
     // The notice first, and it is the screen rather than a line on it.
@@ -73,7 +118,6 @@ test.describe('Audience chooser', () => {
 
     await expect(page.getByText(t('onboarding.step1'))).toBeVisible()
     await expect(page.getByText(t('onboarding.step3'))).toBeVisible()
-    expect(new URL(page.url()).pathname).toBe('/')
 
     // And only then does it offer the way in — the public application form,
     // not the login page. Somebody at this point has no account and no way to
@@ -84,7 +128,7 @@ test.describe('Audience chooser', () => {
     // Still there on the way back — permanent navigation, not a prompt that
     // spends itself on first use.
     await page.goto('/')
-    await expect(question).toBeVisible()
+    await expect(page.getByRole('heading', { name: t('onboarding.heading') })).toBeVisible()
   })
 
   test('the assisted-listing offer is absent until a support number is configured', async ({
@@ -98,9 +142,7 @@ test.describe('Audience chooser', () => {
     // make. The positive case cannot be asserted here -- Vite inlines the
     // value at build time, so it would need a second build -- but the
     // failure that actually costs someone a listing is this one.
-    await page.goto('/')
-    // Two levels now: the intent first, then which kind.
-    await page.getByRole('button', { name: t('home.actionOffer') }).click()
+    await page.goto('/offer')
     await page.getByRole('button', { name: t('onboarding.ownerTitle') }).click()
     await page.getByRole('button', { name: t('consent.agree') }).click()
 
@@ -130,12 +172,10 @@ test.describe('Audience chooser', () => {
     await expect(mobileNav.getByRole('link', { name: t('nav.login') })).toHaveCount(0)
     await page.getByRole('button', { name: t('nav.closeMenu') }).click()
 
-    // No steps panel for someone who has already been through it: the card is
-    // a link straight to the thing it describes.
-    await page.getByRole('button', { name: t('home.actionOffer') }).click()
+    // No steps panel for someone who has already been through it: agreeing is
+    // the whole remaining step, and the control is a real link.
+    await page.getByRole('link', { name: t('home.actionOffer') }).click()
     await page.getByRole('button', { name: t('onboarding.ownerTitle') }).click()
-    // Signed in, agreeing is the whole remaining step: no steps panel, and the
-    // control is a real link straight to the wizard.
     await page.getByRole('link', { name: t('consent.agree') }).click()
     await expect(page).toHaveURL(/\/dashboard\/businesses\/new/)
 
@@ -149,19 +189,23 @@ test.describe('Audience chooser', () => {
     await expect(page).toHaveURL(/\/dashboard\/talent/)
   })
 
-  test('the buying half forks two ways, and backing out restores the question', async ({
-    page,
-  }) => {
+  test('the buying half forks two ways on its own page', async ({ page }) => {
     // Two doors, on the axis the board ticket named: goods and products, or
     // services and jobs. It offered three until that ticket — the businesses
     // directory had a card here too — and the cost of dropping to two is
     // asserted rather than assumed further down this test: the shops
     // directory is still reachable, just not from this fork.
     await page.goto('/')
-    await page.getByRole('button', { name: t('home.actionBrowse') }).click()
+    await page.getByRole('link', { name: t('home.actionBrowse') }).click()
+    await expect(page).toHaveURL(/\/browse/)
 
-    // Browsing doors are real links, not buttons: there is no notice ahead of
-    // them to hold navigation back.
+    // The buyer reads the same warning the seller does, minus the clauses
+    // that are the seller's alone. Both sides of a dealing, one warning.
+    await expect(page.getByText(t('consent.buyerBody'))).toBeVisible()
+    await page.getByRole('button', { name: t('consent.agree') }).click()
+
+    // Past the notice the doors are real links, with nothing further between
+    // them and the directory they name.
     for (const key of ['onboarding.seekGoodsTitle', 'onboarding.seekServiceTitle']) {
       await expect(page.getByRole('link', { name: t(key) })).toBeVisible()
     }
@@ -169,14 +213,8 @@ test.describe('Audience chooser', () => {
       page.getByRole('link', { name: t('browse.businessesTitle') }),
     ).toHaveCount(0)
 
-    // Backing out is a real option, and it returns to the one question rather
-    // than leaving the visitor in a half-answered state.
-    await page.getByRole('button', { name: t('onboarding.back') }).click()
-    await expect(page.getByRole('heading', { name: t('onboarding.heading') })).toBeVisible()
-
     // And the doors lead straight where they say -- browsing carries no
     // responsibility notice.
-    await page.getByRole('button', { name: t('home.actionBrowse') }).click()
     await page.getByRole('link', { name: t('onboarding.seekGoodsTitle') }).click()
     await expect(page).toHaveURL(/\/products/)
 
@@ -188,24 +226,89 @@ test.describe('Audience chooser', () => {
     await expect(page).toHaveURL(/\/businesses/)
   })
 
+  test('goods made in the South and imported goods are separate doors, on both halves', async ({
+    page,
+  }) => {
+    // At the CEO's request: a southern store selling imported goods is
+    // welcome, but under its own door, so a buyer looking for what the South
+    // produces is never shown an import under that heading. The mark is the
+    // business's `goods_origin`, set by the door the owner came through.
+    //
+    // Anchored to the start of the card: the local door's own description
+    // mentions imported goods, so a plain substring would match both cards.
+    const startsWith = (key: string) =>
+      new RegExp(`^${t(key).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`)
+
+    await page.goto('/offer')
+    await expect(page.getByRole('button', { name: startsWith('onboarding.ownerTitle') })).toBeVisible()
+    await page.getByRole('button', { name: startsWith('onboarding.importedTitle') }).click()
+    await page.getByRole('button', { name: t('consent.agree') }).click()
+    await page.getByRole('link', { name: t('onboarding.start') }).click()
+
+    // The application form opens on the door chosen, and says so.
+    await expect(page).toHaveURL(/\/register\/business\?origin=IMPORTED/)
+    await expect(page.getByRole('combobox', { name: t('offerPage.doorsTitle') })).toHaveText(
+      t('onboarding.importedTitle'),
+    )
+
+    // The looking-for half has the same split, onto the products directory
+    // narrowed to that origin -- and the filter is visible there, so the
+    // narrowing is never silent.
+    await page.goto('/browse')
+    await page.getByRole('button', { name: t('consent.agree') }).click()
+    await expect(page.getByRole('link', { name: startsWith('onboarding.ownerTitle') })).toBeVisible()
+    await page.getByRole('link', { name: startsWith('onboarding.importedTitle') }).click()
+    await expect(page).toHaveURL(/\/products\?origin=IMPORTED/)
+    await expect(page.getByRole('combobox', { name: t('directory.origin') })).toHaveText(
+      t('onboarding.importedTitle'),
+    )
+  })
+
+  test('a step change puts the top of the page back in view', async ({ page }) => {
+    // `ScrollToTop` keys off the pathname, and the steps inside these two
+    // pages are state rather than routes — so it never fired for them. The
+    // doors sit far down a long page and the notice that replaces them is
+    // short, which left the notice's own heading 458px above the viewport:
+    // the visitor pressed a card and, as far as they could see, nothing
+    // happened.
+    await page.goto('/offer')
+    const door = page.getByRole('button', { name: t('onboarding.ownerTitle') })
+    await door.scrollIntoViewIfNeeded()
+    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
+
+    await door.click()
+    await expect(page.getByRole('heading', { name: t('consent.heading') })).toBeVisible()
+    expect(await page.evaluate(() => window.scrollY)).toBe(0)
+
+    // And again on the next step, which is a second state change.
+    await page.getByRole('button', { name: t('consent.agree') }).click()
+    await expect(page.getByText(t('onboarding.step1'))).toBeVisible()
+    expect(await page.evaluate(() => window.scrollY)).toBe(0)
+
+    // The browsing half has one such step, and it behaves the same.
+    await page.goto('/browse')
+    await page.evaluate(() => window.scrollTo(0, 400))
+    await page.getByRole('button', { name: t('consent.agree') }).click()
+    await expect(page.getByRole('link', { name: t('onboarding.seekGoodsTitle') })).toBeVisible()
+    expect(await page.evaluate(() => window.scrollY)).toBe(0)
+  })
+
   test('the notice is the only way through an offering door', async ({ page }) => {
     // The assertion that matters is the negative one: choosing a door must
     // not navigate. A door that regresses to a plain link still looks and
     // behaves correctly to anyone clicking through it — the notice simply
-    // never appears — so "we are still on the homepage" is the line that
-    // catches it.
-    await page.goto('/')
-    await page.getByRole('button', { name: t('home.actionOffer') }).click()
+    // never appears — so "we are still on /offer" is the line that catches it.
+    await page.goto('/offer')
     await page.getByRole('button', { name: t('onboarding.talentTitle') }).click()
 
     await expect(page.getByRole('heading', { name: t('consent.heading') })).toBeVisible()
-    expect(new URL(page.url()).pathname).toBe('/')
+    expect(new URL(page.url()).pathname).toBe('/offer')
 
     // Backing out of the notice returns to the two doors and navigates
     // nowhere: declining is a real answer, not a dead end.
     await page.getByRole('button', { name: t('onboarding.back') }).click()
     await expect(page.getByRole('button', { name: t('onboarding.ownerTitle') })).toBeVisible()
-    expect(new URL(page.url()).pathname).toBe('/')
+    expect(new URL(page.url()).pathname).toBe('/offer')
 
     // And agreeing carries on to the steps panel — anonymous, so there is no
     // direct link to the wizard yet.
@@ -221,10 +324,12 @@ test.describe('Audience chooser', () => {
     // carries no responsibility to accept, so a door here is a real link with
     // nothing between it and the page it names — no heading, no agree button,
     // ever rendered.
-    await page.goto('/')
-    await page.getByRole('button', { name: t('home.actionBrowse') }).click()
+    await page.goto('/browse')
+    await page.getByRole('button', { name: t('consent.agree') }).click()
     await page.getByRole('link', { name: t('onboarding.seekServiceTitle') }).click()
 
+    // Answered once, the notice does not reappear between the door and the
+    // directory: the gate is the page, not every link on it.
     await expect(page).toHaveURL(/\/talent/)
     await expect(page.getByRole('heading', { name: t('consent.heading') })).toHaveCount(0)
   })

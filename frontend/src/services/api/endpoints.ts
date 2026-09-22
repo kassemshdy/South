@@ -7,6 +7,7 @@
 
 import { apiDownload, apiRequest } from '@/services/api/client'
 import type {
+  GoodsOrigin,
   ContactChannel,
   AdminArticle,
   AdminBusiness,
@@ -71,6 +72,7 @@ export interface BusinessPayload {
   production_nature?: string | null
   years_of_experience?: number | null
   owner_relation?: OwnerRelation | null
+  goods_origin?: GoodsOrigin
   category_id?: string | null
   custom_category_text?: string | null
   location_id?: string | null

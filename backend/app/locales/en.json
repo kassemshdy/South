@@ -1,6 +1,6 @@
 {
   "admin.default_display_name": "Platform administrator",
-  "app.name": "South Directory",
+  "app.name": "Janoubna",
   "article.deleted": "The article was deleted.",
   "article.duplicate_slug": "This link is already used by another article.",
   "article.not_found": "Article not found.",
@@ -25,6 +25,7 @@
   "business.field.short_description": "short description",
   "business.incomplete": "The business cannot be submitted for review until the following are complete: {missing}",
   "business.list_separator": ", ",
+  "business.goods_origin_required": "Choose where the goods come from.",
   "business.name_too_short": "The business name is too short.",
   "business.not_found": "Business not found.",
   "business.not_public": "This business is unavailable or has not been approved yet.",

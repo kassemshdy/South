@@ -820,7 +820,7 @@ def main() -> int:
     parser.add_argument(
         "--admin-only",
         action="store_true",
-        help="create or update only the administrator account (safe in production)",
+        help="seed structure and the administrator only, no sample content (safe in production)",
     )
     parser.add_argument(
         "--ensure",
@@ -832,17 +832,39 @@ def main() -> int:
     settings = get_settings()
     configure_logging(settings.log_level, json_output=False)
 
-    # Sample content belongs anywhere a human is expected to click around.
+    # Two tiers, and the difference matters more than it looks.
+    #
+    # **Structure** is the categories, the locations, the talent skills and the
+    # administrator: reference data the site cannot function without. A
+    # listing form with no category to choose is not a degraded site, it is an
+    # unusable one. This is seeded everywhere, production included.
+    #
+    # **Sample content** is demo owners, their businesses, talent profiles and
+    # articles. Invented shops on the live directory would be a lie told to
+    # every visitor, so this is development-only.
+    #
+    # The two used to be one switch, and setting APP_ENV=production turned
+    # both off together. That quietly removed the recovery path `AGENTS.md`
+    # documents: the `postgres` service has no persistent volume, so any
+    # redeploy of it wipes the database, and the answer has always been
+    # "redeploy the api, its start command re-runs migrations and the seed".
+    # With structure switched off, that answer returned an empty site.
+    #
+    # Every seeder below is additive — it looks a row up by slug and creates
+    # only what is missing — so running this against a live database with real
+    # listings in it changes nothing that anyone has edited.
     sample_data_allowed = not settings.is_production
-    admin_only = args.admin_only or (args.ensure and not sample_data_allowed)
+    structure_only = args.admin_only or (args.ensure and not sample_data_allowed)
 
     if args.ensure and not sample_data_allowed:
-        logger.info("Production database: seeding the administrator account only")
+        logger.info(
+            "Production database: seeding structure and the administrator, no sample content"
+        )
 
-    if not sample_data_allowed and not admin_only:
+    if not sample_data_allowed and not structure_only:
         logger.error(
             "Refusing to seed sample data into a production database. "
-            "Use --admin-only to bootstrap the administrator account."
+            "Use --admin-only to bootstrap structure and the administrator account."
         )
         return 1
     if args.reset and settings.is_hardened:
@@ -850,12 +872,15 @@ def main() -> int:
         return 1
 
     with session_scope() as db:
-        if admin_only:
+        if structure_only:
+            seed_categories(db)
+            seed_talent_skills(db)
+            seed_locations(db)
             admin = seed_admin(db)
             if admin is None:
                 logger.error("ADMIN_EMAIL and ADMIN_PASSWORD must both be set")
                 return 1
-            print(f"\nAdministrator ready: {settings.admin_email}\n")
+            print(f"\nStructure ready. Administrator ready: {settings.admin_email}\n")
             return 0
 
         if args.reset:

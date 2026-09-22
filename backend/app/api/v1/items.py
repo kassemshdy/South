@@ -15,7 +15,7 @@ from app.core.errors import NotFoundError, PayloadTooLargeError, ValidationError
 from app.core.i18n import translate
 from app.core.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from app.models.business import BusinessItemImage
-from app.models.enums import ImageKind, ViewSubject
+from app.models.enums import GoodsOrigin, ImageKind, ViewSubject
 from app.repositories.item import ItemRepository
 from app.schemas.business import ImageReorderIn
 from app.schemas.common import MessageResponse, PaginatedResponse
@@ -44,6 +44,9 @@ def search_products(
     q: Annotated[str | None, Query(max_length=120, description="Free-text search query")] = None,
     category: Annotated[str | None, Query(description="Category slug")] = None,
     location: Annotated[str | None, Query(description="Location slug")] = None,
+    origin: Annotated[
+        GoodsOrigin | None, Query(description="Made in the South, or imported")
+    ] = None,
     sort: Annotated[
         Literal["newest", "name", "oldest", "price_asc", "price_desc"], Query()
     ] = "newest",
@@ -69,6 +72,7 @@ def search_products(
         q=q,
         category_slug=category,
         location_slug=location,
+        origin=origin,
         sort=sort,
         page=page,
         page_size=page_size,

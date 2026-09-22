@@ -1,13 +1,11 @@
 import { ShieldCheck } from 'lucide-react'
 
-import { useAuth } from '@/features/auth/AuthContext'
 import { WelcomeVideoPlayer } from '@/features/home/WelcomeVideo'
 import { AudienceChooser } from '@/features/onboarding/AudienceChooser'
 import { useT } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
 
 export function HomePage() {
-  const { isAuthenticated } = useAuth()
   const t = useT()
 
   useSeo({
@@ -71,7 +69,7 @@ export function HomePage() {
               repeating the looking half again. See AudienceChooser for what
               that cost. */}
           <div className="order-3 w-full lg:col-span-2">
-            <AudienceChooser isAuthenticated={isAuthenticated} />
+            <AudienceChooser />
           </div>
         </div>
       </section>
@@ -141,10 +139,10 @@ export function HomePage() {
           this needs to feel like somewhere you could stand. */}
       <section className="relative isolate" aria-label={t('home.southTitle')}>
         <img
-          src="/south-coast.jpg"
+          src="/south-hills.jpg"
           alt={t('home.southImageAlt')}
-          width={1280}
-          height={714}
+          width={1200}
+          height={630}
           loading="lazy"
           decoding="async"
           className="h-[22rem] w-full object-cover sm:h-[26rem] lg:h-[30rem]"

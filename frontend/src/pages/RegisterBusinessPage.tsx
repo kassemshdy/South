@@ -8,9 +8,11 @@
  */
 
 import { useMutation } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 
 import { useToast } from '@/components/ui/Toast'
 import { BasicsForm } from '@/features/businesses/BasicsForm'
+import { originFromParams } from '@/features/onboarding/destinations'
 import { RegistrationShell, unwrapFieldErrors } from '@/features/onboarding/RegistrationShell'
 import { useSeo } from '@/hooks/useSeo'
 import { useT } from '@/i18n'
@@ -24,6 +26,9 @@ import {
 export function RegisterBusinessPage() {
   const t = useT()
   const toast = useToast()
+  // The goods door the visitor came through: made in the South, or imported.
+  const [searchParams] = useSearchParams()
+  const origin = originFromParams(searchParams)
 
   useSeo({ title: t('register.businessSeoTitle'), description: t('register.businessSubtitle') })
 
@@ -48,6 +53,8 @@ export function RegisterBusinessPage() {
     >
       {({ requireApplicant, captchaToken, captcha }) => (
         <BasicsForm
+          key={origin ?? 'LOCAL'}
+          defaultOrigin={origin}
           submitLabel={t('register.submit')}
           identityElsewhere={false}
           pending={apply.isPending}

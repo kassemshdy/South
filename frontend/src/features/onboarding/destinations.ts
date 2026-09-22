@@ -1,6 +1,7 @@
-import { Package, Store, UserRound, Users } from 'lucide-react'
+import { Globe, Package, Store, UserRound, Users } from 'lucide-react'
 
 import type { TranslationKey } from '@/i18n'
+import type { GoodsOrigin } from '@/types/api'
 
 /**
  * The doors into this site, written down once.
@@ -93,9 +94,14 @@ const talentDoor: Door = {
 export const BROWSE_DOORS: Door[] = [businessesDoor, productsDoor, talentDoor]
 
 /**
- * Where someone looking for something goes from the homepage: **two** doors,
- * along the one axis the board ticket names —— goods on one side, services and
- * jobs on the other.
+ * Where someone looking for something goes: **three** doors —— goods made in
+ * the South, imported goods sold by southern stores, and services and jobs.
+ * The two goods doors are the same products directory filtered on the
+ * business's `goods_origin`, split at the CEO's request so that a buyer
+ * looking for what the South produces is never shown an import under it.
+ *
+ * Originally two, along the one axis the board ticket named —— goods on one
+ * side, services and jobs on the other.
  *
  * Two rather than three is the ticket's call and it costs something, so it is
  * written down here rather than left to be rediscovered: the businesses
@@ -104,11 +110,33 @@ export const BROWSE_DOORS: Door[] = [businessesDoor, productsDoor, talentDoor]
  * `/talent` carries it —— but the fork itself no longer names it. Restoring it
  * means adding `businessesDoor` back to this array and nothing else.
  */
-export const SEEK_DOORS: Door[] = [productsDoor, talentDoor]
+export const SEEK_DOORS: Door[] = [
+  {
+    // The products directory, narrowed to what the South itself makes. Its
+    // title is the offering door's own, so a seller and a buyer read the same
+    // words for the same shelf.
+    key: 'products-local',
+    icon: Package,
+    titleKey: 'onboarding.ownerTitle',
+    descriptionKey: 'onboarding.seekGoodsDescription',
+    shortKey: 'browse.productsShort',
+    href: '/products?origin=LOCAL',
+  },
+  {
+    key: 'products-imported',
+    icon: Globe,
+    titleKey: 'onboarding.importedTitle',
+    descriptionKey: 'onboarding.importedDescription',
+    shortKey: 'onboarding.importedShort',
+    href: '/products?origin=IMPORTED',
+  },
+  talentDoor,
+]
 
 /**
- * Where someone with something to offer can go: two doors, on the same axis
- * as `SEEK_DOORS` —— goods and products, or services and jobs.
+ * Where someone with something to offer can go: three doors, the same three
+ * as `SEEK_DOORS` —— goods made in the South, imported goods, or services and
+ * jobs. The first two are both businesses; the door sets `goods_origin`.
  *
  * The split is the whole point: a business is a place or a product, a talent
  * profile is the person themselves. Collapsing them into one card is exactly
@@ -138,6 +166,17 @@ export const OFFER_DOORS: Door[] = [
     shortKey: 'onboarding.ownerShort',
     href: '/dashboard/businesses/new',
     applyHref: '/register/business',
+  },
+  {
+    // A southern store selling imported goods: the same application and the
+    // same wizard as the door above, with the listing marked imported.
+    key: 'imported',
+    icon: Globe,
+    titleKey: 'onboarding.importedTitle',
+    descriptionKey: 'onboarding.importedDescription',
+    shortKey: 'onboarding.importedShort',
+    href: '/dashboard/businesses/new?origin=IMPORTED',
+    applyHref: '/register/business?origin=IMPORTED',
   },
   {
     key: 'talent',
@@ -175,4 +214,15 @@ export function carryFilters(params: URLSearchParams): string {
   }
   const query = next.toString()
   return query ? `?${query}` : ''
+}
+
+/**
+ * The `?origin=` a goods door carries, or undefined for anything else.
+ *
+ * Checked against the two known values rather than cast, so a hand-edited
+ * URL starts the form local instead of sending the API a value it refuses.
+ */
+export function originFromParams(params: URLSearchParams): GoodsOrigin | undefined {
+  const value = params.get('origin')
+  return value === 'LOCAL' || value === 'IMPORTED' ? value : undefined
 }

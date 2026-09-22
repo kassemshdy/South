@@ -11,7 +11,7 @@ import { useCategories } from '@/hooks/useTaxonomy'
 import { useT } from '@/i18n'
 import { useApplyServerFieldErrors } from '@/utils/serverFieldErrors'
 import type { BusinessPayload } from '@/services/api/endpoints'
-import type { OwnerBusiness } from '@/types/api'
+import type { GoodsOrigin, OwnerBusiness } from '@/types/api'
 import { businessBasicsSchema, type BusinessBasicsValues } from '@/utils/validation'
 
 interface BasicsFormProps {
@@ -35,6 +35,12 @@ interface BasicsFormProps {
    * elsewhere while they are typing them in is worse than saying nothing.
    */
   identityElsewhere?: boolean
+  /**
+   * Made in the South or imported, for a listing that does not exist yet --
+   * read from the door the visitor came through (`?origin=`). An existing
+   * listing's own mark always wins, and anything else starts local.
+   */
+  defaultOrigin?: GoodsOrigin | undefined
 }
 
 /** Step 1 of the wizard, and the first tab of the edit screen. */
@@ -46,6 +52,7 @@ export function BasicsForm({
   serverError,
   footer,
   identityElsewhere = true,
+  defaultOrigin,
 }: BasicsFormProps) {
   const categories = useCategories()
   const t = useT()
@@ -64,6 +71,7 @@ export function BasicsForm({
   } = useForm<BusinessBasicsValues>({
     resolver: zodResolver(schema),
     defaultValues: {
+      goods_origin: business?.goods_origin ?? defaultOrigin ?? 'LOCAL',
       name: business?.name ?? '',
       short_description: business?.short_description ?? '',
       description: business?.description ?? '',
@@ -88,6 +96,7 @@ export function BasicsForm({
 
   const submit = handleSubmit((values) => {
     onSubmit({
+      goods_origin: values.goods_origin,
       name: values.name,
       short_description: values.short_description || null,
       description: values.description || null,
@@ -145,6 +154,35 @@ export function BasicsForm({
                       {category.name_ar}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+        )}
+      </Field>
+
+      {/* The door the visitor already chose, beside the category it narrows:
+          seeing it here confirms it, and a wrong door is corrected without
+          going back. The options are the doors' own titles, so the two cannot
+          disagree. After the category rather than first, so the category
+          stays the form's first dropdown. */}
+      <Field label={t('offerPage.doorsTitle')} required error={errors.goods_origin?.message}>
+        {(props) => (
+          <Controller
+            control={control}
+            name="goods_origin"
+            render={({ field }) => (
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger
+                  id={props.id}
+                  aria-describedby={props['aria-describedby']}
+                  invalid={Boolean(errors.goods_origin)}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="LOCAL">{t('onboarding.ownerTitle')}</SelectItem>
+                  <SelectItem value="IMPORTED">{t('onboarding.importedTitle')}</SelectItem>
                 </SelectContent>
               </Select>
             )}
