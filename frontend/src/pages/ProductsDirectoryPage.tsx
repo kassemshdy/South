@@ -10,6 +10,7 @@ import { ErrorState, NoSearchResults } from '@/components/ui/States'
 import { Pagination } from '@/features/businesses/Pagination'
 import { ProductCard } from '@/features/items/ProductCard'
 import { BrowseSwitcher } from '@/features/onboarding/BrowseSwitcher'
+import { originFromParams } from '@/features/onboarding/destinations'
 import { useCategories, useLocationGroups } from '@/hooks/useTaxonomy'
 import { useT, type TranslationKey } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
@@ -42,13 +43,17 @@ export function ProductsDirectoryPage() {
   const q = searchParams.get('q') ?? ''
   const category = searchParams.get('category') ?? ''
   const location = searchParams.get('location') ?? ''
+  // Set by the two goods doors on /browse; see `SEEK_DOORS`.
+  const origin = originFromParams(searchParams)
   const sort = (searchParams.get('sort') as ProductSortOption | null) ?? 'newest'
   const page = Number(searchParams.get('page') ?? '1')
 
   // Local mirror so typing feels instant; the URL updates on submit, which
   // keeps searches shareable and back/forward working.
   const [searchInput, setSearchInput] = useState(q)
-  const [filtersOpen, setFiltersOpen] = useState(false)
+  // Open from the start when a goods door narrowed the list: on a phone the
+  // filters are folded away, and a narrowing nobody can see is a silent one.
+  const [filtersOpen, setFiltersOpen] = useState(() => Boolean(originFromParams(searchParams)))
   const t = useT()
 
   useEffect(() => setSearchInput(q), [q])
@@ -63,12 +68,13 @@ export function ProductsDirectoryPage() {
   const { groups } = useLocationGroups()
 
   const results = useQuery({
-    queryKey: queryKeys.products({ q, category, location, sort, page }),
+    queryKey: queryKeys.products({ q, category, location, origin, sort, page }),
     queryFn: () =>
       publicItemApi.search({
         q: q || undefined,
         category: category || undefined,
         location: location || undefined,
+        origin,
         sort,
         page,
         page_size: 12,
@@ -91,7 +97,7 @@ export function ProductsDirectoryPage() {
     [searchParams, setSearchParams],
   )
 
-  const hasFilters = Boolean(q || category || location) || sort !== 'newest'
+  const hasFilters = Boolean(q || category || location || origin) || sort !== 'newest'
   const resetFilters = () => setSearchParams(new URLSearchParams())
 
   return (
@@ -146,7 +152,7 @@ export function ProductsDirectoryPage() {
         </Button>
       </form>
 
-      <div className={`mb-6 grid gap-3 sm:grid-cols-3 ${filtersOpen ? 'grid' : 'hidden sm:grid'}`}>
+      <div className={`mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 ${filtersOpen ? 'grid' : 'hidden sm:grid'}`}>
         <div>
           <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="filter-category">
             {t('directory.category')}
@@ -193,6 +199,25 @@ export function ProductsDirectoryPage() {
                   </SelectItem>
                 )),
               ])}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="filter-origin">
+            {t('directory.origin')}
+          </label>
+          <Select
+            value={origin ?? ALL}
+            onValueChange={(value) => updateParams({ origin: value === ALL ? '' : value })}
+          >
+            <SelectTrigger aria-labelledby="filter-origin">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>{t('directory.allOrigins')}</SelectItem>
+              <SelectItem value="LOCAL">{t('directory.originLocal')}</SelectItem>
+              <SelectItem value="IMPORTED">{t('onboarding.importedTitle')}</SelectItem>
             </SelectContent>
           </Select>
         </div>

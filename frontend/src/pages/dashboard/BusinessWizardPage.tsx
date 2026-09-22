@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, PartyPopper, Send, UserRound } from 'lucide-react'
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -17,6 +17,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { AssistedListing } from '@/features/onboarding/AssistedListing'
 import { ItemManager } from '@/features/items/ItemManager'
 import { OfferSwitcher } from '@/features/onboarding/OfferSwitcher'
+import { originFromParams } from '@/features/onboarding/destinations'
 import { useSeo } from '@/hooks/useSeo'
 import { useT, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
@@ -146,6 +147,8 @@ export function BusinessWizardPage() {
   const toast = useToast()
   const navigate = useNavigate()
   const t = useT()
+  const [searchParams] = useSearchParams()
+  const origin = originFromParams(searchParams)
 
   useSeo({ title: t('wizard.seoTitle'), noIndex: true })
 
@@ -229,7 +232,9 @@ export function BusinessWizardPage() {
           listing behind rather than simply changing your mind. Before the
           first save there is nothing to lose, and this is where a
           craftsperson who tapped the wrong card finds out. */}
-      {businessId === null ? <OfferSwitcher current="business" /> : null}
+      {businessId === null ? (
+        <OfferSwitcher current={origin === 'IMPORTED' ? 'imported' : 'business'} />
+      ) : null}
 
       <ol className="mb-8 flex flex-wrap gap-2" aria-label={t('wizard.stepsAria')}>
         {STEPS.map((item, index) => {
@@ -302,6 +307,10 @@ export function BusinessWizardPage() {
 
           {step === 'basics' ? (
             <BasicsForm
+              // Remounted when the switcher changes door before the first
+              // save, so the form starts from the door now chosen.
+              key={businessId ?? origin ?? 'LOCAL'}
+              defaultOrigin={origin}
               serverError={create.error ?? update.error}
               business={data}
               submitLabel={t('wizard.saveAndContinue')}

@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from app.core.arabic import normalize_arabic
 from app.core.pagination import Page
 from app.models.business import Business, BusinessItem
-from app.models.enums import BusinessStatus
+from app.models.enums import BusinessStatus, GoodsOrigin
 from app.models.taxonomy import Category, Location
 from app.models.user import User
 from app.repositories.base import BaseRepository
@@ -83,7 +83,11 @@ class BusinessRepository(BaseRepository[Business]):
         q: str | None,
         category_slug: str | None,
         location_slug: str | None,
+        origin: GoodsOrigin | None = None,
     ) -> Select[tuple[Business]]:
+        if origin is not None:
+            stmt = stmt.where(Business.goods_origin == origin)
+
         if category_slug:
             stmt = stmt.join(Category, Business.category_id == Category.id).where(
                 Category.slug == category_slug
@@ -129,13 +133,15 @@ class BusinessRepository(BaseRepository[Business]):
         q: str | None = None,
         category_slug: str | None = None,
         location_slug: str | None = None,
+        origin: GoodsOrigin | None = None,
         sort: SortOption = "newest",
         page: int = 1,
         page_size: int = 12,
     ) -> Page[Business]:
         """Paginated public search. Never returns a non-APPROVED business."""
         filtered = self._apply_filters(
-            self.public_query(), q=q, category_slug=category_slug, location_slug=location_slug
+            self.public_query(), q=q, category_slug=category_slug, location_slug=location_slug,
+            origin=origin,
         )
 
         total = int(

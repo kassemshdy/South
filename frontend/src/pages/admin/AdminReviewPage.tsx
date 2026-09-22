@@ -241,6 +241,16 @@ export function AdminReviewPage() {
                 value={data.years_of_experience !== null ? String(data.years_of_experience) : null}
                 ltr
               />
+              {/* Local or imported: the door the owner came through, and
+                  the shelf this listing will be found on once approved. */}
+              <Detail
+                labelKey="directory.origin"
+                value={t(
+                  data.goods_origin === 'IMPORTED'
+                    ? 'onboarding.importedTitle'
+                    : 'directory.originLocal',
+                )}
+              />
               {/* Per business, not per account -- never on OwnerIdentityCard. */}
               <Detail
                 labelKey="business.ownerRelationLabel"

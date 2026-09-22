@@ -25,6 +25,7 @@
   "business.field.short_description": "وصف مختصر",
   "business.incomplete": "لا يمكن إرسال النشاط للمراجعة قبل إكمال البيانات التالية: {missing}",
   "business.list_separator": "، ",
+  "business.goods_origin_required": "اختر مصدر السلع.",
   "business.name_too_short": "اسم النشاط قصير جداً.",
   "business.not_found": "النشاط غير موجود.",
   "business.not_public": "هذا النشاط غير متوفر أو لم تتم الموافقة عليه بعد.",

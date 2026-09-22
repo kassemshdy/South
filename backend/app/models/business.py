@@ -24,6 +24,7 @@ from app.database.base import Base, TimestampMixin, pg_enum, uuid_pk
 from app.models.enums import (
     BusinessStatus,
     Currency,
+    GoodsOrigin,
     ImageKind,
     ModerationActionType,
     OwnerRelation,
@@ -90,6 +91,17 @@ class Business(Base, TimestampMixin):
     # account: one person may own one place and manage another.
     owner_relation: Mapped[OwnerRelation | None] = mapped_column(
         pg_enum(OwnerRelation, "owner_relation"), nullable=True
+    )
+
+    # Made in the South, or imported. Chosen by the door the owner came
+    # through and public, since it is what a visitor filters on; see
+    # ``GoodsOrigin``. Every listing that predates the split is local, which
+    # is what the platform only accepted until then.
+    goods_origin: Mapped[GoodsOrigin] = mapped_column(
+        pg_enum(GoodsOrigin, "goods_origin"),
+        nullable=False,
+        default=GoodsOrigin.LOCAL,
+        server_default=GoodsOrigin.LOCAL.value,
     )
 
     # Public contact details — deliberately separate from the owner's login

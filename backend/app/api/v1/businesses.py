@@ -18,7 +18,7 @@ from app.core.dependencies import (
 from app.core.errors import NotFoundError
 from app.core.i18n import translate
 from app.core.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
-from app.models.enums import ViewSubject
+from app.models.enums import GoodsOrigin, ViewSubject
 from app.repositories.business import BusinessRepository
 from app.repositories.item import ItemRepository
 from app.repositories.talent import TalentRepository
@@ -48,6 +48,9 @@ def search_businesses(
     q: Annotated[str | None, Query(max_length=120, description="Free-text search query")] = None,
     category: Annotated[str | None, Query(description="Category slug")] = None,
     location: Annotated[str | None, Query(description="Location slug")] = None,
+    origin: Annotated[
+        GoodsOrigin | None, Query(description="Made in the South, or imported")
+    ] = None,
     sort: Annotated[Literal["newest", "name", "oldest"], Query()] = "newest",
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
@@ -57,6 +60,7 @@ def search_businesses(
         q=q,
         category_slug=category,
         location_slug=location,
+        origin=origin,
         sort=sort,
         page=page,
         page_size=page_size,

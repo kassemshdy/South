@@ -8,7 +8,13 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.core.i18n import translate
 from app.core.phone import normalize_optional_phone
-from app.models.enums import BusinessStatus, ImageKind, OwnerRelation, SocialPlatform
+from app.models.enums import (
+    BusinessStatus,
+    GoodsOrigin,
+    ImageKind,
+    OwnerRelation,
+    SocialPlatform,
+)
 from app.schemas.common import ORMModel
 from app.schemas.item import BusinessItemOut
 from app.schemas.taxonomy import CategoryOut, LocationOut
@@ -62,6 +68,9 @@ class BusinessSummaryOut(ORMModel):
     # owner's personal contact info, which never appears on a business tier).
     custom_category_text: str | None = None
     location: LocationOut | None = None
+    # Made in the South or imported: public, because it is one of the doors
+    # a visitor chooses between. See ``GoodsOrigin``.
+    goods_origin: GoodsOrigin = GoodsOrigin.LOCAL
     created_at: datetime
 
 
@@ -125,6 +134,9 @@ class BusinessCreateIn(BaseModel):
     production_nature: str | None = Field(default=None, max_length=5000)
     years_of_experience: int | None = Field(default=None, ge=0, le=100)
     owner_relation: OwnerRelation | None = None
+    # Set by the door the owner came through; local unless they chose the
+    # imported one.
+    goods_origin: GoodsOrigin = GoodsOrigin.LOCAL
     category_id: uuid.UUID | None = None
     custom_category_text: str | None = Field(default=None, max_length=120)
     location_id: uuid.UUID | None = None
@@ -170,6 +182,10 @@ class BusinessUpdateIn(BaseModel):
     production_nature: str | None = Field(default=None, max_length=5000)
     years_of_experience: int | None = Field(default=None, ge=0, le=100)
     owner_relation: OwnerRelation | None = None
+    # Omitted means unchanged. An explicit null is refused below rather than
+    # written: the column is not nullable, and every listing is one or the
+    # other.
+    goods_origin: GoodsOrigin | None = None
     category_id: uuid.UUID | None = None
     custom_category_text: str | None = Field(default=None, max_length=120)
     location_id: uuid.UUID | None = None
@@ -184,6 +200,13 @@ class BusinessUpdateIn(BaseModel):
     longitude: float | None = Field(default=None, ge=-180, le=180)
     maps_url: str | None = Field(default=None, max_length=1000)
     social_links: list[SocialLinkIn] | None = None
+
+    @field_validator("goods_origin", mode="before")
+    @classmethod
+    def _origin_not_null(cls, value: object) -> object:
+        if value is None:
+            raise ValueError(translate("business.goods_origin_required"))
+        return value
 
     @field_validator("phone", "whatsapp")
     @classmethod

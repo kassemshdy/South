@@ -61,6 +61,7 @@ class BusinessService:
             production_nature=payload.production_nature,
             years_of_experience=payload.years_of_experience,
             owner_relation=payload.owner_relation,
+            goods_origin=payload.goods_origin,
             category_id=payload.category_id,
             custom_category_text=payload.custom_category_text,
             location_id=payload.location_id,
