@@ -1,13 +1,11 @@
 import { ShieldCheck } from 'lucide-react'
 
-import { useAuth } from '@/features/auth/AuthContext'
 import { WelcomeVideoPlayer } from '@/features/home/WelcomeVideo'
 import { AudienceChooser } from '@/features/onboarding/AudienceChooser'
 import { useT } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
 
 export function HomePage() {
-  const { isAuthenticated } = useAuth()
   const t = useT()
 
   useSeo({
@@ -71,7 +69,7 @@ export function HomePage() {
               repeating the looking half again. See AudienceChooser for what
               that cost. */}
           <div className="order-3 w-full lg:col-span-2">
-            <AudienceChooser isAuthenticated={isAuthenticated} />
+            <AudienceChooser />
           </div>
         </div>
       </section>

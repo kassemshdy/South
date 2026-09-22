@@ -11,12 +11,14 @@ import {
 import { AboutPage } from '@/pages/AboutPage'
 import { ArticleDetailPage } from '@/pages/ArticleDetailPage'
 import { BlogPage } from '@/pages/BlogPage'
+import { BrowsePage } from '@/pages/BrowsePage'
 import { BusinessProfilePage } from '@/pages/BusinessProfilePage'
 import { DirectoryPage } from '@/pages/DirectoryPage'
 import { HomePage } from '@/pages/HomePage'
 import { LoginPage } from '@/pages/LoginPage'
 import { NewsPage } from '@/pages/NewsPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
+import { OfferPage } from '@/pages/OfferPage'
 import { ProductProfilePage } from '@/pages/ProductProfilePage'
 import { ProductsDirectoryPage } from '@/pages/ProductsDirectoryPage'
 import { TalentDirectoryPage } from '@/pages/TalentDirectoryPage'
@@ -125,6 +127,11 @@ export function App() {
         <Route element={<AppLayout />}>
           {/* Public — no account required */}
           <Route index element={<HomePage />} />
+          {/* The two halves of the homepage's one question, each a real page
+              with a real URL: the choice used to swap two boxes in place, so
+              it could not be linked, shared or stepped back out of. */}
+          <Route path="offer" element={<OfferPage />} />
+          <Route path="browse" element={<BrowsePage />} />
           <Route path="businesses" element={<DirectoryPage />} />
           <Route path="business/:slug" element={<BusinessProfilePage />} />
           <Route path="products" element={<ProductsDirectoryPage />} />

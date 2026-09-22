@@ -1,16 +1,6 @@
-import { AlertTriangle, ArrowLeft, Check, ShoppingBag, Store } from 'lucide-react'
-import { useState } from 'react'
+import { ArrowLeft, ShoppingBag, Store } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
-import { Button } from '@/components/ui/Button'
-import { AssistedListing } from '@/features/onboarding/AssistedListing'
-import { DOOR_CARD, DoorBody } from '@/features/onboarding/DoorCard'
-import {
-  destinationFor,
-  OFFER_DOORS,
-  SEEK_DOORS,
-  type Door,
-} from '@/features/onboarding/destinations'
 import { useT, type TranslationKey } from '@/i18n'
 
 /**
@@ -22,252 +12,42 @@ import { useT, type TranslationKey } from '@/i18n'
  * something you only see once cannot be navigation. So it is permanent, and it
  * carries no dismissal and no memory.
  *
- * **Two levels, because the question has two levels.** Each half splits the
- * same way —— goods and products, or services and jobs —— so the fork is two
- * by two. Four leaves, reached in two taps rather than presented as four
- * choices at once: the audience here is someone who is not confident online,
- * and two large targets are easier than four.
+ * **And it is two links now, not a four-level state machine.** Everything
+ * behind the question — which kind, the responsibility notice, the three
+ * steps — used to happen right here, in place: pressing a card swapped these
+ * two boxes for two other boxes while the hero above and the whole page below
+ * stayed exactly where they were. The most consequential choice on the site
+ * read as a toggle. It also had no URL, so the browser's back button left the
+ * homepage rather than stepping back, none of it could be sent to somebody
+ * over WhatsApp, and no search engine ever saw a word of it.
  *
- * **And a notice stands between the second level and its page, on the
- * offering half only.** Listing something is what carries the responsibility
- * —— the platform checks only that the person listing is from the South, and
- * does not stand behind the transaction —— so that half's doors are buttons
- * that open the notice, and agreeing is what finally navigates. Browsing
- * carries none of that: those doors are real links straight to the directory
- * they name, with nothing in between. The notice is asked every time rather
- * than remembered, for the same reason the cards themselves carry no memory.
+ * So each half is a page: `/offer` and `/browse`. This component is now only
+ * the question and the two ways out of it, which is all the homepage should
+ * have been asked to carry.
  *
- * **And it is one widget now, which it was not.** The homepage used to ask
- * this three separate times: this chooser, a pair of cards in the hero, and a
- * third "what are you looking for" section below. The three disagreed --
- * "I want to buy" led to `/products` in one and `/businesses` in another, and
- * the hero's offer card sent a carpenter to the *business* wizard because it
- * collapsed goods and crafts into one card. The hero's own comment already
- * said the page "asks it first and asks it once", so the duplication was a
- * drift from the stated intent rather than a decision. This is that one
- * asking, and it lives where the hero pair used to.
- *
- * For a visitor who is not signed in, choosing to list something does not jump
- * straight to a phone-number prompt: it opens the steps involved first, in
- * place, because "sign in" as an answer to "I have a shop" tells you nothing
- * about what you are agreeing to. Someone already signed in has been through
- * that, so their cards go straight to the real destination.
+ * Identical weight on the two, because these are two halves of one question
+ * rather than a call to action and its afterthought. No line of explanation
+ * under either: it was answering a question nobody had yet asked.
  */
 
-type Intent = 'offer' | 'seek'
-
-interface Branch {
-  intent: Intent
+interface Half {
+  to: string
   icon: typeof Store
   titleKey: TranslationKey
-  /** Listing anything needs an account; looking at anything does not. */
-  needsAccount: boolean
-  doors: Door[]
 }
 
-/**
- * The two halves, and what is behind each.
- *
- * The doors themselves live in `destinations.ts` and are shared with the
- * switcher above every directory and the strip further down the homepage.
- * They used to be written out here, and in two other components, and the
- * three drifted until they contradicted each other —— see that file.
- */
-const BRANCHES: Branch[] = [
-  {
-    intent: 'offer',
-    icon: Store,
-    titleKey: 'home.actionOffer',
-    needsAccount: true,
-    doors: OFFER_DOORS,
-  },
-  {
-    intent: 'seek',
-    icon: ShoppingBag,
-    titleKey: 'home.actionBrowse',
-    needsAccount: false,
-    doors: SEEK_DOORS,
-  },
+const HALVES: Half[] = [
+  { to: '/offer', icon: Store, titleKey: 'home.actionOffer' },
+  { to: '/browse', icon: ShoppingBag, titleKey: 'home.actionBrowse' },
 ]
 
-const STEP_KEYS: TranslationKey[] = [
-  'onboarding.step1',
-  'onboarding.step2',
-  'onboarding.step3',
-]
-
-export function AudienceChooser({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
+export function AudienceChooser() {
   const t = useT()
-  const [intent, setIntent] = useState<Intent | null>(null)
-  const [pending, setPending] = useState<Door | null>(null)
-  const [expanded, setExpanded] = useState<Door | null>(null)
 
-  // One step back per press, innermost screen first, so a visitor who went
-  // two levels in and read the notice lands back on the doors rather than at
-  // the top.
-  const back = () => {
-    if (expanded) {
-      setExpanded(null)
-      return
-    }
-    if (pending) {
-      setPending(null)
-      return
-    }
-    setIntent(null)
-  }
-
-  const branch = BRANCHES.find((candidate) => candidate.intent === intent) ?? null
-
-  // Step three: how listing here actually works, for an anonymous visitor who
-  // chose to list something. Shown before the form, never after it — the
-  // sequence is not the one people expect, and finding out that an
-  // administrator reviews the application *after* filling it in reads as a
-  // refusal rather than as the process.
-  if (expanded) {
-    return (
-      <div className="mx-auto w-full max-w-2xl rounded-2xl border-2 border-clay-200 bg-sand-50 p-6">
-        <h3 className="text-lg font-bold">{t(expanded.titleKey)}</h3>
-        <p className="mt-1 text-sm text-ink-500">{t('onboarding.stepsIntro')}</p>
-
-        <ol className="mt-5 space-y-4">
-          {STEP_KEYS.map((key, index) => (
-            <li key={key} className="flex items-start gap-3">
-              <span
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-800 text-sm font-bold text-white ltr-nums"
-                aria-hidden="true"
-              >
-                {index + 1}
-              </span>
-              <span className="leading-relaxed text-ink-700">{t(key)}</span>
-            </li>
-          ))}
-        </ol>
-
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Button asChild size="lg">
-            {/* Straight to the application form, not to /login: there is no
-                account to sign into yet, and the form is step one of the
-                three this panel just described. */}
-            <Link to={destinationFor(expanded, isAuthenticated)}>
-              <Check className="h-5 w-5" aria-hidden="true" />
-              {t('onboarding.start')}
-            </Link>
-          </Button>
-          <Button type="button" variant="ghost" size="lg" onClick={back}>
-            {t('onboarding.back')}
-          </Button>
-        </div>
-
-        {/* Offered here, next to the steps, rather than after a failed
-            attempt: someone who reads "register with your phone number" and
-            decides it is not for them never reaches a later screen to be
-            rescued on. */}
-        <AssistedListing contextKey="assisted.contextHome" />
-      </div>
-    )
-  }
-
-  // Step two and a half: the notice, between a door and the page behind it.
-  //
-  // `needsAccount` decides what agreeing leads to, not whether the notice is
-  // shown: an anonymous visitor who chose to list something still has the
-  // steps panel ahead of them, so agreeing opens that rather than navigating.
-  // Everyone else agrees straight onto the destination, and that control is a
-  // real `<Link>` so it behaves like one.
-  if (pending && branch) {
-    const toSteps = branch.needsAccount && !isAuthenticated
-    return (
-      <div className="mx-auto w-full max-w-2xl rounded-2xl border-2 border-clay-300 bg-sand-50 p-6">
-        <h3 className="flex items-center gap-2 text-lg font-bold text-ink-900">
-          <span
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-800"
-            aria-hidden="true"
-          >
-            <AlertTriangle className="h-5 w-5" />
-          </span>
-          {t('consent.heading')}
-        </h3>
-
-        {/* The notice is the screen, not a footnote on it: full size, full
-            line height, nothing competing for the eye above the two
-            controls. */}
-        <p className="mt-4 leading-relaxed text-ink-700">{t('consent.body')}</p>
-
-        <div className="mt-6 flex flex-wrap gap-3">
-          {toSteps ? (
-            <Button
-              type="button"
-              size="lg"
-              onClick={() => {
-                setExpanded(pending)
-                setPending(null)
-              }}
-            >
-              <Check className="h-5 w-5" aria-hidden="true" />
-              {t('consent.agree')}
-            </Button>
-          ) : (
-            <Button asChild size="lg">
-              <Link to={destinationFor(pending, isAuthenticated)}>
-                <Check className="h-5 w-5" aria-hidden="true" />
-                {t('consent.agree')}
-              </Link>
-            </Button>
-          )}
-          <Button type="button" variant="ghost" size="lg" onClick={back}>
-            {t('onboarding.back')}
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
-  // Step two: which kind, within the chosen intent.
-  if (branch) {
-    // Offering opens the notice first -- a button, because there is nothing
-    // here yet for a middle-click to open. Browsing carries no such
-    // responsibility, so those doors are real links straight to the page they
-    // name, the same as the switcher strip above each directory.
-    const opensNotice = branch.intent === 'offer'
-    return (
-      <div className="mx-auto w-full max-w-2xl">
-        <p className="text-center font-bold text-ink-900">{t(branch.titleKey)}</p>
-        <ul className="mt-4 grid gap-4 sm:grid-cols-2">
-          {branch.doors.map((door) =>
-            opensNotice ? (
-              <li key={door.key}>
-                <button type="button" className={DOOR_CARD} onClick={() => setPending(door)}>
-                  <DoorBody door={door} />
-                </button>
-              </li>
-            ) : (
-              <li key={door.key}>
-                <Link to={door.href} className={DOOR_CARD}>
-                  <DoorBody door={door} />
-                </Link>
-              </li>
-            ),
-          )}
-        </ul>
-        <div className="mt-4 text-center">
-          <Button type="button" variant="ghost" onClick={back}>
-            {t('onboarding.back')}
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
-  // Step one: offering, or looking.
-  //
-  // Identical weight, because these are two halves of one question rather than
-  // a call to action and its afterthought. No line of explanation under
-  // either: it was answering a question nobody had yet asked.
   return (
     <div className="mx-auto w-full max-w-4xl">
       {/* The question is asked out loud rather than implied by two cards. It
-          carries the section now: these two are the homepage's navigation for
+          carries the section: these two are the homepage's navigation for
           someone who is not confident online, so the label above them is sized
           to be read rather than skimmed past. */}
       <h2 className="text-center text-xl font-bold text-ink-900 sm:text-2xl">
@@ -281,21 +61,19 @@ export function AudienceChooser({ isAuthenticated = false }: { isAuthenticated?:
           only when there is room between them. Below `sm` they stack, and the
           gap becomes vertical breathing space rather than a gutter. */}
       <ul className="mt-8 grid gap-6 sm:mt-10 sm:grid-cols-2 sm:gap-8">
-        {BRANCHES.map((candidate) => {
-          const Icon = candidate.icon
+        {HALVES.map((half) => {
+          const Icon = half.icon
           return (
-            <li key={candidate.intent}>
-              <button
-                type="button"
-                onClick={() => setIntent(candidate.intent)}
-                aria-expanded={false}
+            <li key={half.to}>
+              <Link
+                to={half.to}
                 className="group flex h-full w-full flex-col items-center gap-5 rounded-3xl border-2 border-ink-100 bg-white p-8 text-center shadow-card transition-all duration-200 hover:-translate-y-1 hover:border-brand-400 hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 sm:p-10"
               >
                 <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-sand-100 text-brand-700 transition-colors group-hover:bg-brand-700 group-hover:text-white sm:h-20 sm:w-20">
                   <Icon className="h-8 w-8 sm:h-9 sm:w-9" aria-hidden="true" />
                 </span>
                 <span className="text-balance text-xl font-bold leading-snug text-ink-900 sm:text-2xl">
-                  {t(candidate.titleKey)}
+                  {t(half.titleKey)}
                 </span>
                 {/* A filled pill rather than a line of coloured text: at this
                     size the words under the title were reading as a caption,
@@ -304,7 +82,7 @@ export function AudienceChooser({ isAuthenticated = false }: { isAuthenticated?:
                   {t('onboarding.choose')}
                   <ArrowLeft className="h-4 w-4 ltr:rotate-180" aria-hidden="true" />
                 </span>
-              </button>
+              </Link>
             </li>
           )
         })}
