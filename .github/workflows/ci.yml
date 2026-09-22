@@ -4,7 +4,7 @@ name: CI
 # would have failed immediately — there is no root package.json, the
 # frontend lives in frontend/. This runs the actual local gate documented in
 # AGENTS.md (backend pytest + ruff + mypy against a real Postgres, frontend
-# tsc + build) and posts one summary comment on the pull request so a
+# tsc + build, the Playwright acceptance suite) and posts one summary comment on the pull request so a
 # reviewer never has to click into a run to see whether it's green.
 
 on:
@@ -172,9 +172,109 @@ jobs:
         working-directory: mcp-server
         run: ./.venv/bin/mypy south_mcp
 
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    # The acceptance suite, against the real stack: a migrated and seeded
+    # Postgres, the API on :8000 and Vite on :5173 proxying to it -- the same
+    # layout AGENTS.md describes for running it by hand. It lives here so a
+    # pull request is the one place it runs (issue #121), rather than every
+    # development session paying eight minutes for it before each push.
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: south_dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    # The development defaults from backend/.env.example, which the specs
+    # sign in with. SEED_OWNER_PASSWORD is the demo accounts' password and is
+    # refused in production, so none of this is a secret.
+    env:
+      APP_ENV: development
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/south_dev
+      SECRET_KEY: ci-e2e-secret-key
+      PUBLIC_BASE_URL: http://127.0.0.1:5173
+      CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+      STORAGE_BACKEND: local
+      STORAGE_LOCAL_DIR: var/media
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: ChangeMe!123
+      SEED_OWNER_PASSWORD: DemoOwner!123
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: |
+          python -m venv .venv
+          ./.venv/bin/pip install --no-cache-dir -r requirements-dev.txt
+
+      - name: Install frontend dependencies and Chromium
+        working-directory: frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Migrate and seed
+        working-directory: backend
+        run: |
+          ./.venv/bin/alembic upgrade head
+          ./.venv/bin/python -m scripts.seed --ensure
+
+      - name: Start the API and Vite
+        run: |
+          mkdir -p logs
+          (cd backend && nohup ./.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 > ../logs/api.log 2>&1 &)
+          (cd frontend && nohup npx vite --host 127.0.0.1 --port 5173 --strictPort > ../logs/vite.log 2>&1 &)
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:8000/api/health > /dev/null \
+              && curl -sf http://127.0.0.1:5173/ > /dev/null; then
+              echo "Both up after ${i}s"; exit 0
+            fi
+            sleep 1
+          done
+          echo "Servers did not come up"; tail -50 logs/api.log logs/vite.log; exit 1
+
+      - name: Playwright
+        working-directory: frontend
+        run: npx playwright test
+
+      # Screenshots, traces and both server logs -- what a failure is
+      # diagnosed from, since nobody re-runs this suite locally any more.
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results
+          path: |
+            frontend/test-results
+            logs
+          retention-days: 7
+          if-no-files-found: ignore
+
   comment:
     name: Post PR status comment
-    needs: [backend, frontend, mcp]
+    needs: [backend, frontend, mcp, e2e]
     if: always() && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
@@ -192,6 +292,7 @@ jobs:
           MCP_TESTS: ${{ needs.mcp.outputs.tests }}
           MCP_FAILURES: ${{ needs.mcp.outputs.failures }}
           FRONTEND_RESULT: ${{ needs.frontend.result }}
+          E2E_RESULT: ${{ needs.e2e.result }}
         with:
           script: |
             const env = process.env
@@ -211,12 +312,17 @@ jobs:
               {
                 name: 'Frontend (tsc, build)',
                 result: env.FRONTEND_RESULT,
-                // Typecheck and build only. The Playwright acceptance spec
-                // needs a seeded database and a running API, so it runs
-                // locally (see the verify-gate skill) and not here — said out
-                // loud rather than leaving a blank that reads as "no tests
-                // needed".
-                tests: 'no suite in CI — typecheck + build',
+                // Typecheck and build only; the browser suite is its own
+                // job, below.
+                tests: 'typecheck + build',
+                failures: '',
+              },
+              {
+                name: 'E2E (Playwright)',
+                result: env.E2E_RESULT,
+                // Failure screenshots, traces and server logs are uploaded as
+                // the run's e2e-results artifact.
+                tests: 'acceptance suite, mobile Chromium',
                 failures: '',
               },
             ]
