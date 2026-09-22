@@ -8,6 +8,7 @@ import { AssistedListing } from '@/features/onboarding/AssistedListing'
 import { ChoicePageShell } from '@/features/onboarding/ChoicePageShell'
 import { DOOR_CARD, DoorBody } from '@/features/onboarding/DoorCard'
 import { destinationFor, OFFER_DOORS, type Door } from '@/features/onboarding/destinations'
+import { useScrollToStep } from '@/hooks/useScrollToStep'
 import { useSeo } from '@/hooks/useSeo'
 import { useT, type TranslationKey } from '@/i18n'
 
@@ -48,6 +49,10 @@ export function OfferPage() {
 
   const [pending, setPending] = useState<Door | null>(null)
   const [agreed, setAgreed] = useState<Door | null>(null)
+
+  // The doors sit a long way down this page and the panels that replace them
+  // are short, so without this a visitor presses a card and sees nothing move.
+  useScrollToStep(agreed ? `agreed:${agreed.key}` : pending ? `pending:${pending.key}` : 'doors')
 
   // Someone already signed in has been through the three steps and has an
   // account, so agreeing is the last thing between them and the wizard.
