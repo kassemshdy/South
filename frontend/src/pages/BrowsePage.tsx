@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { ChoicePageShell } from '@/features/onboarding/ChoicePageShell'
 import { DOOR_CARD, DoorBody } from '@/features/onboarding/DoorCard'
 import { SEEK_DOORS } from '@/features/onboarding/destinations'
+import { useScrollToStep } from '@/hooks/useScrollToStep'
 import { useSeo } from '@/hooks/useSeo'
 import { useT } from '@/i18n'
 
@@ -48,6 +49,8 @@ export function BrowsePage() {
   // A warning that shows once and then never again is a warning the tenth
   // visitor never reads.
   const [agreed, setAgreed] = useState(false)
+
+  useScrollToStep(agreed ? 'doors' : 'notice')
 
   if (!agreed) {
     return (

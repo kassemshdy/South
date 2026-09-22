@@ -56,6 +56,24 @@ if the suite fails on stale state rather than a real regression.
 - Test fixtures: `backend/tests/fixtures/arabic_samples.json` + `tests/samples.py::ar()`,
   and `frontend/e2e/fixtures/*.json` — never a hardcoded Arabic literal in a test file.
 
+**User-facing copy is written by the people who own the product, not by the
+agent.** Adding a catalog key is a code change; deciding what it *says* to a
+visitor is not. The voice of this site belongs to the people whose project it
+is, and text that arrives without them having chosen it reads as
+nearly-right — which is worse than missing, because nobody notices it needs
+fixing.
+
+So when a change needs a new string, **ask for the wording before writing
+it**. A placeholder is fine while the code is being built, as long as it is
+flagged as one in the same message rather than left to be discovered on the
+live site. The same applies to rewriting existing copy: a rename that sweeps
+through thirty strings is mechanical and fine, but changing what a sentence
+*means* is the product owner's call.
+
+Where wording has already been supplied — in a message, a voice note, a
+screenshot — use it verbatim. Tidying somebody's sentence into your own
+register is the same mistake in a smaller costume.
+
 **Arabic copy is Modern Standard Arabic (فصحى), not Lebanese colloquial.**
 The catalogs are read by people across the region and by search engines, and
 mixed registers read as carelessness — one screen addressing someone as

@@ -226,6 +226,35 @@ test.describe('Audience chooser', () => {
     await expect(page).toHaveURL(/\/businesses/)
   })
 
+  test('a step change puts the top of the page back in view', async ({ page }) => {
+    // `ScrollToTop` keys off the pathname, and the steps inside these two
+    // pages are state rather than routes — so it never fired for them. The
+    // doors sit far down a long page and the notice that replaces them is
+    // short, which left the notice's own heading 458px above the viewport:
+    // the visitor pressed a card and, as far as they could see, nothing
+    // happened.
+    await page.goto('/offer')
+    const door = page.getByRole('button', { name: t('onboarding.ownerTitle') })
+    await door.scrollIntoViewIfNeeded()
+    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
+
+    await door.click()
+    await expect(page.getByRole('heading', { name: t('consent.heading') })).toBeVisible()
+    expect(await page.evaluate(() => window.scrollY)).toBe(0)
+
+    // And again on the next step, which is a second state change.
+    await page.getByRole('button', { name: t('consent.agree') }).click()
+    await expect(page.getByText(t('onboarding.step1'))).toBeVisible()
+    expect(await page.evaluate(() => window.scrollY)).toBe(0)
+
+    // The browsing half has one such step, and it behaves the same.
+    await page.goto('/browse')
+    await page.evaluate(() => window.scrollTo(0, 400))
+    await page.getByRole('button', { name: t('consent.agree') }).click()
+    await expect(page.getByRole('link', { name: t('onboarding.seekGoodsTitle') })).toBeVisible()
+    expect(await page.evaluate(() => window.scrollY)).toBe(0)
+  })
+
   test('the notice is the only way through an offering door', async ({ page }) => {
     // The assertion that matters is the negative one: choosing a door must
     // not navigate. A door that regresses to a plain link still looks and

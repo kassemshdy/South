@@ -54,6 +54,78 @@
     "sort_order": 9
   },
   {
+    "name_ar": "الزراعة والثروة الحيوانية",
+    "slug": "agriculture",
+    "icon": "sprout",
+    "sort_order": 11
+  },
+  {
+    "name_ar": "الأغذية والمطاعم",
+    "slug": "food",
+    "icon": "chef-hat",
+    "sort_order": 12
+  },
+  {
+    "name_ar": "البناء والمقاولات",
+    "slug": "construction",
+    "icon": "hard-hat",
+    "sort_order": 13
+  },
+  {
+    "name_ar": "الهندسة",
+    "slug": "engineering",
+    "icon": "ruler",
+    "sort_order": 14
+  },
+  {
+    "name_ar": "التسويق والإعلام وصناعة المحتوى",
+    "slug": "marketing",
+    "icon": "megaphone",
+    "sort_order": 15
+  },
+  {
+    "name_ar": "الصحة والتمريض",
+    "slug": "health",
+    "icon": "stethoscope",
+    "sort_order": 16
+  },
+  {
+    "name_ar": "الرعاية والخدمات المنزلية",
+    "slug": "homecare",
+    "icon": "heart-handshake",
+    "sort_order": 17
+  },
+  {
+    "name_ar": "الإدارة وخدمة العملاء",
+    "slug": "administration",
+    "icon": "clipboard-list",
+    "sort_order": 18
+  },
+  {
+    "name_ar": "المبيعات والتجارة والعقارات",
+    "slug": "sales",
+    "icon": "store",
+    "sort_order": 19
+  },
+  {
+    "name_ar": "النقل والتوصيل والمستودعات",
+    "slug": "transport",
+    "icon": "truck",
+    "sort_order": 20
+  },
+  {
+    "name_ar": "خدمات السيارات والمركبات",
+    "slug": "automotive",
+    "icon": "car",
+    "sort_order": 21
+  },
+  {
+    "name_ar": "تنظيم المناسبات والترفيه",
+    "slug": "events",
+    "icon": "party-popper",
+    "sort_order": 22
+  },
+  {
     "name_ar": "أخرى",
     "slug": "other",
     "icon": "ellipsis",

@@ -407,6 +407,8 @@
   "consent.body": "The platform draws your attention to the fact that everything you list, whether goods or services, is your own personal responsibility, and that you must ensure it is accurate and matches how you describe it. The platform verifies only that you are from the South, and does not stand behind the dealing between you and the buyer. Where a legal violation is established, you will be removed from the platform.",
   "consent.buyerBody": "The platform draws your attention to the fact that every dealing made through it is your own responsibility. The platform verifies only that those listing are southerners; it guarantees neither the agreement between you and them nor the accuracy of what they list. Check carefully and responsibly before buying or hiring.",
   "consent.heading": "Before you continue",
+  "consent.jobSeekerBody": "When you receive a job offer in any form, verifying the identity of the party offering it, the nature of their business and the accuracy of their information is your own legal responsibility, so that no deception or manipulation can take hold. Check carefully and responsibly.",
+  "consent.jobSeekerTitle": "Before you send your profile",
   "contactChannel.EMAIL": "Email",
   "contactChannel.PHONE": "Phone",
   "contactChannel.WEBSITE": "Website",

@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus, Trash2 } from 'lucide-react'
+import { AlertTriangle, Plus, Trash2 } from 'lucide-react'
 import { useMemo } from 'react'
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form'
 
@@ -629,6 +629,29 @@ export function TalentForm({
           {t('talentForm.identityMovedNote')}
         </p>
       ) : null}
+
+      {/* Above the button, not below it and not in `footer`: the whole point
+          is that it is read *before* the profile is sent. A warning a person
+          meets after pressing send is a record that they were told, not a
+          warning.
+
+          This one is the job-seeker's own risk, and it is not the lister's
+          notice or the buyer's. Someone listing a profile here is asking for
+          work, so what reaches them is an approach from a stranger claiming
+          to be an employer — and nobody on this platform has checked that
+          claim. */}
+      <div className="rounded-2xl border-2 border-clay-300 bg-sand-50 p-5">
+        <h3 className="flex items-center gap-2.5 font-bold text-ink-900">
+          <span
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-800"
+            aria-hidden="true"
+          >
+            <AlertTriangle className="h-5 w-5" />
+          </span>
+          {t('consent.jobSeekerTitle')}
+        </h3>
+        <p className="mt-3 leading-relaxed text-ink-700">{t('consent.jobSeekerBody')}</p>
+      </div>
 
       <div className="flex flex-wrap gap-3 pt-2">
         <Button type="submit" size="lg" loading={pending}>
