@@ -201,9 +201,9 @@ export function Header() {
       <div className="container-page flex h-16 items-center justify-between gap-4">
         <Link to="/" className="flex shrink-0 items-center">
           {/* The whole logo, wordmark and emblem together, rather than the
-              emblem beside the name set in a UI font. The name is drawn
-              lettering — rendering «جنوبنا» in the interface typeface next to
-              the mark was two versions of the same word in two different
+              emblem beside the name set in a UI font. The name in the logo is
+              drawn lettering, so setting it again in the interface typeface
+              put two versions of the same word side by side in two different
               hands. `alt` carries the name because the image *is* the name
               now; an empty alt would leave a screen reader with nothing.
 
