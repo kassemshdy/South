@@ -95,6 +95,18 @@ test.describe('Talent directory', () => {
     await page.getByRole('combobox').nth(1).click()
     await page.getByRole('option', { name: districtName, exact: true }).click()
     await page.getByLabel(t('form.whatsapp')).fill(fixture.phone)
+    // The job-seeker's own warning, and it must be *above* the button: a
+    // caution met after pressing send is a record that somebody was told,
+    // not a warning. Someone listing a profile here is asking for work, so
+    // what reaches them is an approach from a stranger claiming to be an
+    // employer — and nothing on this platform has checked that claim.
+    const caution = page.getByText(t('consent.jobSeekerBody'))
+    const send = page.getByRole('button', { name: t('talentDashboard.createSubmit') })
+    await expect(caution).toBeVisible()
+    const cautionBox = await caution.boundingBox()
+    const sendBox = await send.boundingBox()
+    expect(cautionBox!.y).toBeLessThan(sendBox!.y)
+
     await page.getByRole('button', { name: t('talentDashboard.createSubmit') }).click()
 
     await expect(page.getByRole('heading', { name: fixture.displayName })).toBeVisible()
