@@ -1,11 +1,30 @@
 ---
 name: verify-gate
-description: Run this repo's full verification gate before pushing or opening a PR — backend pytest/ruff/mypy against a real Postgres, the MCP server suite, frontend tsc/build, the no-Arabic-in-source guard, and the Playwright acceptance spec. Use when asked to verify, check, run the gate, run the tests, or before any commit meant to deploy.
+description: This repo's verification gate — the fast static checks to run before every push, and the full suites (backend pytest against a real Postgres, MCP server, frontend build, no-Arabic guard, Playwright acceptance spec) that normally run in pull-request CI rather than locally. Use when asked to verify, check, run the gate, run the tests, before pushing, or to reproduce a CI failure that its log does not explain.
 license: Apache-2.0
 compatibility: Requires the sandbox's local Postgres and the checked-in virtualenvs.
 ---
 
 # The gate
+
+## Before every push: the fast checks only
+
+The full suites run in pull-request CI, on every PR, as four jobs — Backend,
+Frontend, MCP server and E2E (Playwright) — and nothing merges until all four
+are green. Running them here as well cost fifteen minutes a push for no extra
+safety (issue #121), so a development session runs only what takes seconds:
+
+```bash
+cd backend  && ./.venv/bin/ruff check . && ./.venv/bin/mypy app scripts \
+            && ./.venv/bin/pytest tests/test_i18n.py -q   # the no-Arabic guard
+cd frontend && npx tsc -b
+```
+
+Then push, and read CI. A red job is diagnosed from its log first; the E2E job
+uploads screenshots, traces and both server logs as the `e2e-results`
+artifact on failure.
+
+## The full gate: when asked, or when a CI log is not enough
 
 Run these in order. Report which passed and which did not — never claim a step
 you did not run or whose output you did not read.

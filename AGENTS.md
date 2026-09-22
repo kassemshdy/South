@@ -37,6 +37,10 @@ npx tsc -b
 CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npx playwright test
 ```
 
+**These suites run in pull-request CI, not in a development session** — see
+*Pull Requests / Deploys* below. The commands are here for when someone asks
+for a local run or a CI failure cannot be read from its logs.
+
 Playwright needs both the API (`:8000`) and Vite dev server (`:5173`) running, and a
 freshly-migrated + seeded database — a leftover business from a previous run can make the
 acceptance spec's negative assertions (pending listing must not be searchable) fail on a
@@ -99,8 +103,8 @@ one person's head.
 |---|---|
 | `AGENTS.md` (this file) | The source of truth. `CLAUDE.md` imports it; editor-specific files should too, never duplicate it. |
 | `REVIEW.md` | What a review looks for, in tiers. The blocking tier is the Security Musts below, each with the test that pins it. |
-| `.claude/skills/verify-gate/` | The full local gate, plus the traps that have actually cost time here. |
-| `.claude/skills/steward/` | How to drive a PR on this repo: branch base, the three CI jobs, red checks, review comments. |
+| `.claude/skills/verify-gate/` | The fast pre-push checks, the full gate for when it is asked for, and the traps that have actually cost time here. |
+| `.claude/skills/steward/` | How to drive a PR on this repo: branch base, the four CI jobs, red checks, review comments. |
 | `.claude/skills/ship-release/` | Promoting `develop-claude` to `master-claude`, with the pre-flight that establishes no data is lost. |
 | `.claude/skills/triage-loop/` | One pass of the ticket board: pick a ticket, fix it, open a PR, record it. What the scheduled routine runs. |
 | `.claude/commands/verify.md` | Slash command; it invokes the skill rather than restating it, so there is one copy to keep correct. |
@@ -411,9 +415,19 @@ login.
 
 ## Pull Requests / Deploys
 
-- Run the full local gate before pushing anything meant to deploy: backend pytest +
-  ruff + mypy, frontend `tsc -b` + build, the no-Arabic guard (part of the backend suite),
-  and — for anything touching the owner/admin flow — the Playwright acceptance spec.
+- **The test suites run in pull-request CI, not in the development session.** A full
+  local gate cost six to eight minutes of backend pytest and another eight of Playwright
+  before every push, and CI runs the same thing on every PR anyway (issue #121). Before
+  pushing, run only the fast static checks: `ruff check .` and `mypy app scripts` in
+  `backend/`, `npx tsc -b` in `frontend/`, and `pytest tests/test_i18n.py` for the
+  no-Arabic guard, which takes seconds and is the check most often tripped by a comment.
+  Run the full suites locally only when asked, or when a CI failure cannot be diagnosed
+  from its log.
+- **CI is four jobs, and nothing merges until all four are green:** Backend (pytest,
+  ruff, mypy), Frontend (tsc, build), MCP server, and E2E (Playwright). A red job is
+  diagnosed from its log; the E2E job uploads screenshots, traces and both server logs
+  as the run's `e2e-results` artifact on failure. Say which check failed and why before
+  pushing a fix, and never merge a red PR to save a cycle.
 - Two branches auto-deploy on push: `master-claude` drives the live services
   (`api`, `web`) and `develop-claude` drives the staging pair (`api-develop`,
   `web-develop`). Treat `master-claude` as production: verify locally first, and check

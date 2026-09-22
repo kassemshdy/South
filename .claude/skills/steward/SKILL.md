@@ -20,14 +20,19 @@ license: Apache-2.0
 
 ## What must be green
 
-Three CI jobs (`.github/workflows/ci.yml`), plus a bot comment summarising
+Four CI jobs (`.github/workflows/ci.yml`), plus a bot comment summarising
 them:
 
 | Job | Covers |
 |---|---|
-| Backend (pytest, ruff, mypy) | ~196 tests against a real Postgres, including the no-Arabic guard |
+| Backend (pytest, ruff, mypy) | ~400 tests against a real Postgres, including the no-Arabic guard |
 | Frontend (tsc, build) | Typecheck and production build |
 | MCP server (pytest, ruff, mypy) | `mcp-server/`, no database or credentials needed |
+| E2E (Playwright) | The acceptance suite on mobile Chromium, against a migrated and seeded stack; uploads `e2e-results` (screenshots, traces, server logs) on failure |
+
+A push to `develop-claude` or `master-claude` runs the same workflow again, so
+a release PR can show each job twice for one commit. Read the pair; a green
+one does not stand in for a running one.
 
 Railway also deploys a preview environment per PR and edits one status comment
 repeatedly as the four services build. Those edits are noise — an all-green
@@ -35,8 +40,9 @@ Railway table is not CI, and a red one is not a CI failure.
 
 ## Before pushing
 
-Run the `verify-gate` skill. A push that turns CI red costs a cycle and the
-reviewers' trust, and the backend job takes about four minutes to tell you.
+Run the fast checks from the `verify-gate` skill — ruff, mypy, `tsc -b` and
+the no-Arabic guard, which take seconds. The full suites are CI's to run, not
+the session's (issue #121): CI runs them on every PR and nothing merges red.
 
 ## State to action
 
@@ -50,17 +56,18 @@ act on the first row that matches.
 | A CI job still running | Wait. Meanwhile read any review threads. |
 | Only a human approval is outstanding | Report and stop. Approval is not yours to give. |
 | No checks after a few minutes | Report that no checks registered rather than assuming green. |
-| All three jobs green, no threads, mergeable | Say it is ready to merge, and stop. |
+| All four jobs green, no threads, mergeable | Say it is ready to merge, and stop. |
 
-**Actionable** here means the three CI jobs. The Railway preview comment is
+**Actionable** here means the four CI jobs. The Railway preview comment is
 not a check: it edits itself repeatedly as four services build, an all-green
 table is not CI, and a red one is not a CI failure.
 
 ## When a job fails
 
 Fix the cause, not the symptom. Read the whole log, trace from the error to
-the source, and reproduce it locally before pushing — the backend job takes
-about four minutes to tell you that a guess was wrong.
+the source, and for an E2E failure open the `e2e-results` artifact — the
+failure screenshot and trace usually name the cause outright. Reproduce
+locally only when the log and artifacts cannot explain it.
 
 Two rules with teeth:
 
