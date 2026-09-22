@@ -13,20 +13,13 @@ export function Footer() {
     <footer className="mt-20 border-t border-ink-100 bg-white">
       <div className="container-page grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <div className="flex flex-col items-start gap-1.5">
-            <img
-              src="/janoubna-logo.png"
-              alt={t('app.name')}
-              width={960}
-              height={361}
-              className="h-10 w-auto"
-            />
-            {/* Room for the full slogan here, where the header only has room
-                for it from `sm` up. */}
-            <span className="text-xs font-medium leading-tight text-ink-500">
-              {t('app.slogan')}
-            </span>
-          </div>
+          <img
+            src="/janoubna-logo.png"
+            alt={t('app.name')}
+            width={960}
+            height={361}
+            className="h-11 w-auto"
+          />
           <p className="mt-3 max-w-sm leading-relaxed text-ink-500">{t('footer.tagline')}</p>
         </div>
 

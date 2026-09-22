@@ -199,7 +199,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-ink-100 bg-sand-50/95 backdrop-blur">
       <div className="container-page flex h-16 items-center justify-between gap-4">
-        <Link to="/" className="flex shrink-0 flex-col items-start gap-0.5">
+        <Link to="/" className="flex shrink-0 items-center">
           {/* The whole logo, wordmark and emblem together, rather than the
               emblem beside the name set in a UI font. The name is drawn
               lettering — rendering «جنوبنا» in the interface typeface next to
@@ -214,13 +214,8 @@ export function Header() {
             alt={t('app.name')}
             width={960}
             height={361}
-            className="h-8 w-auto sm:h-9"
+            className="h-9 w-auto sm:h-10"
           />
-          {/* Hidden below `sm`: the bar is 64px tall and a phone has no room
-              for a second line without crowding the mark it belongs to. */}
-          <span className="hidden text-[11px] font-medium leading-tight text-ink-500 sm:block">
-            {t('app.slogan')}
-          </span>
         </Link>
 
         <nav className="hidden items-center gap-1 xl:flex" aria-label={t('nav.mainAria')}>
