@@ -91,8 +91,8 @@ test.describe('MVP acceptance flow', () => {
     // Plain substrings rather than `new RegExp`: both of these labels carry a
     // parenthesised aside now, and `(` in a RegExp is a group rather than a
     // bracket, so the pattern would stop matching the text it was built from.
-    await expect(page.getByRole('button', { name: t('home.actionOffer') })).toHaveCount(1)
-    await expect(page.getByRole('button', { name: t('home.actionBrowse') })).toHaveCount(1)
+    await expect(page.getByRole('link', { name: t('home.actionOffer') })).toHaveCount(1)
+    await expect(page.getByRole('link', { name: t('home.actionBrowse') })).toHaveCount(1)
     // Nothing anywhere on the page is "coming soon" any more.
     await expect(page.getByText(t('home.comingSoon'))).toHaveCount(0)
 
@@ -101,7 +101,12 @@ test.describe('MVP acceptance flow', () => {
     // the path a visitor actually takes. Browsing carries no responsibility
     // notice -- only listing something does -- so this door is a real link
     // straight through.
-    await page.getByRole('button', { name: t('home.actionBrowse') }).click()
+    // Each half of the question is its own page now, not a swap in place.
+    await page.getByRole('link', { name: t('home.actionBrowse') }).click()
+    await expect(page).toHaveURL(/\/browse/)
+    // Both sides of a dealing read the responsibility notice now, buyer
+    // included.
+    await page.getByRole('button', { name: t('consent.agree') }).click()
     await expect(page.getByRole('link', { name: t('onboarding.seekGoodsTitle') })).toBeVisible()
     await page.getByRole('link', { name: t('onboarding.seekServiceTitle') }).click()
     await expect(page).toHaveURL(/\/talent$/)

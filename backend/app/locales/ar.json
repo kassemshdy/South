@@ -1,6 +1,6 @@
 {
   "admin.default_display_name": "مدير المنصة",
-  "app.name": "دليل الجنوب",
+  "app.name": "جنوبنا",
   "article.deleted": "تم حذف المقال.",
   "article.duplicate_slug": "هذا الرابط مستخدم مسبقاً لمقال آخر.",
   "article.not_found": "المقال غير موجود.",
@@ -93,7 +93,7 @@
   "seo.business.title": "{name} | {site}",
   "seo.business.title_with_location": "{name} في {location} | {site}",
   "seo.default.description": "هنا يعرض الجنوبيون سلعهم ومنتجاتهم ومهاراتهم ومعارفهم العلمية والمهنية حتى يتيحوا لكل مؤمن بقضيتهم أن يكون شريكًا في صمودهم وحتى يبقوا منتجين وفاعلين.",
-  "seo.default.title": "تسوّق من الجنوب ووفّر وظائف لجنوبيين | دليل الجنوب",
+  "seo.default.title": "تسوّق من الجنوب ووفّر وظائف لجنوبيين | جنوبنا",
   "seo.talent.description": "{name} في {location}. تواصل مباشرة عبر واتساب.",
   "seo.talent.description_no_location": "{name}. تواصل مباشرة عبر واتساب.",
   "seo.talent.title": "{name} | {site}",
