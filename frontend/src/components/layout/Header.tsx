@@ -223,9 +223,13 @@ export function Header() {
           <img
             src="/janoubna-logo.png"
             alt={t('app.name')}
-            width={960}
-            height={361}
-            className="h-9 w-auto sm:h-10"
+            width={1400}
+            height={598}
+            /* Taller than a wordmark would need: this lockup carries the three
+               pillars and a sub-line under the name, and at 36px they were
+               strokes rather than letters. 48px is what the 64px bar allows
+               with the padding above still clearing the edge. */
+            className="h-11 w-auto sm:h-12"
           />
         </Link>
 
