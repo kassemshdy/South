@@ -135,6 +135,12 @@ export function App() {
           <Route path="businesses" element={<DirectoryPage />} />
           <Route path="business/:slug" element={<BusinessProfilePage />} />
           <Route path="products" element={<ProductsDirectoryPage />} />
+          {/* The two goods doors' own pages -- see ProductsDirectoryPage. */}
+          <Route path="products/local" element={<ProductsDirectoryPage fixedOrigin="LOCAL" />} />
+          <Route
+            path="products/imported"
+            element={<ProductsDirectoryPage fixedOrigin="IMPORTED" />}
+          />
           <Route path="cart" element={<CartPage />} />
           <Route path="favourites" element={<FavouritesPage />} />
           <Route path="product/:slug" element={<ProductProfilePage />} />
