@@ -192,3 +192,84 @@ def test_the_public_application_carries_it(
     business = db.execute(select(Business)).scalar_one()
     assert business.goods_origin is GoodsOrigin.IMPORTED
     assert business.status is BusinessStatus.PENDING_REVIEW
+
+
+# --- A shop selling both -----------------------------------------------------
+#
+# The CEO's answer: it registers once, and its goods appear in both places.
+# So each product carries its own mark, defaulting to the shop's.
+
+
+def test_a_shop_selling_both_has_each_product_under_its_own_door(
+    client: TestClient, db: Session, category: Category, location: Location
+) -> None:
+    business_id = _approved_business(
+        client,
+        db,
+        phone="03980005",
+        name_key="business.manakish",
+        item_key="item.zaatar_local",
+        category=category,
+        location=location,
+        origin=None,
+    )
+    headers = sign_in(client, "03980005")
+    imported = client.post(
+        f"/api/businesses/{business_id}/items",
+        headers=headers,
+        json={
+            "title": ar("item.generic"),
+            "price": "2.00",
+            "currency": "USD",
+            "goods_origin": "IMPORTED",
+        },
+    )
+    assert imported.status_code == 201, imported.text
+    assert imported.json()["goods_origin"] == "IMPORTED"
+
+    def titles(query: str) -> set[str]:
+        return {i["title"] for i in client.get(f"/api/items{query}").json()["items"]}
+
+    assert titles("?origin=LOCAL") == {ar("item.zaatar_local")}
+    assert titles("?origin=IMPORTED") == {ar("item.generic")}
+
+    # And the shop itself is found from both doors.
+    def names(query: str) -> set[str]:
+        return {b["name"] for b in client.get(f"/api/businesses{query}").json()["items"]}
+
+    assert names("?origin=LOCAL") == {ar("business.manakish")}
+    assert names("?origin=IMPORTED") == {ar("business.manakish")}
+
+
+def test_a_new_product_takes_its_shops_mark_unless_told_otherwise(
+    client: TestClient, db: Session, category: Category, location: Location
+) -> None:
+    business_id = _approved_business(
+        client,
+        db,
+        phone="03980006",
+        name_key="business.sweets_shop",
+        item_key="item.generic",
+        category=category,
+        location=location,
+        origin="IMPORTED",
+    )
+    listed = client.get("/api/items").json()["items"]
+    assert [i["goods_origin"] for i in listed] == ["IMPORTED"]
+
+    headers = sign_in(client, "03980006")
+    item_id = client.get(f"/api/businesses/{business_id}/items", headers=headers).json()[0]["id"]
+    changed = client.put(
+        f"/api/businesses/{business_id}/items/{item_id}",
+        headers=headers,
+        json={"goods_origin": "LOCAL"},
+    )
+    assert changed.status_code == 200, changed.text
+    assert changed.json()["goods_origin"] == "LOCAL"
+
+    cleared = client.put(
+        f"/api/businesses/{business_id}/items/{item_id}",
+        headers=headers,
+        json={"goods_origin": None},
+    )
+    assert cleared.status_code == 422

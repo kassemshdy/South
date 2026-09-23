@@ -116,7 +116,9 @@ class ItemRepository(BaseRepository[BusinessItem]):
         origin: GoodsOrigin | None = None,
     ) -> Select[tuple[BusinessItem]]:
         if origin is not None:
-            stmt = stmt.where(Business.goods_origin == origin)
+            # The product's own mark, not its shop's: a shop selling both has
+            # each of its goods under the door that describes it.
+            stmt = stmt.where(BusinessItem.goods_origin == origin)
 
         if category_slug:
             stmt = stmt.join(Category, Business.category_id == Category.id).where(

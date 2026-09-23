@@ -103,6 +103,7 @@ export interface ItemPayload {
   expiry_date?: string | null
   net_weight?: string | null
   external_link?: string | null
+  goods_origin?: GoodsOrigin
 }
 
 export interface TalentPayload {

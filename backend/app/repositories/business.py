@@ -86,7 +86,18 @@ class BusinessRepository(BaseRepository[Business]):
         origin: GoodsOrigin | None = None,
     ) -> Select[tuple[Business]]:
         if origin is not None:
-            stmt = stmt.where(Business.goods_origin == origin)
+            # A shop belongs under a door if it came through it, or if any
+            # of its goods carry that mark -- a shop selling both is found
+            # from both.
+            stmt = stmt.where(
+                or_(
+                    Business.goods_origin == origin,
+                    exists().where(
+                        BusinessItem.business_id == Business.id,
+                        BusinessItem.goods_origin == origin,
+                    ),
+                )
+            )
 
         if category_slug:
             stmt = stmt.join(Category, Business.category_id == Category.id).where(
