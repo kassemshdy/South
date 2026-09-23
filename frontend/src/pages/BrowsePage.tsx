@@ -14,8 +14,8 @@ import { useT } from '@/i18n'
  * Looking for something: its own page, at `/browse`.
  *
  * The twin of `/offer`, with the same three doors: goods made in the South,
- * imported goods, and services and jobs. The two goods doors are one products
- * directory filtered on origin. The businesses directory is deliberately not
+ * imported goods, and services and jobs. The two goods doors open a page
+ * each, `/products/local` and `/products/imported`. The businesses directory is deliberately not
  * among them — see `destinations.ts`; it is reachable from the header and
  * from the switcher above each directory.
  *

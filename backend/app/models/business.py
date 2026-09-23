@@ -94,7 +94,8 @@ class Business(Base, TimestampMixin):
     )
 
     # Made in the South, or imported. Chosen by the door the owner came
-    # through and public, since it is what a visitor filters on; see
+    # through, and the default each new product takes -- the products carry
+    # their own mark, so a shop selling both appears under both doors. See
     # ``GoodsOrigin``. Every listing that predates the split is local, which
     # is what the platform only accepted until then.
     goods_origin: Mapped[GoodsOrigin] = mapped_column(
@@ -318,6 +319,16 @@ class BusinessItem(Base, TimestampMixin):
     # Arabic-normalized haystack for the independent products directory,
     # maintained by BusinessItemService the same way Business.search_text is.
     search_text: Mapped[str] = mapped_column(Text, default="", nullable=False)
+
+    # Made in the South, or imported -- per product, because a shop that sells
+    # both registers once and each of its goods is shown under its own door.
+    # A new product takes its shop's mark unless the owner says otherwise.
+    goods_origin: Mapped[GoodsOrigin] = mapped_column(
+        pg_enum(GoodsOrigin, "goods_origin"),
+        nullable=False,
+        default=GoodsOrigin.LOCAL,
+        server_default=GoodsOrigin.LOCAL.value,
+    )
 
     business: Mapped[Business] = relationship(back_populates="items")
     images: Mapped[list[BusinessItemImage]] = relationship(

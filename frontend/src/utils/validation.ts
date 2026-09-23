@@ -272,6 +272,7 @@ export const itemSchema = (t: Translate) =>
       .refine((value) => !value || !Number.isNaN(Date.parse(value)), t('validation.dateInvalid')),
     net_weight: z.string().trim().max(80).optional().or(z.literal('')),
     external_link: optionalUrl(t),
+    goods_origin: z.enum(['LOCAL', 'IMPORTED']),
   })
 
 /**

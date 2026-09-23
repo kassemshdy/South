@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, ArrowRight, ImagePlus, Package, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/Button'
@@ -18,7 +18,7 @@ import { useApplyServerFieldErrors } from '@/utils/serverFieldErrors'
 import { ApiError } from '@/services/api/client'
 import { ownerApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import type { BusinessItem } from '@/types/api'
+import type { BusinessItem, GoodsOrigin } from '@/types/api'
 import { formatPrice } from '@/utils/format'
 import { itemSchema, type ItemValues } from '@/utils/validation'
 
@@ -54,6 +54,12 @@ export function ItemManager({ businessId }: { businessId: string }) {
   const toast = useToast()
   const t = useT()
   const [params, setParams] = useSearchParams()
+
+  // The shop's own mark is the default a new product starts from.
+  const business = useQuery({
+    queryKey: queryKeys.myBusiness(businessId),
+    queryFn: () => ownerApi.get(businessId),
+  })
 
   const items = useQuery({
     queryKey: queryKeys.myBusinessItems(businessId),
@@ -120,9 +126,12 @@ export function ItemManager({ businessId }: { businessId: string }) {
     // An id still resolving: wait, rather than briefly offering a create form
     // in place of the edit form that was asked for.
     if (open !== NEW_ITEM && editing === null) return <InlineSpinner />
+    // Likewise the shop, whose mark a new product starts from.
+    if (open === NEW_ITEM && business.isLoading) return <InlineSpinner />
     return (
       <ItemForm
         businessId={businessId}
+        shopOrigin={business.data?.goods_origin ?? 'LOCAL'}
         item={editing}
         onCancel={() => setOpen(null)}
         onDone={() => {
@@ -264,11 +273,13 @@ function ItemRow({
 function ItemForm({
   businessId,
   item,
+  shopOrigin,
   onCancel,
   onDone,
 }: {
   businessId: string
   item: BusinessItem | null
+  shopOrigin: GoodsOrigin
   onCancel: () => void
   onDone: () => void
 }) {
@@ -302,8 +313,11 @@ function ItemForm({
       expiry_date: item?.expiry_date ?? '',
       net_weight: item?.net_weight ?? '',
       external_link: item?.external_link ?? '',
+      goods_origin: item?.goods_origin ?? shopOrigin,
     },
   })
+
+  const goodsOrigin = useWatch({ control, name: 'goods_origin' })
 
   const pickFile = (file: File) => {
     setSelectedFile(file)
@@ -330,6 +344,7 @@ function ItemForm({
         expiry_date: values.expiry_date || null,
         net_weight: values.net_weight || null,
         external_link: values.external_link || null,
+        goods_origin: values.goods_origin,
       }
       const saved = isEdit
         ? await ownerApi.updateItem(businessId, item.id, payload)
@@ -402,6 +417,37 @@ function ItemForm({
         <Field label={t('items.nameLabel')} required error={errors.title?.message}>
           {(props) => (
             <Input {...props} {...register('title')} placeholder={t('items.namePlaceholder')} invalid={Boolean(errors.title)} autoFocus />
+          )}
+        </Field>
+
+        {/* Per product, so a shop selling both local and imported goods
+            lists each under its own door. Starts from the shop's mark. */}
+        <Field
+          label={t('directory.origin')}
+          required
+          error={errors.goods_origin?.message}
+          hint={goodsOrigin === 'IMPORTED' ? t('directory.importedRule') : undefined}
+        >
+          {(props) => (
+            <Controller
+              control={control}
+              name="goods_origin"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger
+                    id={props.id}
+                    aria-describedby={props['aria-describedby']}
+                    invalid={Boolean(errors.goods_origin)}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="LOCAL">{t('directory.originLocal')}</SelectItem>
+                    <SelectItem value="IMPORTED">{t('onboarding.importedTitle')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
           )}
         </Field>
 

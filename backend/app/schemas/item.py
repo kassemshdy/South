@@ -7,7 +7,7 @@ from decimal import Decimal
 from pydantic import BaseModel, Field, field_validator
 
 from app.core.i18n import translate
-from app.models.enums import Currency
+from app.models.enums import Currency, GoodsOrigin
 from app.schemas.common import ORMModel
 
 
@@ -36,6 +36,7 @@ class BusinessItemOut(ORMModel):
     expiry_date: date | None = None
     net_weight: str | None = None
     external_link: str | None = None
+    goods_origin: GoodsOrigin = GoodsOrigin.LOCAL
     images: list[ItemImageOut] = Field(default_factory=list)
 
 
@@ -53,6 +54,9 @@ class BusinessItemIn(BaseModel):
     expiry_date: date | None = None
     net_weight: str | None = Field(default=None, max_length=80)
     external_link: str | None = Field(default=None, max_length=500)
+    # Omitted means the shop's own mark: the common case is a shop whose
+    # goods are all one or the other, and it should not have to say so twice.
+    goods_origin: GoodsOrigin | None = None
 
     @field_validator("title")
     @classmethod
@@ -77,6 +81,15 @@ class BusinessItemUpdateIn(BaseModel):
     expiry_date: date | None = None
     net_weight: str | None = Field(default=None, max_length=80)
     external_link: str | None = Field(default=None, max_length=500)
+    # Omitted means unchanged; an explicit null is refused, as on the shop.
+    goods_origin: GoodsOrigin | None = None
+
+    @field_validator("goods_origin", mode="before")
+    @classmethod
+    def _origin_not_null(cls, value: object) -> object:
+        if value is None:
+            raise ValueError(translate("business.goods_origin_required"))
+        return value
 
 
 class ItemReorderIn(BaseModel):

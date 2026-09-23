@@ -206,6 +206,9 @@ def test_sitemap_lists_an_available_product(
     assert sitemap.status_code == 200
 
     assert "/products" in sitemap.text
+    # And the two origin pages, each its own address.
+    assert "/products/local" in sitemap.text
+    assert "/products/imported" in sitemap.text
     slug = _item_slug(db, ar("item.zaatar_local"))
     assert f"/product/{slug}" in sitemap.text
 

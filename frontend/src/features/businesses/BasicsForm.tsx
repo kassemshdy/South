@@ -90,6 +90,7 @@ export function BasicsForm({
   })
 
   const categoryId = useWatch({ control, name: 'category_id' })
+  const goodsOrigin = useWatch({ control, name: 'goods_origin' })
   const isOtherCategory = Boolean(otherCategoryId) && categoryId === otherCategoryId
 
   useApplyServerFieldErrors(serverError, setError, getValues)
@@ -166,7 +167,14 @@ export function BasicsForm({
           going back. The options are the doors' own titles, so the two cannot
           disagree. After the category rather than first, so the category
           stays the form's first dropdown. */}
-      <Field label={t('offerPage.doorsTitle')} required error={errors.goods_origin?.message}>
+      <Field
+        label={t('offerPage.doorsTitle')}
+        required
+        error={errors.goods_origin?.message}
+        // The rule the CEO set for imported goods, said where the choice is
+        // made rather than discovered at review.
+        hint={goodsOrigin === 'IMPORTED' ? t('directory.importedRule') : undefined}
+      >
         {(props) => (
           <Controller
             control={control}

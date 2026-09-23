@@ -224,6 +224,7 @@ def product_summary(item: BusinessItem) -> ProductSummaryOut:
         price=item.price,
         currency=item.currency,
         image_url=item.image_url,
+        goods_origin=item.goods_origin,
         business=_product_business_ref(item.business),
     )
 

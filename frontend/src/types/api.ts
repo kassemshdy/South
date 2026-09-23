@@ -204,6 +204,8 @@ export interface BusinessItem {
   expiry_date: string | null
   net_weight: string | null
   external_link: string | null
+  /** Per product: a shop selling both has each good under its own door. */
+  goods_origin: GoodsOrigin
   /** Separate from image_url, which is the card thumbnail. */
   images: ItemImage[]
 }
@@ -576,6 +578,7 @@ export interface ProductSummary {
   price: string | null
   currency: Currency
   image_url: string | null
+  goods_origin: GoodsOrigin
   business: ProductBusinessRef
 }
 

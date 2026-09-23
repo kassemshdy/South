@@ -49,6 +49,9 @@ def sitemap(db: DbSession, settings: AppSettings) -> Response:
     # price — so it is the last thing that should have been invisible to a
     # crawler.
     add("/products", changefreq="daily", priority="0.9")
+    # Goods made in the South and imported goods, each its own page.
+    add("/products/local", changefreq="daily", priority="0.8")
+    add("/products/imported", changefreq="daily", priority="0.8")
 
     for slug, updated_at in ItemRepository(db).public_slugs():
         add(f"/product/{slug}", changefreq="weekly", priority="0.7", lastmod=updated_at)

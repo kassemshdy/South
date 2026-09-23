@@ -12,7 +12,7 @@ from decimal import Decimal
 
 from pydantic import Field
 
-from app.models.enums import Currency
+from app.models.enums import Currency, GoodsOrigin
 from app.schemas.common import ORMModel
 from app.schemas.item import ItemImageOut
 from app.schemas.taxonomy import CategoryOut, LocationOut
@@ -36,6 +36,7 @@ class ProductSummaryOut(ORMModel):
     price: Decimal | None = None
     currency: Currency
     image_url: str | None = None
+    goods_origin: GoodsOrigin = GoodsOrigin.LOCAL
     business: ProductBusinessRef
 
 

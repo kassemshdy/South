@@ -85,6 +85,7 @@ class BusinessItemService:
             expiry_date=payload.expiry_date,
             net_weight=payload.net_weight,
             external_link=payload.external_link,
+            goods_origin=payload.goods_origin or business.goods_origin,
             search_text=build_search_text(payload.title, payload.description),
         )
         self._db.add(item)
