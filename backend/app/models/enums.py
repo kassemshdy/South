@@ -190,14 +190,15 @@ class OwnerRelation(str, enum.Enum):
 
 
 class GoodsOrigin(str, enum.Enum):
-    """Whether a business offers goods made in the South or imported ones.
+    """Whether goods are made in the South or imported.
 
     Two separate doors on both the offering and the looking-for pages, at the
     CEO's request: a southern store selling imported goods is welcome, but a
     buyer looking for what the South itself produces must be able to tell the
-    two apart. Per *business*, chosen by the door the owner came through --
-    one listing, one mark -- and public, because it is exactly what a visitor
-    filters on.
+    two apart. Carried by each *product*, so a shop selling both registers
+    once and its goods appear under both doors; the shop's own mark is the
+    door it came through and the default its new products take. Public,
+    because it is exactly what a visitor filters on.
     """
 
     LOCAL = "LOCAL"
