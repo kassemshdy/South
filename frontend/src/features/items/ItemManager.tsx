@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, ArrowRight, ImagePlus, Package, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/Button'
@@ -317,6 +317,8 @@ function ItemForm({
     },
   })
 
+  const goodsOrigin = useWatch({ control, name: 'goods_origin' })
+
   const pickFile = (file: File) => {
     setSelectedFile(file)
     setPreviewUrl(URL.createObjectURL(file))
@@ -420,7 +422,12 @@ function ItemForm({
 
         {/* Per product, so a shop selling both local and imported goods
             lists each under its own door. Starts from the shop's mark. */}
-        <Field label={t('directory.origin')} required error={errors.goods_origin?.message}>
+        <Field
+          label={t('directory.origin')}
+          required
+          error={errors.goods_origin?.message}
+          hint={goodsOrigin === 'IMPORTED' ? t('directory.importedRule') : undefined}
+        >
           {(props) => (
             <Controller
               control={control}

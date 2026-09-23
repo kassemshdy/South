@@ -96,9 +96,10 @@ export const BROWSE_DOORS: Door[] = [businessesDoor, productsDoor, talentDoor]
 /**
  * Where someone looking for something goes: **three** doors —— goods made in
  * the South, imported goods sold by southern stores, and services and jobs.
- * The two goods doors are the same products directory filtered on the
- * business's `goods_origin`, split at the CEO's request so that a buyer
- * looking for what the South produces is never shown an import under it.
+ * The two goods doors open a page each, `/products/local` and
+ * `/products/imported` -- the products directory with the origin fixed --
+ * split at the CEO's request so that a buyer looking for what the South
+ * produces is never shown an import under it.
  *
  * Originally two, along the one axis the board ticket named —— goods on one
  * side, services and jobs on the other.
@@ -120,7 +121,7 @@ export const SEEK_DOORS: Door[] = [
     titleKey: 'onboarding.ownerTitle',
     descriptionKey: 'onboarding.seekGoodsDescription',
     shortKey: 'browse.productsShort',
-    href: '/products?origin=LOCAL',
+    href: '/products/local',
   },
   {
     key: 'products-imported',
@@ -128,7 +129,7 @@ export const SEEK_DOORS: Door[] = [
     titleKey: 'onboarding.importedTitle',
     descriptionKey: 'onboarding.importedDescription',
     shortKey: 'onboarding.importedShort',
-    href: '/products?origin=IMPORTED',
+    href: '/products/imported',
   },
   talentDoor,
 ]

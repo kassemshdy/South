@@ -16,7 +16,7 @@ import { useT, type TranslationKey } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
 import { publicItemApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import type { ProductSortOption } from '@/types/api'
+import type { GoodsOrigin, ProductSortOption } from '@/types/api'
 
 const ALL = '__all__'
 /**
@@ -37,31 +37,52 @@ const SORT_KEYS: Record<ProductSortOption, TranslationKey> = {
   price_desc: 'products.sortPriceDesc',
 }
 
-export function ProductsDirectoryPage() {
+/**
+ * Goods made in the South and imported goods each have their own page, at the
+ * CEO's request: `/products/local` and `/products/imported`, headed with the
+ * two goods doors' own titles, each with an address that can be sent to
+ * somebody and a page a search engine sees as distinct. They are this
+ * directory with the origin fixed, so the two cannot drift apart from each
+ * other or from `/products`, which still lists both.
+ */
+const ORIGIN_PAGES: Record<GoodsOrigin, { titleKey: TranslationKey; path: string }> = {
+  LOCAL: { titleKey: 'onboarding.ownerTitle', path: '/products/local' },
+  IMPORTED: { titleKey: 'onboarding.importedTitle', path: '/products/imported' },
+}
+
+export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrigin } = {}) {
   const [searchParams, setSearchParams] = useSearchParams()
+  const originPage = fixedOrigin ? ORIGIN_PAGES[fixedOrigin] : undefined
 
   const q = searchParams.get('q') ?? ''
   const category = searchParams.get('category') ?? ''
   const location = searchParams.get('location') ?? ''
-  // Set by the two goods doors on /browse; see `SEEK_DOORS`.
-  const origin = originFromParams(searchParams)
+  // Fixed by the page on the two origin pages; otherwise an optional filter.
+  const origin = fixedOrigin ?? originFromParams(searchParams)
   const sort = (searchParams.get('sort') as ProductSortOption | null) ?? 'newest'
   const page = Number(searchParams.get('page') ?? '1')
 
   // Local mirror so typing feels instant; the URL updates on submit, which
   // keeps searches shareable and back/forward working.
   const [searchInput, setSearchInput] = useState(q)
-  // Open from the start when a goods door narrowed the list: on a phone the
-  // filters are folded away, and a narrowing nobody can see is a silent one.
+  // Open from the start when a query-string origin narrowed the list: on a
+  // phone the filters are folded away, and a narrowing nobody can see is a
+  // silent one. The origin pages say it in their heading instead.
   const [filtersOpen, setFiltersOpen] = useState(() => Boolean(originFromParams(searchParams)))
   const t = useT()
 
   useEffect(() => setSearchInput(q), [q])
 
+  const heading = originPage ? t(originPage.titleKey) : t('products.heading')
+
   useSeo({
-    title: q ? t('products.seoSearchTitle', { query: q }) : t('products.seoTitle'),
+    title: q
+      ? t('products.seoSearchTitle', { query: q })
+      : originPage
+        ? `${heading} | ${t('app.name')}`
+        : t('products.seoTitle'),
     description: t('products.seoDescription'),
-    canonicalPath: '/products',
+    canonicalPath: originPage?.path ?? '/products',
   })
 
   const categories = useCategories()
@@ -97,13 +118,15 @@ export function ProductsDirectoryPage() {
     [searchParams, setSearchParams],
   )
 
-  const hasFilters = Boolean(q || category || location || origin) || sort !== 'newest'
+  // The page's own origin is not a filter anyone set, so it cannot be cleared.
+  const hasFilters =
+    Boolean(q || category || location || (origin && !fixedOrigin)) || sort !== 'newest'
   const resetFilters = () => setSearchParams(new URLSearchParams())
 
   return (
     <div className="container-page py-10">
       <header className="mb-8">
-        <h1 className="text-3xl">{t('products.heading')}</h1>
+        <h1 className="text-3xl">{heading}</h1>
         <p className="mt-2 text-ink-500">
           {results.data
             ? t('products.resultCount', { count: results.data.meta.total })
@@ -152,7 +175,7 @@ export function ProductsDirectoryPage() {
         </Button>
       </form>
 
-      <div className={`mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 ${filtersOpen ? 'grid' : 'hidden sm:grid'}`}>
+      <div className={`mb-6 grid gap-3 ${fixedOrigin ? 'sm:grid-cols-3' : 'sm:grid-cols-2 lg:grid-cols-4'} ${filtersOpen ? 'grid' : 'hidden sm:grid'}`}>
         <div>
           <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="filter-category">
             {t('directory.category')}
@@ -203,6 +226,8 @@ export function ProductsDirectoryPage() {
           </Select>
         </div>
 
+        {/* Not on the origin pages, where the page itself is the choice. */}
+        {fixedOrigin ? null : (
         <div>
           <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="filter-origin">
             {t('directory.origin')}
@@ -221,6 +246,7 @@ export function ProductsDirectoryPage() {
             </SelectContent>
           </Select>
         </div>
+        )}
 
         <div>
           <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="filter-sort">

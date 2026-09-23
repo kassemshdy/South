@@ -463,6 +463,7 @@
   "directory.categoryWithCount": "{name} ({count})",
   "directory.filtersAria": "Filters",
   "directory.heading": "Business directory",
+  "directory.importedRule": "Imported goods may be listed only where the South has no alternative; imported pantry provisions (mouneh) may not be listed.",
   "directory.introFallback": "Search and filter by category and location.",
   "directory.location": "Location",
   "directory.origin": "Origin of goods",

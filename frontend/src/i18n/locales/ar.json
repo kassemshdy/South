@@ -463,6 +463,7 @@
   "directory.categoryWithCount": "{name} ({count})",
   "directory.filtersAria": "عوامل التصفية",
   "directory.heading": "دليل الأعمال",
+  "directory.importedRule": "يقتصر عرض السلع المستوردة على ما لا بديل له في الجنوب، ويُحظر عرض المؤنة المستوردة.",
   "directory.introFallback": "ابحث وصفّي حسب التصنيف والموقع.",
   "directory.location": "الموقع",
   "directory.origin": "مصدر السلع",
