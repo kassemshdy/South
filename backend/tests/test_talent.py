@@ -638,3 +638,56 @@ def test_a_profile_without_a_preferred_channel_is_still_valid(
     assert response.status_code == 200
     assert response.json()["preferred_contact"] is None
     assert response.json()["skill_specialty"] is None
+
+
+# --- Social links ------------------------------------------------------------
+#
+# The CEO's answer on adding them to talent profiles: optional. The same
+# shape as a shop's, so the same rules: one per platform, a bare handle
+# stored as a full link, and published once the profile is.
+
+
+def test_social_links_are_optional_and_published_with_the_profile(
+    client: TestClient, db: Session, admin: User, skill: TalentSkill, location: Location
+) -> None:
+    headers = sign_in(client, "03950180")
+    profile = _create_profile(client, headers, skill, location)
+    assert profile["social_links"] == []
+
+    saved = client.put(
+        "/api/my/talent",
+        headers=headers,
+        json={"social_links": [{"platform": "INSTAGRAM", "url": "instagram.com/somebody"}]},
+    )
+    assert saved.status_code == 200, saved.text
+    [link] = saved.json()["social_links"]
+    assert link["platform"] == "INSTAGRAM"
+    assert link["url"].startswith("https://")
+
+    _approve(client, db, admin, profile["id"])
+    public = client.get(f"/api/talent/{profile['slug']}").json()
+    assert [entry["platform"] for entry in public["social_links"]] == ["INSTAGRAM"]
+
+    # An empty list clears them; saving another field leaves them alone.
+    client.put("/api/my/talent", headers=headers, json={"bio": ar("talent.designer_bio")})
+    assert len(client.get(f"/api/talent/{profile['slug']}").json()["social_links"]) == 1
+    client.put("/api/my/talent", headers=headers, json={"social_links": []})
+    assert client.get(f"/api/talent/{profile['slug']}").json()["social_links"] == []
+
+
+def test_a_platform_named_twice_is_refused(
+    client: TestClient, skill: TalentSkill, location: Location
+) -> None:
+    headers = sign_in(client, "03950181")
+    _create_profile(client, headers, skill, location)
+    response = client.put(
+        "/api/my/talent",
+        headers=headers,
+        json={
+            "social_links": [
+                {"platform": "FACEBOOK", "url": "facebook.com/a"},
+                {"platform": "FACEBOOK", "url": "facebook.com/b"},
+            ]
+        },
+    )
+    assert response.status_code == 409, response.text

@@ -138,6 +138,7 @@ export interface TalentPayload {
   employment_type?: EmploymentType | null
   remote_capable?: boolean
   languages?: { name: string; proficiency: LanguageProficiency }[]
+  social_links?: { platform: SocialPlatform; url: string }[]
 }
 
 /**

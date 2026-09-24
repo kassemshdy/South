@@ -22,6 +22,7 @@ import { ErrorState } from '@/components/ui/States'
 import { useSeo } from '@/hooks/useSeo'
 import { useI18n, useT } from '@/i18n'
 import { EMPLOYMENT_TYPE_KEYS, PROFICIENCY_KEYS } from '@/features/talent/labels'
+import { FollowLinks } from '@/features/social/FollowLinks'
 import { ServiceRequestForm } from '@/features/talent/ServiceRequestForm'
 import { publicTalentApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
@@ -376,6 +377,8 @@ export function TalentProfilePage() {
                 })}
               </CardBody>
             </Card>
+
+            <FollowLinks links={data.social_links ?? []} />
 
             {/* Beside the WhatsApp button, not instead of it: the message
                 gets a faster answer, the stored request is what survives the

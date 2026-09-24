@@ -37,6 +37,7 @@ from app.models.talent import (
     TalentModerationAction,
     TalentProfile,
     TalentSkill,
+    TalentSocialLink,
 )
 from app.models.taxonomy import Category, Location
 from app.models.testimonial import Testimonial
@@ -79,6 +80,7 @@ __all__ = [
     "TalentModerationAction",
     "TalentProfile",
     "TalentSkill",
+    "TalentSocialLink",
     "Testimonial",
     "TestimonialStatus",
     "User",

@@ -403,6 +403,8 @@ export interface TalentDetail extends TalentSummary {
   employment_type: EmploymentType | null
   remote_capable: boolean
   languages: TalentLanguage[]
+  /** Optional, published: the person's own accounts. */
+  social_links: SocialLink[]
   images: TalentImage[]
   approved_at: string | null
 }

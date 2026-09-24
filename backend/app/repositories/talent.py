@@ -58,6 +58,7 @@ class TalentRepository(BaseRepository[TalentProfile]):
             joinedload(TalentProfile.location).joinedload(Location.parent),
             selectinload(TalentProfile.images),
             selectinload(TalentProfile.languages),
+            selectinload(TalentProfile.social_links),
         ).execution_options(populate_existing=True)
         # populate_existing: an update replaces the whole languages
         # collection, then reloads the same profile by primary key. Without
