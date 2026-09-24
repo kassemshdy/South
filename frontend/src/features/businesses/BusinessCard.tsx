@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { useT } from '@/i18n'
 import type { BusinessSummary } from '@/types/api'
 import { telHref, whatsappHref } from '@/utils/format'
+import { CardImage } from '@/components/ui/CardImage'
 
 export function BusinessCard({ business }: { business: BusinessSummary }) {
   const t = useT()
@@ -21,8 +22,9 @@ export function BusinessCard({ business }: { business: BusinessSummary }) {
       <Link to={profileUrl} className="block" tabIndex={-1} aria-hidden="true">
         <div className="relative h-36 overflow-hidden bg-sand-100">
           {business.cover_url ? (
-            <img
+            <CardImage
               src={business.cover_url}
+              thumbSrc={business.cover_thumb_url}
               alt=""
               loading="lazy"
               className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
@@ -33,8 +35,9 @@ export function BusinessCard({ business }: { business: BusinessSummary }) {
             </div>
           )}
           {business.logo_url ? (
-            <img
+            <CardImage
               src={business.logo_url}
+              thumbSrc={business.logo_thumb_url}
               alt=""
               loading="lazy"
               className="absolute bottom-3 start-4 h-14 w-14 rounded-xl border-2 border-white object-cover shadow-card"

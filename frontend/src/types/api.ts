@@ -192,6 +192,8 @@ export interface BusinessItem {
   price: string | null
   currency: Currency
   image_url: string | null
+  /** The card-sized copy, when there is one; fall back to the full image. */
+  image_thumb_url?: string | null
   is_available: boolean
   sort_order: number
   /** The fields below only ever apply to a physical good, not a service or menu item. */
@@ -217,6 +219,9 @@ export interface BusinessSummary {
   short_description: string | null
   logo_url: string | null
   cover_url: string | null
+  /** The card-sized copy, when there is one; fall back to the full image. */
+  logo_thumb_url?: string | null
+  cover_thumb_url?: string | null
   phone: string | null
   whatsapp: string | null
   category: Category | null
@@ -350,6 +355,8 @@ export interface TalentSummary {
   display_name: string
   slug: string
   photo_url: string | null
+  /** The card-sized copy, when there is one; fall back to the full image. */
+  photo_thumb_url?: string | null
   phone: string | null
   whatsapp: string | null
   years_experience: number | null
@@ -580,6 +587,8 @@ export interface ProductSummary {
   price: string | null
   currency: Currency
   image_url: string | null
+  /** The card-sized copy, when there is one; fall back to the full image. */
+  image_thumb_url?: string | null
   goods_origin: GoodsOrigin
   business: ProductBusinessRef
 }

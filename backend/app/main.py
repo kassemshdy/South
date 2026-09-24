@@ -26,11 +26,20 @@ from app.core.i18n import DEFAULT_LOCALE, translate, using_locale
 from app.core.logging import configure_logging
 from app.core.middleware import RequestContextMiddleware, SecurityHeadersMiddleware
 from app.core.observability import configure_error_tracking
-from app.core.seo import business_tags, default_tags, inject, talent_tags
+from app.core.seo import (
+    business_tags,
+    default_tags,
+    inject,
+    page_tags,
+    product_tags,
+    talent_tags,
+)
 from app.core.validation_messages import field_errors
 from app.database.session import SessionLocal
 from app.repositories.business import BusinessRepository
+from app.repositories.item import ItemRepository
 from app.repositories.talent import TalentRepository
+from app.services import business_documents, feedback_attachments, verification
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +78,9 @@ STATIC_MEDIA_TYPES = {
     ".woff": "font/woff",
     ".ttf": "font/ttf",
     ".otf": "font/otf",
+    # Same trap, same fix: the logo and the video poster are WebP, and an
+    # image served as text/plain under nosniff is an image that never draws.
+    ".webp": "image/webp",
 }
 
 
@@ -103,6 +115,40 @@ class TypedStaticFiles(StaticFiles):
         if media_type is not None and isinstance(response, FileResponse):
             response.media_type = media_type
             response.headers["content-type"] = media_type
+        return response
+
+
+#: Storage folders the media mount must never serve. Local storage keeps ID
+#: scans, CVs, a business's official papers and ticket attachments on the same
+#: disk as the photographs, so a name alone -- a random one, but a name -- was
+#: all that stood between those files and anyone who had it. They are read
+#: through their own authenticated routes; here they simply do not exist.
+PRIVATE_MEDIA_FOLDERS = (
+    verification.STORAGE_FOLDERS
+    | business_documents.STORAGE_FOLDERS
+    | feedback_attachments.STORAGE_FOLDERS
+)
+
+#: Uploaded photographs are stored under a fresh random name and never
+#: rewritten in place -- replacing one writes a new key -- so a browser may
+#: keep what it fetched for as long as it likes.
+MEDIA_CACHE_CONTROL = "public, max-age=31536000, immutable"
+
+#: The files shipped in ``public/`` (logo, poster, share image) keep their
+#: names across deploys, so they are cached for a day rather than forever.
+PUBLIC_FILE_CACHE_CONTROL = "public, max-age=86400"
+
+
+class MediaFiles(StaticFiles):
+    """The public media mount: photographs only, cached hard."""
+
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        folder = path.replace("\\", "/").lstrip("/").split("/", 1)[0]
+        if folder in PRIVATE_MEDIA_FOLDERS:
+            raise StarletteHTTPException(status_code=404)
+        response = await super().get_response(path, scope)
+        if response.status_code in (200, 304):
+            response.headers["Cache-Control"] = MEDIA_CACHE_CONTROL
         return response
 
 
@@ -224,7 +270,7 @@ def _mount_media(app: FastAPI, settings: Settings) -> None:
     media_root.mkdir(parents=True, exist_ok=True)
     app.mount(
         settings.storage_public_prefix,
-        StaticFiles(directory=str(media_root)),
+        MediaFiles(directory=str(media_root)),
         name="media",
     )
 
@@ -251,7 +297,7 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
         app.mount("/assets", TypedStaticFiles(directory=str(assets_dir)), name="assets")
 
     base_url = settings.public_base_url.rstrip("/")
-    default_image_url = f"{base_url}/og-image.png"
+    default_image_url = f"{base_url}/og-image.jpg"
 
     def _absolute(image: str | None) -> str:
         """A stored path is site-relative (``/media/...``); anything else
@@ -307,6 +353,30 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
                 finally:
                     db.close()
 
+            elif path.startswith("product/"):
+                slug = path.removeprefix("product/").split("/")[0]
+                db = SessionLocal()
+                try:
+                    item = ItemRepository(db).get_by_slug(slug)
+                    if item is not None:
+                        tags = product_tags(
+                            title=item.title,
+                            price=item.price,
+                            currency=item.currency.value,
+                            business_name=item.business.name,
+                            image_url=_absolute(item.image_url),
+                            canonical_url=f"{base_url}/product/{quote(item.slug)}",
+                        )
+                finally:
+                    db.close()
+            else:
+                trimmed = path.strip("/")
+                tags = page_tags(
+                    trimmed,
+                    canonical_url=f"{base_url}/{trimmed}",
+                    image_url=default_image_url,
+                )
+
             if tags is None:
                 # Every other route (home, search, dashboard, a business/talent
                 # slug that isn't public) still gets an absolute-URL image and
@@ -345,7 +415,14 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
         if full_path and full_path != "index.html":
             exact = _build_file(full_path)
             if exact is not None:
-                return FileResponse(exact, media_type=static_media_type(exact))
+                headers = (
+                    {"Cache-Control": PUBLIC_FILE_CACHE_CONTROL}
+                    if exact.suffix.lower() != ".html"
+                    else None
+                )
+                return FileResponse(
+                    exact, media_type=static_media_type(exact), headers=headers
+                )
 
             # A standalone page shipped in public/ — the presentation deck — is
             # reachable without its extension, so the link someone forwards is

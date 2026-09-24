@@ -273,6 +273,13 @@ for something that hands out sessions.
   consequence is a labelling rule with teeth: without a per-visitor
   identifier the number is a count of **views**, never of visitors or
   people, and every string that renders it must say so.
+- **Private uploads never reach the `/media` mount.** Local storage keeps ID
+  scans, CVs, a business's official papers and ticket attachments on the same
+  disk as the photographs, and `/media` serves that disk to anyone. The mount
+  refuses every folder in `PRIVATE_MEDIA_FOLDERS` (`app/main.py`), built from
+  each private service's `STORAGE_FOLDERS`; a new service that stores
+  something private must export its folder there, or the file is public to
+  anyone who learns its name. `tests/test_media.py` pins it.
 - **A public route reads the caller through `Viewer`, never `OptionalUser`.**
   `OptionalUser` returns None only for a request with no token and raises 401
   for a bad one, and the frontend attaches whatever token is in local storage

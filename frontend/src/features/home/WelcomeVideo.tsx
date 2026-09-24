@@ -23,7 +23,7 @@ import { useT } from '@/i18n'
  */
 
 const VIDEO_ID = '3Np8hKhrbB4'
-const POSTER = '/welcome-hossam-matar.jpg'
+const POSTER = '/welcome-hossam-matar.webp'
 
 export function WelcomeVideoPlayer() {
   const t = useT()

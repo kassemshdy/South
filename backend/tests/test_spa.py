@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from urllib.parse import quote
 
 import pytest
 import starlette.responses
@@ -12,7 +13,7 @@ from sqlalchemy.orm import Session
 from app.core.config import Settings, get_settings
 from app.core.i18n import translate
 from app.main import create_app, static_media_type
-from app.models.business import Business
+from app.models.business import Business, BusinessItem
 from app.models.enums import BusinessStatus
 from app.models.talent import TalentProfile, TalentSkill
 from app.models.taxonomy import Category, Location
@@ -80,7 +81,7 @@ def test_business_url_gets_server_rendered_seo_tags(
     assert f'property="og:title" content="{expected_title}"' in html
     assert f'property="og:description" content="{ar("business.seo_short")}"' in html
     assert 'rel="canonical"' in html
-    assert 'property="og:image" content="https://example.test/og-image.png"' in html
+    assert 'property="og:image" content="https://example.test/og-image.jpg"' in html
 
 
 @pytest.fixture
@@ -133,7 +134,7 @@ def test_talent_url_gets_server_rendered_seo_tags(
     assert f'property="og:description" content="{ar("talent.designer_bio")}"' in html
     # No photo was uploaded, so the site-wide share image is the fallback —
     # never a relative URL a crawler can't resolve on its own.
-    assert 'property="og:image" content="https://example.test/og-image.png"' in html
+    assert 'property="og:image" content="https://example.test/og-image.jpg"' in html
 
 
 def test_unknown_and_client_routes_serve_the_spa(spa_client: TestClient) -> None:
@@ -149,7 +150,7 @@ def test_generic_routes_get_the_default_absolute_share_image(spa_client: TestCli
     baked into the built index.html, so a shared link always resolves."""
     for path in ("/", "/products", "/business/does-not-exist"):
         html = spa_client.get(path).text
-        assert 'property="og:image" content="https://example.test/og-image.png"' in html
+        assert 'property="og:image" content="https://example.test/og-image.jpg"' in html
         assert 'name="twitter:card" content="summary_large_image"' in html
         assert 'rel="canonical"' in html
 
@@ -309,3 +310,90 @@ def test_the_media_type_table_does_not_depend_on_the_host_system() -> None:
     # Left to Starlette, which is reliable for these.
     assert static_media_type(Path("x.js")) is None
     assert static_media_type(Path("x.css")) is None
+
+
+def test_the_logo_is_served_as_webp_and_cached_for_a_day(spa_client: TestClient) -> None:
+    """The logo is WebP now, drawn on every page.
+
+    Labelled explicitly for the reason the fonts are: under ``nosniff`` an
+    image mislabelled as text never draws, and the slim container has no
+    system MIME table to guess from. Cached for a day rather than forever,
+    because files in ``public/`` keep their names across deploys.
+    """
+    response = spa_client.get("/janoubna-logo.webp")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/webp"
+    assert response.headers["cache-control"] == "public, max-age=86400"
+
+
+def test_a_page_is_never_cached_like_a_file(spa_client: TestClient) -> None:
+    """Pages carry per-path share tags; only files get the day-long cache."""
+    response = spa_client.get("/products")
+
+    assert "max-age=86400" not in response.headers.get("cache-control", "")
+
+
+@pytest.fixture
+def product_slug(client: TestClient, db: Session, approved_slug: str) -> str:
+    business = db.query(Business).filter(Business.slug == approved_slug).one()
+    headers = sign_in(client, "03910001")
+    created = client.post(
+        f"/api/businesses/{business.id}/items",
+        headers=headers,
+        json={"title": ar("item.zaatar_local"), "price": "12.50", "currency": "USD"},
+    )
+    assert created.status_code == 201, created.text
+    item = db.get(BusinessItem, created.json()["id"])
+    assert item is not None
+    return item.slug
+
+
+def test_a_product_link_previews_as_the_product(
+    spa_client: TestClient, product_slug: str
+) -> None:
+    """Its name and its price -- what a product link in a chat needs to say.
+
+    It used to preview as the homepage: products had no server-side tags,
+    and a link preview never runs the script that sets them.
+    """
+    html = spa_client.get(f"/product/{product_slug}").text
+
+    expected_title = translate(
+        "seo.page.title", "ar", name=ar("item.zaatar_local"), site=translate("app.name", "ar")
+    )
+    assert f"<title>{expected_title}</title>" in html
+    assert 'property="og:description" content="$12.50"' in html
+    assert 'property="og:type" content="product"' in html
+    assert f'rel="canonical" href="https://example.test/product/{quote(product_slug)}"' in html
+
+
+def test_a_product_that_is_not_public_previews_as_the_site(spa_client: TestClient) -> None:
+    html = spa_client.get("/product/does-not-exist").text
+    assert f"<title>{translate('seo.default.title', 'ar')}</title>" in html
+
+
+@pytest.mark.parametrize(
+    ("path", "title_key"),
+    [
+        ("/products", "seo.page.products.title"),
+        ("/businesses", "seo.page.businesses.title"),
+        ("/talent", "seo.page.talent.title"),
+    ],
+)
+def test_a_directory_page_is_served_with_its_own_title(
+    spa_client: TestClient, path: str, title_key: str
+) -> None:
+    html = spa_client.get(path).text
+    assert f"<title>{translate(title_key, 'ar')}</title>" in html
+
+
+def test_the_imported_goods_page_is_served_with_its_own_title(spa_client: TestClient) -> None:
+    html = spa_client.get("/products/imported").text
+    expected = translate(
+        "seo.page.title",
+        "ar",
+        name=translate("seo.page.products_imported.name", "ar"),
+        site=translate("app.name", "ar"),
+    )
+    assert f"<title>{expected}</title>" in html
