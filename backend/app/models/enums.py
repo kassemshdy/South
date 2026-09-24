@@ -237,3 +237,10 @@ class ContactChannel(str, enum.Enum):
     WHATSAPP = "WHATSAPP"
     EMAIL = "EMAIL"
     WEBSITE = "WEBSITE"
+
+
+class ApplicationKind(str, enum.Enum):
+    """Which public form an application came through."""
+
+    BUSINESS = "BUSINESS"
+    TALENT = "TALENT"

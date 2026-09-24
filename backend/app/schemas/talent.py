@@ -15,6 +15,7 @@ from app.models.enums import (
     ImageKind,
     LanguageProficiency,
 )
+from app.schemas.business import SocialLinkIn, SocialLinkOut
 from app.schemas.common import ORMModel
 from app.schemas.taxonomy import LocationOut
 
@@ -121,6 +122,7 @@ class TalentDetailOut(TalentSummaryOut):
     employment_type: EmploymentType | None = None
     remote_capable: bool = False
     languages: list[TalentLanguageOut] = Field(default_factory=list)
+    social_links: list[SocialLinkOut] = Field(default_factory=list)
 
 
 class OwnerTalentOut(TalentDetailOut):
@@ -176,6 +178,8 @@ class TalentProfileFieldsIn(BaseModel):
     remote_capable: bool = False
 
     languages: list[TalentLanguageIn] | None = Field(default=None, max_length=20)
+    # Optional; omitted leaves them as they are, an empty list clears them.
+    social_links: list[SocialLinkIn] | None = Field(default=None, max_length=10)
 
     @field_validator("highest_degree", "specialization", "university")
     @classmethod

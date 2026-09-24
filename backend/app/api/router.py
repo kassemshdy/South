@@ -21,6 +21,7 @@ from app.api.v1 import (
     taxonomy,
     testimonials,
 )
+from app.api.v1.admin import applications as admin_applications
 from app.api.v1.admin import articles as admin_articles
 from app.api.v1.admin import businesses as admin_businesses
 from app.api.v1.admin import feedback as admin_feedback
@@ -36,6 +37,7 @@ api_router.include_router(taxonomy.router)
 
 # Admin routes are registered before the owner/public business routes so that
 # "/api/admin/businesses/..." is never captured by "/api/businesses/{slug}".
+api_router.include_router(admin_applications.router)
 api_router.include_router(admin_articles.router)
 api_router.include_router(admin_businesses.router)
 api_router.include_router(admin_feedback.router)

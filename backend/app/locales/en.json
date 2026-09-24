@@ -191,5 +191,6 @@
   "verification.empty": "The file is empty.",
   "verification.not_found": "Document not found.",
   "verification.too_large": "The file exceeds the {limit} MB limit.",
-  "verification.unsupported_format": "Only PDF, JPG or PNG files are allowed."
+  "verification.unsupported_format": "Only PDF, JPG or PNG files are allowed.",
+  "application.not_found": "Application not found."
 }

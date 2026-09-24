@@ -27,7 +27,8 @@ from app.core.captcha import verify_captcha
 from app.core.config import Settings
 from app.core.errors import RateLimitedError
 from app.core.rate_limit import DatabaseRateLimiter, RateLimitRule
-from app.models.enums import BusinessStatus, VerificationDocumentKind
+from app.models.application import DiscardedApplication
+from app.models.enums import ApplicationKind, BusinessStatus, VerificationDocumentKind
 from app.models.user import User
 from app.repositories.user import UserRepository
 from app.schemas.identity import IDENTITY_FIELDS
@@ -113,19 +114,31 @@ class RegistrationService:
             )
         verify_captcha(captcha_token, self._settings, client_ip=client_ip)
 
-    def _claim_account(self, payload: RegistrationBase) -> User | None:
+    def _claim_account(self, payload: RegistrationBase, kind: ApplicationKind) -> User | None:
         """The account this application belongs to, or None to discard it.
 
-        None when the number already has an account. That case is silently
-        dropped rather than refused: answering differently would turn this
+        None when the number already has an account. That case is not
+        refused and not acted on -- it is set aside where only an
+        administrator can read it: answering differently would turn this
         endpoint into a way to ask whether a given number is registered, and
         attaching the listing to the existing account would let a stranger
         put a listing inside someone else's dashboard.
         """
         existing = self._users.get_by_phone(payload.login_phone)
         if existing is not None:
+            # Kept for an administrator rather than thrown away -- see
+            # ``DiscardedApplication``. The applicant's answer is unchanged,
+            # and nothing is attached to the existing account.
+            self._db.add(
+                DiscardedApplication(
+                    kind=kind,
+                    login_phone=existing.phone_number or payload.login_phone,
+                    existing_user_id=existing.id,
+                    payload=payload.model_dump(mode="json", exclude={"captcha_token"}),
+                )
+            )
             logger.info(
-                "Registration for a number that already has an account; discarded",
+                "Registration for a number that already has an account; set aside for review",
                 extra={"user_id": str(existing.id)},
             )
             return None
@@ -182,7 +195,7 @@ class RegistrationService:
         # behind with nothing usable attached to it.
         self._check_documents(scans)
 
-        owner = self._claim_account(payload)
+        owner = self._claim_account(payload, ApplicationKind.BUSINESS)
         if owner is None:
             self._db.commit()
             return
@@ -210,7 +223,7 @@ class RegistrationService:
         scans = documents or ApplicantDocuments()
         self._check_documents(scans)
 
-        owner = self._claim_account(payload)
+        owner = self._claim_account(payload, ApplicationKind.TALENT)
         if owner is None:
             self._db.commit()
             return

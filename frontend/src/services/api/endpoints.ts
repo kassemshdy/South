@@ -7,6 +7,7 @@
 
 import { apiDownload, apiRequest } from '@/services/api/client'
 import type {
+  DiscardedApplication,
   GoodsOrigin,
   ContactChannel,
   AdminArticle,
@@ -137,6 +138,7 @@ export interface TalentPayload {
   employment_type?: EmploymentType | null
   remote_capable?: boolean
   languages?: { name: string; proficiency: LanguageProficiency }[]
+  social_links?: { platform: SocialPlatform; url: string }[]
 }
 
 /**
@@ -513,6 +515,14 @@ export const ownerApi = {
 
 export const adminApi = {
   stats: () => apiRequest<PlatformStats>('/api/admin/stats'),
+  discardedApplications: (includeDismissed: boolean) =>
+    apiRequest<DiscardedApplication[]>('/api/admin/discarded-applications', {
+      query: { include_dismissed: includeDismissed },
+    }),
+  dismissApplication: (id: string) =>
+    apiRequest<DiscardedApplication>(`/api/admin/discarded-applications/${id}/dismiss`, {
+      method: 'POST',
+    }),
   businesses: (params: { status?: BusinessStatus; q?: string; page?: number; page_size?: number }) =>
     apiRequest<Paginated<AdminBusiness>>('/api/admin/businesses', { query: { ...params } }),
   pending: (page = 1) =>
