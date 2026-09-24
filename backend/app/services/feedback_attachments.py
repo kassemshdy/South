@@ -26,6 +26,11 @@ logger = logging.getLogger(__name__)
 
 _IMAGE_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
 _DOCUMENT_CONTENT_TYPES = {"application/pdf"}
+_FOLDER = "feedback"
+
+#: Private: a ticket's attachments are read through the board's own routes.
+STORAGE_FOLDERS = frozenset({_FOLDER})
+
 _EXTENSIONS = {
     "image/jpeg": "jpg",
     "image/png": "png",
@@ -83,7 +88,7 @@ class FeedbackAttachmentService:
         if content_type not in allowed:
             raise UnsupportedMediaTypeError("feedback.attachment_kind_mismatch")
 
-        key = f"feedback/{ticket.id}/{uuid.uuid4().hex}.{_EXTENSIONS[content_type]}"
+        key = f"{_FOLDER}/{ticket.id}/{uuid.uuid4().hex}.{_EXTENSIONS[content_type]}"
         self._storage.save(key=key, data=data, content_type=content_type)
 
         attachment = FeedbackAttachment(

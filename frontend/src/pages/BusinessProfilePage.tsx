@@ -31,6 +31,7 @@ import { useSeo } from '@/hooks/useSeo'
 import { useI18n, useT } from '@/i18n'
 import type { SocialPlatform } from '@/types/api'
 import { formatDate, formatPrice, PLATFORM_KEYS, telHref, whatsappHref } from '@/utils/format'
+import { CardImage } from '@/components/ui/CardImage'
 
 const PLATFORM_ICONS: Record<SocialPlatform, typeof Instagram> = {
   INSTAGRAM: Instagram,
@@ -280,7 +281,7 @@ export function BusinessProfilePage() {
                   {data.items.map((item) => (
                     <Card key={item.id} className={item.is_available ? '' : 'opacity-60'}>
                       {item.image_url ? (
-                        <img src={item.image_url} alt={item.title} loading="lazy" className="h-40 w-full rounded-t-2xl object-cover" />
+                        <CardImage src={item.image_url} thumbSrc={item.image_thumb_url} alt={item.title} loading="lazy" className="h-40 w-full rounded-t-2xl object-cover" />
                       ) : null}
                       <CardBody className="p-4">
                         <div className="flex items-start justify-between gap-3">

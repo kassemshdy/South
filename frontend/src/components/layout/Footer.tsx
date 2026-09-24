@@ -16,10 +16,10 @@ export function Footer() {
           {/* Bigger here than in the bar, because the footer has the room
               the 64px header does not and this lockup rewards it. */}
           <img
-            src="/janoubna-logo.png"
+            src="/janoubna-logo.webp"
             alt={t('app.name')}
-            width={1400}
-            height={598}
+            width={450}
+            height={192}
             className="h-16 w-auto"
           />
           <p className="mt-3 max-w-sm leading-relaxed text-ink-500">{t('footer.tagline')}</p>

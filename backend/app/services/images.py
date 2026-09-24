@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import io
 import logging
+import re
 import uuid
 from dataclasses import dataclass
 
@@ -42,6 +43,60 @@ VARIANTS: dict[ImageKind, ImageVariant] = {
     ImageKind.GALLERY: ImageVariant(1400, 1400, 82),
     ImageKind.ITEM: ImageVariant(900, 900, 82),
 }
+
+#: A second, small copy for the places a photo is drawn small: directory and
+#: product cards, the logo badge on a card. A business card draws its cover in
+#: a strip about 380px wide and used to download the 1600px original for it --
+#: roughly 330 KB a card, several megabytes for one page of results on a phone.
+#: Bounded at about twice the largest size each is drawn, for sharp screens.
+#: The gallery has none: it is only ever shown large.
+THUMBNAILS: dict[ImageKind, ImageVariant] = {
+    ImageKind.LOGO: ImageVariant(192, 192, 80),
+    ImageKind.COVER: ImageVariant(720, 720, 78),
+    ImageKind.ITEM: ImageVariant(640, 640, 78),
+}
+
+_THUMB_SUFFIX = ".thumb.jpg"
+_THUMBNAILED_URL = re.compile(
+    "/(?:" + "|".join(kind.value.lower() for kind in THUMBNAILS) + r")/[0-9a-f]{32}\.jpg$"
+)
+
+
+def thumbnail_key(key: str) -> str | None:
+    """Where the small copy of the image stored at ``key`` lives.
+
+    Derived rather than stored, so no column and no migration: every image
+    the pipeline writes ends in ``.jpg``, and its thumbnail sits beside it.
+    """
+    if not key.endswith(".jpg") or key.endswith(_THUMB_SUFFIX):
+        return None
+    return key[: -len(".jpg")] + _THUMB_SUFFIX
+
+
+def thumbnail_url(url: str | None) -> str | None:
+    """The public URL of an image's small copy, or None if it cannot have one.
+
+    Only for images this pipeline stored under a kind that has thumbnails:
+    the URL ends in the key, ``<kind>/<random hex>.jpg``. Anything else --
+    an external URL, a gallery image -- gets None, and the caller shows the
+    full image.
+    """
+    if not url or _THUMBNAILED_URL.search(url) is None:
+        return None
+    return thumbnail_key(url)
+
+
+def render_thumbnail(jpeg: bytes, kind: ImageKind) -> bytes | None:
+    """The small copy of an already-normalised image, or None for a kind
+    that has none."""
+    variant = THUMBNAILS.get(kind)
+    if variant is None:
+        return None
+    image = Image.open(io.BytesIO(jpeg)).convert("RGB")
+    image.thumbnail((variant.max_width, variant.max_height), Image.Resampling.LANCZOS)
+    buffer = io.BytesIO()
+    image.save(buffer, format="JPEG", quality=variant.quality, optimize=True, progressive=True)
+    return buffer.getvalue()
 
 
 class ImageService:
@@ -81,6 +136,7 @@ class ImageService:
 
         key = f"{prefix}/{owner_id}/{kind.value.lower()}/{uuid.uuid4().hex}.jpg"
         stored = self._storage.save(key=key, data=payload, content_type="image/jpeg")
+        self._store_thumbnail(key, payload, kind)
         logger.info(
             "Stored image",
             extra={
@@ -102,6 +158,29 @@ class ImageService:
     def delete(self, key: str | None) -> None:
         if key:
             self._storage.delete(key)
+            thumb = thumbnail_key(key)
+            if thumb is not None and self._storage.exists(thumb):
+                self._storage.delete(thumb)
+
+    def ensure_thumbnail(self, key: str | None, kind: ImageKind) -> bool:
+        """Write the small copy of an image stored before thumbnails existed.
+
+        True when one was written. Idempotent, so it is safe on every boot.
+        """
+        thumb = thumbnail_key(key) if key else None
+        if key is None or thumb is None or kind not in THUMBNAILS:
+            return False
+        if self._storage.exists(thumb) or not self._storage.exists(key):
+            return False
+        return self._store_thumbnail(key, self._storage.read(key), kind)
+
+    def _store_thumbnail(self, key: str, jpeg: bytes, kind: ImageKind) -> bool:
+        thumb = thumbnail_key(key)
+        payload = render_thumbnail(jpeg, kind)
+        if thumb is None or payload is None:
+            return False
+        self._storage.save(key=thumb, data=payload, content_type="image/jpeg")
+        return True
 
     def exists(self, key: str | None) -> bool:
         if not key:

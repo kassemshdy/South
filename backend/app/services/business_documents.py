@@ -36,6 +36,9 @@ logger = logging.getLogger(__name__)
 
 _FOLDER = "business-documents"
 
+#: Private: read through the owner and admin routes, never the media mount.
+STORAGE_FOLDERS = frozenset({_FOLDER})
+
 
 class BusinessDocumentService:
     def __init__(self, storage: StorageBackend, settings: Settings) -> None:

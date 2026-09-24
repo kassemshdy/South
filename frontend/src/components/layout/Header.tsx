@@ -218,13 +218,15 @@ export function Header() {
               hands. `alt` carries the name because the image *is* the name
               now; an empty alt would leave a screen reader with nothing.
 
-              Transparent PNG, so the mark sits on the sand bar here and on
-              the white footer without a beige slab behind it. */}
+              Transparent WebP, so the mark sits on the sand bar here and on
+              the white footer without a beige slab behind it. 450px wide:
+              three times the widest it is ever drawn (the footer), where the
+              1400px original was 189 KB on every page for a 48px logo. */}
           <img
-            src="/janoubna-logo.png"
+            src="/janoubna-logo.webp"
             alt={t('app.name')}
-            width={1400}
-            height={598}
+            width={450}
+            height={192}
             /* Taller than a wordmark would need: this lockup carries the three
                pillars and a sub-line under the name, and at 36px they were
                strokes rather than letters. 48px is what the 64px bar allows

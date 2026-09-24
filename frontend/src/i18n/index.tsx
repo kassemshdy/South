@@ -21,13 +21,36 @@ import {
 } from 'react'
 
 import ar from '@/i18n/locales/ar.json'
-import en from '@/i18n/locales/en.json'
 
 export type TranslationKey = keyof typeof ar
 export type Locale = 'ar' | 'en'
 
-/** `Record<TranslationKey, string>` makes an untranslated key a compile error. */
-const CATALOGS: Record<Locale, Record<TranslationKey, string>> = { ar, en }
+/**
+ * English is fetched only by someone who reads the site in English.
+ *
+ * Both catalogs used to be in the main bundle -- some 150 KB of text before
+ * compression, on every visit to an Arabic-first site, for a language most
+ * visitors never switch to. Arabic stays in the bundle because it is the
+ * default and the fallback; English arrives the first time it is chosen.
+ */
+type Catalog = Record<TranslationKey, string>
+type EnglishCatalog = typeof import('@/i18n/locales/en.json')
+/** An English catalog missing a key is still a compile error, as it was. */
+const englishIsComplete: EnglishCatalog extends Catalog ? true : never = true
+void englishIsComplete
+
+const CATALOGS: Partial<Record<Locale, Catalog>> = { ar }
+
+/** Resolves once `locale`'s catalog is available; immediate for Arabic. */
+export function loadLocale(locale: Locale): Promise<void> {
+  if (CATALOGS[locale]) return Promise.resolve()
+  return import('@/i18n/locales/en.json').then((module) => {
+    // TypeScript types a JSON import as the object itself; at runtime the
+    // bundler hands back a module whose `default` is that object.
+    const loaded = module as unknown as { default?: Catalog } & Catalog
+    CATALOGS.en = loaded.default ?? loaded
+  })
+}
 
 export const LOCALE_DIRECTION: Record<Locale, 'rtl' | 'ltr'> = { ar: 'rtl', en: 'ltr' }
 export const DEFAULT_LOCALE: Locale = 'ar'
@@ -49,7 +72,7 @@ export function translate(
   key: TranslationKey,
   params?: TranslateParams,
 ): string {
-  const template = CATALOGS[locale][key] ?? CATALOGS[DEFAULT_LOCALE][key]
+  const template = CATALOGS[locale]?.[key] ?? ar[key]
   if (template === undefined) {
     // Surfaced loudly in development; renders the key rather than an empty gap.
     if (import.meta.env.DEV) console.error(`[i18n] unknown key: ${key}`)
@@ -97,12 +120,18 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   }, [locale])
 
   const setLocale = useCallback((next: Locale) => {
-    setLocaleState(next)
     try {
       window.localStorage.setItem(STORAGE_KEY, next)
     } catch {
       // Non-fatal: the choice simply will not survive a reload.
     }
+    // Switch once the words are here, so the page never shows keys or a
+    // half-translated screen while English is on its way. If it cannot be
+    // fetched the page stays as it is, in Arabic.
+    loadLocale(next).then(
+      () => setLocaleState(next),
+      () => undefined,
+    )
   }, [])
 
   const value = useMemo<I18nContextValue>(

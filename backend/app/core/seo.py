@@ -12,6 +12,7 @@ from __future__ import annotations
 import html
 import re
 from dataclasses import dataclass
+from decimal import Decimal
 
 from app.core.i18n import translate
 
@@ -146,6 +147,77 @@ def default_tags(*, canonical_url: str, image_url: str) -> SeoTags:
     return SeoTags(
         title=translate("seo.default.title"),
         description=translate("seo.default.description"),
+        canonical_url=canonical_url,
+        image_url=image_url,
+    )
+
+
+def format_price(price: Decimal | None, currency: str) -> str | None:
+    """A price the way the site prints it (``formatPrice`` in the frontend):
+    ``$12.50``, or ``150,000 LBP`` with no decimals for pounds."""
+    if price is None:
+        return None
+    if currency == "LBP":
+        return f"{price:,.0f} LBP"
+    return f"${price:,.2f}"
+
+
+def product_tags(
+    *,
+    title: str,
+    price: Decimal | None,
+    currency: str,
+    business_name: str,
+    image_url: str | None,
+    canonical_url: str,
+) -> SeoTags:
+    """A product link's preview: its name and its price, nothing composed.
+
+    The product is the most shared thing on the site -- a photo, a name and a
+    price in a WhatsApp chat -- and a link to one used to preview as the
+    homepage. The price is the description; with none set, the shop's name
+    stands in, so the preview still says whose it is.
+    """
+    return SeoTags(
+        title=translate("seo.page.title", name=title, site=translate("app.name")),
+        description=format_price(price, currency) or business_name,
+        canonical_url=canonical_url,
+        image_url=image_url,
+        og_type="product",
+    )
+
+
+#: The directory pages' own titles, served in the HTML itself: a link
+#: preview reads the document the server sends and never runs the script
+#: that would set them. The wording is the pages' own (their catalog keys),
+#: copied rather than rewritten.
+_PAGES: dict[str, tuple[str, str]] = {
+    "products": ("seo.page.products.title", "seo.page.products.description"),
+    "businesses": ("seo.page.businesses.title", "seo.page.businesses.description"),
+    "talent": ("seo.page.talent.title", "seo.page.talent.description"),
+}
+_NAMED_PAGES: dict[str, tuple[str, str]] = {
+    "products/local": ("seo.page.products_local.name", "seo.page.products.description"),
+    "products/imported": ("seo.page.products_imported.name", "seo.page.products.description"),
+    "offer": ("seo.page.offer.name", "seo.page.offer.description"),
+    "browse": ("seo.page.browse.name", "seo.page.browse.description"),
+}
+
+
+def page_tags(path: str, *, canonical_url: str, image_url: str | None) -> SeoTags | None:
+    """Tags for a directory or landing page, or None for any other path."""
+    path = path.strip("/")
+    if path in _PAGES:
+        title_key, description_key = _PAGES[path]
+        title = translate(title_key)
+    elif path in _NAMED_PAGES:
+        name_key, description_key = _NAMED_PAGES[path]
+        title = translate("seo.page.title", name=translate(name_key), site=translate("app.name"))
+    else:
+        return None
+    return SeoTags(
+        title=title,
+        description=translate(description_key),
         canonical_url=canonical_url,
         image_url=image_url,
     )

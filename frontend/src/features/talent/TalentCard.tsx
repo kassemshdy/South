@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { useT } from '@/i18n'
 import type { TalentSummary } from '@/types/api'
+import { CardImage } from '@/components/ui/CardImage'
 
 export function TalentCard({ talent }: { talent: TalentSummary }) {
   const t = useT()
@@ -26,8 +27,9 @@ export function TalentCard({ talent }: { talent: TalentSummary }) {
         <Link to={profileUrl} className="shrink-0" tabIndex={-1} aria-hidden="true">
           <div className="h-16 w-16 overflow-hidden rounded-full bg-sand-100">
             {talent.photo_url ? (
-              <img
+              <CardImage
                 src={talent.photo_url}
+                thumbSrc={talent.photo_thumb_url}
                 alt=""
                 loading="lazy"
                 className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"

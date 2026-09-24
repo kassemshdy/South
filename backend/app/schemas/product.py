@@ -10,12 +10,13 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from pydantic import Field
+from pydantic import Field, computed_field
 
 from app.models.enums import Currency, GoodsOrigin
 from app.schemas.common import ORMModel
 from app.schemas.item import ItemImageOut
 from app.schemas.taxonomy import CategoryOut, LocationOut
+from app.services.images import thumbnail_url
 
 
 class ProductBusinessRef(ORMModel):
@@ -38,6 +39,11 @@ class ProductSummaryOut(ORMModel):
     image_url: str | None = None
     goods_origin: GoodsOrigin = GoodsOrigin.LOCAL
     business: ProductBusinessRef
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def image_thumb_url(self) -> str | None:
+        return thumbnail_url(self.image_url)
 
 
 class ProductDetailOut(ProductSummaryOut):
