@@ -40,14 +40,15 @@ const SORT_KEYS: Record<ProductSortOption, TranslationKey> = {
 /**
  * Goods made in the South and imported goods each have their own page, at the
  * CEO's request: `/products/local` and `/products/imported`, headed with the
- * two goods doors' own titles, each with an address that can be sent to
+ * titles he chose for them, each with an address that can be sent to
  * somebody and a page a search engine sees as distinct. They are this
  * directory with the origin fixed, so the two cannot drift apart from each
  * other or from `/products`, which still lists both.
  */
 const ORIGIN_PAGES: Record<GoodsOrigin, { titleKey: TranslationKey; path: string }> = {
   LOCAL: { titleKey: 'onboarding.ownerTitle', path: '/products/local' },
-  IMPORTED: { titleKey: 'onboarding.importedTitle', path: '/products/imported' },
+  // The CEO's own title for this page, longer than the door's.
+  IMPORTED: { titleKey: 'products.importedPageTitle', path: '/products/imported' },
 }
 
 export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrigin } = {}) {

@@ -252,15 +252,15 @@ test.describe('Audience chooser', () => {
     )
 
     // The looking-for half has the same split, each onto its own page --
-    // an address that can be sent to somebody, headed with the door's own
-    // title so the narrowing is never silent.
+    // an address that can be sent to somebody, headed with the title the CEO
+    // chose for it so the narrowing is never silent.
     await page.goto('/browse')
     await page.getByRole('button', { name: t('consent.agree') }).click()
     await expect(page.getByRole('link', { name: startsWith('onboarding.ownerTitle') })).toBeVisible()
     await page.getByRole('link', { name: startsWith('onboarding.importedTitle') }).click()
     await expect(page).toHaveURL(/\/products\/imported$/)
     await expect(
-      page.getByRole('heading', { level: 1, name: t('onboarding.importedTitle') }),
+      page.getByRole('heading', { level: 1, name: t('products.importedPageTitle') }),
     ).toBeVisible()
 
     // The whole directory still offers the same narrowing as a filter, and
