@@ -183,11 +183,14 @@ Five things about it are load-bearing rather than incidental:
   makes that safe is the account having no password: the row exists, but nobody
   can act as its owner until a person has looked at it.
 - **Both registration routes answer the same sentence whatever happened**,
-  including for a phone number that already has an account — which is silently
-  discarded rather than refused. Answering differently would turn the form into
-  a way to ask which numbers are registered, and attaching the listing to the
-  existing account would let a stranger put a listing in someone else's
-  dashboard. `tests/test_registration.py` pins both.
+  including for a phone number that already has an account — which is neither
+  refused nor acted on. Answering differently would turn the form into a way to
+  ask which numbers are registered, and attaching the listing to the existing
+  account would let a stranger put a listing in someone else's dashboard.
+  `tests/test_registration.py` pins both. The application is not thrown away,
+  though: it is kept in `discarded_applications`, without its ID scan, where
+  only an administrator can read it (`/admin/applications`), so a real owner
+  applying twice is not silently lost — `tests/test_discarded_applications.py`.
 - **An issued password is returned exactly once** by
   `POST /api/admin/users/{id}/credentials`, stored only as a hash, and relayed
   by the administrator from their own WhatsApp. This application never sends
@@ -212,9 +215,9 @@ Five things about it are load-bearing rather than incidental:
   succeeds, behind the same captcha and the same rate limits, refused before
   anything is created if it is too large or is not a document, and written
   against the account that application creates in that application's
-  transaction. A number that already has an account is still discarded
-  silently, document and all — otherwise guessing a number would be a way to
-  put a file on somebody else's account. `VerificationDocumentService.validate`
+  transaction. A number that already has an account never gets its document
+  stored, not even with the set-aside application — otherwise guessing a
+  number would be a way to put a file on somebody else's account. `VerificationDocumentService.validate`
   exists to make the "refused before anything is created" half possible, and
   `tests/test_registration.py` pins every clause of this paragraph.
 
@@ -240,6 +243,11 @@ for something that hands out sessions.
   messages. `SEED_OWNER_PASSWORD` is the one deliberate exception and is therefore not
   a secret: it is the demo accounts' password, it is in `.env.example`, and
   `Settings.enforce_production_safety` refuses to boot production with it set.
+  `ADMIN_PASSWORD` has **no default** anywhere: the repository is public, so a
+  default admin password in it is anybody's. A deployed process refuses to start
+  without one, or with `PUBLISHED_ADMIN_PASSWORDS` (the default it once shipped,
+  still readable in history), and the e2e specs read theirs from
+  `E2E_ADMIN_PASSWORD`, which CI generates per run.
 - **Scope every business query to its owner.** Dashboard/owner endpoints (`/api/my/*`)
   must filter by the authenticated user's id — never trust a business id alone from the
   request. See `app/repositories/business.py` for the existing scoping pattern before

@@ -124,7 +124,7 @@ email address, and the account's role decides what opens.
 |---|---|
 | Business owner | Any seeded listing's `owner_phone` (see `scripts/data/`), with `SEED_OWNER_PASSWORD` from `.env` |
 | Business owner, with nothing listed yet | Any phone in `scripts/data/demo_owners.json`, same password — for walking the journey from an empty dashboard |
-| Administrator | `ADMIN_EMAIL` / `ADMIN_PASSWORD` from `.env` (defaults: `admin@example.com` / `ChangeMe!123`) |
+| Administrator | `ADMIN_EMAIL` / `ADMIN_PASSWORD` from `.env` — no default password; set your own |
 
 `SEED_OWNER_PASSWORD` is applied by the seed script to the demo accounts, and
 the application refuses to start in production with it set — those phone

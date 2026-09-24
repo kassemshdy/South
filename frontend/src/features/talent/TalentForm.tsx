@@ -11,7 +11,8 @@ import { useLocationGroups, useTalentSkills } from '@/hooks/useTaxonomy'
 import { useT } from '@/i18n'
 import { useApplyServerFieldErrors } from '@/utils/serverFieldErrors'
 import type { TalentPayload } from '@/services/api/endpoints'
-import type { ContactChannel, OwnerTalent } from '@/types/api'
+import type { ContactChannel, OwnerTalent, SocialPlatform } from '@/types/api'
+import { PLATFORM_KEYS } from '@/utils/format'
 import { talentSchema, type TalentValues } from '@/utils/validation'
 
 import { LANGUAGE_PROFICIENCIES, PROFICIENCY_KEYS } from './labels'
@@ -39,6 +40,25 @@ interface TalentFormProps {
  * need the multi-step wizard a business listing gets. */
 /** Ordered as a person would read them, most immediate first. */
 const CONTACT_CHANNELS: ContactChannel[] = ['WHATSAPP', 'PHONE', 'EMAIL', 'WEBSITE']
+
+/**
+ * The social accounts a profile may list. WhatsApp and a website are not
+ * here: the profile already has its own fields for both, above.
+ */
+const SOCIAL_FIELDS = [
+  { key: 'instagram', platform: 'INSTAGRAM', placeholder: 'instagram.com/username' },
+  { key: 'facebook', platform: 'FACEBOOK', placeholder: 'facebook.com/username' },
+  { key: 'tiktok', platform: 'TIKTOK', placeholder: 'tiktok.com/@username' },
+  { key: 'youtube', platform: 'YOUTUBE', placeholder: 'youtube.com/@channel' },
+] as const satisfies readonly {
+  key: keyof TalentValues
+  platform: SocialPlatform
+  placeholder: string
+}[]
+
+function socialUrl(profile: OwnerTalent | undefined | null, platform: SocialPlatform): string {
+  return profile?.social_links?.find((link) => link.platform === platform)?.url ?? ''
+}
 
 export function TalentForm({
   profile,
@@ -80,6 +100,10 @@ export function TalentForm({
       whatsapp: profile?.whatsapp ?? '',
       email: profile?.email ?? '',
       website: profile?.website ?? '',
+      instagram: socialUrl(profile, 'INSTAGRAM'),
+      facebook: socialUrl(profile, 'FACEBOOK'),
+      tiktok: socialUrl(profile, 'TIKTOK'),
+      youtube: socialUrl(profile, 'YOUTUBE'),
       // Stored as an id; shown as the link the person originally pasted.
       video_url: profile?.youtube_video_id
         ? `https://www.youtube.com/watch?v=${profile.youtube_video_id}`
@@ -153,6 +177,12 @@ export function TalentForm({
         name: language.name,
         proficiency: language.proficiency,
       })),
+      // Always sent too, for the same reason: clearing the last one has to
+      // be an explicit empty list.
+      social_links: SOCIAL_FIELDS.flatMap(({ key, platform }) => {
+        const url = values[key]?.trim()
+        return url ? [{ platform, url }] : []
+      }),
     })
   })
 
@@ -362,6 +392,23 @@ export function TalentForm({
             />
           )}
         </Field>
+
+        {/* Optional, at the CEO's answer: the person's own accounts,
+            published with the profile. */}
+        {SOCIAL_FIELDS.map(({ key, platform, placeholder }) => (
+          <Field key={key} label={t(PLATFORM_KEYS[platform])} error={errors[key]?.message}>
+            {(props) => (
+              <Input
+                {...props}
+                {...register(key)}
+                type="url"
+                dir="ltr"
+                placeholder={placeholder}
+                invalid={Boolean(errors[key])}
+              />
+            )}
+          </Field>
+        ))}
 
         {/* Which of the details above to lead with. Beside them rather than
             in its own section, because it is a question about them — and it

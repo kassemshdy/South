@@ -50,6 +50,8 @@ export const queryKeys = {
   feedbackTickets: ['admin', 'feedback', 'tickets'] as const,
   feedbackTicket: (id: string) => ['admin', 'feedback', 'ticket', id] as const,
   feedbackAssignees: ['admin', 'feedback', 'assignees'] as const,
+  adminDiscardedApplications: (includeDismissed: boolean) =>
+    ['admin', 'discarded-applications', includeDismissed] as const,
   adminTestimonials: (status: TestimonialStatus | 'ALL') =>
     ['admin', 'testimonials', status] as const,
   articles: (section: ArticleSection) => ['articles', section] as const,

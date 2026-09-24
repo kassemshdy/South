@@ -315,6 +315,7 @@ def talent_detail(profile: TalentProfile) -> TalentDetailOut:
             TalentLanguageOut.model_validate(language)
             for language in sorted(profile.languages, key=lambda item: item.sort_order)
         ],
+        social_links=[SocialLinkOut.model_validate(link) for link in profile.social_links],
     )
 
 

@@ -24,6 +24,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -36,6 +37,7 @@ from app.models.enums import (
     ImageKind,
     LanguageProficiency,
     ModerationActionType,
+    SocialPlatform,
 )
 
 if TYPE_CHECKING:
@@ -182,6 +184,13 @@ class TalentProfile(Base, TimestampMixin):
         cascade="all, delete-orphan",
         order_by="TalentLanguage.sort_order",
     )
+    # Optional, and published: the person chose to list them, the same as a
+    # shop's. The CEO's answer on adding them was "optional".
+    social_links: Mapped[list[TalentSocialLink]] = relationship(
+        back_populates="profile",
+        cascade="all, delete-orphan",
+        order_by="TalentSocialLink.platform",
+    )
     moderation_actions: Mapped[list[TalentModerationAction]] = relationship(
         back_populates="profile",
         cascade="all, delete-orphan",
@@ -223,6 +232,30 @@ class TalentLanguage(Base):
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     profile: Mapped[TalentProfile] = relationship(back_populates="languages")
+
+
+class TalentSocialLink(Base):
+    """One of the person's social accounts; one row per platform.
+
+    The same shape as ``BusinessSocialLink`` and normalised by the same
+    function, so a link typed as a bare handle is stored as a full URL.
+    """
+
+    __tablename__ = "talent_social_links"
+    __table_args__ = (
+        UniqueConstraint("profile_id", "platform", name="uq_talent_social_platform"),
+    )
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    profile_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("talent_profiles.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    platform: Mapped[SocialPlatform] = mapped_column(
+        pg_enum(SocialPlatform, "social_platform"), nullable=False
+    )
+    url: Mapped[str] = mapped_column(String(500), nullable=False)
+
+    profile: Mapped[TalentProfile] = relationship(back_populates="social_links")
 
 
 class TalentImage(Base):

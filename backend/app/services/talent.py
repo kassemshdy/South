@@ -10,12 +10,13 @@ from sqlalchemy.orm import Session
 from app.core.arabic import build_search_text
 from app.core.errors import ConflictError, NotFoundError, ValidationError
 from app.core.i18n import LazyJoin
-from app.core.urls import normalize_url, youtube_video_id
+from app.core.urls import normalize_social_url, normalize_url, youtube_video_id
 from app.models.enums import BusinessStatus, ViewSubject
-from app.models.talent import TalentLanguage, TalentProfile
+from app.models.talent import TalentLanguage, TalentProfile, TalentSocialLink
 from app.models.user import User
 from app.repositories.talent import TalentRepository, TalentSkillRepository
 from app.repositories.taxonomy import LocationRepository
+from app.schemas.business import SocialLinkIn
 from app.schemas.talent import TalentCreateIn, TalentLanguageIn, TalentUpdateIn
 from app.services.analytics import ViewCounterService
 from app.services.slug import unique_slug
@@ -88,6 +89,8 @@ class TalentService:
         )
         if payload.languages is not None:
             self._apply_languages(profile, payload.languages)
+        if payload.social_links:
+            self._apply_social_links(profile, payload.social_links)
         # Add (and flush) before deriving the haystack: on a transient object
         # not yet attached to the session, relationship access (profile.skill,
         # profile.location) silently returns None regardless of the FK columns
@@ -123,12 +126,15 @@ class TalentService:
         # A relationship, not a column: model_dump turned it into a list of
         # dicts, which setattr would happily assign and then fail on flush.
         languages = data.pop("languages", None)
+        social_links = data.pop("social_links", None)
 
         for field, value in data.items():
             setattr(profile, field, value)
 
         if languages is not None:
             self._apply_languages(profile, payload.languages or [])
+        if social_links is not None:
+            self._apply_social_links(profile, payload.social_links or [])
 
         # The slug is part of the public URL; renaming must not break links that
         # are already shared, so it is only derived once at creation.
@@ -218,6 +224,34 @@ class TalentService:
                     sort_order=index,
                 )
             )
+
+    def _apply_social_links(self, profile: TalentProfile, links: list[SocialLinkIn]) -> None:
+        """Replace the whole set, one link per platform, empty ones dropped.
+
+        The same rules as a shop's links: a platform named twice is refused
+        rather than one of the two silently kept, and each URL goes through
+        the same normaliser, so a bare handle becomes a full link.
+        """
+        seen: set[str] = set()
+        normalized: list[TalentSocialLink] = []
+        for link in links:
+            if not link.url or not link.url.strip():
+                continue
+            if link.platform.value in seen:
+                raise ConflictError(
+                    "business.duplicate_social_platform",
+                    code="duplicate_social_platform",
+                )
+            seen.add(link.platform.value)
+            normalized.append(
+                TalentSocialLink(
+                    platform=link.platform,
+                    url=normalize_social_url(link.platform, link.url),
+                )
+            )
+        profile.social_links.clear()
+        self._db.flush()
+        profile.social_links.extend(normalized)
 
     def _build_search_text(self, profile: TalentProfile) -> str:
         if profile.skill is None:

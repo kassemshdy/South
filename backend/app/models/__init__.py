@@ -1,6 +1,7 @@
 """SQLAlchemy models. Importing this package registers every table on Base."""
 
 from app.models.analytics import ListingViewDaily
+from app.models.application import DiscardedApplication
 from app.models.article import Article
 from app.models.auth import RateLimitEvent
 from app.models.business import (
@@ -36,6 +37,7 @@ from app.models.talent import (
     TalentModerationAction,
     TalentProfile,
     TalentSkill,
+    TalentSocialLink,
 )
 from app.models.taxonomy import Category, Location
 from app.models.testimonial import Testimonial
@@ -54,6 +56,7 @@ __all__ = [
     "BusinessStatus",
     "Category",
     "Currency",
+    "DiscardedApplication",
     "FeedbackAttachment",
     "FeedbackAttachmentKind",
     "FeedbackComment",
@@ -77,6 +80,7 @@ __all__ = [
     "TalentModerationAction",
     "TalentProfile",
     "TalentSkill",
+    "TalentSocialLink",
     "Testimonial",
     "TestimonialStatus",
     "User",

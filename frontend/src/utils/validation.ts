@@ -305,6 +305,11 @@ export const talentSchema = (t: Translate, otherSkillId?: string) =>
       whatsapp: optionalPhone(t),
       email: z.string().trim().email(t('validation.emailInvalid')).optional().or(z.literal('')),
       website: optionalUrl(t),
+      // Optional social accounts, one per platform.
+      instagram: optionalUrl(t),
+      facebook: optionalUrl(t),
+      tiktok: optionalUrl(t),
+      youtube: optionalUrl(t),
       // An introduction video. A link here, an id once the server stores it.
       video_url: optionalUrl(t),
       // One level below the chosen skill, in the person's own words.

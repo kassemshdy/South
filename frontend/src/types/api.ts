@@ -403,6 +403,8 @@ export interface TalentDetail extends TalentSummary {
   employment_type: EmploymentType | null
   remote_capable: boolean
   languages: TalentLanguage[]
+  /** Optional, published: the person's own accounts. */
+  social_links: SocialLink[]
   images: TalentImage[]
   approved_at: string | null
 }
@@ -721,4 +723,22 @@ export interface ServiceRequest {
   status: OrderStatus
   created_at: string
   updated_at: string
+}
+
+/**
+ * An application set aside because its phone number already had an account.
+ * Administrator-only: `payload` carries the applicant's identity as typed.
+ */
+export interface DiscardedApplication {
+  id: string
+  kind: 'BUSINESS' | 'TALENT'
+  login_phone: string
+  existing_user_id: string | null
+  payload: {
+    identity?: { full_name?: string | null } | null
+    business?: { name?: string | null; short_description?: string | null; description?: string | null } | null
+    talent?: { display_name?: string | null; bio?: string | null } | null
+  }
+  created_at: string
+  dismissed_at: string | null
 }
