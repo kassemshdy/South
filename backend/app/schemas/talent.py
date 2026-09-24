@@ -4,7 +4,7 @@ import uuid
 from datetime import date, datetime
 from typing import Annotated
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, computed_field, field_validator
 
 from app.core.i18n import translate
 from app.core.phone import normalize_optional_phone
@@ -18,6 +18,7 @@ from app.models.enums import (
 from app.schemas.business import SocialLinkIn, SocialLinkOut
 from app.schemas.common import ORMModel
 from app.schemas.taxonomy import LocationOut
+from app.services.images import thumbnail_url
 
 OptionalPhone = Annotated[str | None, Field(default=None, max_length=25)]
 
@@ -83,6 +84,11 @@ class TalentSummaryOut(ORMModel):
     skill_specialty: str | None = None
     location: LocationOut | None = None
     created_at: datetime
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def photo_thumb_url(self) -> str | None:
+        return thumbnail_url(self.photo_url)
 
 
 class TalentLanguageOut(ORMModel):

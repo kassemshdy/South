@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { useT } from '@/i18n'
 import type { ProductSummary } from '@/types/api'
 import { formatPrice } from '@/utils/format'
+import { CardImage } from '@/components/ui/CardImage'
 
 export function ProductCard({ product }: { product: ProductSummary }) {
   const t = useT()
@@ -18,8 +19,9 @@ export function ProductCard({ product }: { product: ProductSummary }) {
       <Link to={profileUrl} className="block" tabIndex={-1} aria-hidden="true">
         <div className="relative h-36 overflow-hidden bg-sand-100">
           {product.image_url ? (
-            <img
+            <CardImage
               src={product.image_url}
+              thumbSrc={product.image_thumb_url}
               alt=""
               loading="lazy"
               className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"

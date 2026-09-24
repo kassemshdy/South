@@ -47,6 +47,10 @@ _FOLDERS = {
     VerificationDocumentKind.CV: "owner-cv",
 }
 
+#: Storage folders holding nothing a visitor may fetch; the media mount
+#: refuses them (see ``app.main.PRIVATE_MEDIA_FOLDERS``).
+STORAGE_FOLDERS = frozenset(_FOLDERS.values())
+
 
 class VerificationDocumentService:
     def __init__(self, storage: StorageBackend, settings: Settings) -> None:

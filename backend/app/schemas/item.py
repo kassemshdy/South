@@ -4,11 +4,12 @@ import uuid
 from datetime import date
 from decimal import Decimal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, computed_field, field_validator
 
 from app.core.i18n import translate
 from app.models.enums import Currency, GoodsOrigin
 from app.schemas.common import ORMModel
+from app.services.images import thumbnail_url
 
 
 class ItemImageOut(ORMModel):
@@ -38,6 +39,11 @@ class BusinessItemOut(ORMModel):
     external_link: str | None = None
     goods_origin: GoodsOrigin = GoodsOrigin.LOCAL
     images: list[ItemImageOut] = Field(default_factory=list)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def image_thumb_url(self) -> str | None:
+        return thumbnail_url(self.image_url)
 
 
 class BusinessItemIn(BaseModel):

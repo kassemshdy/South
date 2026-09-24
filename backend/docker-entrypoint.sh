@@ -14,5 +14,6 @@ exec gosu appuser sh -c '
   set -e
   alembic upgrade head
   python -m scripts.seed --ensure
+  python -m scripts.backfill_thumbnails
   exec uvicorn app.main:app --host 0.0.0.0 --port "$PORT" --workers "${WEB_CONCURRENCY:-2}" --proxy-headers --forwarded-allow-ips="*"
 '

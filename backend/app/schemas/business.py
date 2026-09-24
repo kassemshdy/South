@@ -4,7 +4,7 @@ import uuid
 from datetime import date, datetime
 from typing import Annotated
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, computed_field, field_validator
 
 from app.core.i18n import translate
 from app.core.phone import normalize_optional_phone
@@ -20,6 +20,7 @@ from app.schemas.item import BusinessItemOut
 from app.schemas.taxonomy import CategoryOut, LocationOut
 from app.schemas.testimonial import TestimonialOut
 from app.schemas.verification import BusinessDocumentOut
+from app.services.images import thumbnail_url
 
 OptionalPhone = Annotated[str | None, Field(default=None, max_length=25)]
 
@@ -72,6 +73,18 @@ class BusinessSummaryOut(ORMModel):
     # a visitor chooses between. See ``GoodsOrigin``.
     goods_origin: GoodsOrigin = GoodsOrigin.LOCAL
     created_at: datetime
+
+    # The small copies the cards draw; None when there is none, and the card
+    # falls back to the full image. See ``app.services.images.THUMBNAILS``.
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def logo_thumb_url(self) -> str | None:
+        return thumbnail_url(self.logo_url)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def cover_thumb_url(self) -> str | None:
+        return thumbnail_url(self.cover_url)
 
 
 class BusinessDetailOut(BusinessSummaryOut):
