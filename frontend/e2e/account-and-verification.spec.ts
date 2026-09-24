@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { openBusinessWizard } from './support/wizard'
 
 import { demoOwnerPhone, signIn } from './support/sign-in'
+import { ADMIN_EMAIL, ADMIN_PASSWORD } from './support/admin'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
@@ -30,8 +31,6 @@ const t = (key: string): string => ar[key]!
 const categoryName = categories.find((c) => c.slug === 'restaurants')!.name_ar
 
 const OWNER_PHONE = demoOwnerPhone('account')
-const ADMIN_EMAIL = 'admin@example.com'
-const ADMIN_PASSWORD = 'ChangeMe!123'
 const PERSONAL_PHONE = '03966102'
 
 // A tiny valid PDF: the service only sniffs the "%PDF-" magic prefix.

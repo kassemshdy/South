@@ -74,6 +74,11 @@ CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npx playwright 
 
 Needs the API on `:8000`, Vite on `:5173`, and a **clean database**.
 
+The admin specs sign in with `E2E_ADMIN_PASSWORD`, which must equal the
+`ADMIN_PASSWORD` the API was seeded with — there is no default in the repository
+any more, so export it before running; `e2e/support/admin.ts` says so and stops if
+it is missing. CI generates both per run.
+
 It also needs `SEED_OWNER_PASSWORD` set in the API's environment *before the
 seed ran*, because that is when the hash is written, and because the demo
 owner accounts the owner specs sign in as are only created when it is set.

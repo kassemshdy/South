@@ -348,12 +348,14 @@ def test_staging_is_hardened_like_production_bar_one_thing() -> None:
     Settings(
         app_env="staging",
         secret_key="a-real-secret",
+        admin_password="a-long-real-admin-password",
         seed_owner_password="demo-password",
     ).enforce_production_safety()
 
     weak = Settings(
         app_env="staging",
         secret_key="dev-insecure-secret-change-me",
+        admin_password="a-long-real-admin-password",
     )
     with pytest.raises(RuntimeError, match="SECRET_KEY"):
         weak.enforce_production_safety()

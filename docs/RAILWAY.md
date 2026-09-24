@@ -23,7 +23,9 @@
 | Sign-in | `/login`, for everybody — an owner types their phone number, an administrator their `ADMIN_EMAIL`, both with a password. `/admin/login` is the same administrator credentials on an unlinked URL, kept as the way back in when the main form is broken |
 | Owner passwords | issued per account by an administrator, at *issue credentials* on the review screen, and relayed over their own WhatsApp |
 
-Change `ADMIN_PASSWORD` before sharing the URL with anyone.
+`ADMIN_PASSWORD` has no default and must be set on both `api` and `api-develop` to a
+password of your own: a deployed API refuses to start without one, or with the
+default this repository once published (`Settings.enforce_production_safety`).
 
 
 Six services in one project — a live trio and a staging trio, all in the single

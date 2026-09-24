@@ -5,6 +5,7 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { demoOwnerPhone, signIn } from './support/sign-in'
+import { ADMIN_EMAIL, ADMIN_PASSWORD } from './support/admin'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
@@ -35,8 +36,6 @@ const districtName = locations
   .find((district) => district.slug === fixture.locationSlug)!.name_ar
 
 const OWNER_PHONE = demoOwnerPhone('talent')
-const ADMIN_EMAIL = 'admin@example.com'
-const ADMIN_PASSWORD = 'ChangeMe!123'
 
 function jpeg(): { name: string; mimeType: string; buffer: Buffer } {
   const base64 =
