@@ -1,6 +1,7 @@
 """SQLAlchemy models. Importing this package registers every table on Base."""
 
 from app.models.analytics import ListingViewDaily
+from app.models.application import DiscardedApplication
 from app.models.article import Article
 from app.models.auth import RateLimitEvent
 from app.models.business import (
@@ -54,6 +55,7 @@ __all__ = [
     "BusinessStatus",
     "Category",
     "Currency",
+    "DiscardedApplication",
     "FeedbackAttachment",
     "FeedbackAttachmentKind",
     "FeedbackComment",

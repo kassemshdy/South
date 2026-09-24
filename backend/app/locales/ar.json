@@ -191,5 +191,6 @@
   "verification.empty": "الملف فارغ.",
   "verification.not_found": "المستند غير موجود.",
   "verification.too_large": "حجم الملف يتجاوز الحد المسموح ({limit} ميغابايت).",
-  "verification.unsupported_format": "يُسمح فقط بملفات PDF أو JPG أو PNG."
+  "verification.unsupported_format": "يُسمح فقط بملفات PDF أو JPG أو PNG.",
+  "application.not_found": "الطلب غير موجود."
 }
