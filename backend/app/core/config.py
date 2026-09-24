@@ -137,7 +137,10 @@ class Settings(BaseSettings):
 
     # --- Admin bootstrap ---------------------------------------------------
     admin_email: str | None = "admin@example.com"
-    admin_password: str | None = "ChangeMe!123"
+    # No default. A default password in a public repository is everybody's
+    # password, so a deployed process refuses to start without a real one --
+    # see ``enforce_production_safety``. Locally, set it in ``backend/.env``.
+    admin_password: str | None = None
     # Falls back to a translated default in the seed script when unset.
     admin_display_name: str | None = None
     # The password the seed script puts on the demo owner accounts. Sign-in is
@@ -202,6 +205,16 @@ class Settings(BaseSettings):
         problems: list[str] = []
         if self.secret_key == "dev-insecure-secret-change-me":
             problems.append("SECRET_KEY must be set to a strong random value")
+        # The admin password is re-applied to the administrator on every
+        # deploy, so this is also what rotates one that was ever the old
+        # published default: a deploy with a real value replaces the hash.
+        if not self.admin_password:
+            problems.append("ADMIN_PASSWORD must be set to a strong password")
+        elif self.admin_password in PUBLISHED_ADMIN_PASSWORDS:
+            problems.append(
+                "ADMIN_PASSWORD is a default published in this repository; "
+                "set a strong password of your own"
+            )
         if self.seed_owner_password and self.is_production:
             problems.append(
                 "SEED_OWNER_PASSWORD is not allowed in production; "
@@ -216,6 +229,12 @@ class Settings(BaseSettings):
             raise RuntimeError(
                 "Unsafe production configuration:\n  - " + "\n  - ".join(problems)
             )
+
+
+#: Admin passwords this repository has shipped as defaults at some point. They
+#: are readable in its public history, so a deployed process refuses them even
+#: though no current file sets one.
+PUBLISHED_ADMIN_PASSWORDS: frozenset[str] = frozenset({"ChangeMe!123"})
 
 
 @lru_cache

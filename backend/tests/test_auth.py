@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.core.config import Settings, get_settings
+from app.core.config import PUBLISHED_ADMIN_PASSWORDS, Settings, get_settings
 from app.core.phone import normalize_phone
 from app.models.enums import UserRole
 from app.models.user import User
@@ -255,6 +255,38 @@ def test_bumping_token_version_revokes_existing_sessions(
     assert revoked.json()["error"]["code"] == "token_revoked"
 
 
+#: Stands in for a real administrator password in the safety-check tests.
+REAL_ADMIN_PASSWORD = "a-long-real-admin-password"
+
+
+def test_a_deployed_process_requires_an_admin_password_of_its_own() -> None:
+    """No default, and not the one this repository once published.
+
+    The repository is public, so a default admin password in it is anybody's
+    admin password. Production and staging both refuse to start without one,
+    and refuse the old default outright even though no file sets it any more:
+    it is still readable in the history.
+    """
+    for env in ("production", "staging"):
+        unset = Settings(app_env=env, secret_key="a-real-secret", admin_password=None)
+        with pytest.raises(RuntimeError, match="ADMIN_PASSWORD must be set"):
+            unset.enforce_production_safety()
+
+        for published in PUBLISHED_ADMIN_PASSWORDS:
+            default = Settings(app_env=env, secret_key="a-real-secret", admin_password=published)
+            with pytest.raises(RuntimeError, match="published"):
+                default.enforce_production_safety()
+
+        # Everything else explicit, so a developer's own .env cannot leak in.
+        Settings(
+            app_env=env,
+            secret_key="a-real-secret",
+            admin_password=REAL_ADMIN_PASSWORD,
+            seed_owner_password=None,
+            debug=False,
+        ).enforce_production_safety()
+
+
 def test_production_requires_a_real_secret_key() -> None:
     settings = Settings(
         app_env="production",
@@ -275,6 +307,7 @@ def test_production_refuses_a_seeded_owner_password() -> None:
     settings = Settings(
         app_env="production",
         secret_key="a-real-secret",
+        admin_password=REAL_ADMIN_PASSWORD,
         seed_owner_password="demo-password",
     )
     with pytest.raises(RuntimeError, match="SEED_OWNER_PASSWORD"):
@@ -283,6 +316,7 @@ def test_production_refuses_a_seeded_owner_password() -> None:
     staging = Settings(
         app_env="staging",
         secret_key="a-real-secret",
+        admin_password=REAL_ADMIN_PASSWORD,
         seed_owner_password="demo-password",
     )
     staging.enforce_production_safety()

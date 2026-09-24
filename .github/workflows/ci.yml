@@ -75,6 +75,14 @@ jobs:
           name: frontend-dist
           path: frontend/dist
 
+      # The seed tests create the administrator, and there is no default
+      # password any more -- see the e2e job's step of the same name.
+      - name: Generate the admin password for this run
+        run: |
+          password="$(openssl rand -hex 24)"
+          echo "::add-mask::$password"
+          echo "ADMIN_PASSWORD=$password" >> "$GITHUB_ENV"
+
       - name: pytest
         id: pytest
         working-directory: backend
@@ -195,9 +203,9 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-    # The development defaults from backend/.env.example, which the specs
-    # sign in with. SEED_OWNER_PASSWORD is the demo accounts' password and is
-    # refused in production, so none of this is a secret.
+    # The development defaults from backend/.env.example. SEED_OWNER_PASSWORD
+    # is the demo accounts' password and is refused in production, so it is
+    # not a secret; the admin password is generated per run, below.
     env:
       APP_ENV: development
       DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/south_dev
@@ -207,7 +215,6 @@ jobs:
       STORAGE_BACKEND: local
       STORAGE_LOCAL_DIR: var/media
       ADMIN_EMAIL: admin@example.com
-      ADMIN_PASSWORD: ChangeMe!123
       SEED_OWNER_PASSWORD: DemoOwner!123
 
     steps:
@@ -234,6 +241,16 @@ jobs:
         run: |
           npm ci
           npx playwright install --with-deps chromium
+
+      # A fresh admin password per run, never written down: the repository is
+      # public, so any fixed value here would be everybody's. The API seeds it
+      # and the specs read it back as E2E_ADMIN_PASSWORD.
+      - name: Generate the admin password for this run
+        run: |
+          password="$(openssl rand -hex 24)"
+          echo "::add-mask::$password"
+          echo "ADMIN_PASSWORD=$password" >> "$GITHUB_ENV"
+          echo "E2E_ADMIN_PASSWORD=$password" >> "$GITHUB_ENV"
 
       - name: Migrate and seed
         working-directory: backend

@@ -3,6 +3,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { ADMIN_EMAIL, ADMIN_PASSWORD } from './support/admin'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
@@ -15,8 +16,6 @@ const fixture = load<{ title: string; description: string; comment: string }>(
 
 const t = (key: string): string => ar[key]!
 
-const ADMIN_EMAIL = 'admin@example.com'
-const ADMIN_PASSWORD = 'ChangeMe!123'
 
 async function signInAsAdmin(page: Page) {
   await page.goto('/admin/login')

@@ -243,6 +243,11 @@ for something that hands out sessions.
   messages. `SEED_OWNER_PASSWORD` is the one deliberate exception and is therefore not
   a secret: it is the demo accounts' password, it is in `.env.example`, and
   `Settings.enforce_production_safety` refuses to boot production with it set.
+  `ADMIN_PASSWORD` has **no default** anywhere: the repository is public, so a
+  default admin password in it is anybody's. A deployed process refuses to start
+  without one, or with `PUBLISHED_ADMIN_PASSWORDS` (the default it once shipped,
+  still readable in history), and the e2e specs read theirs from
+  `E2E_ADMIN_PASSWORD`, which CI generates per run.
 - **Scope every business query to its owner.** Dashboard/owner endpoints (`/api/my/*`)
   must filter by the authenticated user's id — never trust a business id alone from the
   request. See `app/repositories/business.py` for the existing scoping pattern before

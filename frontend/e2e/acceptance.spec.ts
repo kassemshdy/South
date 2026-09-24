@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { openBusinessWizard } from './support/wizard'
 
 import { demoOwnerPhone, signIn } from './support/sign-in'
+import { ADMIN_EMAIL, ADMIN_PASSWORD } from './support/admin'
 
 const here = dirname(fileURLToPath(import.meta.url))
 // Read rather than import: Playwright's ESM loader would require import
@@ -58,8 +59,6 @@ const districtName = locations
  */
 
 const OWNER_PHONE = demoOwnerPhone('acceptance')
-const ADMIN_EMAIL = 'admin@example.com'
-const ADMIN_PASSWORD = 'ChangeMe!123'
 const BUSINESS_NAME = fixture.businessName
 
 // A tiny valid JPEG generated at runtime, so no binary fixtures live in the repo.

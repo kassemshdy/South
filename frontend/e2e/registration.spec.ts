@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { ADMIN_EMAIL, ADMIN_PASSWORD } from './support/admin'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
@@ -27,8 +28,6 @@ const PNG_BYTES = Buffer.from(
   'base64',
 )
 
-const ADMIN_EMAIL = 'admin@example.com'
-const ADMIN_PASSWORD = 'ChangeMe!123'
 
 /**
  * The only way onto this site.
