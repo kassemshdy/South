@@ -28,17 +28,38 @@ import { useT, type TranslationKey } from '@/i18n'
  * Identical weight on the two, because these are two halves of one question
  * rather than a call to action and its afterthought. No line of explanation
  * under either: it was answering a question nobody had yet asked.
+ *
+ * **Two colours, chosen by the CEO**, who asked for these to look grander as
+ * the site's main entrance: olive green for offering, terracotta for looking.
+ * Equal weight, told apart at a glance before a word is read. White on the
+ * darker end of each gradient, where the title sits, clears AA for large
+ * bold text in both.
  */
 
 interface Half {
   to: string
   icon: typeof Store
   titleKey: TranslationKey
+  /** The card's gradient, and the icon's colour on its white disc. */
+  surface: string
+  iconColor: string
 }
 
 const HALVES: Half[] = [
-  { to: '/offer', icon: Store, titleKey: 'home.actionOffer' },
-  { to: '/browse', icon: ShoppingBag, titleKey: 'home.actionBrowse' },
+  {
+    to: '/offer',
+    icon: Store,
+    titleKey: 'home.actionOffer',
+    surface: 'from-brand-600 to-brand-800',
+    iconColor: 'text-brand-700',
+  },
+  {
+    to: '/browse',
+    icon: ShoppingBag,
+    titleKey: 'home.actionBrowse',
+    surface: 'from-clay-500 to-clay-700',
+    iconColor: 'text-clay-600',
+  },
 ]
 
 export function AudienceChooser() {
@@ -67,18 +88,22 @@ export function AudienceChooser() {
             <li key={half.to}>
               <Link
                 to={half.to}
-                className="group flex h-full w-full flex-col items-center gap-5 rounded-3xl border-2 border-ink-100 bg-white p-8 text-center shadow-card transition-all duration-200 hover:-translate-y-1 hover:border-brand-400 hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 sm:p-10"
+                className={`group relative isolate flex h-full min-h-[18rem] w-full flex-col items-center justify-center gap-5 overflow-hidden rounded-3xl bg-gradient-to-br ${half.surface} p-8 text-center shadow-lift transition-all duration-300 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-wheat-500 focus-visible:ring-offset-2 sm:p-10`}
               >
-                <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-sand-100 text-brand-700 transition-colors group-hover:bg-brand-700 group-hover:text-white sm:h-20 sm:w-20">
-                  <Icon className="h-8 w-8 sm:h-9 sm:w-9" aria-hidden="true" />
+                {/* Two soft discs of light, for depth without a picture to
+                    license: the card reads as a surface, not a flat fill. */}
+                <span aria-hidden="true" className="absolute -end-10 -top-10 -z-10 h-44 w-44 rounded-full bg-white/10" />
+                <span aria-hidden="true" className="absolute -bottom-14 -start-8 -z-10 h-40 w-40 rounded-full bg-white/5" />
+                <span className="flex h-20 w-20 items-center justify-center rounded-full bg-white shadow-lg transition-transform duration-300 group-hover:scale-105 sm:h-24 sm:w-24">
+                  <Icon className={`h-9 w-9 sm:h-11 sm:w-11 ${half.iconColor}`} aria-hidden="true" />
                 </span>
-                <span className="text-balance text-xl font-bold leading-snug text-ink-900 sm:text-2xl">
+                <span className="text-balance text-xl font-bold leading-snug text-white sm:text-2xl">
                   {t(half.titleKey)}
                 </span>
                 {/* A filled pill rather than a line of coloured text: at this
                     size the words under the title were reading as a caption,
                     and this is the thing to press. */}
-                <span className="mt-auto inline-flex items-center gap-2 rounded-full bg-sand-100 px-5 py-2.5 font-semibold text-brand-800 transition-colors group-hover:bg-brand-700 group-hover:text-white">
+                <span className="mt-2 inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 font-bold text-ink-900 transition-transform group-hover:scale-105">
                   {t('onboarding.choose')}
                   <ArrowLeft className="h-4 w-4 ltr:rotate-180" aria-hidden="true" />
                 </span>
