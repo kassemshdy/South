@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 
 import { Button } from '@/components/ui/Button'
 import { ChoicePageShell } from '@/features/onboarding/ChoicePageShell'
-import { DOOR_CARD, DoorBody } from '@/features/onboarding/DoorCard'
+import { DoorBody, doorCard } from '@/features/onboarding/DoorCard'
 import { SEEK_DOORS } from '@/features/onboarding/destinations'
 import { useScrollToStep } from '@/hooks/useScrollToStep'
 import { useSeo } from '@/hooks/useSeo'
@@ -88,7 +88,7 @@ export function BrowsePage() {
         <ul className="mt-5 grid gap-4 sm:grid-cols-3">
           {SEEK_DOORS.map((door) => (
             <li key={door.key}>
-              <Link to={door.href} className={DOOR_CARD}>
+              <Link to={door.href} className={doorCard('browse')}>
                 <DoorBody door={door} />
               </Link>
             </li>
