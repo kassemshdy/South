@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/features/auth/AuthContext'
 import { AssistedListing } from '@/features/onboarding/AssistedListing'
 import { ChoicePageShell } from '@/features/onboarding/ChoicePageShell'
-import { DOOR_CARD, DoorBody } from '@/features/onboarding/DoorCard'
+import { DoorBody, doorCard } from '@/features/onboarding/DoorCard'
 import { destinationFor, OFFER_DOORS, type Door } from '@/features/onboarding/destinations'
 import { useScrollToStep } from '@/hooks/useScrollToStep'
 import { useSeo } from '@/hooks/useSeo'
@@ -196,7 +196,7 @@ export function OfferPage() {
           <ul className="mt-5 grid gap-4 sm:grid-cols-3">
             {OFFER_DOORS.map((door) => (
               <li key={door.key}>
-                <button type="button" className={DOOR_CARD} onClick={() => setPending(door)}>
+                <button type="button" className={doorCard('offer')} onClick={() => setPending(door)}>
                   <DoorBody door={door} />
                 </button>
               </li>
