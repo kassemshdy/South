@@ -7,8 +7,10 @@ import mimetypes
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from dataclasses import replace
 from os import PathLike
 from pathlib import Path
+from typing import Any
 from urllib.parse import quote
 
 from fastapi import FastAPI, Request, Response
@@ -16,6 +18,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import select
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.types import Scope
 
@@ -28,15 +31,20 @@ from app.core.logging import configure_logging
 from app.core.middleware import RequestContextMiddleware, SecurityHeadersMiddleware
 from app.core.observability import configure_error_tracking
 from app.core.seo import (
+    business_json_ld,
     business_tags,
     default_tags,
     inject,
     page_tags,
+    product_json_ld,
     product_tags,
+    site_json_ld,
+    talent_json_ld,
     talent_tags,
 )
 from app.core.validation_messages import field_errors
 from app.database.session import SessionLocal
+from app.models.site_setting import SiteSetting
 from app.repositories.business import BusinessRepository
 from app.repositories.item import ItemRepository
 from app.repositories.talent import TalentRepository
@@ -351,6 +359,23 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
             return f"{base_url}{image}"
         return image or default_image_url
 
+    def _site_json_ld() -> tuple[dict[str, Any], ...]:
+        db = SessionLocal()
+        try:
+            values = {row.key: row.value for row in db.execute(select(SiteSetting)).scalars()}
+        finally:
+            db.close()
+        same_as = [
+            values[key] for key in ("social_facebook", "social_instagram") if values.get(key)
+        ]
+        return site_json_ld(
+            base_url=base_url,
+            logo_url=f"{base_url}/janoubna-logo.png",
+            same_as=same_as,
+            telephone=values.get("contact_phone"),
+            email=values.get("contact_email"),
+        )
+
     def _render_index(path: str) -> HTMLResponse:
         document = index_file.read_text(encoding="utf-8")
         tags = None
@@ -369,13 +394,32 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
                 try:
                     business = BusinessRepository(db).get_by_slug(slug, public_only=True)
                     if business is not None:
+                        url = f"{base_url}/business/{quote(business.slug)}"
+                        image = _absolute(business.cover_url or business.logo_url)
+                        location = business.location.name_ar if business.location else None
                         tags = business_tags(
                             name=business.name,
                             short_description=business.short_description,
                             category_name=business.category.name_ar if business.category else None,
-                            location_name=business.location.name_ar if business.location else None,
-                            image_url=_absolute(business.cover_url or business.logo_url),
-                            canonical_url=f"{base_url}/business/{quote(business.slug)}",
+                            location_name=location,
+                            image_url=image,
+                            canonical_url=url,
+                        )
+                        tags = replace(
+                            tags,
+                            json_ld=(
+                                business_json_ld(
+                                    name=business.name,
+                                    description=business.short_description,
+                                    url=url,
+                                    image_url=image,
+                                    telephone=business.phone,
+                                    location_name=location,
+                                    latitude=business.latitude,
+                                    longitude=business.longitude,
+                                    same_as=[link.url for link in business.social_links],
+                                ),
+                            ),
                         )
                 finally:
                     db.close()
@@ -385,13 +429,31 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
                 try:
                     profile = TalentRepository(db).get_by_slug(slug, public_only=True)
                     if profile is not None:
+                        url = f"{base_url}/talent/{quote(profile.slug)}"
+                        skill = profile.skill.name_ar if profile.skill else None
+                        location = profile.location.name_ar if profile.location else None
                         tags = talent_tags(
                             display_name=profile.display_name,
-                            skill_name=profile.skill.name_ar if profile.skill else None,
+                            skill_name=skill,
                             bio=profile.bio,
-                            location_name=profile.location.name_ar if profile.location else None,
+                            location_name=location,
                             image_url=_absolute(profile.photo_url),
-                            canonical_url=f"{base_url}/talent/{quote(profile.slug)}",
+                            canonical_url=url,
+                        )
+                        tags = replace(
+                            tags,
+                            json_ld=(
+                                talent_json_ld(
+                                    name=profile.display_name,
+                                    job_title=skill,
+                                    description=profile.bio,
+                                    url=url,
+                                    image_url=_absolute(profile.photo_url)
+                                    if profile.photo_url
+                                    else None,
+                                    location_name=location,
+                                ),
+                            ),
                         )
                 finally:
                     db.close()
@@ -402,13 +464,30 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
                 try:
                     item = ItemRepository(db).get_by_slug(slug)
                     if item is not None:
+                        url = f"{base_url}/product/{quote(item.slug)}"
                         tags = product_tags(
                             title=item.title,
                             price=item.price,
                             currency=item.currency.value,
                             business_name=item.business.name,
                             image_url=_absolute(item.image_url),
-                            canonical_url=f"{base_url}/product/{quote(item.slug)}",
+                            canonical_url=url,
+                        )
+                        tags = replace(
+                            tags,
+                            json_ld=(
+                                product_json_ld(
+                                    name=item.title,
+                                    description=item.description,
+                                    url=url,
+                                    image_url=_absolute(item.image_url) if item.image_url else None,
+                                    price=item.price,
+                                    currency=item.currency.value,
+                                    available=item.is_available,
+                                    business_name=item.business.name,
+                                    business_url=f"{base_url}/business/{quote(item.business.slug)}",
+                                ),
+                            ),
                         )
                 finally:
                     db.close()
@@ -428,6 +507,11 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
                 trimmed = path.rstrip("/")
                 canonical = f"{base_url}/{trimmed}" if trimmed else base_url
                 tags = default_tags(canonical_url=canonical, image_url=default_image_url)
+                if not trimmed:
+                    # The homepage says who publishes the site and how to
+                    # search it; the logo, social accounts and contact come
+                    # from what an administrator has set.
+                    tags = replace(tags, json_ld=_site_json_ld())
 
             # Explicit and unambiguous: this document is rebuilt per-request (the
             # SEO tags depend on the slug/path), so an edge or CDN in front of the
