@@ -14,6 +14,7 @@ from app.api.v1 import (
     images,
     items,
     orders,
+    page_covers,
     registration,
     service_requests,
     talent,
@@ -45,6 +46,7 @@ api_router.include_router(admin_talent.router)
 api_router.include_router(admin_taxonomy.router)
 api_router.include_router(admin_stats.router)
 api_router.include_router(admin_users.router)
+api_router.include_router(page_covers.admin_router)
 api_router.include_router(testimonials.admin_router)
 
 api_router.include_router(feedback.router)
@@ -70,5 +72,6 @@ api_router.include_router(registration.router)
 api_router.include_router(items.public_router)
 api_router.include_router(service_requests.public_router)
 api_router.include_router(talent.public_router)
+api_router.include_router(page_covers.public_router)
 
 __all__ = ["api_router"]

@@ -86,6 +86,7 @@ export function DirectoryPage() {
   return (
     <>
       <PageBanner
+        page="products"
         title={t('directory.heading')}
         subtitle={
           results.data

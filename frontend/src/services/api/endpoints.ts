@@ -7,6 +7,8 @@
 
 import { apiDownload, apiRequest } from '@/services/api/client'
 import type {
+  PageCover,
+  PageCoverKey,
   DiscardedApplication,
   GoodsOrigin,
   ContactChannel,
@@ -290,6 +292,11 @@ export const publicItemApi = {
     apiRequest<ProductDetail>(`/api/items/${encodeURIComponent(slug)}`),
 }
 
+export const pageCoverApi = {
+  /** `{page_key: image_url}` for every page whose cover has been replaced. */
+  all: () => apiRequest<Partial<Record<PageCoverKey, string>>>('/api/page-covers'),
+}
+
 export const publicArticleApi = {
   list: (section: ArticleSection) =>
     apiRequest<Article[]>('/api/articles', { query: { section } }),
@@ -519,6 +526,17 @@ export const adminApi = {
     apiRequest<DiscardedApplication[]>('/api/admin/discarded-applications', {
       query: { include_dismissed: includeDismissed },
     }),
+  pageCovers: () => apiRequest<PageCover[]>('/api/admin/page-covers'),
+  setPageCover: (key: PageCoverKey, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return apiRequest<PageCover>(`/api/admin/page-covers/${key}`, {
+      method: 'POST',
+      formData: form,
+    })
+  },
+  resetPageCover: (key: PageCoverKey) =>
+    apiRequest<PageCover>(`/api/admin/page-covers/${key}`, { method: 'DELETE' }),
   dismissApplication: (id: string) =>
     apiRequest<DiscardedApplication>(`/api/admin/discarded-applications/${id}/dismiss`, {
       method: 'POST',

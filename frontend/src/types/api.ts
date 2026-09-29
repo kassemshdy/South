@@ -738,6 +738,23 @@ export interface ServiceRequest {
  * An application set aside because its phone number already had an account.
  * Administrator-only: `payload` carries the applicant's identity as typed.
  */
+/** Pages whose cover photograph an administrator can replace. */
+export type PageCoverKey =
+  | 'home'
+  | 'offer'
+  | 'browse'
+  | 'products'
+  | 'products_local'
+  | 'products_imported'
+  | 'talent'
+
+export interface PageCover {
+  page_key: PageCoverKey
+  /** Null when the page shows the site's default photograph. */
+  image_url: string | null
+  updated_at: string | null
+}
+
 export interface DiscardedApplication {
   id: string
   kind: 'BUSINESS' | 'TALENT'
