@@ -181,7 +181,7 @@ export function Header() {
               three times the widest it is ever drawn (the footer), where the
               1400px original was 189 KB on every page for a 48px logo. */}
           <img
-            src="/janoubna-logo.webp"
+            src="/janoubna-logo-v2.webp"
             alt={t('app.name')}
             width={450}
             height={191}
