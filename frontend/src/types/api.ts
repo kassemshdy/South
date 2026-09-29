@@ -739,6 +739,15 @@ export interface ServiceRequest {
  * Administrator-only: `payload` carries the applicant's identity as typed.
  */
 /** Pages whose cover photograph an administrator can replace. */
+/** The site's own contact details and social accounts; unset is null. */
+export interface SiteSettings {
+  contact_phone: string | null
+  contact_whatsapp: string | null
+  contact_email: string | null
+  social_facebook: string | null
+  social_instagram: string | null
+}
+
 export type PageCoverKey =
   | 'home'
   | 'offer'
@@ -747,6 +756,7 @@ export type PageCoverKey =
   | 'products_local'
   | 'products_imported'
   | 'talent'
+  | 'contact'
 
 export interface PageCover {
   page_key: PageCoverKey

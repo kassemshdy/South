@@ -1,41 +1,45 @@
 import { Facebook, Instagram, Music2 } from 'lucide-react'
 
+import { useSiteSettings } from '@/hooks/useSiteSettings'
 import { useT, type TranslationKey } from '@/i18n'
+import { cn } from '@/utils/cn'
 
 /**
- * The project's own social accounts.
+ * The project's own social accounts, as icon links.
  *
- * Each URL comes from a `VITE_`-prefixed variable set per service in Railway,
- * and **a link with no URL is not rendered** — the same discipline the Sentry
- * DSN and the analytics id follow. A "follow us" row pointing at a placeholder
- * is worse than no row: it spends the one click someone was willing to give.
- *
- * So this component renders nothing at all until at least one account exists,
- * which means it can ship before the accounts do.
+ * Facebook and Instagram come from the site settings an administrator fills
+ * in (`/admin/site-settings`), so changing one needs no deploy. The
+ * `VITE_SOCIAL_*` build variables still work as a fallback, and TikTok only
+ * exists as one. **A link with no URL is not rendered**, and with none at all
+ * this renders nothing: a "follow us" row pointing at a placeholder spends
+ * the one click someone was willing to give.
  */
 
 interface Account {
   key: string
-  href: string | undefined
+  href: string
   icon: typeof Instagram
   labelKey: TranslationKey
 }
 
-export function SocialLinks() {
-  const t = useT()
-
-  const accounts: Account[] = [
-    {
-      key: 'instagram',
-      href: import.meta.env.VITE_SOCIAL_INSTAGRAM as string | undefined,
-      icon: Instagram,
-      labelKey: 'platform.INSTAGRAM',
-    },
+export function useSocialAccounts(): Account[] {
+  const { settings } = useSiteSettings()
+  const candidates: (Omit<Account, 'href'> & { href: string | null | undefined })[] = [
     {
       key: 'facebook',
-      href: import.meta.env.VITE_SOCIAL_FACEBOOK as string | undefined,
+      href:
+        settings?.social_facebook ??
+        (import.meta.env.VITE_SOCIAL_FACEBOOK as string | undefined),
       icon: Facebook,
       labelKey: 'platform.FACEBOOK',
+    },
+    {
+      key: 'instagram',
+      href:
+        settings?.social_instagram ??
+        (import.meta.env.VITE_SOCIAL_INSTAGRAM as string | undefined),
+      icon: Instagram,
+      labelKey: 'platform.INSTAGRAM',
     },
     {
       key: 'tiktok',
@@ -45,33 +49,42 @@ export function SocialLinks() {
       labelKey: 'platform.TIKTOK',
     },
   ]
+  return candidates.filter((account): account is Account => Boolean(account.href))
+}
 
-  const live = accounts.filter((account) => Boolean(account.href))
-  if (live.length === 0) return null
+/**
+ * The icons alone. They live in the footer (and on /contact), not the header:
+ * the owners asked to keep the social accounts at the foot of the page.
+ * `compact` is a smaller size for tight spots.
+ */
+export function SocialIcons({ compact = false }: { compact?: boolean }) {
+  const t = useT()
+  const accounts = useSocialAccounts()
+  if (accounts.length === 0) return null
 
   return (
-    <div>
-      <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-700">
-        {t('footer.followUs')}
-      </h2>
-      <ul className="flex items-center gap-3">
-        {live.map((account) => {
-          const Icon = account.icon
-          return (
-            <li key={account.key}>
-              <a
-                href={account.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={t(account.labelKey)}
-                className="flex h-11 w-11 items-center justify-center rounded-xl bg-sand-100 text-brand-700 transition-colors hover:bg-brand-700 hover:text-white"
-              >
-                <Icon className="h-5 w-5" aria-hidden="true" />
-              </a>
-            </li>
-          )
-        })}
-      </ul>
-    </div>
+    <ul className={cn('flex items-center', compact ? 'gap-1' : 'gap-3')}>
+      {accounts.map((account) => {
+        const Icon = account.icon
+        return (
+          <li key={account.key}>
+            <a
+              href={account.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={t(account.labelKey)}
+              className={cn(
+                'flex items-center justify-center transition-colors',
+                compact
+                  ? 'h-10 w-10 rounded-full text-ink-700 hover:bg-sand-100 hover:text-brand-700'
+                  : 'h-11 w-11 rounded-xl bg-sand-100 text-brand-700 hover:bg-brand-700 hover:text-white',
+              )}
+            >
+              <Icon className="h-5 w-5" aria-hidden="true" />
+            </a>
+          </li>
+        )
+      })}
+    </ul>
   )
 }

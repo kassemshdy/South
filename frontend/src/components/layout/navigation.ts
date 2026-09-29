@@ -1,3 +1,4 @@
+import { useSiteSettings } from '@/hooks/useSiteSettings'
 import type { TranslationKey } from '@/i18n'
 
 /**
@@ -18,6 +19,8 @@ import type { TranslationKey } from '@/i18n'
 export interface SiteSection {
   href: string
   labelKey: TranslationKey
+  /** Shown only once an administrator has entered a way to reach the team. */
+  needsContact?: boolean
 }
 
 export const SITE_SECTIONS: SiteSection[] = [
@@ -30,4 +33,13 @@ export const SITE_SECTIONS: SiteSection[] = [
   { href: '/blog', labelKey: 'nav.blog' },
   { href: '/news', labelKey: 'nav.news' },
   { href: '/about', labelKey: 'nav.about' },
+  // Last, and only once the admin has filled in at least one contact detail
+  // or social account: a contact page with nothing on it is worse than none.
+  { href: '/contact', labelKey: 'nav.contact', needsContact: true },
 ]
+
+/** The sections to show right now; read this rather than the list itself. */
+export function useSiteSections(): SiteSection[] {
+  const { hasContact } = useSiteSettings()
+  return SITE_SECTIONS.filter((section) => !section.needsContact || hasContact)
+}

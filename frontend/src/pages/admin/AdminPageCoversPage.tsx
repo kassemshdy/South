@@ -32,6 +32,7 @@ const PAGE_LABEL: Record<PageCoverKey, TranslationKey> = {
   products_local: 'onboarding.ownerTitle',
   products_imported: 'products.importedPageTitle',
   talent: 'talent.heading',
+  contact: 'nav.contact',
 }
 
 export function AdminPageCoversPage() {

@@ -20,6 +20,7 @@ PAGE_COVER_KEYS: tuple[str, ...] = (
     "products_local",
     "products_imported",
     "talent",
+    "contact",
 )
 
 
