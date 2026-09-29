@@ -43,8 +43,15 @@ export function AdminLayout() {
   useSeo({ title: t('admin.seoTitle'), noIndex: true })
 
   return (
-    <div className="container-page py-8">
-      <nav className="mb-8 flex flex-wrap gap-1.5" aria-label={t('admin.navAria')}>
+    <div className="container-page py-8 lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-start lg:gap-8">
+      {/* A sidebar on the start side from lg up -- the right in Arabic -- so
+          the sections read as a list rather than two rows of pills that grow
+          with every new screen. On a phone it stays one row that scrolls
+          sideways: a column there would push the page itself off screen. */}
+      <nav
+        className="-mx-4 mb-6 flex gap-1.5 overflow-x-auto px-4 pb-2 lg:sticky lg:top-24 lg:mx-0 lg:mb-0 lg:flex-col lg:gap-1 lg:overflow-visible lg:rounded-2xl lg:bg-white lg:p-3 lg:shadow-sm lg:ring-1 lg:ring-ink-100"
+        aria-label={t('admin.navAria')}
+      >
         {NAV.map(({ to, labelKey, icon: Icon, end }) => (
           <NavLink
             key={to}
@@ -52,20 +59,22 @@ export function AdminLayout() {
             end={end}
             className={({ isActive }) =>
               cn(
-                'flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 font-semibold transition-colors',
+                'flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 font-semibold transition-colors lg:rounded-xl lg:px-3',
                 isActive
                   ? 'bg-brand-800 text-white ring-1 ring-brand-900'
-                  : 'bg-white text-ink-700 ring-1 ring-ink-100 hover:bg-sand-100',
+                  : 'bg-white text-ink-700 ring-1 ring-ink-100 hover:bg-sand-100 lg:ring-0',
               )
             }
           >
-            <Icon className="h-4 w-4" aria-hidden="true" />
+            <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
             {t(labelKey)}
           </NavLink>
         ))}
       </nav>
 
-      <Outlet />
+      <div className="min-w-0">
+        <Outlet />
+      </div>
     </div>
   )
 }
