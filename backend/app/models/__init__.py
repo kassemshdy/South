@@ -31,6 +31,7 @@ from app.models.enums import (
 )
 from app.models.feedback import FeedbackAttachment, FeedbackComment, FeedbackTicket
 from app.models.order import Order, OrderLine
+from app.models.page_cover import PageCover
 from app.models.service_request import ServiceRequest
 from app.models.talent import (
     TalentImage,
@@ -73,6 +74,7 @@ __all__ = [
     "OrderLine",
     "OrderStatus",
     "OwnerVerificationDocument",
+    "PageCover",
     "RateLimitEvent",
     "ServiceRequest",
     "SocialPlatform",

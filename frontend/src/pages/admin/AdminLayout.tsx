@@ -5,6 +5,7 @@ import {
   Inbox,
   MapPin,
   MessageSquareQuote,
+  Image as ImageIcon,
   Newspaper,
   Sparkles,
   Store,
@@ -33,6 +34,7 @@ const NAV: { to: string; labelKey: TranslationKey; icon: typeof BarChart3; end: 
     end: false,
   },
   { to: '/admin/articles', labelKey: 'admin.navArticles', icon: Newspaper, end: false },
+  { to: '/admin/page-covers', labelKey: 'admin.navPageCovers', icon: ImageIcon, end: false },
   { to: '/admin/feedback', labelKey: 'admin.navFeedback', icon: Bug, end: false },
 ]
 

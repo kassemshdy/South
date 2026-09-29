@@ -3,10 +3,12 @@ import { ShieldCheck } from 'lucide-react'
 import { WelcomeVideoPlayer } from '@/features/home/WelcomeVideo'
 import { AudienceChooser } from '@/features/onboarding/AudienceChooser'
 import { useT } from '@/i18n'
+import { usePageCover } from '@/hooks/usePageCover'
 import { useSeo } from '@/hooks/useSeo'
 
 export function HomePage() {
   const t = useT()
+  const southCover = usePageCover('home')
 
   useSeo({
     title: t('home.seoTitle'),
@@ -139,8 +141,11 @@ export function HomePage() {
           this needs to feel like somewhere you could stand. */}
       <section className="relative isolate" aria-label={t('home.southTitle')}>
         <img
-          src="/south-hills.jpg"
-          alt={t('home.southImageAlt')}
+          src={southCover.src}
+          // The alt text describes the default photograph; over one an
+          // administrator uploaded it would be wrong, and the heading beside
+          // it already names the section.
+          alt={southCover.custom ? '' : t('home.southImageAlt')}
           width={1200}
           height={630}
           loading="lazy"

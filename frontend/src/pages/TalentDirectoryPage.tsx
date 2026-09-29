@@ -86,6 +86,7 @@ export function TalentDirectoryPage() {
   return (
     <>
       <PageBanner
+        page="talent"
         title={t('talent.heading')}
         subtitle={
           results.data

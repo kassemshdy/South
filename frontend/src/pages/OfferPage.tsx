@@ -60,7 +60,7 @@ export function OfferPage() {
 
   if (agreed) {
     return (
-      <ChoicePageShell title={t(agreed.titleKey)} subtitle={t('onboarding.stepsIntro')}>
+      <ChoicePageShell page="offer" title={t(agreed.titleKey)} subtitle={t('onboarding.stepsIntro')}>
         <div className="mx-auto max-w-2xl">
           <ol className="space-y-5">
             {STEP_KEYS.map((key, index) => (
@@ -99,7 +99,7 @@ export function OfferPage() {
 
   if (pending) {
     return (
-      <ChoicePageShell title={t('consent.heading')} subtitle={t(pending.titleKey)}>
+      <ChoicePageShell page="offer" title={t('consent.heading')} subtitle={t(pending.titleKey)}>
         <div className="mx-auto max-w-2xl rounded-2xl border-2 border-clay-300 bg-white p-6 sm:p-8">
           <span
             className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-100 text-brand-800"
@@ -140,7 +140,7 @@ export function OfferPage() {
   }
 
   return (
-    <ChoicePageShell title={t('offerPage.title')} subtitle={t('offerPage.subtitle')}>
+    <ChoicePageShell page="offer" title={t('offerPage.title')} subtitle={t('offerPage.subtitle')}>
       <div className="mx-auto max-w-3xl space-y-10">
         {/* Before anything else on the page: whether this is for you. */}
         <section className="rounded-2xl border-2 border-olive-200 bg-white p-6 sm:p-8">

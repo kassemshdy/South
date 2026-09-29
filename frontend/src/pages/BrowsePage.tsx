@@ -55,7 +55,7 @@ export function BrowsePage() {
 
   if (!agreed) {
     return (
-      <ChoicePageShell title={t('consent.heading')} subtitle={t('browsePage.title')}>
+      <ChoicePageShell page="browse" title={t('consent.heading')} subtitle={t('browsePage.title')}>
         <div className="mx-auto max-w-2xl rounded-2xl border-2 border-clay-300 bg-white p-6 sm:p-8">
           <span
             className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-100 text-brand-800"
@@ -82,7 +82,7 @@ export function BrowsePage() {
   }
 
   return (
-    <ChoicePageShell title={t('browsePage.title')} subtitle={t('browsePage.subtitle')}>
+    <ChoicePageShell page="browse" title={t('browsePage.title')} subtitle={t('browsePage.subtitle')}>
       <div className="mx-auto max-w-3xl">
         <h2 className="text-lg font-bold text-ink-900">{t('browsePage.doorsTitle')}</h2>
         <ul className="mt-5 grid gap-4 sm:grid-cols-3">

@@ -1,5 +1,8 @@
 import type { ReactNode } from 'react'
 
+import { usePageCover } from '@/hooks/usePageCover'
+import type { PageCoverKey } from '@/types/api'
+
 /**
  * The photograph at the top of an inner page, with the page's heading on it.
  *
@@ -7,20 +10,22 @@ import type { ReactNode } from 'react'
  * the foot of the homepage: an aerial of the coast behind the directory
  * heading says "this is the South" before a single card has loaded.
  *
- * One image for every inner page, set here, so replacing it is one file and
- * one line. The photograph fills the band with `object-cover` rather than
- * setting its height: a 16:9 image at phone width is a letterbox strip, and
- * the band is sized by its words instead. The deep green behind it is what
+ * Each page's photograph is the administrator's to choose: one can be
+ * uploaded per page from the admin panel ("page covers"), and a page with
+ * none shows the default. The photograph fills the band with `object-cover`
+ * rather than setting its height: a 16:9 image at phone width is a letterbox
+ * strip, and the band is sized by its words instead. The deep green behind it is what
  * shows while the image loads, so the heading is never white on white.
  */
-export const PAGE_BANNER_IMAGE = '/south-hills.jpg'
-
 export function PageBanner({
+  page,
   title,
   subtitle,
   imageAlt,
   children,
 }: {
+  /** Whose cover to show; see `usePageCover`. */
+  page: PageCoverKey
   title: string
   subtitle?: ReactNode
   /** Empty when the photograph is decoration and the heading says it all. */
@@ -28,10 +33,11 @@ export function PageBanner({
   /** Rendered above the heading — a way back, for instance. */
   children?: ReactNode
 }) {
+  const cover = usePageCover(page)
   return (
     <div className="relative isolate overflow-hidden border-b-4 border-wheat-500 bg-brand-700">
       <img
-        src={PAGE_BANNER_IMAGE}
+        src={cover.src}
         alt={imageAlt ?? ''}
         width={1200}
         height={630}
