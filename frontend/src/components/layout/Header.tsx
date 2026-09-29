@@ -226,7 +226,7 @@ export function Header() {
             src="/janoubna-logo.webp"
             alt={t('app.name')}
             width={450}
-            height={192}
+            height={191}
             /* The CEO asked for the bar to grow so the logo can be read: the
                lockup carries the three pillars and a sub-line under the name,
                and at 48px in a 64px bar the sub-line was strokes rather than
