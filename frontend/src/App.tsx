@@ -72,6 +72,11 @@ const AdminUserDetailPage = lazy(() =>
 const AdminUsersPage = lazy(() =>
   import('@/pages/admin/AdminUsersPage').then((m) => ({ default: m.AdminUsersPage })),
 )
+const AdminPageCoversPage = lazy(() =>
+  import('@/pages/admin/AdminPageCoversPage').then((m) => ({
+    default: m.AdminPageCoversPage,
+  })),
+)
 const AdminApplicationsPage = lazy(() =>
   import('@/pages/admin/AdminApplicationsPage').then((m) => ({
     default: m.AdminApplicationsPage,
@@ -239,6 +244,7 @@ export function App() {
             <Route path="locations" element={<AdminLocationsPage />} />
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="applications" element={<AdminApplicationsPage />} />
+            <Route path="page-covers" element={<AdminPageCoversPage />} />
             <Route path="users/:id" element={<AdminUserDetailPage />} />
             <Route path="feedback" element={<AdminFeedbackPage />} />
             <Route path="testimonials" element={<AdminTestimonialsPage />} />

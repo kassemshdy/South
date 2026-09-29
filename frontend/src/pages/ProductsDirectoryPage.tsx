@@ -128,6 +128,13 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
   return (
     <>
       <PageBanner
+        page={
+          fixedOrigin === 'LOCAL'
+            ? 'products_local'
+            : fixedOrigin === 'IMPORTED'
+              ? 'products_imported'
+              : 'products'
+        }
         title={heading}
         subtitle={
           results.data

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
 import { PageBanner } from '@/components/layout/PageBanner'
+import type { PageCoverKey } from '@/types/api'
 import { useT } from '@/i18n'
 
 /**
@@ -23,10 +24,12 @@ import { useT } from '@/i18n'
  * with, so the pages are recognisably part of the same site.
  */
 export function ChoicePageShell({
+  page,
   title,
   subtitle,
   children,
 }: {
+  page: PageCoverKey
   title: string
   subtitle: string
   children: ReactNode
@@ -35,7 +38,7 @@ export function ChoicePageShell({
 
   return (
     <div className="bg-sand-50">
-      <PageBanner title={title} subtitle={subtitle}>
+      <PageBanner page={page} title={title} subtitle={subtitle}>
         {/* Back to the homepage, above the title rather than at the foot of
             the page: someone who pressed the wrong card should find the way
             out before they read anything, not after scrolling past it. */}
