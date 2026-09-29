@@ -18,7 +18,7 @@ export function Footer() {
             src="/janoubna-logo.webp"
             alt={t('app.name')}
             width={450}
-            height={192}
+            height={191}
             className="h-16 w-auto"
           />
           <p className="mt-3 max-w-sm leading-relaxed text-ink-500">{t('footer.tagline')}</p>
