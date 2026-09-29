@@ -34,6 +34,7 @@ class S3Storage:
 
         try:
             import boto3
+            from botocore.config import Config
             from botocore.exceptions import ClientError
         except ImportError as exc:  # pragma: no cover - depends on deployment
             raise RuntimeError(
@@ -50,6 +51,7 @@ class S3Storage:
             endpoint_url=settings.s3_endpoint_url,
             aws_access_key_id=settings.s3_access_key_id,
             aws_secret_access_key=settings.s3_secret_access_key,
+            config=Config(s3={"addressing_style": settings.s3_addressing_style}),
         )
 
     def save(self, *, key: str, data: bytes, content_type: str) -> StoredFile:
