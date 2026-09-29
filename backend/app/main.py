@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import mimetypes
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -40,6 +41,7 @@ from app.repositories.business import BusinessRepository
 from app.repositories.item import ItemRepository
 from app.repositories.talent import TalentRepository
 from app.services import business_documents, feedback_attachments, verification
+from app.storage import factory as storage_factory
 
 logger = logging.getLogger(__name__)
 
@@ -263,8 +265,10 @@ def _register_exception_handlers(app: FastAPI) -> None:
 
 
 def _mount_media(app: FastAPI, settings: Settings) -> None:
-    """Serve locally stored uploads when the local storage backend is active."""
-    if settings.storage_backend != "local":
+    """Serve uploads at ``/media``: from the disk, or from the bucket."""
+    if settings.storage_backend == "s3":
+        if not settings.s3_public_base_url:
+            _mount_bucket_media(app, settings)
         return
     media_root = Path(settings.storage_local_dir).resolve()
     media_root.mkdir(parents=True, exist_ok=True)
@@ -273,6 +277,45 @@ def _mount_media(app: FastAPI, settings: Settings) -> None:
         MediaFiles(directory=str(media_root)),
         name="media",
     )
+
+
+def media_key(path: str) -> str | None:
+    """The storage key a ``/media`` path names, or None when it must not be
+    served: a private folder, or anything trying to climb out of the prefix."""
+    key = path.replace("\\", "/").lstrip("/")
+    parts = key.split("/")
+    if not key or ".." in parts or parts[0] in PRIVATE_MEDIA_FOLDERS:
+        return None
+    return key
+
+
+def _mount_bucket_media(app: FastAPI, settings: Settings) -> None:
+    """``/media`` backed by a private bucket, under the same rules as the disk.
+
+    The URLs stored in the database are already ``/media/<key>``, so moving the
+    files to a bucket changes nothing a page links to. A private folder is not
+    found here, exactly as on disk: those files have their own authenticated
+    routes. Photographs are never rewritten in place, so they are cached for
+    good -- which also means Cloudflare answers repeat requests itself and the
+    API reads each object from the bucket about once.
+    """
+    prefix = settings.storage_public_prefix.rstrip("/")
+
+    @app.get(prefix + "/{path:path}", include_in_schema=False)
+    def bucket_media(path: str) -> Response:
+        key = media_key(path)
+        if key is None:
+            raise StarletteHTTPException(status_code=404)
+        try:
+            data = storage_factory.get_storage().read(key)
+        except FileNotFoundError:
+            raise StarletteHTTPException(status_code=404) from None
+        media_type = static_media_type(Path(key)) or mimetypes.guess_type(key)[0]
+        return Response(
+            content=data,
+            media_type=media_type or "application/octet-stream",
+            headers={"Cache-Control": MEDIA_CACHE_CONTROL},
+        )
 
 
 def _mount_frontend(app: FastAPI, settings: Settings) -> None:
@@ -420,9 +463,7 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
                     if exact.suffix.lower() != ".html"
                     else None
                 )
-                return FileResponse(
-                    exact, media_type=static_media_type(exact), headers=headers
-                )
+                return FileResponse(exact, media_type=static_media_type(exact), headers=headers)
 
             # A standalone page shipped in public/ — the presentation deck — is
             # reachable without its extension, so the link someone forwards is
