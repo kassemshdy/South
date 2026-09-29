@@ -18,7 +18,6 @@ import { Link, useNavigate } from 'react-router-dom'
 
 import { LocaleToggle, useLocaleSwitch } from '@/components/layout/LocaleToggle'
 import { useSiteSections } from '@/components/layout/navigation'
-import { SocialIcons } from '@/components/layout/SocialLinks'
 import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useCart } from '@/features/cart/CartContext'
@@ -253,15 +252,6 @@ export function Header() {
             </Link>
           </Button>
 
-          {/* The project's Facebook and Instagram, when an administrator has
-              set them; nothing otherwise. Only from 2xl: at 1280 the row
-              already fills the bar, and the two icons pushed the sign-in
-              button off the edge. Narrower screens have them in the drawer,
-              the footer and on /contact. */}
-          <div className="hidden 2xl:block">
-            <SocialIcons compact />
-          </div>
-
           <MoreMenu />
 
           {/* One control, either way: a sign-in link or the account menu. The
@@ -384,10 +374,6 @@ export function Header() {
               {t(section.labelKey)}
             </Link>
           ))}
-
-          <div className="px-2 py-1">
-            <SocialIcons compact />
-          </div>
 
           {/* The drawer is already a submenu, so the personal links sit here
               under their own heading rather than behind a second tap. */}

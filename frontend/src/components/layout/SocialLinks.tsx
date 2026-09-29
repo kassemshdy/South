@@ -52,7 +52,11 @@ export function useSocialAccounts(): Account[] {
   return candidates.filter((account): account is Account => Boolean(account.href))
 }
 
-/** The icons alone; `compact` is the header's smaller size. */
+/**
+ * The icons alone. They live in the footer (and on /contact), not the header:
+ * the owners asked to keep the social accounts at the foot of the page.
+ * `compact` is a smaller size for tight spots.
+ */
 export function SocialIcons({ compact = false }: { compact?: boolean }) {
   const t = useT()
   const accounts = useSocialAccounts()
