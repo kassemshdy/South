@@ -5,7 +5,6 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
-  Languages,
   Search,
   ShoppingBag,
   Shield,
@@ -16,7 +15,6 @@ import {
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
-import { LocaleToggle, useLocaleSwitch } from '@/components/layout/LocaleToggle'
 import { useSiteSections } from '@/components/layout/navigation'
 import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -38,12 +36,12 @@ import { cn } from '@/utils/cn'
  * The public side is the headings the directory's owner asked for, in their
  * order, each a direct link: products, services and skills, news, the blog,
  * about us. They were briefly grouped — three visible and three behind a
- * `nav.more` menu — to keep the row short; that was overruled, because a
+ * "more" menu — to keep the row short; that was overruled, because a
  * heading somebody has to find is not a heading.
  *
- * `nav.more` came back for what is *not* a heading. The language switch lives
- * there rather than in the row, because a button wide enough to carry the
- * word «English» costs a heading's worth of width and is touched once.
+ * The language switch is not in the header at all: the owners asked for it in
+ * the footer, beside the social accounts, since it is touched once and a
+ * button wide enough to carry «English» costs a heading's worth of width.
  *
  * Home is not a heading either: the logo has always gone there, and every site
  * a visitor has ever used taught them that.
@@ -141,47 +139,6 @@ function FavouritesLink() {
   )
 }
 
-/**
- * The row's overflow: what belongs in the header without belonging beside the
- * headings.
- *
- * The language switch is the whole of it today, so at the CEO's request the
- * trigger says so: `nav.more` reads "Language" rather than "More". It used to
- * sit in the row as a button wide enough to carry the word «English», which is
- * a lot of width for something most visitors touch once and never again.
- */
-function MoreMenu() {
-  const t = useT()
-  const { label, action, switchLocale } = useLocaleSwitch()
-
-  return (
-    <DropdownMenuPrimitive.Root>
-      <DropdownMenuPrimitive.Trigger asChild>
-        <button type="button" className={cn(NAV_LINK, 'flex items-center gap-1')}>
-          {t('nav.more')}
-          <ChevronDown className="h-3.5 w-3.5 text-ink-500" aria-hidden="true" />
-        </button>
-      </DropdownMenuPrimitive.Trigger>
-      <DropdownMenuPrimitive.Portal>
-        <DropdownMenuPrimitive.Content
-          align="end"
-          sideOffset={6}
-          className="z-50 min-w-48 overflow-hidden rounded-xl border border-ink-100 bg-white p-1 shadow-lift"
-        >
-          <DropdownMenuPrimitive.Item
-            className={MENU_ITEM}
-            onSelect={switchLocale}
-            aria-label={action}
-          >
-            <Languages className="h-4 w-4 text-ink-500" aria-hidden="true" />
-            {label}
-          </DropdownMenuPrimitive.Item>
-        </DropdownMenuPrimitive.Content>
-      </DropdownMenuPrimitive.Portal>
-    </DropdownMenuPrimitive.Root>
-  )
-}
-
 export function Header() {
   const { isAuthenticated, isAdmin, user, signOut } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -251,8 +208,6 @@ export function Header() {
               <Search className="h-5 w-5" aria-hidden="true" />
             </Link>
           </Button>
-
-          <MoreMenu />
 
           {/* One control, either way: a sign-in link or the account menu. The
               row never gains an item for being signed in. */}
@@ -340,7 +295,6 @@ export function Header() {
         <div className="flex items-center gap-1 xl:hidden">
           <CartLink />
           <FavouritesLink />
-          <LocaleToggle compact />
           <Button asChild variant="ghost" size="icon" aria-label={t('nav.searchAria')}>
             <Link to="/products">
               <Search className="h-5 w-5" aria-hidden="true" />

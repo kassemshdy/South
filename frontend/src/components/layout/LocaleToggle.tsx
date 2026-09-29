@@ -29,9 +29,9 @@ const ENDONYM_KEYS: Record<Locale, TranslationKey> = {
 /**
  * The switch itself, without a control around it.
  *
- * Shared so the header's «more» menu offers the same language, named the same
- * way, as the button below `lg` — the endonym rule above is worth exactly one
- * copy, and a second hand-written mapping is how the two would drift.
+ * Kept separate from the button so any other control offering the switch
+ * names the language the same way — the endonym rule above is worth exactly
+ * one copy, and a second hand-written mapping is how two would drift.
  */
 export function useLocaleSwitch(): {
   label: string

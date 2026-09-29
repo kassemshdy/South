@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 
 import { ContactDetails } from '@/components/layout/ContactDetails'
+import { LocaleToggle } from '@/components/layout/LocaleToggle'
 import { useSiteSections } from '@/components/layout/navigation'
 import { SocialIcons } from '@/components/layout/SocialLinks'
 import { useSiteSettings } from '@/hooks/useSiteSettings'
@@ -94,8 +95,14 @@ export function Footer() {
         </div>
       </div>
 
-      <div className="border-t border-ink-100 py-5 text-center text-sm text-ink-500">
-        {t('footer.copyright', { year: new Date().getFullYear() })}
+      {/* The language switch lives here, at the owners' request, rather than
+          in the header: most visitors touch it once, and the bar is for the
+          sections. It names the language it switches to, in that language. */}
+      <div className="border-t border-ink-100 py-4">
+        <div className="container-page flex flex-col items-center justify-between gap-2 text-sm text-ink-500 sm:flex-row">
+          <span>{t('footer.copyright', { year: new Date().getFullYear() })}</span>
+          <LocaleToggle />
+        </div>
       </div>
     </footer>
   )
