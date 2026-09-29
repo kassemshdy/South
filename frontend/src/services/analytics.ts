@@ -65,8 +65,13 @@ export function initAnalytics(): void {
   document.head.appendChild(script)
 
   window.dataLayer = window.dataLayer ?? []
-  window.gtag = function gtag(...args: GtagArgs) {
-    window.dataLayer?.push(args)
+  // `arguments`, not a rest array, exactly as Google's own snippet does:
+  // gtag.js only acts on queued Arguments objects and silently skips plain
+  // arrays. With `(...args) => push(args)` the tag loaded but the config and
+  // every page view were dropped, so GA showed no data at all.
+  window.gtag = function gtag(..._args: GtagArgs) {
+    // eslint-disable-next-line prefer-rest-params
+    window.dataLayer?.push(arguments)
   }
   window.gtag('js', new Date())
   window.gtag('config', MEASUREMENT_ID, {
