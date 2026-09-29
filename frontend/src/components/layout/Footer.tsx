@@ -20,7 +20,7 @@ export function Footer() {
         <div>
           {/* As large as the header's, which grew so the logo reads. */}
           <img
-            src="/janoubna-logo.webp"
+            src="/janoubna-logo-v2.webp"
             alt={t('app.name')}
             width={450}
             height={191}
