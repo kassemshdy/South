@@ -8,11 +8,14 @@ import { Card, CardBody } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
+import { MAX_IMAGE_BYTES } from '@/features/images/ImageManager'
 import { DEFAULT_PAGE_COVER } from '@/hooks/usePageCover'
 import { useT, type TranslationKey } from '@/i18n'
+import { ApiError } from '@/services/api/client'
 import { adminApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { PageCover, PageCoverKey } from '@/types/api'
+import { shrinkImage } from '@/utils/shrinkImage'
 
 /**
  * The photograph at the top of each public page, chosen here.
@@ -71,18 +74,31 @@ function CoverRow({ cover }: { cover: PageCover }) {
     void queryClient.invalidateQueries({ queryKey: queryKeys.pageCovers })
   }
 
+  // The server refuses anything over 5 MB and keeps no more than 1600px of
+  // it, so a camera-sized photo is shrunk here first rather than refused.
   const upload = useMutation({
-    mutationFn: (file: File) => adminApi.setPageCover(cover.page_key, file),
+    mutationFn: async (file: File) => {
+      const small = await shrinkImage(file, { maxBytes: MAX_IMAGE_BYTES })
+      return adminApi.setPageCover(cover.page_key, small)
+    },
     onSuccess: () => {
       refresh()
       toast.success(t('admin.pageCoversSaved'))
     },
-    onError: () => toast.error(t('admin.pageCoversFailed')),
+    onError: (error) =>
+      toast.error(
+        t('admin.pageCoversFailed'),
+        error instanceof ApiError ? error.message : undefined,
+      ),
   })
   const reset = useMutation({
     mutationFn: () => adminApi.resetPageCover(cover.page_key),
     onSuccess: refresh,
-    onError: () => toast.error(t('admin.pageCoversFailed')),
+    onError: (error) =>
+      toast.error(
+        t('admin.pageCoversFailed'),
+        error instanceof ApiError ? error.message : undefined,
+      ),
   })
 
   const busy = upload.isPending || reset.isPending
