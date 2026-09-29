@@ -40,9 +40,7 @@ def spa_client() -> TestClient:
 
 
 @pytest.fixture
-def approved_slug(
-    client: TestClient, db: Session, category: Category, location: Location
-) -> str:
+def approved_slug(client: TestClient, db: Session, category: Category, location: Location) -> str:
     headers = sign_in(client, "03910001")
     created = client.post(
         "/api/businesses",
@@ -85,9 +83,7 @@ def test_business_url_gets_server_rendered_seo_tags(
 
 
 @pytest.fixture
-def approved_talent_slug(
-    client: TestClient, db: Session, admin: User, location: Location
-) -> str:
+def approved_talent_slug(client: TestClient, db: Session, admin: User, location: Location) -> str:
     skill = TalentSkill(name_ar=ar("skill.design"), slug="design", sort_order=1)
     db.add(skill)
     db.commit()
@@ -141,7 +137,7 @@ def test_unknown_and_client_routes_serve_the_spa(spa_client: TestClient) -> None
     for path in ("/", "/businesses", "/dashboard", "/business/does-not-exist"):
         response = spa_client.get(path)
         assert response.status_code == 200, path
-        assert "<div id=\"root\">" in response.text, path
+        assert '<div id="root">' in response.text, path
 
 
 def test_generic_routes_get_the_default_absolute_share_image(spa_client: TestClient) -> None:
@@ -286,9 +282,7 @@ def test_a_font_is_still_a_font_on_a_machine_with_no_mime_database(
     # patching the mimetypes module leaves it untouched. My first version of
     # this test did exactly that and passed with the fix reverted -- a guard
     # that proves nothing, which is worse than no guard.
-    monkeypatch.setattr(
-        starlette.responses, "guess_type", lambda *args, **kwargs: (None, None)
-    )
+    monkeypatch.setattr(starlette.responses, "guess_type", lambda *args, **kwargs: (None, None))
 
     response = spa_client.get(f"/assets/{fonts[0].name}")
 
@@ -349,9 +343,7 @@ def product_slug(client: TestClient, db: Session, approved_slug: str) -> str:
     return item.slug
 
 
-def test_a_product_link_previews_as_the_product(
-    spa_client: TestClient, product_slug: str
-) -> None:
+def test_a_product_link_previews_as_the_product(spa_client: TestClient, product_slug: str) -> None:
     """Its name and its price -- what a product link in a chat needs to say.
 
     It used to preview as the homepage: products had no server-side tags,
@@ -397,3 +389,60 @@ def test_the_imported_goods_page_is_served_with_its_own_title(spa_client: TestCl
         site=translate("app.name", "ar"),
     )
     assert f"<title>{expected}</title>" in html
+
+
+def _json_ld(html: str) -> list[dict[str, object]]:
+    """Every JSON-LD block in a served page, parsed."""
+    import json
+    import re
+
+    blocks = re.findall(r'<script type="application/ld\+json">(.*?)</script>', html, re.DOTALL)
+    return [json.loads(block) for block in blocks]
+
+
+def test_a_product_page_carries_product_structured_data(
+    spa_client: TestClient, product_slug: str, approved_slug: str
+) -> None:
+    """What Google reads for a product rich result: name, price, seller."""
+    [product] = _json_ld(spa_client.get(f"/product/{product_slug}").text)
+    assert product["@type"] == "Product"
+    assert product["name"] == ar("item.zaatar_local")
+    assert product["url"] == f"https://example.test/product/{quote(product_slug)}"
+    offer = product["offers"]
+    assert isinstance(offer, dict)
+    assert offer["price"] == "12.50"
+    assert offer["priceCurrency"] == "USD"
+    assert offer["availability"] == "https://schema.org/InStock"
+    seller = offer["seller"]
+    assert isinstance(seller, dict)
+    assert seller["url"] == f"https://example.test/business/{quote(approved_slug)}"
+
+
+def test_a_shop_page_carries_local_business_structured_data(
+    spa_client: TestClient, approved_slug: str
+) -> None:
+    [shop] = _json_ld(spa_client.get(f"/business/{approved_slug}").text)
+    assert shop["@type"] == "LocalBusiness"
+    assert shop["name"] == ar("business.seo_name")
+    address = shop["address"]
+    assert isinstance(address, dict)
+    assert address["addressCountry"] == "LB"
+
+
+def test_the_homepage_says_who_publishes_the_site_and_how_to_search_it(
+    spa_client: TestClient,
+) -> None:
+    organization, website = _json_ld(spa_client.get("/").text)
+    assert organization["@type"] == "Organization"
+    assert organization["logo"] == "https://example.test/janoubna-logo.png"
+    assert website["@type"] == "WebSite"
+    action = website["potentialAction"]
+    assert isinstance(action, dict)
+    target = action["target"]
+    assert isinstance(target, dict)
+    assert target["urlTemplate"] == "https://example.test/products?q={search_term_string}"
+
+
+def test_other_pages_carry_no_structured_data(spa_client: TestClient) -> None:
+    assert _json_ld(spa_client.get("/products").text) == []
+    assert _json_ld(spa_client.get("/product/does-not-exist").text) == []
