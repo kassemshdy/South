@@ -16,19 +16,20 @@ const fixture = load<{ query: string; locationSlug: string }>(
 const t = (key: string): string => ar[key]!
 
 /**
- * Moving between the three directories.
+ * Moving between the directories: goods and products, and services and skills.
  *
  * They used to be islands. A visitor who searched the products directory and
  * found nothing had the browser's back button and the homepage, and nothing
- * else — the three lists had no idea the other two existed. So the same three
- * doors the homepage popup offers are repeated above the results, where the
- * decision is actually being reconsidered.
+ * else. So the doors the homepage offers are repeated above the results, where
+ * the decision is actually being reconsidered. There is no businesses tab: at
+ * the CEO's request the site speaks only of those two, and a shop is reached
+ * through its products.
  *
  * The part worth asserting rather than eyeballing is **which filters travel**.
- * `q` and `location` mean the same thing in all three directories and must
- * survive the hop; the price bounds are products-only, and carrying them into
- * a page with no price filter would apply a narrowing the visitor can neither
- * see nor clear.
+ * `q` and `location` mean the same thing in both directories and must survive
+ * the hop; the price bounds are products-only, and carrying them into a page
+ * with no price filter would apply a narrowing the visitor can neither see nor
+ * clear.
  */
 test.describe('Browse switcher', () => {
   test('marks where you are, carries the shared filters, and drops the ones that do not travel', async ({
@@ -47,14 +48,15 @@ test.describe('Browse switcher', () => {
       'aria-current',
       'page',
     )
+    await expect(strip.getByRole('link', { name: t('browse.businessesShort') })).toHaveCount(0)
 
-    await strip.getByRole('link', { name: t('browse.businessesShort') }).click()
+    await strip.getByRole('link', { name: t('browse.talentShort') }).click()
 
-    await expect(page).toHaveURL(/\/businesses/)
+    await expect(page).toHaveURL(/\/talent/)
     const carried = new URL(page.url()).searchParams
     expect(carried.get('q')).toBe(fixture.query)
     expect(carried.get('location')).toBe(fixture.locationSlug)
-    // Products-only, and the businesses directory can neither show nor clear
+    // Products-only, and the talent directory can neither show nor clear
     // them, so they are dropped rather than applied invisibly.
     expect(carried.get('max_price')).toBeNull()
     expect(carried.get('currency')).toBeNull()
@@ -64,22 +66,20 @@ test.describe('Browse switcher', () => {
     await expect(page.getByRole('searchbox')).toHaveValue(fixture.query)
   })
 
-  test('every directory carries the strip, and the third is one tap from the first', async ({
-    page,
-  }) => {
-    await page.goto('/businesses')
+  test('both directories carry the strip, each one tap from the other', async ({ page }) => {
+    await page.goto('/talent')
     const strip = page.getByRole('navigation', { name: t('browse.switcherLabel') })
-    await expect(
-      strip.getByRole('link', { name: t('browse.businessesShort') }),
-    ).toHaveAttribute('aria-current', 'page')
-
-    await strip.getByRole('link', { name: t('browse.talentShort') }).click()
-    await expect(page).toHaveURL(/\/talent/)
-
-    const onTalent = page.getByRole('navigation', { name: t('browse.switcherLabel') })
-    await expect(onTalent.getByRole('link', { name: t('browse.talentShort') })).toHaveAttribute(
+    await expect(strip.getByRole('link', { name: t('browse.talentShort') })).toHaveAttribute(
       'aria-current',
       'page',
     )
+
+    await strip.getByRole('link', { name: t('browse.productsShort') }).click()
+    await expect(page).toHaveURL(/\/products/)
+
+    const onProducts = page.getByRole('navigation', { name: t('browse.switcherLabel') })
+    await expect(
+      onProducts.getByRole('link', { name: t('browse.productsShort') }),
+    ).toHaveAttribute('aria-current', 'page')
   })
 })

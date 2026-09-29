@@ -18,7 +18,7 @@ export function NotFoundPage() {
           <Link to="/">{t('notFound.home')}</Link>
         </Button>
         <Button asChild variant="outline">
-          <Link to="/businesses">{t('nav.directory')}</Link>
+          <Link to="/products">{t('nav.products')}</Link>
         </Button>
       </div>
     </div>

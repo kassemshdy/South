@@ -218,12 +218,13 @@ test.describe('Audience chooser', () => {
     await page.getByRole('link', { name: t('onboarding.seekGoodsTitle') }).click()
     await expect(page).toHaveURL(/\/products/)
 
-    // The door this fork no longer offers, still one tap from the page it
-    // sent us to. This is the whole argument for dropping to two, so it is
-    // pinned next to the assertion that the card is gone.
+    // The strip above the directory offers the other half, services and
+    // skills, and no businesses tab: at the CEO's request the site speaks
+    // only of goods and products and of services and skills.
     const strip = page.getByRole('navigation', { name: t('browse.switcherLabel') })
-    await strip.getByRole('link', { name: t('browse.businessesShort') }).click()
-    await expect(page).toHaveURL(/\/businesses/)
+    await expect(strip.getByRole('link', { name: t('browse.businessesShort') })).toHaveCount(0)
+    await strip.getByRole('link', { name: t('browse.talentShort') }).click()
+    await expect(page).toHaveURL(/\/talent/)
   })
 
   test('goods made in the South and imported goods are separate doors, on both halves', async ({

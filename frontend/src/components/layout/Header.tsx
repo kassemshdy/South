@@ -145,10 +145,10 @@ function FavouritesLink() {
  * The row's overflow: what belongs in the header without belonging beside the
  * headings.
  *
- * The language switch is the whole of it today. It used to sit in the row as
- * a button wide enough to carry the word «English», which is a lot of width
- * for something most visitors touch once and never again, and the headings
- * need that width more than it does.
+ * The language switch is the whole of it today, so at the CEO's request the
+ * trigger says so: `nav.more` reads "Language" rather than "More". It used to
+ * sit in the row as a button wide enough to carry the word «English», which is
+ * a lot of width for something most visitors touch once and never again.
  */
 function MoreMenu() {
   const t = useT()
@@ -198,7 +198,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-ink-100 bg-sand-50/95 backdrop-blur">
-      <div className="container-page flex h-16 items-center justify-between gap-4">
+      <div className="container-page flex h-20 items-center justify-between gap-4">
         {/* The hit area is the bar's full height and reaches a little past
             the artwork on each side. Sizing it to the image alone left a
             106x40 target in a 64px bar — the logo looked dead to anyone whose
@@ -227,11 +227,11 @@ export function Header() {
             alt={t('app.name')}
             width={450}
             height={192}
-            /* Taller than a wordmark would need: this lockup carries the three
-               pillars and a sub-line under the name, and at 36px they were
-               strokes rather than letters. 48px is what the 64px bar allows
-               with the padding above still clearing the edge. */
-            className="h-11 w-auto sm:h-12"
+            /* The CEO asked for the bar to grow so the logo can be read: the
+               lockup carries the three pillars and a sub-line under the name,
+               and at 48px in a 64px bar the sub-line was strokes rather than
+               letters. 80px now, with the logo at 56-64px. */
+            className="h-14 w-auto sm:h-16"
           />
         </Link>
 
@@ -242,11 +242,11 @@ export function Header() {
             </Link>
           ))}
 
-          {/* The directory, as an icon rather than a seventh heading: the six
-              above are the ones that were asked for, and this is the same
-              control the narrow bar has carried all along. */}
+          {/* Search, as an icon: it opens goods and products, where the search
+              box is. It used to open the business directory, which the site no
+              longer links (see `navigation.ts`). */}
           <Button asChild variant="ghost" size="icon" aria-label={t('nav.searchAria')}>
-            <Link to="/businesses">
+            <Link to="/products">
               <Search className="h-5 w-5" aria-hidden="true" />
             </Link>
           </Button>
@@ -341,7 +341,7 @@ export function Header() {
           <FavouritesLink />
           <LocaleToggle compact />
           <Button asChild variant="ghost" size="icon" aria-label={t('nav.searchAria')}>
-            <Link to="/businesses">
+            <Link to="/products">
               <Search className="h-5 w-5" aria-hidden="true" />
             </Link>
           </Button>
