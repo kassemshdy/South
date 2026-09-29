@@ -13,8 +13,7 @@ export function Footer() {
     <footer className="mt-20 border-t border-ink-100 bg-white">
       <div className="container-page grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          {/* Bigger here than in the bar, because the footer has the room
-              the 64px header does not and this lockup rewards it. */}
+          {/* As large as the header's, which grew so the logo reads. */}
           <img
             src="/janoubna-logo.webp"
             alt={t('app.name')}
@@ -25,20 +24,12 @@ export function Footer() {
           <p className="mt-3 max-w-sm leading-relaxed text-ink-500">{t('footer.tagline')}</p>
         </div>
 
-        {/* Every heading in the header, from the same list the header reads,
-            plus the directory — which the header carries as a search icon
-            rather than a heading, and which somebody scanning a footer for
-            the site's parts would expect to find named. */}
+        {/* Every heading in the header, from the same list the header reads. */}
         <nav aria-label={t('footer.sectionsAria')}>
           <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-700">
             {t('footer.sections')}
           </h2>
           <ul className="space-y-2 text-ink-500">
-            <li>
-              <Link to="/businesses" className="hover:text-brand-700">
-                {t('nav.directory')}
-              </Link>
-            </li>
             {SITE_SECTIONS.map((section) => (
               <li key={section.href}>
                 <Link to={section.href} className="hover:text-brand-700">

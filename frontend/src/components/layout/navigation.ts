@@ -10,9 +10,10 @@ import type { TranslationKey } from '@/i18n'
  * after "I want to buy" led to two different pages depending on which copy a
  * visitor pressed.
  *
- * The business directory is deliberately not in it. It is not one of the
- * headings, and the two surfaces reach it differently: the header as a search
- * icon, the footer as a named link.
+ * The business directory is not in it and is linked from nowhere: the CEO asked
+ * for the site to speak only of "goods and products" and "services and skills",
+ * so a shop is reached through its products. `/businesses` still answers, for
+ * links already shared, but nothing on the site points to it.
  */
 export interface SiteSection {
   href: string
@@ -20,9 +21,13 @@ export interface SiteSection {
 }
 
 export const SITE_SECTIONS: SiteSection[] = [
+  // Back at the CEO's request, first in the row: a way home that is a word,
+  // for visitors who do not know the logo is one.
+  { href: '/', labelKey: 'nav.home' },
   { href: '/products', labelKey: 'nav.products' },
   { href: '/talent', labelKey: 'nav.talent' },
-  { href: '/news', labelKey: 'nav.news' },
+  // The blog before the news, in the CEO's order.
   { href: '/blog', labelKey: 'nav.blog' },
+  { href: '/news', labelKey: 'nav.news' },
   { href: '/about', labelKey: 'nav.about' },
 ]

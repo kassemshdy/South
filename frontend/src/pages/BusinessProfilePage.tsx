@@ -82,7 +82,7 @@ export function BusinessProfilePage() {
         <ErrorState error={business.error} onRetry={() => void business.refetch()} />
         <div className="mt-6 text-center">
           <Button asChild variant="outline">
-            <Link to="/businesses">{t('business.backToDirectory')}</Link>
+            <Link to="/products">{t('nav.products')}</Link>
           </Button>
         </div>
       </div>
@@ -148,7 +148,7 @@ export function BusinessProfilePage() {
 
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-500">
               {data.category ? (
-                <Link to={`/businesses?category=${encodeURIComponent(data.category.slug)}`} className="font-semibold text-brand-700 hover:underline">
+                <Link to={`/products?category=${encodeURIComponent(data.category.slug)}`} className="font-semibold text-brand-700 hover:underline">
                   {data.custom_category_text || data.category.name_ar}
                 </Link>
               ) : null}
