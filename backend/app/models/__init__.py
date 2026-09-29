@@ -33,6 +33,7 @@ from app.models.feedback import FeedbackAttachment, FeedbackComment, FeedbackTic
 from app.models.order import Order, OrderLine
 from app.models.page_cover import PageCover
 from app.models.service_request import ServiceRequest
+from app.models.site_setting import SiteSetting
 from app.models.talent import (
     TalentImage,
     TalentModerationAction,
@@ -77,6 +78,7 @@ __all__ = [
     "PageCover",
     "RateLimitEvent",
     "ServiceRequest",
+    "SiteSetting",
     "SocialPlatform",
     "TalentImage",
     "TalentModerationAction",
