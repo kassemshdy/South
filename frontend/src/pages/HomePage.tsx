@@ -18,6 +18,57 @@ export function HomePage() {
 
   return (
     <>
+      {/* The first thing under the menu: the place itself. It used to close
+          the page, under the green band; it moved up so a visitor meets the
+          South before anything else. The message sits over the image in a
+          scrim so the coastline is the thing you look at, and the words are
+          what you read while looking at it.
+          `object-cover` with a fixed height rather than the image's own
+          aspect: a 16:9 photograph at phone width is a letterbox strip, and
+          this needs to feel like somewhere you could stand. */}
+      <section className="relative isolate" aria-label={t('home.southTitle')}>
+        <img
+          src={southCover.src}
+          // The alt text describes the default photograph; over one an
+          // administrator uploaded it would be wrong, and the heading beside
+          // it already names the section.
+          alt={southCover.custom ? '' : t('home.southImageAlt')}
+          width={1200}
+          height={630}
+          // Above the fold now, so fetched first rather than lazily.
+          fetchPriority="high"
+          decoding="async"
+          // A little shorter than it was at the foot, so the pitch and the
+          // two choices under it are not pushed a whole screen down.
+          className="h-[18rem] w-full object-cover sm:h-[22rem] lg:h-[26rem]"
+        />
+        {/* Heavy at the foot and quick to clear: the text lands over open
+            water, the brightest part of the photograph, and a gentler scrim
+            left white-on-pale-blue. Written out rather than assembled from
+            `from-`/`via-`/`to-` utilities because it needs four stops with
+            chosen positions, and the two-stop version was not dark enough
+            where the words actually sit. ink-900, the same colour the rest of
+            the page sets text in. */}
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              'linear-gradient(to top, rgba(31,30,28,0.94) 0%, rgba(31,30,28,0.82) 22%, rgba(31,30,28,0.35) 55%, rgba(31,30,28,0) 82%)',
+          }}
+          aria-hidden="true"
+        />
+        <div className="container-page absolute inset-x-0 bottom-0 pb-8 sm:pb-12">
+          <div className="max-w-2xl">
+            <h2 className="font-display text-2xl font-bold text-white sm:text-3xl lg:text-4xl">
+              {t('home.southTitle')}
+            </h2>
+            <p className="mt-3 text-base leading-relaxed text-white/90 sm:text-lg">
+              {t('home.southBody')}
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* The hero is a split, not a cover: the words on the reading-start
           side, Dr Hossam on the other. DOM order does the mirroring — the copy
           comes first, so it lands on the right in Arabic and on the left in
@@ -76,7 +127,8 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Straight under the hero, against it, and the last thing on the page.
+      {/* Straight under the hero, against it, and now the last thing on the
+          page again: the photograph that used to follow it opens the page.
           The four words carry the weight of the whole project, so the mark's
           deep green closes the homepage rather than turning up somewhere in
           the middle of it.
@@ -129,55 +181,6 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* The last thing before the footer: the place itself.
-          A photograph rather than another band of type — the green band above
-          already says the claim loudly, and following it with a second loud
-          band would leave the page shouting twice. This one is quiet on
-          purpose: the message sits over the image in a scrim so the coastline
-          is the thing you look at, and the words are what you read while
-          looking at it.
-          `object-cover` with a fixed height rather than the image's own
-          aspect: a 16:9 photograph at phone width is a letterbox strip, and
-          this needs to feel like somewhere you could stand. */}
-      <section className="relative isolate" aria-label={t('home.southTitle')}>
-        <img
-          src={southCover.src}
-          // The alt text describes the default photograph; over one an
-          // administrator uploaded it would be wrong, and the heading beside
-          // it already names the section.
-          alt={southCover.custom ? '' : t('home.southImageAlt')}
-          width={1200}
-          height={630}
-          loading="lazy"
-          decoding="async"
-          className="h-[22rem] w-full object-cover sm:h-[26rem] lg:h-[30rem]"
-        />
-        {/* Heavy at the foot and quick to clear: the text lands over open
-            water, the brightest part of the photograph, and a gentler scrim
-            left white-on-pale-blue. Written out rather than assembled from
-            `from-`/`via-`/`to-` utilities because it needs four stops with
-            chosen positions, and the two-stop version was not dark enough
-            where the words actually sit. ink-900, the same colour the rest of
-            the page sets text in. */}
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage:
-              'linear-gradient(to top, rgba(31,30,28,0.94) 0%, rgba(31,30,28,0.82) 22%, rgba(31,30,28,0.35) 55%, rgba(31,30,28,0) 82%)',
-          }}
-          aria-hidden="true"
-        />
-        <div className="container-page absolute inset-x-0 bottom-0 pb-8 sm:pb-12">
-          <div className="max-w-2xl">
-            <h2 className="font-display text-2xl font-bold text-white sm:text-3xl lg:text-4xl">
-              {t('home.southTitle')}
-            </h2>
-            <p className="mt-3 text-base leading-relaxed text-white/90 sm:text-lg">
-              {t('home.southBody')}
-            </p>
-          </div>
-        </div>
-      </section>
     </>
   )
 }
