@@ -412,6 +412,18 @@ login.
   (its start command re-runs migrations + seed), but avoid triggering a Postgres redeploy
   at all until this is fixed. Before setting *any* variable or config on `postgres`, check
   whether it forces a redeploy, and confirm with the user first if so.
+- **Uploads can live in a private bucket instead of the volume.** With
+  `STORAGE_BACKEND=s3` and no `S3_PUBLIC_BASE_URL`, files go to the bucket but
+  are still served at `/media/<key>` by the API (`_mount_bucket_media`), so the
+  URLs in the database never change and `PRIVATE_MEDIA_FOLDERS` is refused
+  exactly as on disk — `tests/test_media_bucket.py` pins both. Never set
+  `S3_PUBLIC_BASE_URL` on a bucket holding private folders: it would make every
+  ID scan and CV reachable by name. `scripts/copy_media_to_bucket.py` runs at
+  boot and copies whatever is on the volume that the bucket lacks, so the move
+  is: attach the bucket and set the variables with the volume still mounted,
+  confirm the files serve, and only then detach the volume. A service with a
+  volume cannot run two instances, so every deploy of `api` has a minute or two
+  of 502s until it is gone.
 - **Point-in-Time Recovery (`WAL_ARCHIVE_*` variables) only works on Railway's own managed
   Postgres image.** This project's `postgres` service runs plain `postgres:16-alpine` from
   Docker Hub — pgBackRest isn't installed, so those variables are inert. Real PITR here
