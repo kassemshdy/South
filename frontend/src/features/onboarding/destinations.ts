@@ -47,23 +47,13 @@ export function destinationFor(door: Door, isAuthenticated: boolean): string {
 }
 
 /**
- * The three directories, as individual doors.
+ * The two directories the site links, as individual doors.
  *
- * Named separately rather than written inline in one array because two
- * surfaces need overlapping subsets of them and the subsets must be the same
- * *objects*: the switcher strip above every directory offers all three, while
- * the homepage fork offers two. Sharing the objects is what stops the two
- * from drifting the way the three hand-written copies of this list once did.
+ * Named separately rather than written inline in one array because more than
+ * one surface offers them and they must be the same *objects*: sharing them is
+ * what stops the lists from drifting the way the three hand-written copies of
+ * this list once did.
  */
-const businessesDoor: Door = {
-  key: 'businesses',
-  icon: Store,
-  titleKey: 'browse.businessesTitle',
-  descriptionKey: 'browse.businessesDescription',
-  shortKey: 'browse.businessesShort',
-  href: '/businesses',
-}
-
 const productsDoor: Door = {
   key: 'products',
   icon: Package,
@@ -86,12 +76,13 @@ const talentDoor: Door = {
 }
 
 /**
- * Every directory, for the switcher strip that sits above each of them. All
- * three, because from inside one directory the other two are where you go
- * next, and a visitor who wanted the bakery on the corner should not have to
- * reach it through one of its products.
+ * The switcher strip above each directory: goods and products, and services
+ * and skills. The businesses tab was removed at the CEO's request -- the site
+ * speaks only of those two -- so a shop is reached through its products.
+ * `/businesses` still answers links already shared, but is linked from
+ * nowhere.
  */
-export const BROWSE_DOORS: Door[] = [businessesDoor, productsDoor, talentDoor]
+export const BROWSE_DOORS: Door[] = [productsDoor, talentDoor]
 
 /**
  * Where someone looking for something goes: **three** doors —— goods made in
@@ -107,9 +98,8 @@ export const BROWSE_DOORS: Door[] = [businessesDoor, productsDoor, talentDoor]
  * Two rather than three is the ticket's call and it costs something, so it is
  * written down here rather than left to be rediscovered: the businesses
  * directory is no longer offered by the homepage fork. It stays one tap away
- * —— the header links it, and the switcher strip at the top of `/products` and
- * `/talent` carries it —— but the fork itself no longer names it. Restoring it
- * means adding `businessesDoor` back to this array and nothing else.
+ * and, since the CEO asked for the site to speak only of goods and products
+ * and of services and skills, nothing else on the site names it either.
  */
 export const SEEK_DOORS: Door[] = [
   {

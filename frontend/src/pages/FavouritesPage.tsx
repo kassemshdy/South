@@ -47,9 +47,6 @@ export function FavouritesPage() {
           <p className="mt-1.5 text-ink-500">{t('favourites.emptyHint')}</p>
           <div className="mt-6 flex flex-wrap justify-center gap-2">
             <Button asChild>
-              <Link to="/businesses">{t('favourites.browseBusinesses')}</Link>
-            </Button>
-            <Button asChild variant="outline">
               <Link to="/products">{t('favourites.browseProducts')}</Link>
             </Button>
           </div>

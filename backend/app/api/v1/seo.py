@@ -17,7 +17,6 @@ from app.core.dependencies import AppSettings, DbSession
 from app.repositories.business import BusinessRepository
 from app.repositories.item import ItemRepository
 from app.repositories.talent import TalentRepository, TalentSkillRepository
-from app.repositories.taxonomy import CategoryRepository
 
 router = APIRouter(include_in_schema=False)
 
@@ -36,10 +35,12 @@ def sitemap(db: DbSession, settings: AppSettings) -> Response:
         SubElement(url, "priority").text = priority
 
     add("/", changefreq="daily", priority="1.0")
-    add("/businesses", changefreq="daily", priority="0.9")
 
-    for category in CategoryRepository(db).list_all():
-        add(f"/businesses?category={category.slug}", changefreq="weekly", priority="0.7")
+    # No `/businesses` or its category pages: the site no longer links the
+    # business directory (the CEO asked for it to speak only of goods and
+    # products and of services and skills), and a sitemap advertising a page
+    # the site itself hides would send search traffic somewhere a visitor
+    # cannot navigate from. Each shop's own page stays listed below.
 
     for slug, updated_at in BusinessRepository(db).approved_slugs():
         add(f"/business/{slug}", changefreq="weekly", priority="0.8", lastmod=updated_at)

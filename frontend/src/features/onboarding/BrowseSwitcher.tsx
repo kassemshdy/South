@@ -4,7 +4,8 @@ import { DoorStrip } from '@/features/onboarding/DoorStrip'
 import { BROWSE_DOORS, carryFilters, type BrowseKey } from '@/features/onboarding/destinations'
 
 /**
- * The three directories, as a row you can hop between.
+ * The directories, as a row you can hop between: goods and products, and
+ * services and skills.
  *
  * The three used to be islands: a visitor who searched the products
  * directory and found nothing had no way across to the shops or the
