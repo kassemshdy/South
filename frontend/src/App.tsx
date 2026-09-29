@@ -13,6 +13,7 @@ import { ArticleDetailPage } from '@/pages/ArticleDetailPage'
 import { BlogPage } from '@/pages/BlogPage'
 import { BrowsePage } from '@/pages/BrowsePage'
 import { BusinessProfilePage } from '@/pages/BusinessProfilePage'
+import { ContactPage } from '@/pages/ContactPage'
 import { DirectoryPage } from '@/pages/DirectoryPage'
 import { HomePage } from '@/pages/HomePage'
 import { LoginPage } from '@/pages/LoginPage'
@@ -75,6 +76,11 @@ const AdminUsersPage = lazy(() =>
 const AdminPageCoversPage = lazy(() =>
   import('@/pages/admin/AdminPageCoversPage').then((m) => ({
     default: m.AdminPageCoversPage,
+  })),
+)
+const AdminSiteSettingsPage = lazy(() =>
+  import('@/pages/admin/AdminSiteSettingsPage').then((m) => ({
+    default: m.AdminSiteSettingsPage,
   })),
 )
 const AdminApplicationsPage = lazy(() =>
@@ -160,6 +166,7 @@ export function App() {
           <Route path="blog" element={<BlogPage />} />
           <Route path="articles/:slug" element={<ArticleDetailPage />} />
           <Route path="about" element={<AboutPage />} />
+          <Route path="contact" element={<ContactPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="admin/login" element={<AdminLoginPage />} />
           {/* Applying needs no account — it is how you get one. */}
@@ -245,6 +252,7 @@ export function App() {
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="applications" element={<AdminApplicationsPage />} />
             <Route path="page-covers" element={<AdminPageCoversPage />} />
+            <Route path="site-settings" element={<AdminSiteSettingsPage />} />
             <Route path="users/:id" element={<AdminUserDetailPage />} />
             <Route path="feedback" element={<AdminFeedbackPage />} />
             <Route path="testimonials" element={<AdminTestimonialsPage />} />

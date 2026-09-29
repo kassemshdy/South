@@ -52,6 +52,8 @@ export const queryKeys = {
   feedbackAssignees: ['admin', 'feedback', 'assignees'] as const,
   pageCovers: ['page-covers'] as const,
   adminPageCovers: ['admin', 'page-covers'] as const,
+  siteSettings: ['site-settings'] as const,
+  adminSiteSettings: ['admin', 'site-settings'] as const,
   adminDiscardedApplications: (includeDismissed: boolean) =>
     ['admin', 'discarded-applications', includeDismissed] as const,
   adminTestimonials: (status: TestimonialStatus | 'ALL') =>

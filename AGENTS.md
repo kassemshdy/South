@@ -355,7 +355,7 @@ Dockerfiles, not just the Railway dashboard.
 |---|---|
 | `VITE_SENTRY_DSN` | The frontend SDK does not initialise. |
 | `VITE_GA_MEASUREMENT_ID` | No analytics script is injected and no page view is sent (`src/services/analytics.ts`). |
-| `VITE_SOCIAL_INSTAGRAM` / `_FACEBOOK` / `_TIKTOK` | That link is not rendered; with none set the whole footer block disappears (`src/components/layout/SocialLinks.tsx`). |
+| `VITE_SOCIAL_INSTAGRAM` / `_FACEBOOK` / `_TIKTOK` | Only a fallback now: Facebook and Instagram are set by an administrator at `/admin/site-settings` (with the site's phone, WhatsApp and email), and that value wins. A link with no URL from either source is not rendered; with no contact detail or account at all, the «اتصل بنا» nav item, footer block and `/contact` page all disappear (`src/components/layout/SocialLinks.tsx`, `useSiteSettings`). |
 | `VITE_TURNSTILE_SITE_KEY` | No captcha widget on the public registration forms, and no token is sent (`src/components/ui/Turnstile.tsx`). The backend follows the same rule from its side: with `TURNSTILE_SECRET_KEY` unset it verifies nothing, so the two halves are never half-configured. |
 | `VITE_CLARITY_PROJECT_ID` | No Clarity tag is injected and no session is recorded (`src/services/clarity.ts`). Gated harder than the rest — see below. |
 | `VITE_SUPPORT_WHATSAPP` | The assisted-listing offer — "contact us and we will list it for you" — is not rendered anywhere (`src/features/onboarding/AssistedListing.tsx`). A number with no digits in it counts as unset, because the guard is `whatsappHref` itself. |

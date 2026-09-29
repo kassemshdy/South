@@ -1,13 +1,17 @@
 import { Link } from 'react-router-dom'
 
-import { SITE_SECTIONS } from '@/components/layout/navigation'
-import { SocialLinks } from '@/components/layout/SocialLinks'
+import { ContactDetails } from '@/components/layout/ContactDetails'
+import { useSiteSections } from '@/components/layout/navigation'
+import { SocialIcons } from '@/components/layout/SocialLinks'
+import { useSiteSettings } from '@/hooks/useSiteSettings'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useT } from '@/i18n'
 
 export function Footer() {
   const t = useT()
   const { isAuthenticated } = useAuth()
+  const sections = useSiteSections()
+  const { hasContact } = useSiteSettings()
 
   return (
     <footer className="mt-20 border-t border-ink-100 bg-white">
@@ -30,7 +34,7 @@ export function Footer() {
             {t('footer.sections')}
           </h2>
           <ul className="space-y-2 text-ink-500">
-            {SITE_SECTIONS.map((section) => (
+            {sections.map((section) => (
               <li key={section.href}>
                 <Link to={section.href} className="hover:text-brand-700">
                   {t(section.labelKey)}
@@ -72,7 +76,21 @@ export function Footer() {
             <p className="leading-relaxed text-ink-500">{t('footer.aboutBody')}</p>
           </div>
 
-          <SocialLinks />
+          {/* How to reach the team, and its social accounts -- whatever an
+              administrator has filled in, and nothing at all until then. */}
+          {hasContact ? (
+            <div id="contact">
+              <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-700">
+                <Link to="/contact" className="hover:text-brand-700">
+                  {t('nav.contact')}
+                </Link>
+              </h2>
+              <div className="space-y-4">
+                <ContactDetails />
+                <SocialIcons />
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
 

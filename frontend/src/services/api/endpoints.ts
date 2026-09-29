@@ -9,6 +9,7 @@ import { apiDownload, apiRequest } from '@/services/api/client'
 import type {
   PageCover,
   PageCoverKey,
+  SiteSettings,
   DiscardedApplication,
   GoodsOrigin,
   ContactChannel,
@@ -292,6 +293,10 @@ export const publicItemApi = {
     apiRequest<ProductDetail>(`/api/items/${encodeURIComponent(slug)}`),
 }
 
+export const siteSettingsApi = {
+  get: () => apiRequest<SiteSettings>('/api/site-settings'),
+}
+
 export const pageCoverApi = {
   /** `{page_key: image_url}` for every page whose cover has been replaced. */
   all: () => apiRequest<Partial<Record<PageCoverKey, string>>>('/api/page-covers'),
@@ -537,6 +542,9 @@ export const adminApi = {
   },
   resetPageCover: (key: PageCoverKey) =>
     apiRequest<PageCover>(`/api/admin/page-covers/${key}`, { method: 'DELETE' }),
+  siteSettings: () => apiRequest<SiteSettings>('/api/admin/site-settings'),
+  updateSiteSettings: (values: SiteSettings) =>
+    apiRequest<SiteSettings>('/api/admin/site-settings', { method: 'PUT', body: values }),
   dismissApplication: (id: string) =>
     apiRequest<DiscardedApplication>(`/api/admin/discarded-applications/${id}/dismiss`, {
       method: 'POST',
