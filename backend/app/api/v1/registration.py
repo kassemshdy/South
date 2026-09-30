@@ -42,6 +42,7 @@ from pydantic import BaseModel, ValidationError
 
 from app.core.dependencies import AppSettings, ClientIp, DbSession
 from app.core.i18n import translate
+from app.core.uploads import read_at_most
 from app.schemas.registration import (
     BusinessRegistrationIn,
     RegistrationOut,
@@ -91,17 +92,22 @@ def _parse(model: type[ModelT], raw: str) -> ModelT:
         ) from exc
 
 
-def _document(file: UploadFile | None) -> ApplicantDocument | None:
+def _document(file: UploadFile | None, limit: int) -> ApplicantDocument | None:
     if file is None:
         return None
-    data = file.file.read()
+    # Bounded: this is an anonymous route, and the size is refused later by
+    # ``VerificationDocumentService.validate`` -- which is too late to protect
+    # memory if the whole part has already been read.
+    data = read_at_most(file.file, limit)
     if not data:
         return None
     return ApplicantDocument(data=data, original_filename=file.filename)
 
 
-def _documents(front: UploadFile | None, back: UploadFile | None) -> ApplicantDocuments:
-    return ApplicantDocuments(front=_document(front), back=_document(back))
+def _documents(
+    front: UploadFile | None, back: UploadFile | None, limit: int
+) -> ApplicantDocuments:
+    return ApplicantDocuments(front=_document(front, limit), back=_document(back, limit))
 
 
 @router.post(
@@ -121,7 +127,7 @@ def register_business(
     RegistrationService(db, settings).register_business(
         _parse(BusinessRegistrationIn, application),
         client_ip=client_ip,
-        documents=_documents(document, document_back),
+        documents=_documents(document, document_back, settings.max_verification_doc_bytes),
     )
     return RegistrationOut(message=translate("registration.received"))
 
@@ -143,6 +149,6 @@ def register_talent(
     RegistrationService(db, settings).register_talent(
         _parse(TalentRegistrationIn, application),
         client_ip=client_ip,
-        documents=_documents(document, document_back),
+        documents=_documents(document, document_back, settings.max_verification_doc_bytes),
     )
     return RegistrationOut(message=translate("registration.received"))

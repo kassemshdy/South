@@ -14,6 +14,7 @@ from fastapi import APIRouter, Query, Response
 from app.api.serializers import admin_business, paginate
 from app.core.dependencies import AdminUser, AppSettings, DbSession
 from app.core.errors import NotFoundError
+from app.core.uploads import content_disposition
 from app.models.enums import BusinessStatus
 from app.repositories.business import BusinessRepository
 from app.schemas.common import PaginatedResponse
@@ -91,7 +92,7 @@ def download_document(
     return Response(
         content=data,
         media_type=document.content_type,
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": content_disposition(filename)},
     )
 
 

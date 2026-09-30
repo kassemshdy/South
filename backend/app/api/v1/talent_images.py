@@ -12,6 +12,7 @@ from app.api.serializers import owner_talent
 from app.core.dependencies import AppSettings, DbSession, OwnTalentProfile
 from app.core.errors import NotFoundError, PayloadTooLargeError, ValidationError
 from app.core.i18n import translate
+from app.core.uploads import read_at_most
 from app.models.enums import ImageKind
 from app.models.talent import TalentImage
 from app.schemas.business import ImageReorderIn
@@ -50,7 +51,7 @@ def upload_talent_image(
     if kind not in ALLOWED_KINDS:
         raise ValidationError("image.invalid_kind", code="invalid_image_kind")
 
-    data = file.file.read()
+    data = read_at_most(file.file, settings.max_upload_bytes)
     if len(data) > settings.max_upload_bytes:
         raise PayloadTooLargeError()
 

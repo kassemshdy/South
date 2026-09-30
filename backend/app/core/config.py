@@ -14,6 +14,46 @@ from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 Environment = Literal["development", "test", "staging", "production"]
 
 
+# The default Content-Security-Policy. Built from the frontend's actual
+# dependencies rather than a generic template:
+#   - script-src: the SPA bundle (self) and the three tags loaded by URL --
+#     Turnstile, Google Tag Manager, Clarity. No 'unsafe-inline'.
+#   - connect-src: the API (self) and the beacons those tags talk to, plus the
+#     Sentry ingest host. A blocked beacon degrades analytics, never the site.
+#   - frame-src: Turnstile's challenge iframe and the YouTube/Maps embeds.
+#   - img-src: self and data: URIs, plus https: so remote thumbnails render.
+#   - style-src: 'unsafe-inline' because component inline styles need it; this
+#     does not weaken script protection.
+#   - object-src/base-uri/frame-ancestors/form-action: lock down plugin
+#     embedding, base-tag hijacking, framing (clickjacking) and form exfil.
+DEFAULT_CONTENT_SECURITY_POLICY = "; ".join(
+    (
+        "default-src 'self'",
+        "base-uri 'self'",
+        "object-src 'none'",
+        "frame-ancestors 'none'",
+        "form-action 'self'",
+        "img-src 'self' data: https:",
+        "font-src 'self' data:",
+        "style-src 'self' 'unsafe-inline'",
+        (
+            "script-src 'self' https://challenges.cloudflare.com "
+            "https://www.googletagmanager.com https://www.clarity.ms"
+        ),
+        (
+            "connect-src 'self' https://www.google-analytics.com "
+            "https://*.google-analytics.com https://*.clarity.ms "
+            "https://*.ingest.sentry.io https://*.ingest.de.sentry.io"
+        ),
+        (
+            "frame-src https://challenges.cloudflare.com "
+            "https://www.youtube-nocookie.com https://www.youtube.com "
+            "https://www.google.com https://maps.google.com"
+        ),
+    )
+)
+
+
 class Settings(BaseSettings):
     """Runtime settings.
 
@@ -51,6 +91,32 @@ class Settings(BaseSettings):
     cors_origins: Annotated[list[str], NoDecode] = Field(
         default_factory=lambda: ["http://localhost:5173", "http://127.0.0.1:5173"]
     )
+
+    # How many reverse proxies the app sits behind, i.e. how many entries at
+    # the *right* of ``X-Forwarded-For`` were appended by infrastructure we
+    # trust. The client's real address is the entry that many places from the
+    # right; everything to its left is client-supplied and forgeable, so it is
+    # never read. See ``get_client_ip``.
+    #
+    # 1 is correct for a single trusted proxy and for the test client (which
+    # sends one entry). The deployed topology is Railway's edge in front of the
+    # Caddy ``web`` service in front of the API -- two hops -- so ``api`` and
+    # ``api-develop`` must set ``TRUSTED_PROXY_HOPS=2``. Getting this wrong does
+    # not expose data: too low lets a caller spoof its rate-limit identity, too
+    # high keys every caller to a proxy address and over-limits them. Confirm
+    # the value by logging one request's ``X-Forwarded-For`` on the deployment.
+    trusted_proxy_hops: int = 1
+
+    # Content-Security-Policy served with the API and the SPA it renders. A
+    # deliberately explicit allowlist: 'self' plus exactly the third-party
+    # origins the frontend loads by URL (Turnstile, Google Tag Manager,
+    # Clarity, Sentry ingest, YouTube and Maps embeds). No 'unsafe-inline' for
+    # scripts -- the Vite production bundle ships none, and index.html carries
+    # only the module entry point -- so an injected <script> is refused even if
+    # something upstream failed to escape it. Overridable per environment for
+    # when an integration's host changes. Unset, this default applies; set to
+    # an empty value, no CSP is sent at all.
+    content_security_policy: str | None = DEFAULT_CONTENT_SECURITY_POLICY
 
     # Testimonial submission is an unauthenticated write of free text, so the
     # limits are part of the design rather than a later hardening pass. Two

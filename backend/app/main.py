@@ -149,6 +149,27 @@ MEDIA_CACHE_CONTROL = "public, max-age=31536000, immutable"
 PUBLIC_FILE_CACHE_CONTROL = "public, max-age=86400"
 
 
+def allow_inline_scripts(policy: str) -> str:
+    """``policy`` with inline scripts permitted, and nothing else changed.
+
+    Only for the static pages in public/, which carry no user content. Adds
+    ``'unsafe-inline'`` to ``script-src``; a policy with no ``script-src`` of
+    its own falls back to ``default-src`` for scripts, so one is added.
+    """
+    directives = [d.strip() for d in policy.split(";") if d.strip()]
+    relaxed: list[str] = []
+    found = False
+    for directive in directives:
+        if directive.split(" ", 1)[0] == "script-src":
+            found = True
+            if "'unsafe-inline'" not in directive.split():
+                directive = f"{directive} 'unsafe-inline'"
+        relaxed.append(directive)
+    if not found:
+        relaxed.append("script-src 'self' 'unsafe-inline'")
+    return "; ".join(relaxed)
+
+
 class MediaFiles(StaticFiles):
     """The public media mount: photographs only, cached hard."""
 
@@ -175,14 +196,22 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "REST API for an Arabic-first business directory. Public endpoints "
             "expose approved businesses only."
         ),
-        docs_url="/api/docs",
+        # The interactive docs and the OpenAPI schema map the entire API
+        # surface, so they are developer conveniences, not something a
+        # production deployment should serve to anyone who asks. Off in the
+        # hardened environments; on locally and in tests.
+        docs_url=None if settings.is_hardened else "/api/docs",
         redoc_url=None,
-        openapi_url="/api/openapi.json",
+        openapi_url=None if settings.is_hardened else "/api/openapi.json",
         lifespan=lifespan,
     )
     app.state.settings = settings
 
-    app.add_middleware(SecurityHeadersMiddleware, enable_hsts=settings.is_production)
+    app.add_middleware(
+        SecurityHeadersMiddleware,
+        enable_hsts=settings.is_production,
+        content_security_policy=settings.content_security_policy,
+    )
     app.add_middleware(RequestContextMiddleware)
     app.add_middleware(
         CORSMiddleware,
@@ -349,6 +378,24 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
 
     base_url = settings.public_base_url.rstrip("/")
     default_image_url = f"{base_url}/og-image.jpg"
+
+    # The standalone pages in public/ are hand-written HTML, and the
+    # presentation deck runs its own inline <script>, which the site-wide
+    # policy refuses. They are static files with no user-supplied content in
+    # them, so there is nothing to inject into -- they get the same policy with
+    # inline scripts allowed, set here so the middleware's ``setdefault`` leaves
+    # it alone.
+    static_page_headers = (
+        {"Content-Security-Policy": allow_inline_scripts(settings.content_security_policy)}
+        if settings.content_security_policy
+        else None
+    )
+
+    def _page_headers(page: Path) -> dict[str, str] | None:
+        # Never the SPA shell, however the path reached it: `/index` resolves
+        # to index.html through the extensionless fallback below, and that is
+        # the page listings render into, so it keeps the strict policy.
+        return None if page == index_file else static_page_headers
 
     def _absolute(image: str | None) -> str:
         """A stored path is site-relative (``/media/...``); anything else
@@ -545,7 +592,7 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
                 headers = (
                     {"Cache-Control": PUBLIC_FILE_CACHE_CONTROL}
                     if exact.suffix.lower() != ".html"
-                    else None
+                    else _page_headers(exact)
                 )
                 return FileResponse(exact, media_type=static_media_type(exact), headers=headers)
 
@@ -558,7 +605,9 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
             if "." not in full_path.rsplit("/", 1)[-1]:
                 page = _build_file(f"{full_path}.html")
                 if page is not None:
-                    return FileResponse(page, media_type=static_media_type(page))
+                    return FileResponse(
+                        page, media_type=static_media_type(page), headers=_page_headers(page)
+                    )
 
         return _render_index(full_path)
 

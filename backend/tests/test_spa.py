@@ -446,3 +446,33 @@ def test_the_homepage_says_who_publishes_the_site_and_how_to_search_it(
 def test_other_pages_carry_no_structured_data(spa_client: TestClient) -> None:
     assert _json_ld(spa_client.get("/products").text) == []
     assert _json_ld(spa_client.get("/product/does-not-exist").text) == []
+
+
+def _script_src(response) -> str:  # type: ignore[no-untyped-def]
+    policy = response.headers["content-security-policy"]
+    return next(d.strip() for d in policy.split(";") if d.strip().startswith("script-src"))
+
+
+def test_the_spa_shell_refuses_inline_scripts(spa_client: TestClient) -> None:
+    # index.html is the page that renders listings, so it is the one an
+    # injected script would target; it keeps the strict policy.
+    for path in ("/", "/search", "/presentation-that-is-not-a-file"):
+        assert "'unsafe-inline'" not in _script_src(spa_client.get(path))
+
+
+def test_the_presentation_deck_may_run_its_inline_script(spa_client: TestClient) -> None:
+    # Hand-written static page with its own inline <script> and no user content.
+    for path in ("/presentation", "/presentation.html"):
+        response = spa_client.get(path)
+        assert "'unsafe-inline'" in _script_src(response)
+        # Only scripts were relaxed; the rest of the policy is unchanged.
+        assert "object-src 'none'" in response.headers["content-security-policy"]
+        assert "frame-ancestors 'none'" in response.headers["content-security-policy"]
+
+
+def test_the_spa_shell_stays_strict_however_it_is_reached(spa_client: TestClient) -> None:
+    # `/index` reaches index.html through the extensionless-page fallback; it
+    # must not inherit the static pages' inline-script allowance.
+    response = spa_client.get("/index")
+    assert response.status_code == 200
+    assert "'unsafe-inline'" not in _script_src(response)
