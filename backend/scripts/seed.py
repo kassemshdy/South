@@ -90,8 +90,14 @@ logger = logging.getLogger("seed")
 # Distinct, readable placeholder colours so seeded listings are visually
 # distinguishable in the UI without shipping binary fixtures in the repo.
 _PALETTE = [
-    (198, 93, 59), (61, 122, 106), (140, 95, 168), (191, 143, 60),
-    (75, 110, 175), (168, 74, 96), (94, 134, 66), (120, 110, 100),
+    (198, 93, 59),
+    (61, 122, 106),
+    (140, 95, 168),
+    (191, 143, 60),
+    (75, 110, 175),
+    (168, 74, 96),
+    (94, 134, 66),
+    (120, 110, 100),
 ]
 
 
@@ -232,8 +238,7 @@ def seed_admin(db) -> User | None:  # type: ignore[no-untyped-def]
         admin = User(
             email=email,
             password_hash=hash_password(settings.admin_password),
-            display_name=settings.admin_display_name
-            or translate("admin.default_display_name"),
+            display_name=settings.admin_display_name or translate("admin.default_display_name"),
             role=UserRole.ADMIN,
         )
         db.add(admin)
@@ -255,9 +260,7 @@ def _seed_date(value: str | None) -> date | None:
     return date.fromisoformat(value) if value else None
 
 
-def _business_search_text(
-    business: Business, category_name: str, location_name: str
-) -> str:
+def _business_search_text(business: Business, category_name: str, location_name: str) -> str:
     """The same haystack ``BusinessService`` builds, so a seeded listing is as
     findable as an owner-authored one."""
     return build_search_text(
@@ -342,7 +345,12 @@ def seed_businesses(db, categories, locations, admin) -> int:  # type: ignore[no
             created_at=created_at,
         )
 
-        if status in (BusinessStatus.PENDING_REVIEW, BusinessStatus.APPROVED, BusinessStatus.REJECTED, BusinessStatus.SUSPENDED):
+        if status in (
+            BusinessStatus.PENDING_REVIEW,
+            BusinessStatus.APPROVED,
+            BusinessStatus.REJECTED,
+            BusinessStatus.SUSPENDED,
+        ):
             business.submitted_at = created_at + timedelta(hours=1)
         if status in (BusinessStatus.APPROVED, BusinessStatus.SUSPENDED):
             business.approved_at = created_at + timedelta(hours=6)
@@ -376,9 +384,7 @@ def seed_businesses(db, categories, locations, admin) -> int:  # type: ignore[no
             )
 
         db.flush()
-        business.search_text = _business_search_text(
-            business, category.name_ar, location.name_ar
-        )
+        business.search_text = _business_search_text(business, category.name_ar, location.name_ar)
 
         _seed_moderation_history(db, business, admin, entry.get("suspension_reason"))
         created += 1
@@ -628,8 +634,10 @@ def _reattach_images(  # type: ignore[no-untyped-def]
         (ImageKind.GALLERY, (900, 700)),
         (ImageKind.GALLERY, (900, 700)),
     ):
-        sort_order = 0 if kind is not ImageKind.GALLERY else len(
-            [i for i in business.images if i.kind is ImageKind.GALLERY]
+        sort_order = (
+            0
+            if kind is not ImageKind.GALLERY
+            else len([i for i in business.images if i.kind is ImageKind.GALLERY])
         )
         stored = images.process_and_store(
             data=_placeholder_image(name, index + sort_order, size),
@@ -671,8 +679,10 @@ def _reattach_talent_images(  # type: ignore[no-untyped-def]
         (ImageKind.GALLERY, (900, 700)),
         (ImageKind.GALLERY, (900, 700)),
     ):
-        sort_order = 0 if kind is not ImageKind.GALLERY else len(
-            [i for i in profile.images if i.kind is ImageKind.GALLERY]
+        sort_order = (
+            0
+            if kind is not ImageKind.GALLERY
+            else len([i for i in profile.images if i.kind is ImageKind.GALLERY])
         )
         stored = images.process_and_store(
             data=_placeholder_image(name, index + sort_order, size),
@@ -706,15 +716,36 @@ def _seed_moderation_history(
     """Recreate the audit trail that would have produced this status."""
     trail: list[tuple[ModerationActionType, BusinessStatus, BusinessStatus, str | None]] = []
     if business.status is not BusinessStatus.DRAFT:
-        trail.append((ModerationActionType.SUBMIT, BusinessStatus.DRAFT, BusinessStatus.PENDING_REVIEW, None))
+        trail.append(
+            (ModerationActionType.SUBMIT, BusinessStatus.DRAFT, BusinessStatus.PENDING_REVIEW, None)
+        )
     if business.status is BusinessStatus.APPROVED:
-        trail.append((ModerationActionType.APPROVE, BusinessStatus.PENDING_REVIEW, BusinessStatus.APPROVED, None))
+        trail.append(
+            (
+                ModerationActionType.APPROVE,
+                BusinessStatus.PENDING_REVIEW,
+                BusinessStatus.APPROVED,
+                None,
+            )
+        )
     elif business.status is BusinessStatus.REJECTED:
         trail.append(
-            (ModerationActionType.REJECT, BusinessStatus.PENDING_REVIEW, BusinessStatus.REJECTED, business.rejection_reason)
+            (
+                ModerationActionType.REJECT,
+                BusinessStatus.PENDING_REVIEW,
+                BusinessStatus.REJECTED,
+                business.rejection_reason,
+            )
         )
     elif business.status is BusinessStatus.SUSPENDED:
-        trail.append((ModerationActionType.APPROVE, BusinessStatus.PENDING_REVIEW, BusinessStatus.APPROVED, None))
+        trail.append(
+            (
+                ModerationActionType.APPROVE,
+                BusinessStatus.PENDING_REVIEW,
+                BusinessStatus.APPROVED,
+                None,
+            )
+        )
         trail.append(
             (
                 ModerationActionType.SUSPEND,
@@ -748,15 +779,36 @@ def _seed_talent_moderation_history(
     """Recreate the audit trail that would have produced this status."""
     trail: list[tuple[ModerationActionType, BusinessStatus, BusinessStatus, str | None]] = []
     if profile.status is not BusinessStatus.DRAFT:
-        trail.append((ModerationActionType.SUBMIT, BusinessStatus.DRAFT, BusinessStatus.PENDING_REVIEW, None))
+        trail.append(
+            (ModerationActionType.SUBMIT, BusinessStatus.DRAFT, BusinessStatus.PENDING_REVIEW, None)
+        )
     if profile.status is BusinessStatus.APPROVED:
-        trail.append((ModerationActionType.APPROVE, BusinessStatus.PENDING_REVIEW, BusinessStatus.APPROVED, None))
+        trail.append(
+            (
+                ModerationActionType.APPROVE,
+                BusinessStatus.PENDING_REVIEW,
+                BusinessStatus.APPROVED,
+                None,
+            )
+        )
     elif profile.status is BusinessStatus.REJECTED:
         trail.append(
-            (ModerationActionType.REJECT, BusinessStatus.PENDING_REVIEW, BusinessStatus.REJECTED, profile.rejection_reason)
+            (
+                ModerationActionType.REJECT,
+                BusinessStatus.PENDING_REVIEW,
+                BusinessStatus.REJECTED,
+                profile.rejection_reason,
+            )
         )
     elif profile.status is BusinessStatus.SUSPENDED:
-        trail.append((ModerationActionType.APPROVE, BusinessStatus.PENDING_REVIEW, BusinessStatus.APPROVED, None))
+        trail.append(
+            (
+                ModerationActionType.APPROVE,
+                BusinessStatus.PENDING_REVIEW,
+                BusinessStatus.APPROVED,
+                None,
+            )
+        )
         trail.append(
             (
                 ModerationActionType.SUSPEND,
@@ -805,9 +857,20 @@ def _item_slug_for(title: str, db) -> str:  # type: ignore[no-untyped-def]
 def reset(db) -> None:  # type: ignore[no-untyped-def]
     """Remove seeded content. Never run against production data."""
     for model in (
-        TalentModerationAction, TalentImage, TalentProfile, TalentSkill,
-        Article, ModerationAction, BusinessItem, BusinessImage, BusinessSocialLink,
-        Business, RateLimitEvent, Category, Location, User,
+        TalentModerationAction,
+        TalentImage,
+        TalentProfile,
+        TalentSkill,
+        Article,
+        ModerationAction,
+        BusinessItem,
+        BusinessImage,
+        BusinessSocialLink,
+        Business,
+        RateLimitEvent,
+        Category,
+        Location,
+        User,
     ):
         db.execute(delete(model))
     db.flush()
