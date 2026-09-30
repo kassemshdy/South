@@ -26,6 +26,7 @@ from fastapi import APIRouter, File, Form, UploadFile
 from app.api.serializers import feedback_submission
 from app.core.dependencies import AppSettings, CurrentUser, DbSession
 from app.core.errors import NotFoundError
+from app.core.uploads import read_at_most
 from app.models.enums import FeedbackAttachmentKind
 from app.models.feedback import FeedbackTicket
 from app.repositories.feedback import FeedbackTicketRepository
@@ -73,7 +74,7 @@ def attach_to_own_report(
     FeedbackAttachmentService(get_storage(), settings).store(
         db=db,
         ticket=ticket,
-        data=file.file.read(),
+        data=read_at_most(file.file, settings.max_feedback_attachment_bytes),
         kind=kind,
         original_filename=file.filename,
     )

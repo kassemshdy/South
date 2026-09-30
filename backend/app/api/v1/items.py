@@ -14,6 +14,7 @@ from app.core.dependencies import AppSettings, DbSession, OwnedBusiness, Viewer
 from app.core.errors import NotFoundError, PayloadTooLargeError, ValidationError
 from app.core.i18n import translate
 from app.core.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from app.core.uploads import read_at_most
 from app.models.business import BusinessItemImage
 from app.models.enums import GoodsOrigin, ImageKind, ViewSubject
 from app.repositories.item import ItemRepository
@@ -170,7 +171,7 @@ def upload_item_image(
     service = BusinessItemService(db)
     item = service.get_owned(business, item_id)
 
-    data = file.file.read()
+    data = read_at_most(file.file, settings.max_upload_bytes)
     if len(data) > settings.max_upload_bytes:
         raise PayloadTooLargeError()
 
@@ -224,7 +225,7 @@ def upload_item_gallery_image(
             params={"max": settings.max_gallery_images},
         )
 
-    data = file.file.read()
+    data = read_at_most(file.file, settings.max_upload_bytes)
     if len(data) > settings.max_upload_bytes:
         raise PayloadTooLargeError()
 

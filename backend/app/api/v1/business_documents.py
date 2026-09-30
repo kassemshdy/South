@@ -20,6 +20,7 @@ from fastapi import APIRouter, File, Form, UploadFile, status
 
 from app.api.serializers import owner_business
 from app.core.dependencies import AppSettings, DbSession, OwnedBusiness
+from app.core.uploads import read_at_most
 from app.schemas.business import OwnerBusinessOut
 from app.services.business_documents import BusinessDocumentService
 from app.storage.factory import get_storage
@@ -45,7 +46,7 @@ def upload_document(
     these, so a business with no paperwork is not blocked by this route
     existing.
     """
-    data = file.file.read()
+    data = read_at_most(file.file, settings.max_verification_doc_bytes)
     BusinessDocumentService(get_storage(), settings).store(
         db=db,
         business=business,

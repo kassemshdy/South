@@ -15,6 +15,7 @@ from app.core.dependencies import (
 )
 from app.core.errors import AuthenticationError, PayloadTooLargeError
 from app.core.security import verify_password
+from app.core.uploads import read_at_most
 from app.models.enums import ImageKind, VerificationDocumentKind
 from app.schemas.auth import (
     AdminLoginIn,
@@ -139,7 +140,7 @@ def upload_my_photo(
     The previous file is deleted rather than orphaned, since an account has
     exactly one photo and a bucket of abandoned faces is its own problem.
     """
-    data = file.file.read()
+    data = read_at_most(file.file, settings.max_upload_bytes)
     if len(data) > settings.max_upload_bytes:
         raise PayloadTooLargeError()
 
@@ -192,7 +193,7 @@ def upload_my_verification_document(
     settings: AppSettings,
     file: Annotated[UploadFile, File(description="A national ID, passport, or similar document")],
 ) -> VerificationDocumentOut:
-    data = file.file.read()
+    data = read_at_most(file.file, settings.max_verification_doc_bytes)
     service = VerificationDocumentService(get_storage(), settings)
     document = service.store(
         db=db, user=user, data=data, original_filename=file.filename
@@ -224,7 +225,7 @@ def upload_my_verification_document_back(
     settings: AppSettings,
     file: Annotated[UploadFile, File(description="The back of the ID card")],
 ) -> VerificationDocumentOut:
-    data = file.file.read()
+    data = read_at_most(file.file, settings.max_verification_doc_bytes)
     service = VerificationDocumentService(get_storage(), settings)
     document = service.store(
         db=db,
@@ -256,7 +257,7 @@ def upload_my_cv_document(
     settings: AppSettings,
     file: Annotated[UploadFile, File(description="A CV as PDF or an image scan")],
 ) -> VerificationDocumentOut:
-    data = file.file.read()
+    data = read_at_most(file.file, settings.max_verification_doc_bytes)
     service = VerificationDocumentService(get_storage(), settings)
     document = service.store(
         db=db,
