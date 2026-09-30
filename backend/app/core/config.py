@@ -134,6 +134,9 @@ class Settings(BaseSettings):
     s3_access_key_id: str | None = None
     s3_secret_access_key: str | None = None
     s3_public_base_url: str | None = None
+    # Railway buckets want virtual-hosted URLs (bucket.endpoint); boto3's
+    # "auto" can pick path-style for a custom endpoint, so it is settable.
+    s3_addressing_style: Literal["auto", "virtual", "path"] = "auto"
 
     # --- Admin bootstrap ---------------------------------------------------
     admin_email: str | None = "admin@example.com"

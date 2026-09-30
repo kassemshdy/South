@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import logging
+import mimetypes
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from dataclasses import replace
 from os import PathLike
 from pathlib import Path
+from typing import Any
 from urllib.parse import quote
 
 from fastapi import FastAPI, Request, Response
@@ -15,6 +18,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import select
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.types import Scope
 
@@ -27,19 +31,25 @@ from app.core.logging import configure_logging
 from app.core.middleware import RequestContextMiddleware, SecurityHeadersMiddleware
 from app.core.observability import configure_error_tracking
 from app.core.seo import (
+    business_json_ld,
     business_tags,
     default_tags,
     inject,
     page_tags,
+    product_json_ld,
     product_tags,
+    site_json_ld,
+    talent_json_ld,
     talent_tags,
 )
 from app.core.validation_messages import field_errors
 from app.database.session import SessionLocal
+from app.models.site_setting import SiteSetting
 from app.repositories.business import BusinessRepository
 from app.repositories.item import ItemRepository
 from app.repositories.talent import TalentRepository
 from app.services import business_documents, feedback_attachments, verification
+from app.storage import factory as storage_factory
 
 logger = logging.getLogger(__name__)
 
@@ -263,8 +273,10 @@ def _register_exception_handlers(app: FastAPI) -> None:
 
 
 def _mount_media(app: FastAPI, settings: Settings) -> None:
-    """Serve locally stored uploads when the local storage backend is active."""
-    if settings.storage_backend != "local":
+    """Serve uploads at ``/media``: from the disk, or from the bucket."""
+    if settings.storage_backend == "s3":
+        if not settings.s3_public_base_url:
+            _mount_bucket_media(app, settings)
         return
     media_root = Path(settings.storage_local_dir).resolve()
     media_root.mkdir(parents=True, exist_ok=True)
@@ -273,6 +285,45 @@ def _mount_media(app: FastAPI, settings: Settings) -> None:
         MediaFiles(directory=str(media_root)),
         name="media",
     )
+
+
+def media_key(path: str) -> str | None:
+    """The storage key a ``/media`` path names, or None when it must not be
+    served: a private folder, or anything trying to climb out of the prefix."""
+    key = path.replace("\\", "/").lstrip("/")
+    parts = key.split("/")
+    if not key or ".." in parts or parts[0] in PRIVATE_MEDIA_FOLDERS:
+        return None
+    return key
+
+
+def _mount_bucket_media(app: FastAPI, settings: Settings) -> None:
+    """``/media`` backed by a private bucket, under the same rules as the disk.
+
+    The URLs stored in the database are already ``/media/<key>``, so moving the
+    files to a bucket changes nothing a page links to. A private folder is not
+    found here, exactly as on disk: those files have their own authenticated
+    routes. Photographs are never rewritten in place, so they are cached for
+    good -- which also means Cloudflare answers repeat requests itself and the
+    API reads each object from the bucket about once.
+    """
+    prefix = settings.storage_public_prefix.rstrip("/")
+
+    @app.get(prefix + "/{path:path}", include_in_schema=False)
+    def bucket_media(path: str) -> Response:
+        key = media_key(path)
+        if key is None:
+            raise StarletteHTTPException(status_code=404)
+        try:
+            data = storage_factory.get_storage().read(key)
+        except FileNotFoundError:
+            raise StarletteHTTPException(status_code=404) from None
+        media_type = static_media_type(Path(key)) or mimetypes.guess_type(key)[0]
+        return Response(
+            content=data,
+            media_type=media_type or "application/octet-stream",
+            headers={"Cache-Control": MEDIA_CACHE_CONTROL},
+        )
 
 
 def _mount_frontend(app: FastAPI, settings: Settings) -> None:
@@ -308,6 +359,23 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
             return f"{base_url}{image}"
         return image or default_image_url
 
+    def _site_json_ld() -> tuple[dict[str, Any], ...]:
+        db = SessionLocal()
+        try:
+            values = {row.key: row.value for row in db.execute(select(SiteSetting)).scalars()}
+        finally:
+            db.close()
+        same_as = [
+            values[key] for key in ("social_facebook", "social_instagram") if values.get(key)
+        ]
+        return site_json_ld(
+            base_url=base_url,
+            logo_url=f"{base_url}/janoubna-logo.png",
+            same_as=same_as,
+            telephone=values.get("contact_phone"),
+            email=values.get("contact_email"),
+        )
+
     def _render_index(path: str) -> HTMLResponse:
         document = index_file.read_text(encoding="utf-8")
         tags = None
@@ -326,13 +394,32 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
                 try:
                     business = BusinessRepository(db).get_by_slug(slug, public_only=True)
                     if business is not None:
+                        url = f"{base_url}/business/{quote(business.slug)}"
+                        image = _absolute(business.cover_url or business.logo_url)
+                        location = business.location.name_ar if business.location else None
                         tags = business_tags(
                             name=business.name,
                             short_description=business.short_description,
                             category_name=business.category.name_ar if business.category else None,
-                            location_name=business.location.name_ar if business.location else None,
-                            image_url=_absolute(business.cover_url or business.logo_url),
-                            canonical_url=f"{base_url}/business/{quote(business.slug)}",
+                            location_name=location,
+                            image_url=image,
+                            canonical_url=url,
+                        )
+                        tags = replace(
+                            tags,
+                            json_ld=(
+                                business_json_ld(
+                                    name=business.name,
+                                    description=business.short_description,
+                                    url=url,
+                                    image_url=image,
+                                    telephone=business.phone,
+                                    location_name=location,
+                                    latitude=business.latitude,
+                                    longitude=business.longitude,
+                                    same_as=[link.url for link in business.social_links],
+                                ),
+                            ),
                         )
                 finally:
                     db.close()
@@ -342,13 +429,31 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
                 try:
                     profile = TalentRepository(db).get_by_slug(slug, public_only=True)
                     if profile is not None:
+                        url = f"{base_url}/talent/{quote(profile.slug)}"
+                        skill = profile.skill.name_ar if profile.skill else None
+                        location = profile.location.name_ar if profile.location else None
                         tags = talent_tags(
                             display_name=profile.display_name,
-                            skill_name=profile.skill.name_ar if profile.skill else None,
+                            skill_name=skill,
                             bio=profile.bio,
-                            location_name=profile.location.name_ar if profile.location else None,
+                            location_name=location,
                             image_url=_absolute(profile.photo_url),
-                            canonical_url=f"{base_url}/talent/{quote(profile.slug)}",
+                            canonical_url=url,
+                        )
+                        tags = replace(
+                            tags,
+                            json_ld=(
+                                talent_json_ld(
+                                    name=profile.display_name,
+                                    job_title=skill,
+                                    description=profile.bio,
+                                    url=url,
+                                    image_url=_absolute(profile.photo_url)
+                                    if profile.photo_url
+                                    else None,
+                                    location_name=location,
+                                ),
+                            ),
                         )
                 finally:
                     db.close()
@@ -359,13 +464,30 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
                 try:
                     item = ItemRepository(db).get_by_slug(slug)
                     if item is not None:
+                        url = f"{base_url}/product/{quote(item.slug)}"
                         tags = product_tags(
                             title=item.title,
                             price=item.price,
                             currency=item.currency.value,
                             business_name=item.business.name,
                             image_url=_absolute(item.image_url),
-                            canonical_url=f"{base_url}/product/{quote(item.slug)}",
+                            canonical_url=url,
+                        )
+                        tags = replace(
+                            tags,
+                            json_ld=(
+                                product_json_ld(
+                                    name=item.title,
+                                    description=item.description,
+                                    url=url,
+                                    image_url=_absolute(item.image_url) if item.image_url else None,
+                                    price=item.price,
+                                    currency=item.currency.value,
+                                    available=item.is_available,
+                                    business_name=item.business.name,
+                                    business_url=f"{base_url}/business/{quote(item.business.slug)}",
+                                ),
+                            ),
                         )
                 finally:
                     db.close()
@@ -385,6 +507,11 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
                 trimmed = path.rstrip("/")
                 canonical = f"{base_url}/{trimmed}" if trimmed else base_url
                 tags = default_tags(canonical_url=canonical, image_url=default_image_url)
+                if not trimmed:
+                    # The homepage says who publishes the site and how to
+                    # search it; the logo, social accounts and contact come
+                    # from what an administrator has set.
+                    tags = replace(tags, json_ld=_site_json_ld())
 
             # Explicit and unambiguous: this document is rebuilt per-request (the
             # SEO tags depend on the slug/path), so an edge or CDN in front of the
@@ -420,9 +547,7 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
                     if exact.suffix.lower() != ".html"
                     else None
                 )
-                return FileResponse(
-                    exact, media_type=static_media_type(exact), headers=headers
-                )
+                return FileResponse(exact, media_type=static_media_type(exact), headers=headers)
 
             # A standalone page shipped in public/ — the presentation deck — is
             # reachable without its extension, so the link someone forwards is

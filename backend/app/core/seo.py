@@ -10,9 +10,12 @@ right name, description and image.
 from __future__ import annotations
 
 import html
+import json
 import re
-from dataclasses import dataclass
+from collections.abc import Sequence
+from dataclasses import dataclass, field
 from decimal import Decimal
+from typing import Any
 
 from app.core.i18n import translate
 
@@ -27,6 +30,11 @@ class SeoTags:
     canonical_url: str
     image_url: str | None = None
     og_type: str = "website"
+    #: schema.org objects written into the head as JSON-LD, which is what
+    #: search engines read for rich results (a shop's address, a product's
+    #: price, the site's logo and search box). Empty for pages with nothing
+    #: structured to say.
+    json_ld: Sequence[dict[str, Any]] = field(default_factory=tuple)
 
 
 def _escape(value: str) -> str:
@@ -70,6 +78,9 @@ def inject(document: str, tags: SeoTags) -> str:
         result = _replace_meta(result, "og:image", tags.image_url)
         result = _replace_meta(result, "twitter:image", tags.image_url)
 
+    for data in tags.json_ld:
+        result = result.replace("</head>", f"  {json_ld_script(data)}\n</head>", 1)
+
     canonical = f'<link rel="canonical" href="{_escape(tags.canonical_url)}">'
     canonical_pattern = re.compile(r'<link\s+rel=["\']canonical["\'][^>]*>', re.IGNORECASE)
     if canonical_pattern.search(result):
@@ -78,6 +89,191 @@ def inject(document: str, tags: SeoTags) -> str:
         result = result.replace("</head>", f"  {canonical}\n</head>", 1)
 
     return result
+
+
+def json_ld_script(data: dict[str, Any]) -> str:
+    """One JSON-LD block, safe inside HTML.
+
+    Listing text is written by owners, so ``<``, ``>`` and ``&`` are escaped as
+    JSON unicode escapes: a name containing ``</script>`` stays data and can
+    never close the tag early.
+    """
+    payload = (
+        json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+        .replace("<", "\\u003c")
+        .replace(">", "\\u003e")
+        .replace("&", "\\u0026")
+    )
+    return f'<script type="application/ld+json">{payload}</script>'
+
+
+def _compact(data: dict[str, Any]) -> dict[str, Any]:
+    """Drop empty values, so a missing phone or photo is simply absent."""
+    return {key: value for key, value in data.items() if value not in (None, "", [], {})}
+
+
+def _place(location_name: str | None) -> dict[str, Any] | None:
+    if not location_name:
+        return None
+    return {"@type": "PostalAddress", "addressLocality": location_name, "addressCountry": "LB"}
+
+
+def site_json_ld(
+    *,
+    base_url: str,
+    logo_url: str,
+    same_as: Sequence[str] = (),
+    telephone: str | None = None,
+    email: str | None = None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """The site itself, for the homepage: who publishes it, and its search box.
+
+    ``same_as`` is the project's own social accounts and the contact point its
+    phone and email -- both from the site settings an administrator fills in,
+    so they appear here only once they exist.
+    """
+    site = translate("app.name")
+    organization_id = f"{base_url}/#organization"
+    contact = _compact(
+        {
+            "@type": "ContactPoint",
+            "contactType": "customer support",
+            "telephone": telephone,
+            "email": email,
+        }
+    )
+    organization = _compact(
+        {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "@id": organization_id,
+            "name": site,
+            "url": f"{base_url}/",
+            "logo": logo_url,
+            "sameAs": list(same_as),
+            "contactPoint": contact if len(contact) > 2 else None,
+        }
+    )
+    website = {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "@id": f"{base_url}/#website",
+        "name": site,
+        "url": f"{base_url}/",
+        "inLanguage": "ar",
+        "publisher": {"@id": organization_id},
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": f"{base_url}/products?q={{search_term_string}}",
+            },
+            "query-input": "required name=search_term_string",
+        },
+    }
+    return organization, website
+
+
+def business_json_ld(
+    *,
+    name: str,
+    description: str | None,
+    url: str,
+    image_url: str | None,
+    telephone: str | None,
+    location_name: str | None,
+    latitude: float | None,
+    longitude: float | None,
+    same_as: Sequence[str] = (),
+) -> dict[str, Any]:
+    """A shop as a LocalBusiness: only what its public page already shows."""
+    geo = (
+        {"@type": "GeoCoordinates", "latitude": float(latitude), "longitude": float(longitude)}
+        if latitude is not None and longitude is not None
+        else None
+    )
+    return _compact(
+        {
+            "@context": "https://schema.org",
+            "@type": "LocalBusiness",
+            "@id": f"{url}#business",
+            "name": name,
+            "description": description,
+            "url": url,
+            "image": image_url,
+            "telephone": telephone,
+            "address": _place(location_name),
+            "geo": geo,
+            "sameAs": list(same_as),
+        }
+    )
+
+
+def product_json_ld(
+    *,
+    name: str,
+    description: str | None,
+    url: str,
+    image_url: str | None,
+    price: Decimal | None,
+    currency: str,
+    available: bool,
+    business_name: str,
+    business_url: str,
+) -> dict[str, Any]:
+    """A product, with an Offer only when it has a price -- an offer with no
+    price is invalid, and a made-up one would be worse."""
+    offer = (
+        {
+            "@type": "Offer",
+            "url": url,
+            "price": f"{price:.2f}",
+            "priceCurrency": currency,
+            "availability": "https://schema.org/InStock"
+            if available
+            else "https://schema.org/OutOfStock",
+            "seller": {"@type": "LocalBusiness", "name": business_name, "url": business_url},
+        }
+        if price is not None
+        else None
+    )
+    return _compact(
+        {
+            "@context": "https://schema.org",
+            "@type": "Product",
+            "name": name,
+            "description": description,
+            "url": url,
+            "image": image_url,
+            "brand": {"@type": "Brand", "name": business_name},
+            "offers": offer,
+        }
+    )
+
+
+def talent_json_ld(
+    *,
+    name: str,
+    job_title: str | None,
+    description: str | None,
+    url: str,
+    image_url: str | None,
+    location_name: str | None,
+) -> dict[str, Any]:
+    """A skilled person's public profile. Only the profile's own public fields:
+    none of the account holder's identity (see the Security Musts)."""
+    return _compact(
+        {
+            "@context": "https://schema.org",
+            "@type": "Person",
+            "name": name,
+            "jobTitle": job_title,
+            "description": description,
+            "url": url,
+            "image": image_url,
+            "address": _place(location_name),
+        }
+    )
 
 
 def business_tags(
