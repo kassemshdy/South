@@ -58,6 +58,7 @@ IDENTITY: dict[str, object] = {
     "birth_year": 1986,
     "registration_place": ar("identity.registration_place"),
     "residence_place": ar("identity.residence_place"),
+    "is_displaced": True,
 }
 
 
@@ -372,6 +373,7 @@ def test_a_talent_applicant_can_attach_one_too(
                 "skill_id": str(skill.id),
                 "location_id": str(location.id),
                 "whatsapp": APPLICANT_PHONE,
+                "years_experience": 3,
             },
         },
         document=("id.png", PNG_BYTES, "image/png"),
@@ -401,6 +403,7 @@ def test_a_talent_application_lands_in_the_review_queue(
                 "skill_id": str(skill.id),
                 "location_id": str(location.id),
                 "whatsapp": APPLICANT_PHONE,
+                "years_experience": 3,
             },
         },
     )
@@ -871,3 +874,45 @@ def test_an_issued_password_ends_any_session_opened_with_the_previous_one(
 
     _issue(client, owner)
     assert client.get("/api/me", headers=headers).status_code == 401
+
+
+def test_a_talent_application_without_years_of_experience_is_refused(
+    client: TestClient,
+    db: Session,
+    skill: TalentSkill,
+    location: Location,
+) -> None:
+    """The owners made the number compulsory; 0 is an answer, absent is not."""
+    response = _register(
+        client,
+        "talent",
+        {
+            "login_phone": APPLICANT_PHONE,
+            "identity": dict(IDENTITY),
+            "talent": {
+                "display_name": ar("talent.applicant"),
+                "skill_id": str(skill.id),
+                "location_id": str(location.id),
+                "whatsapp": APPLICANT_PHONE,
+            },
+        },
+    )
+    assert response.status_code == 422, response.text
+    assert db.execute(select(TalentProfile)).first() is None
+
+
+def test_the_displacement_answer_is_required_and_kept_for_the_team(
+    client: TestClient, db: Session, category: Category, location: Location
+) -> None:
+    """Asked of every applicant, stored on the account, published nowhere."""
+    payload = _business_payload(category, location)
+    payload["identity"] = {key: value for key, value in IDENTITY.items() if key != "is_displaced"}
+    refused = _register(client, "business", payload)
+    assert refused.status_code == 422, refused.text
+    assert _owner(db) is None
+
+    accepted = _register(client, "business", _business_payload(category, location))
+    assert accepted.status_code == 202, accepted.text
+    owner = _owner(db)
+    assert owner is not None
+    assert owner.is_displaced is True

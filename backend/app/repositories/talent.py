@@ -21,7 +21,7 @@ from app.models.taxonomy import Location
 from app.models.user import User
 from app.repositories.base import BaseRepository
 
-SortOption = Literal["newest", "name", "oldest"]
+SortOption = Literal["newest", "name", "oldest", "experience"]
 
 
 class TalentSkillRepository(BaseRepository[TalentSkill]):
@@ -136,6 +136,13 @@ class TalentRepository(BaseRepository[TalentProfile]):
             return stmt.order_by(TalentProfile.display_name.asc())
         if sort == "oldest":
             return stmt.order_by(TalentProfile.created_at.asc())
+        if sort == "experience":
+            # Most years first; a profile that never said comes last rather
+            # than being read as no experience at all.
+            return stmt.order_by(
+                TalentProfile.years_experience.desc().nulls_last(),
+                TalentProfile.created_at.desc(),
+            )
         return stmt.order_by(TalentProfile.created_at.desc())
 
     def search_public(

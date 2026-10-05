@@ -1,5 +1,6 @@
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu'
 import {
+  ArrowLeft,
   ChevronDown,
   Heart,
   LayoutDashboard,
@@ -156,6 +157,19 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-ink-100 bg-sand-50/95 backdrop-blur">
+      {/* A way in for whoever has something to offer, above everything else.
+          It used to sit halfway down the homepage, so a seller had to scroll
+          past the buyer's half of the site to find it -- while a buyer had
+          the whole bar of sections. The owners asked for it at the top, in
+          their own words; a strip of its own rather than a seventh item in
+          a row that already fills 1280px. */}
+      <Link
+        to="/offer"
+        className="flex h-9 items-center justify-center gap-2 bg-brand-700 px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
+      >
+        {t('nav.offer')}
+        <ArrowLeft className="h-4 w-4 ltr:rotate-180" aria-hidden="true" />
+      </Link>
       <div className="container-page flex h-20 items-center justify-between gap-4">
         {/* The hit area is the bar's full height and reaches a little past
             the artwork on each side. Sizing it to the image alone left a

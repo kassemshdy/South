@@ -16,11 +16,12 @@ import { useT, type TranslationKey } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
 import { publicTalentApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import type { SortOption } from '@/types/api'
+import type { TalentSortOption } from '@/types/api'
 
 const ALL = '__all__'
-const SORT_KEYS: Record<SortOption, TranslationKey> = {
+const SORT_KEYS: Record<TalentSortOption, TranslationKey> = {
   newest: 'directory.sortNewest',
+  experience: 'talent.sortExperience',
   name: 'talent.sortName',
   oldest: 'directory.sortOldest',
 }
@@ -31,7 +32,7 @@ export function TalentDirectoryPage() {
   const q = searchParams.get('q') ?? ''
   const skill = searchParams.get('skill') ?? ''
   const location = searchParams.get('location') ?? ''
-  const sort = (searchParams.get('sort') as SortOption | null) ?? 'newest'
+  const sort = (searchParams.get('sort') as TalentSortOption | null) ?? 'newest'
   const page = Number(searchParams.get('page') ?? '1')
 
   // Local mirror so typing feels instant; the URL updates on submit, which
@@ -196,7 +197,7 @@ export function TalentDirectoryPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {(Object.keys(SORT_KEYS) as SortOption[]).map((option) => (
+                {(Object.keys(SORT_KEYS) as TalentSortOption[]).map((option) => (
                   <SelectItem key={option} value={option}>
                     {t(SORT_KEYS[option])}
                   </SelectItem>

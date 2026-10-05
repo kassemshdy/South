@@ -3,6 +3,7 @@ import { MessageCircle, Package, Phone, Store } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
+import { BackLink } from '@/components/ui/BackLink'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
 import { ShareButton } from '@/components/ui/ShareButton'
@@ -71,7 +72,8 @@ export function ProductProfilePage() {
 
   return (
     <article className="container-page py-10">
-      <div className="grid gap-8 lg:grid-cols-3">
+      <BackLink fallback="/products" />
+      <div className="mt-4 grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <div className="h-64 overflow-hidden rounded-2xl bg-sand-100 sm:h-80">
             {data.image_url ? (

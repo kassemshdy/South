@@ -71,9 +71,8 @@ test.describe('Products directory', () => {
     await openBusinessWizard(page)
     await page.getByLabel(t('form.name')).fill(fixture.businessName)
     await page.getByLabel(t('form.shortDescription')).fill(fixture.shortDescription)
-    // Producer detail and the long description are optional at submission, so
-    // they sit behind a disclosure (#34); open it before filling them.
-    await page.getByText(t('form.optionalSectionTitle')).click()
+    // Producer detail and the long description are optional at submission,
+    // in the section the owners asked to be always open.
     await page.getByLabel(t('form.description')).fill(fixture.description)
     await page.getByRole('combobox').first().click()
     await page.getByRole('option', { name: categoryName }).click()

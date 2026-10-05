@@ -72,6 +72,11 @@ test.describe('Applying for a listing', () => {
     await page.getByLabel(t('account.birthYearLabel')).fill(fixture.birthYear)
     await page.getByLabel(t('account.registrationPlaceLabel')).fill(fixture.registrationPlace)
     await page.getByLabel(t('account.residencePlaceLabel')).fill(fixture.residencePlace)
+    // Required, and for the team only: whether they are displaced right now.
+    await page
+      .getByRole('group', { name: t('account.displacedLabel') })
+      .getByText(t('common.no'), { exact: true })
+      .click()
 
     // Both sides of the ID travel with the application: there is no account
     // to upload them to yet, and the reviewer is about to decide whether the

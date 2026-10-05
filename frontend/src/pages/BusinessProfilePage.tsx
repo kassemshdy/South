@@ -15,6 +15,7 @@ import {
 import { Link, useParams } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
+import { BackLink } from '@/components/ui/BackLink'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
 import { YouTubePlayer } from '@/components/ui/YouTubePlayer'
@@ -102,6 +103,9 @@ export function BusinessProfilePage() {
 
   return (
     <article className="pb-16">
+      <div className="container-page py-3">
+        <BackLink fallback="/products" />
+      </div>
       <div className="relative h-52 bg-sand-200 sm:h-72">
         {data.cover_url ? (
           <img

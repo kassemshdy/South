@@ -49,7 +49,7 @@ def search_talent(
     q: Annotated[str | None, Query(max_length=120, description="Free-text search query")] = None,
     skill: Annotated[str | None, Query(description="Talent skill slug")] = None,
     location: Annotated[str | None, Query(description="Location slug")] = None,
-    sort: Annotated[Literal["newest", "name", "oldest"], Query()] = "newest",
+    sort: Annotated[Literal["newest", "name", "oldest", "experience"], Query()] = "newest",
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
 ) -> PaginatedResponse[TalentSummaryOut]:

@@ -273,6 +273,7 @@ def test_submission_lists_what_is_still_missing(
     readiness = client.get("/api/my/talent/readiness", headers=headers).json()
     assert set(readiness) == {
         "talent.field.bio",
+        "talent.field.years_experience",
         "talent.field.photo",
         "talent.field.contact",
     }
