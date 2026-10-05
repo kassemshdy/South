@@ -46,6 +46,16 @@ export function OwnerIdentityCard({ identity }: { identity: OwnerIdentity | null
       label: 'admin.fieldResidencePlace',
       value: identity?.residence_place ?? null,
     },
+    {
+      key: 'is_displaced',
+      label: 'account.displacedLabel',
+      value:
+        identity?.is_displaced === true
+          ? t('common.yes')
+          : identity?.is_displaced === false
+            ? t('common.no')
+            : null,
+    },
   ]
 
   return (

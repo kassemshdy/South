@@ -178,6 +178,7 @@ def test_the_public_application_carries_it(
             "birth_year": 1986,
             "registration_place": ar("identity.registration_place"),
             "residence_place": ar("identity.residence_place"),
+            "is_displaced": False,
         },
         "business": {
             "name": ar("business.applicant"),

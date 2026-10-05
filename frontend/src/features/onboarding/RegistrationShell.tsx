@@ -52,6 +52,7 @@ import type {
   ApplicantDocuments,
   ApplicantIdentity,
 } from '@/services/api/endpoints'
+import { cn } from '@/utils/cn'
 import { isLebanesePhone } from '@/utils/validation'
 
 /**
@@ -83,7 +84,8 @@ export function unwrapFieldErrors(error: unknown, prefix: string): unknown {
   )
 }
 
-type IdentityField = keyof ApplicantIdentity
+/** The typed-in fields; the yes/no question beside them is held on its own. */
+type IdentityField = Exclude<keyof ApplicantIdentity, 'is_displaced'>
 
 const IDENTITY_FIELDS: IdentityField[] = [
   'full_name',
@@ -230,6 +232,10 @@ export function RegistrationShell({
   const [identityErrors, setIdentityErrors] = useState<
     Partial<Record<IdentityField, string>>
   >({})
+  // Asked of every applicant at the owners' request; the answer is for the
+  // team only and is never shown on a listing.
+  const [displaced, setDisplaced] = useState<'' | 'yes' | 'no'>('')
+  const [displacedError, setDisplacedError] = useState<string | null>(null)
   const [documents, setDocuments] = useState<ApplicantDocuments>({
     front: null,
     back: null,
@@ -265,13 +271,15 @@ export function RegistrationShell({
     }
 
     setIdentityErrors(errors)
-    if (Object.keys(errors).length > 0) return null
+    setDisplacedError(displaced ? null : t('validation.displacedRequired'))
+    if (Object.keys(errors).length > 0 || !displaced) return null
 
     return {
       full_name: identity.full_name.trim(),
       birth_year: year,
       registration_place: identity.registration_place.trim(),
       residence_place: identity.residence_place.trim(),
+      is_displaced: displaced === 'yes',
     }
   }
 
@@ -385,6 +393,47 @@ export function RegistrationShell({
               </Field>
             ))}
           </div>
+
+          <fieldset aria-describedby={displacedError ? 'displaced-error' : undefined}>
+            <legend className="mb-2 text-sm font-semibold text-ink-700">
+              {t('account.displacedLabel')}
+              <span className="ms-1 text-clay-600" aria-hidden="true">
+                *
+              </span>
+            </legend>
+            <div className="flex gap-3">
+              {(['yes', 'no'] as const).map((answer) => (
+                <label
+                  key={answer}
+                  className={cn(
+                    'flex min-h-12 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 px-4 font-semibold transition-colors sm:flex-none sm:px-8',
+                    displaced === answer
+                      ? 'border-brand-600 bg-brand-50 text-brand-800'
+                      : 'border-ink-100 bg-white text-ink-700 hover:border-ink-300',
+                    displacedError ? 'border-clay-500' : '',
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="is_displaced"
+                    value={answer}
+                    checked={displaced === answer}
+                    onChange={() => {
+                      setDisplaced(answer)
+                      setDisplacedError(null)
+                    }}
+                    className="sr-only"
+                  />
+                  {t(answer === 'yes' ? 'common.yes' : 'common.no')}
+                </label>
+              ))}
+            </div>
+            {displacedError ? (
+              <p id="displaced-error" role="alert" className="mt-1.5 text-sm text-clay-600">
+                {displacedError}
+              </p>
+            ) : null}
+          </fieldset>
 
           {/* Both sides: the reviewer checks the name against the front and
               the place of registration against the back. */}

@@ -48,6 +48,8 @@ export interface OwnerIdentity {
   marital_status: MaritalStatus | null
   registration_place: string | null
   residence_place: string | null
+  /** Currently displaced from the South: asked on the application, for the team only. */
+  is_displaced: boolean | null
   /**
    * The account holder's own photo — a face, not a logo, and admin-only for
    * the same reason as every field beside it. It is in this block rather than
@@ -534,6 +536,9 @@ export interface ApiErrorPayload {
 
 export type SortOption = 'newest' | 'name' | 'oldest'
 
+/** The talent directory can also sort by years of experience, most first. */
+export type TalentSortOption = SortOption | 'experience'
+
 /**
  * The products directory sorts by price as well, which the other two cannot:
  * a business and a talent profile have no price to sort on.
@@ -565,7 +570,7 @@ export interface TalentQuery {
   q?: string
   skill?: string
   location?: string
-  sort?: SortOption
+  sort?: TalentSortOption
   page?: number
   page_size?: number
 }
@@ -747,6 +752,25 @@ export interface SiteSettings {
   social_facebook: string | null
   social_instagram: string | null
 }
+
+/** The site's static pages; see `PageText`. */
+export type PageKey = 'about'
+
+/**
+ * A static page's administrator-written text. A null field means the page
+ * shows its built-in text from the locale catalog in its place.
+ */
+export interface PageText {
+  key: PageKey
+  title_ar: string | null
+  title_en: string | null
+  summary_ar: string | null
+  summary_en: string | null
+  body_ar: string | null
+  body_en: string | null
+}
+
+export type PageTextInput = Omit<PageText, 'key'>
 
 export type PageCoverKey =
   | 'home'

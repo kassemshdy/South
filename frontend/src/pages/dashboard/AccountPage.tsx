@@ -126,6 +126,7 @@ function ProfileCard({ user, onSaved }: { user: User; onSaved: () => Promise<voi
       marital_status: user.marital_status ?? '',
       registration_place: user.registration_place ?? '',
       residence_place: user.residence_place ?? '',
+      is_displaced: user.is_displaced === null ? '' : user.is_displaced ? 'yes' : 'no',
     },
   })
 
@@ -140,6 +141,7 @@ function ProfileCard({ user, onSaved }: { user: User; onSaved: () => Promise<voi
         marital_status: values.marital_status || null,
         registration_place: values.registration_place || null,
         residence_place: values.residence_place || null,
+        is_displaced: values.is_displaced === '' ? null : values.is_displaced === 'yes',
       }),
     onSuccess: async () => {
       await onSaved()
@@ -295,6 +297,26 @@ function ProfileCard({ user, onSaved }: { user: User; onSaved: () => Promise<voi
                 {(props) => <Input {...props} {...register('residence_place')} />}
               </Field>
             </div>
+
+            <Field label={t('account.displacedLabel')}>
+              {(props) => (
+                <Controller
+                  control={control}
+                  name="is_displaced"
+                  render={({ field }) => (
+                    <Select value={field.value || ''} onValueChange={field.onChange}>
+                      <SelectTrigger id={props.id}>
+                        <SelectValue placeholder={t('account.notSpecified')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="yes">{t('common.yes')}</SelectItem>
+                        <SelectItem value="no">{t('common.no')}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              )}
+            </Field>
           </fieldset>
 
           <Button type="submit" loading={save.isPending}>

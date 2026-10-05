@@ -9,6 +9,9 @@ import { apiDownload, apiRequest } from '@/services/api/client'
 import type {
   PageCover,
   PageCoverKey,
+  PageKey,
+  PageText,
+  PageTextInput,
   SiteSettings,
   DiscardedApplication,
   GoodsOrigin,
@@ -158,6 +161,7 @@ export interface IdentityPayload {
   marital_status?: MaritalStatus | null
   registration_place?: string | null
   residence_place?: string | null
+  is_displaced?: boolean | null
 }
 
 /**
@@ -173,6 +177,7 @@ export interface ApplicantIdentity {
   birth_year: number
   registration_place: string
   residence_place: string
+  is_displaced: boolean
 }
 
 /** Both sides of the applicant's ID card. */
@@ -295,6 +300,10 @@ export const publicItemApi = {
 
 export const siteSettingsApi = {
   get: () => apiRequest<SiteSettings>('/api/site-settings'),
+}
+
+export const pageApi = {
+  get: (key: PageKey) => apiRequest<PageText>(`/api/pages/${key}`),
 }
 
 export const pageCoverApi = {
@@ -542,6 +551,9 @@ export const adminApi = {
   },
   resetPageCover: (key: PageCoverKey) =>
     apiRequest<PageCover>(`/api/admin/page-covers/${key}`, { method: 'DELETE' }),
+  pages: () => apiRequest<PageText[]>('/api/admin/pages'),
+  updatePage: (key: PageKey, values: PageTextInput) =>
+    apiRequest<PageText>(`/api/admin/pages/${key}`, { method: 'PUT', body: values }),
   siteSettings: () => apiRequest<SiteSettings>('/api/admin/site-settings'),
   updateSiteSettings: (values: SiteSettings) =>
     apiRequest<SiteSettings>('/api/admin/site-settings', { method: 'PUT', body: values }),

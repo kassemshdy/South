@@ -12,6 +12,7 @@ import {
 import { Link, useParams } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
+import { BackLink } from '@/components/ui/BackLink'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
 import { YouTubePlayer } from '@/components/ui/YouTubePlayer'
@@ -190,7 +191,8 @@ export function TalentProfilePage() {
   return (
     <article className="pb-16">
       <div className="container-page pt-10">
-        <div className="flex flex-col gap-4 rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:flex-row sm:items-center">
+        <BackLink fallback="/talent" />
+        <div className="mt-4 flex flex-col gap-4 rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:flex-row sm:items-center">
           <div className="h-28 w-28 shrink-0 overflow-hidden rounded-full border-4 border-white bg-sand-100 shadow-card">
             {data.photo_url ? (
               <img

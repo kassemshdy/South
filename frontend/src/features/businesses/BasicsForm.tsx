@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ChevronDown } from 'lucide-react'
 import { useMemo } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 
@@ -233,24 +232,20 @@ export function BasicsForm({
       {/* Nothing in here is required to get reviewed.
           The submission rules in `app/services/business.py` ask for six
           things: a name, a short description, a category, an area, a logo and
-          one contact number. Everything else was sitting in the same flat
-          column, which made a six-field form read as a twelve-field one to
-          exactly the person least likely to push through it. Collapsed, and
-          labelled as skippable, because it genuinely is — and a listing can
-          be filled out further from the dashboard once it is live. */}
-      <details className="group rounded-2xl border border-ink-100 bg-sand-50/50 [&_summary::-webkit-details-marker]:hidden">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl p-4 text-start font-semibold text-ink-700 hover:bg-sand-100">
-          <span>
-            {t('form.optionalSectionTitle')}
-            <span className="mt-0.5 block text-sm font-normal text-ink-500">
-              {t('form.optionalSectionHint')}
-            </span>
+          one contact number. Everything else is grouped here and labelled as
+          skippable, because it genuinely is -- and a listing can be filled
+          out further from the dashboard once it is live.
+
+          It used to be collapsed behind a click. The owners asked for it to
+          be open: an owner who never opened it never knew these fields were
+          there, so they were left empty rather than skipped. */}
+      <section className="rounded-2xl border border-ink-100 bg-sand-50/50">
+        <div className="p-4 text-start font-semibold text-ink-700">
+          {t('form.optionalSectionTitle')}
+          <span className="mt-0.5 block text-sm font-normal text-ink-500">
+            {t('form.optionalSectionHint')}
           </span>
-          <ChevronDown
-            className="h-5 w-5 shrink-0 text-ink-500 transition-transform group-open:rotate-180"
-            aria-hidden="true"
-          />
-        </summary>
+        </div>
 
         <div className="space-y-5 border-t border-ink-100 p-4">
           <Field label={t('form.description')} error={errors.description?.message}>
@@ -384,7 +379,7 @@ export function BasicsForm({
             </Field>
           </fieldset>
         </div>
-      </details>
+      </section>
 
       {/* Identity is set on the account, not here: one legal name per
           person, however many businesses they own. Hidden on the public

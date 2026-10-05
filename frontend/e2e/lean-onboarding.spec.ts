@@ -53,12 +53,11 @@ test.describe('Lean onboarding', () => {
 
     await openBusinessWizard(page)
 
-    // The optional fields are present but collapsed: a long description is not
-    // required to be reviewed, so it does not share a column with the fields
-    // that are.
+    // The optional fields sit in their own labelled section, open rather than
+    // collapsed at the owners' request: an owner who never opened it never
+    // knew the fields were there.
     await expect(page.getByLabel(t('form.name'))).toBeVisible()
-    await expect(page.getByLabel(t('form.description'))).toBeHidden()
-    await page.getByText(t('form.optionalSectionTitle')).click()
+    await expect(page.getByText(t('form.optionalSectionTitle'))).toBeVisible()
     await expect(page.getByLabel(t('form.description'))).toBeVisible()
 
     // The steps nothing depends on say so, before they are walked into.

@@ -66,6 +66,10 @@ class User(Base, TimestampMixin):
     )
     registration_place: Mapped[str | None] = mapped_column(String(160), nullable=True)
     residence_place: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # Whether the account holder is currently displaced from the South. Asked
+    # on the application form for the team's own picture of who the platform
+    # serves, and -- like everything above -- never published.
+    is_displaced: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
 
     role: Mapped[UserRole] = mapped_column(
         SAEnum(UserRole, name="user_role", values_callable=lambda e: [m.value for m in e]),
