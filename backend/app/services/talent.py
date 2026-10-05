@@ -167,6 +167,10 @@ class TalentService:
             for field, key in SUBMISSION_REQUIREMENTS
             if not getattr(profile, field, None)
         ]
+        # Checked against None rather than for truth: 0 is an answer -- someone
+        # just starting out -- and the owners made the question compulsory.
+        if profile.years_experience is None:
+            missing.append("talent.field.years_experience")
         if not profile.photo_url:
             missing.append("talent.field.photo")
         if not (profile.phone or profile.whatsapp):

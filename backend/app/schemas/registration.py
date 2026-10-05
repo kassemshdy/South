@@ -13,7 +13,7 @@ they are.
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.core.i18n import translate
 from app.core.phone import normalize_phone
@@ -45,6 +45,9 @@ class RegistrationIdentityIn(IdentityFieldsIn):
     birth_year: int = Field(ge=1900, le=2100)
     registration_place: str = Field(min_length=2, max_length=160)
     residence_place: str = Field(min_length=2, max_length=200)
+    # Yes or no, and an answer is required: the owners asked every applicant
+    # whether they are currently displaced from the South. For the team only.
+    is_displaced: bool
 
     @field_validator("full_name", "registration_place", "residence_place")
     @classmethod
@@ -90,6 +93,15 @@ class BusinessRegistrationIn(RegistrationBase):
 
 class TalentRegistrationIn(RegistrationBase):
     talent: TalentCreateIn
+
+    @model_validator(mode="after")
+    def _years_of_experience(self) -> TalentRegistrationIn:
+        # Optional on a dashboard draft, which can be saved half-done, but an
+        # application goes straight to review -- and the owners made the
+        # number compulsory, since the directory can be sorted by it.
+        if self.talent.years_experience is None:
+            raise ValueError(translate("registration.years_experience_required"))
+        return self
 
 
 class RegistrationOut(BaseModel):

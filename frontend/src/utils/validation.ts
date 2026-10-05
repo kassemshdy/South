@@ -289,13 +289,13 @@ export const talentSchema = (t: Translate, otherSkillId?: string) =>
         .min(2, t('validation.nameRequired'))
         .max(160, t('validation.nameTooLong')),
       bio: z.string().trim().max(5000, t('validation.descriptionTooLong')).optional().or(z.literal('')),
+      // Required since the owners made it so: the directory sorts by it.
       years_experience: z
         .string()
         .trim()
-        .optional()
-        .or(z.literal(''))
+        .min(1, t('validation.yearsRequired'))
         .refine(
-          (value) => !value || (/^\d{1,2}$/.test(value) && Number(value) <= 70),
+          (value) => /^\d{1,2}$/.test(value) && Number(value) <= 70,
           t('validation.yearsInvalid'),
         ),
       skill_id: z.string().min(1, t('validation.skillRequired')),
@@ -390,6 +390,7 @@ export const accountSchema = (t: Translate) =>
       .or(z.literal('')),
     registration_place: z.string().trim().max(160).optional().or(z.literal('')),
     residence_place: z.string().trim().max(200).optional().or(z.literal('')),
+    is_displaced: z.enum(['yes', 'no']).optional().or(z.literal('')),
   })
 
 export const rejectSchema = (t: Translate) =>

@@ -6,6 +6,7 @@ import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { Button } from '@/components/ui/Button'
 import { Field } from '@/components/ui/Field'
 import { Input, Textarea } from '@/components/ui/Input'
+import { LocationCombobox } from '@/components/ui/LocationCombobox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 import { useLocationGroups, useTalentSkills } from '@/hooks/useTaxonomy'
 import { useT } from '@/i18n'
@@ -147,7 +148,7 @@ export function TalentForm({
     onSubmit({
       display_name: values.display_name,
       bio: values.bio || null,
-      years_experience: values.years_experience ? Number(values.years_experience) : null,
+      years_experience: values.years_experience !== '' ? Number(values.years_experience) : null,
       skill_id: values.skill_id || null,
       custom_skill_text: values.custom_skill_text || null,
       skill_specialty: values.skill_specialty || null,
@@ -246,6 +247,7 @@ export function TalentForm({
 
         <Field
           label={t('talentForm.yearsExperience')}
+          required
           error={errors.years_experience?.message}
         >
           {(props) => (
@@ -304,28 +306,15 @@ export function TalentForm({
             control={control}
             name="location_id"
             render={({ field }) => (
-              <Select value={field.value || undefined} onValueChange={field.onChange}>
-                <SelectTrigger
-                  id={props.id}
-                  aria-describedby={props['aria-describedby']}
-                  invalid={Boolean(errors.location_id)}
-                >
-                  <SelectValue placeholder={t('talentForm.locationPlaceholder')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {groups.map(({ district, towns }) => [
-                    <SelectItem key={district.id} value={district.id}>
-                      {district.name_ar}
-                    </SelectItem>,
-                    ...towns.map((town) => (
-                      <SelectItem key={town.id} value={town.id}>
-                        {'  '}
-                        {town.name_ar}
-                      </SelectItem>
-                    )),
-                  ])}
-                </SelectContent>
-              </Select>
+              <LocationCombobox
+                id={props.id}
+                aria-describedby={props['aria-describedby']}
+                value={field.value ?? ''}
+                onChange={field.onChange}
+                groups={groups}
+                placeholder={t('talentForm.locationPlaceholder')}
+                invalid={Boolean(errors.location_id)}
+              />
             )}
           />
         )}

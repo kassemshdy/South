@@ -161,6 +161,7 @@ export interface IdentityPayload {
   marital_status?: MaritalStatus | null
   registration_place?: string | null
   residence_place?: string | null
+  is_displaced?: boolean | null
 }
 
 /**
@@ -176,6 +177,7 @@ export interface ApplicantIdentity {
   birth_year: number
   registration_place: string
   residence_place: string
+  is_displaced: boolean
 }
 
 /** Both sides of the applicant's ID card. */
