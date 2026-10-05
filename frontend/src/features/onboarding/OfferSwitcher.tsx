@@ -15,7 +15,11 @@ import { OFFER_DOORS } from '@/features/onboarding/destinations'
  * walk away after that leaves a stub behind. `BusinessWizardPage` guards it
  * on `businessId === null`.
  */
-export function OfferSwitcher({ current }: { current: 'business' | 'imported' | 'talent' }) {
+export function OfferSwitcher({
+  current,
+}: {
+  current: 'business' | 'imported' | 'service' | 'job'
+}) {
   return (
     <DoorStrip doors={OFFER_DOORS} current={current} label="onboarding.offerSwitcherLabel" />
   )

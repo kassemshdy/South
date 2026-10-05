@@ -22,7 +22,7 @@ from app.core.dependencies import (
 from app.core.errors import NotFoundError
 from app.core.i18n import translate
 from app.core.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
-from app.models.enums import ViewSubject
+from app.models.enums import TalentKind, ViewSubject
 from app.repositories.talent import TalentRepository
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.talent import (
@@ -49,6 +49,9 @@ def search_talent(
     q: Annotated[str | None, Query(max_length=120, description="Free-text search query")] = None,
     skill: Annotated[str | None, Query(description="Talent skill slug")] = None,
     location: Annotated[str | None, Query(description="Location slug")] = None,
+    kind: Annotated[
+        TalentKind | None, Query(description="Services or job applications; both when absent")
+    ] = None,
     sort: Annotated[Literal["newest", "name", "oldest", "experience"], Query()] = "newest",
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
@@ -58,6 +61,7 @@ def search_talent(
         q=q,
         skill_slug=skill,
         location_slug=location,
+        kind=kind,
         sort=sort,
         page=page,
         page_size=page_size,

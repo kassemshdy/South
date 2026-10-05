@@ -9,10 +9,11 @@
  */
 
 import { useMutation } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 
 import { useToast } from '@/components/ui/Toast'
 import { RegistrationShell, unwrapFieldErrors } from '@/features/onboarding/RegistrationShell'
+import { kindFromQuery } from '@/features/talent/kind'
 import { TalentForm } from '@/features/talent/TalentForm'
 import { useSeo } from '@/hooks/useSeo'
 import { useT } from '@/i18n'
@@ -26,6 +27,8 @@ import {
 export function RegisterTalentPage() {
   const t = useT()
   const toast = useToast()
+  const [searchParams] = useSearchParams()
+  const initialKind = kindFromQuery(searchParams.get('kind'))
 
   useSeo({ title: t('register.talentSeoTitle'), description: t('register.talentSubtitle') })
 
@@ -50,6 +53,7 @@ export function RegisterTalentPage() {
     >
       {({ requireApplicant, captchaToken, captcha }) => (
         <TalentForm
+          initialKind={initialKind}
           submitLabel={t('register.submit')}
           identityElsewhere={false}
           pending={apply.isPending}

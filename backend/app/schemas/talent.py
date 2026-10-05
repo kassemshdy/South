@@ -14,6 +14,7 @@ from app.models.enums import (
     EmploymentType,
     ImageKind,
     LanguageProficiency,
+    TalentKind,
 )
 from app.schemas.business import SocialLinkIn, SocialLinkOut
 from app.schemas.common import ORMModel
@@ -72,6 +73,8 @@ class TalentSummaryOut(ORMModel):
     id: uuid.UUID
     display_name: str
     slug: str
+    # Which directory it is listed in: services, or job applications.
+    kind: TalentKind = TalentKind.SERVICE
     photo_url: str | None = None
     phone: str | None = None
     whatsapp: str | None = None
@@ -195,6 +198,10 @@ class TalentProfileFieldsIn(BaseModel):
 
 class TalentCreateIn(TalentProfileFieldsIn):
     display_name: str = Field(min_length=2, max_length=160)
+    # Optional here, defaulting to a service, so a dashboard draft and every
+    # client written before the split keep working; the public application
+    # requires an answer (see TalentRegistrationIn).
+    kind: TalentKind | None = None
     bio: str | None = Field(default=None, max_length=5000)
     years_experience: int | None = Field(default=None, ge=0, le=70)
     skill_id: uuid.UUID | None = None
@@ -230,6 +237,7 @@ class TalentUpdateIn(TalentProfileFieldsIn):
     """Every field optional: the profile editor saves one section at a time."""
 
     display_name: str | None = Field(default=None, min_length=2, max_length=160)
+    kind: TalentKind | None = None
     bio: str | None = Field(default=None, max_length=5000)
     years_experience: int | None = Field(default=None, ge=0, le=70)
     skill_id: uuid.UUID | None = None

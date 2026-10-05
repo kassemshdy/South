@@ -352,10 +352,17 @@ export interface TalentImage {
   height: number | null
 }
 
+/**
+ * Which of the two directories a talent profile is listed in: services, or
+ * job applications. Chosen by the profile's owner.
+ */
+export type TalentKind = 'SERVICE' | 'JOB_SEEKER'
+
 export interface TalentSummary {
   id: string
   display_name: string
   slug: string
+  kind: TalentKind
   photo_url: string | null
   /** The card-sized copy, when there is one; fall back to the full image. */
   photo_thumb_url?: string | null
@@ -570,6 +577,7 @@ export interface TalentQuery {
   q?: string
   skill?: string
   location?: string
+  kind?: TalentKind
   sort?: TalentSortOption
   page?: number
   page_size?: number
@@ -780,6 +788,7 @@ export type PageCoverKey =
   | 'products_local'
   | 'products_imported'
   | 'talent'
+  | 'jobs'
   | 'contact'
 
 export interface PageCover {

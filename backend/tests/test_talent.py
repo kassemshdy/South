@@ -692,3 +692,50 @@ def test_a_platform_named_twice_is_refused(
         },
     )
     assert response.status_code == 409, response.text
+
+
+# --- Services and job applications --------------------------------------
+
+
+def test_a_profile_is_a_service_unless_its_owner_says_otherwise(
+    client: TestClient, skill: TalentSkill, location: Location
+) -> None:
+    """Every profile from before the split was a service, and so is a new one
+    that does not say."""
+    headers = sign_in(client, "03950121")
+    created = _create_profile(client, headers, skill, location)
+    assert created["kind"] == "SERVICE"
+
+    changed = client.put("/api/my/talent", headers=headers, json={"kind": "JOB_SEEKER"})
+    assert changed.status_code == 200, changed.text
+    assert changed.json()["kind"] == "JOB_SEEKER"
+
+
+def test_each_directory_lists_only_its_own_kind(
+    client: TestClient, db: Session, admin: User, skill: TalentSkill, location: Location
+) -> None:
+    service = _create_profile(
+        client, sign_in(client, "03950122"), skill, location, display_name=ar("talent.designer")
+    )
+    seeker_headers = sign_in(client, "03950123")
+    seeker = _create_profile(
+        client, seeker_headers, skill, location, display_name=ar("talent.applicant")
+    )
+    client.put("/api/my/talent", headers=seeker_headers, json={"kind": "JOB_SEEKER"})
+    _approve(client, db, admin, service["id"])
+    _approve(client, db, admin, seeker["id"])
+
+    def slugs(kind: str | None) -> set[str]:
+        params = {"kind": kind} if kind else {}
+        return {row["slug"] for row in client.get("/api/talent", params=params).json()["items"]}
+
+    assert slugs("SERVICE") == {service["slug"]}
+    assert slugs("JOB_SEEKER") == {seeker["slug"]}
+    # No kind: both, as the one directory always listed.
+    assert slugs(None) == {service["slug"], seeker["slug"]}
+
+
+def test_the_sitemap_lists_both_directories(client: TestClient) -> None:
+    sitemap = client.get("/sitemap.xml").text
+    assert "/services</loc>" in sitemap
+    assert "/jobs</loc>" in sitemap

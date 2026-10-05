@@ -22,7 +22,7 @@ import { NotFoundPage } from '@/pages/NotFoundPage'
 import { OfferPage } from '@/pages/OfferPage'
 import { ProductProfilePage } from '@/pages/ProductProfilePage'
 import { ProductsDirectoryPage } from '@/pages/ProductsDirectoryPage'
-import { TalentDirectoryPage } from '@/pages/TalentDirectoryPage'
+import { LegacyTalentRedirect, TalentDirectoryPage } from '@/pages/TalentDirectoryPage'
 import { TalentProfilePage } from '@/pages/TalentProfilePage'
 
 /**
@@ -163,7 +163,10 @@ export function App() {
           <Route path="cart" element={<CartPage />} />
           <Route path="favourites" element={<FavouritesPage />} />
           <Route path="product/:slug" element={<ProductProfilePage />} />
-          <Route path="talent" element={<TalentDirectoryPage />} />
+          <Route path="services" element={<TalentDirectoryPage kind="SERVICE" />} />
+          <Route path="jobs" element={<TalentDirectoryPage kind="JOB_SEEKER" />} />
+          {/* The one directory before the split: shared links land on services. */}
+          <Route path="talent" element={<LegacyTalentRedirect />} />
           <Route path="talent/:slug" element={<TalentProfilePage />} />
           <Route path="news" element={<NewsPage />} />
           <Route path="blog" element={<BlogPage />} />

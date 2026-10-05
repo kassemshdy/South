@@ -157,6 +157,10 @@ export function AdminTalentReviewPage() {
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl">{data.display_name}</h1>
               <StatusBadge status={data.status} />
+              {/* Which directory approval publishes it in. */}
+              <span className="rounded-full bg-sand-100 px-3 py-1 text-sm font-semibold text-ink-700">
+                {t(data.kind === 'JOB_SEEKER' ? 'nav.jobs' : 'nav.services')}
+              </span>
             </div>
             <p className="mt-1 text-sm text-ink-500">
               {t('admin.submittedAt', { date: formatDate(data.submitted_at, locale) })}

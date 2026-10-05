@@ -38,6 +38,7 @@ from app.models.enums import (
     LanguageProficiency,
     ModerationActionType,
     SocialPlatform,
+    TalentKind,
 )
 
 if TYPE_CHECKING:
@@ -151,6 +152,17 @@ class TalentProfile(Base, TimestampMixin):
     # civil-record places — lives on :class:`~app.models.user.User`, not
     # here: it describes the person behind the account, who may own
     # businesses too, so one account holds exactly one copy of it.
+
+    # Services or job applications: the directory this profile is listed in,
+    # chosen by its owner. Every profile from before the split is a service,
+    # which is what the single directory offered.
+    kind: Mapped[TalentKind] = mapped_column(
+        pg_enum(TalentKind, "talent_kind"),
+        nullable=False,
+        default=TalentKind.SERVICE,
+        server_default=TalentKind.SERVICE.value,
+        index=True,
+    )
 
     status: Mapped[BusinessStatus] = mapped_column(
         pg_enum(BusinessStatus, "business_status"),

@@ -1,4 +1,4 @@
-import { Globe, Package, Store, UserRound, Users } from 'lucide-react'
+import { Briefcase, Globe, Package, Store, UserRound, Users } from 'lucide-react'
 
 import type { TranslationKey } from '@/i18n'
 import type { GoodsOrigin } from '@/types/api'
@@ -66,13 +66,26 @@ const productsDoor: Door = {
   href: '/products',
 }
 
-const talentDoor: Door = {
-  key: 'talent',
+/**
+ * Services and job applications: one door, «services and jobs», until the
+ * owners split the talent directory in two. Each is now its own page.
+ */
+const servicesDoor: Door = {
+  key: 'services',
   icon: Users,
-  titleKey: 'onboarding.seekServiceTitle',
+  titleKey: 'onboarding.seekServicesTitle',
   descriptionKey: 'onboarding.seekServiceDescription',
-  shortKey: 'browse.talentShort',
-  href: '/talent',
+  shortKey: 'browse.servicesShort',
+  href: '/services',
+}
+
+const jobsDoor: Door = {
+  key: 'jobs',
+  icon: Briefcase,
+  titleKey: 'onboarding.seekJobsTitle',
+  descriptionKey: 'onboarding.seekJobsDescription',
+  shortKey: 'browse.jobsShort',
+  href: '/jobs',
 }
 
 /**
@@ -82,7 +95,7 @@ const talentDoor: Door = {
  * `/businesses` still answers links already shared, but is linked from
  * nowhere.
  */
-export const BROWSE_DOORS: Door[] = [productsDoor, talentDoor]
+export const BROWSE_DOORS: Door[] = [productsDoor, servicesDoor, jobsDoor]
 
 /**
  * Where someone looking for something goes: **three** doors —— goods made in
@@ -121,7 +134,8 @@ export const SEEK_DOORS: Door[] = [
     shortKey: 'onboarding.importedShort',
     href: '/products/imported',
   },
-  talentDoor,
+  servicesDoor,
+  jobsDoor,
 ]
 
 /**
@@ -170,13 +184,24 @@ export const OFFER_DOORS: Door[] = [
     applyHref: '/register/business?origin=IMPORTED',
   },
   {
-    key: 'talent',
+    // A talent profile listed under services. The same application and
+    // dashboard as the door below; the door presets which directory.
+    key: 'service',
     icon: UserRound,
-    titleKey: 'onboarding.talentTitle',
+    titleKey: 'onboarding.offerServiceTitle',
     descriptionKey: 'onboarding.talentDescription',
     shortKey: 'onboarding.talentShort',
-    href: '/dashboard/talent',
-    applyHref: '/register/talent',
+    href: '/dashboard/talent?kind=SERVICE',
+    applyHref: '/register/talent?kind=SERVICE',
+  },
+  {
+    key: 'job',
+    icon: Briefcase,
+    titleKey: 'onboarding.offerJobTitle',
+    descriptionKey: 'onboarding.offerJobDescription',
+    shortKey: 'onboarding.offerJobShort',
+    href: '/dashboard/talent?kind=JOB_SEEKER',
+    applyHref: '/register/talent?kind=JOB_SEEKER',
   },
 ]
 

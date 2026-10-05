@@ -101,6 +101,10 @@ class TalentRegistrationIn(RegistrationBase):
         # number compulsory, since the directory can be sorted by it.
         if self.talent.years_experience is None:
             raise ValueError(translate("registration.years_experience_required"))
+        # Services or a job application: the applicant's own choice, and
+        # which directory the profile is listed in once approved.
+        if self.talent.kind is None:
+            raise ValueError(translate("registration.talent_kind_required"))
         return self
 
 

@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.core.arabic import normalize_arabic
 from app.core.pagination import Page
-from app.models.enums import BusinessStatus
+from app.models.enums import BusinessStatus, TalentKind
 from app.models.talent import TalentProfile, TalentSkill
 from app.models.taxonomy import Location
 from app.models.user import User
@@ -103,7 +103,11 @@ class TalentRepository(BaseRepository[TalentProfile]):
         q: str | None,
         skill_slug: str | None,
         location_slug: str | None,
+        kind: TalentKind | None = None,
     ) -> Select[tuple[TalentProfile]]:
+        if kind is not None:
+            stmt = stmt.where(TalentProfile.kind == kind)
+
         if skill_slug:
             stmt = stmt.join(TalentSkill, TalentProfile.skill_id == TalentSkill.id).where(
                 TalentSkill.slug == skill_slug
@@ -151,13 +155,18 @@ class TalentRepository(BaseRepository[TalentProfile]):
         q: str | None = None,
         skill_slug: str | None = None,
         location_slug: str | None = None,
+        kind: TalentKind | None = None,
         sort: SortOption = "newest",
         page: int = 1,
         page_size: int = 12,
     ) -> Page[TalentProfile]:
         """Paginated public search. Never returns a non-APPROVED profile."""
         filtered = self._apply_filters(
-            self.public_query(), q=q, skill_slug=skill_slug, location_slug=location_slug
+            self.public_query(),
+            q=q,
+            skill_slug=skill_slug,
+            location_slug=location_slug,
+            kind=kind,
         )
 
         total = int(
