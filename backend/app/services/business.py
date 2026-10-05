@@ -67,6 +67,7 @@ class BusinessService:
             location_id=payload.location_id,
             phone=payload.phone,
             whatsapp=payload.whatsapp,
+            phone_public=payload.phone_public is not False,
             email=payload.email,
             website=normalize_url(payload.website) if payload.website else None,
             youtube_video_id=(

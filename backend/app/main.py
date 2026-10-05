@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import mimetypes
 import os
@@ -48,7 +49,7 @@ from app.models.site_setting import SiteSetting
 from app.repositories.business import BusinessRepository
 from app.repositories.item import ItemRepository
 from app.repositories.talent import TalentRepository
-from app.services import business_documents, feedback_attachments, verification
+from app.services import business_documents, db_backup, feedback_attachments, verification
 from app.storage import factory as storage_factory
 
 logger = logging.getLogger(__name__)
@@ -65,7 +66,20 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             "storage_backend": settings.storage_backend,
         },
     )
+    # The daily database copy, taken by the API itself so it needs no other
+    # service; the boot copy is taken by the container's start command.
+    backups: asyncio.Task[None] | None = None
+    if settings.is_production and settings.db_backup_interval_hours > 0:
+        backups = asyncio.create_task(
+            db_backup.run_periodic_backups(
+                settings.database_url,
+                storage_factory.get_storage(),
+                interval_hours=settings.db_backup_interval_hours,
+            )
+        )
     yield
+    if backups is not None:
+        backups.cancel()
     logger.info("Application stopping")
 
 
@@ -137,6 +151,8 @@ PRIVATE_MEDIA_FOLDERS = (
     verification.STORAGE_FOLDERS
     | business_documents.STORAGE_FOLDERS
     | feedback_attachments.STORAGE_FOLDERS
+    # Database backups hold every account's identity.
+    | db_backup.STORAGE_FOLDERS
 )
 
 #: Uploaded photographs are stored under a fresh random name and never
@@ -413,7 +429,7 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
                                     description=business.short_description,
                                     url=url,
                                     image_url=image,
-                                    telephone=business.phone,
+                                    telephone=business.phone if business.phone_public else None,
                                     location_name=location,
                                     latitude=business.latitude,
                                     longitude=business.longitude,

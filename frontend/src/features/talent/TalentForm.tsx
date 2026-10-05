@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Field } from '@/components/ui/Field'
 import { Input, Textarea } from '@/components/ui/Input'
 import { LocationCombobox } from '@/components/ui/LocationCombobox'
+import { PhonePublicToggle } from '@/components/ui/PhonePublicToggle'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 import { useLocationGroups, useTalentSkills } from '@/hooks/useTaxonomy'
 import { useT } from '@/i18n'
@@ -109,6 +110,7 @@ export function TalentForm({
       location_id: profile?.location?.id ?? '',
       phone: profile?.phone ?? '',
       whatsapp: profile?.whatsapp ?? '',
+      phone_public: profile?.phone_public ?? true,
       email: profile?.email ?? '',
       website: profile?.website ?? '',
       instagram: socialUrl(profile, 'INSTAGRAM'),
@@ -167,6 +169,7 @@ export function TalentForm({
       location_id: values.location_id || null,
       phone: values.phone || null,
       whatsapp: values.whatsapp || null,
+      phone_public: values.phone_public,
       email: values.email || null,
       website: values.website || null,
       video_url: values.video_url || null,
@@ -392,6 +395,8 @@ export function TalentForm({
           )}
         </Field>
       </div>
+
+      <PhonePublicToggle registration={register('phone_public')} />
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label={t('form.email')} error={errors.email?.message}>

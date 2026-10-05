@@ -621,6 +621,8 @@
   "form.ownerRelationWorker": "Worker",
   "form.phone": "Public phone number",
   "form.phoneHint": "This number is shown to visitors.",
+  "form.phonePublicHint": "If you untick this, only the team sees your number, and visitors contact you with a message on the site.",
+  "form.phonePublicLabel": "Show my number to everyone",
   "form.privacyNote": "The phone number you signed in with is never published. Visitors only see the contact numbers you enter here.",
   "form.producerHeading": "Producer details (optional)",
   "form.producerHint": "For a workshop, farm or factory. Leave blank if it doesn't apply to you.",

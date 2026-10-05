@@ -142,6 +142,9 @@ class OwnerTalentOut(TalentDetailOut):
     to the account, not the profile, and is read through ``UserOut``.
     """
 
+    # The owner's own numbers are always above, whatever this says; it is
+    # whether visitors see them.
+    phone_public: bool = True
     status: BusinessStatus
     rejection_reason: str | None = None
     submitted_at: datetime | None = None
@@ -209,6 +212,8 @@ class TalentCreateIn(TalentProfileFieldsIn):
     location_id: uuid.UUID | None = None
     phone: OptionalPhone = None
     whatsapp: OptionalPhone = None
+    # Show the numbers to visitors; absent keeps the current choice (shown).
+    phone_public: bool | None = None
     email: EmailStr | None = None
     website: str | None = Field(default=None, max_length=500)
     # A link, because that is what the person has; stored as an id.
@@ -245,6 +250,8 @@ class TalentUpdateIn(TalentProfileFieldsIn):
     location_id: uuid.UUID | None = None
     phone: OptionalPhone = None
     whatsapp: OptionalPhone = None
+    # Show the numbers to visitors; absent keeps the current choice (shown).
+    phone_public: bool | None = None
     email: EmailStr | None = None
     website: str | None = Field(default=None, max_length=500)
     # A link, because that is what the person has; stored as an id.

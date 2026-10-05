@@ -406,12 +406,17 @@ login.
   `storage.exists()` per image, not just whether the `Business` row exists, and
   regenerates anything missing. This matters because a business row can survive a bad
   deploy while its files don't.
-- **The `postgres` service currently has no persistent volume.** Any Postgres redeploy
-  (including one triggered by only changing its environment variables) wipes the entire
-  database back to empty — schema and all. Recovery is a redeploy of the `api` service
-  (its start command re-runs migrations + seed), but avoid triggering a Postgres redeploy
-  at all until this is fixed. Before setting *any* variable or config on `postgres`, check
-  whether it forces a redeploy, and confirm with the user first if so.
+- **The production database was lost once, on 2026-10-04,** because the old
+  `postgres` service was a plain container with no disk and was redeployed. It
+  is now Railway's own **`Postgres`** service on a persistent disk. Never
+  redeploy, delete or reconfigure it without a fresh backup and the owner's
+  explicit go-ahead.
+- **The database is copied into the bucket at every API boot (before
+  migrations) and once a day**, under the private `backups/db/` folder
+  (`app/services/db_backup.py`, `scripts/backup_db.py`); `/media` refuses the
+  folder. An API that starts against an empty database while uploads exist
+  raises a fatal Sentry error instead of starting quietly — treat it as an
+  emergency and follow `docs/RESTORE.md`.
 - **Uploads can live in a private bucket instead of the volume.** With
   `STORAGE_BACKEND=s3` and no `S3_PUBLIC_BASE_URL`, files go to the bucket but
   are still served at `/media/<key>` by the API (`_mount_bucket_media`), so the
@@ -424,11 +429,6 @@ login.
   confirm the files serve, and only then detach the volume. A service with a
   volume cannot run two instances, so every deploy of `api` has a minute or two
   of 502s until it is gone.
-- **Point-in-Time Recovery (`WAL_ARCHIVE_*` variables) only works on Railway's own managed
-  Postgres image.** This project's `postgres` service runs plain `postgres:16-alpine` from
-  Docker Hub — pgBackRest isn't installed, so those variables are inert. Real PITR here
-  would require migrating to Railway's managed Postgres template, not just setting vars.
-
 ## Testing Conventions
 
 - Backend tests run against a real Postgres (`tests/conftest.py`), truncating tables
@@ -455,8 +455,9 @@ login.
   diagnosed from its log; the E2E job uploads screenshots, traces and both server logs
   as the run's `e2e-results` artifact on failure. Say which check failed and why before
   pushing a fix, and never merge a red PR to save a cycle.
-- Two branches auto-deploy on push: `master-claude` drives the live services
-  (`api`, `web`) and `develop-claude` drives the staging pair (`api-develop`,
-  `web-develop`). Treat `master-claude` as production: verify locally first, and check
-  Railway deploy status/logs after pushing rather than assuming success. Feature work
-  goes to `develop-claude` first, then to `master-claude`.
+- `master-claude` auto-deploys the live services (`api`, `web`, on the `Postgres`
+  database). The staging services were removed on 2026-10-05, so `develop-claude`
+  no longer deploys anywhere: it is where pull requests are merged after CI, and a
+  release is a pull request from it into `master-claude`. Treat `master-claude` as
+  production: verify locally first, and check Railway deploy status/logs after
+  pushing rather than assuming success.

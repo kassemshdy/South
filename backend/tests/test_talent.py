@@ -739,3 +739,29 @@ def test_the_sitemap_lists_both_directories(client: TestClient) -> None:
     sitemap = client.get("/sitemap.xml").text
     assert "/services</loc>" in sitemap
     assert "/jobs</loc>" in sitemap
+
+
+# --- The owner's choice to keep their numbers private --------------------
+
+
+def test_numbers_kept_private_never_reach_a_visitor(
+    client: TestClient, db: Session, admin: User, skill: TalentSkill, location: Location
+) -> None:
+    """Hidden numbers are off every public payload, and still the owner's to see."""
+    headers = sign_in(client, "03950131")
+    created = _create_profile(client, headers, skill, location)
+    assert created["phone_public"] is True
+
+    hidden = client.put("/api/my/talent", headers=headers, json={"phone_public": False})
+    assert hidden.status_code == 200, hidden.text
+    _approve(client, db, admin, created["id"])
+
+    public = client.get(f"/api/talent/{created['slug']}").json()
+    assert public["whatsapp"] is None
+    assert public["phone"] is None
+    listed = client.get("/api/talent").json()["items"]
+    assert [row["whatsapp"] for row in listed] == [None]
+
+    own = client.get("/api/my/talent", headers=headers).json()
+    assert own["phone_public"] is False
+    assert own["whatsapp"] == "+9613950101"
