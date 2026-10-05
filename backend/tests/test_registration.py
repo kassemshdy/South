@@ -374,6 +374,7 @@ def test_a_talent_applicant_can_attach_one_too(
                 "location_id": str(location.id),
                 "whatsapp": APPLICANT_PHONE,
                 "years_experience": 3,
+                "kind": "SERVICE",
             },
         },
         document=("id.png", PNG_BYTES, "image/png"),
@@ -404,6 +405,7 @@ def test_a_talent_application_lands_in_the_review_queue(
                 "location_id": str(location.id),
                 "whatsapp": APPLICANT_PHONE,
                 "years_experience": 3,
+                "kind": "SERVICE",
             },
         },
     )
@@ -916,3 +918,29 @@ def test_the_displacement_answer_is_required_and_kept_for_the_team(
     owner = _owner(db)
     assert owner is not None
     assert owner.is_displaced is True
+
+
+def test_a_talent_application_must_say_service_or_job(
+    client: TestClient,
+    db: Session,
+    skill: TalentSkill,
+    location: Location,
+) -> None:
+    """The applicant chooses which directory they are listed in."""
+    response = _register(
+        client,
+        "talent",
+        {
+            "login_phone": APPLICANT_PHONE,
+            "identity": dict(IDENTITY),
+            "talent": {
+                "display_name": ar("talent.applicant"),
+                "skill_id": str(skill.id),
+                "location_id": str(location.id),
+                "whatsapp": APPLICANT_PHONE,
+                "years_experience": 3,
+            },
+        },
+    )
+    assert response.status_code == 422, response.text
+    assert db.execute(select(TalentProfile)).first() is None

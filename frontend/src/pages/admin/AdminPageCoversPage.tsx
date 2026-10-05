@@ -31,7 +31,8 @@ const PAGE_LABEL: Record<PageCoverKey, TranslationKey> = {
   products: 'products.heading',
   products_local: 'onboarding.ownerTitle',
   products_imported: 'products.importedPageTitle',
-  talent: 'talent.heading',
+  talent: 'nav.services',
+  jobs: 'nav.jobs',
   contact: 'nav.contact',
 }
 

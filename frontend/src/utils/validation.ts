@@ -283,6 +283,8 @@ export const itemSchema = (t: Translate) =>
 export const talentSchema = (t: Translate, otherSkillId?: string) =>
   z
     .object({
+      // Services or a job application: which directory the profile is in.
+      kind: z.string().min(1, t('validation.talentKindRequired')),
       display_name: z
         .string()
         .trim()

@@ -1,7 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Search, SlidersHorizontal, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Navigate, useLocation, useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/Button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
@@ -16,7 +16,7 @@ import { useT, type TranslationKey } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
 import { publicTalentApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import type { TalentSortOption } from '@/types/api'
+import type { PageCoverKey, TalentKind, TalentSortOption } from '@/types/api'
 
 const ALL = '__all__'
 const SORT_KEYS: Record<TalentSortOption, TranslationKey> = {
@@ -26,7 +26,47 @@ const SORT_KEYS: Record<TalentSortOption, TranslationKey> = {
   oldest: 'directory.sortOldest',
 }
 
-export function TalentDirectoryPage() {
+/**
+ * The two halves of what was one talent directory, each its own page: the
+ * same search, filters and cards, narrowed to one kind of profile.
+ */
+const KIND_PAGES: Record<
+  TalentKind,
+  {
+    path: string
+    titleKey: TranslationKey
+    seoTitleKey: TranslationKey
+    seoDescriptionKey: TranslationKey
+    cover: PageCoverKey
+    browseKey: 'services' | 'jobs'
+  }
+> = {
+  SERVICE: {
+    path: '/services',
+    titleKey: 'nav.services',
+    seoTitleKey: 'talent.servicesSeoTitle',
+    seoDescriptionKey: 'talent.seoDescription',
+    cover: 'talent',
+    browseKey: 'services',
+  },
+  JOB_SEEKER: {
+    path: '/jobs',
+    titleKey: 'nav.jobs',
+    seoTitleKey: 'talent.jobsSeoTitle',
+    seoDescriptionKey: 'talent.jobsSeoDescription',
+    cover: 'jobs',
+    browseKey: 'jobs',
+  },
+}
+
+/** `/talent`, from before the split: forwarded to services, filters kept. */
+export function LegacyTalentRedirect() {
+  const { search } = useLocation()
+  return <Navigate to={`/services${search}`} replace />
+}
+
+export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
+  const page_ = KIND_PAGES[kind]
   const [searchParams, setSearchParams] = useSearchParams()
 
   const q = searchParams.get('q') ?? ''
@@ -44,18 +84,19 @@ export function TalentDirectoryPage() {
   useEffect(() => setSearchInput(q), [q])
 
   useSeo({
-    title: q ? t('talent.seoSearchTitle', { query: q }) : t('talent.seoTitle'),
-    description: t('talent.seoDescription'),
-    canonicalPath: '/talent',
+    title: q ? t('talent.seoSearchTitle', { query: q }) : t(page_.seoTitleKey),
+    description: t(page_.seoDescriptionKey),
+    canonicalPath: page_.path,
   })
 
   const skills = useTalentSkills()
   const { groups } = useLocationGroups()
 
   const results = useQuery({
-    queryKey: queryKeys.talents({ q, skill, location, sort, page }),
+    queryKey: queryKeys.talents({ q, skill, location, sort, page, kind }),
     queryFn: () =>
       publicTalentApi.search({
+        kind,
         q: q || undefined,
         skill: skill || undefined,
         location: location || undefined,
@@ -87,8 +128,8 @@ export function TalentDirectoryPage() {
   return (
     <>
       <PageBanner
-        page="talent"
-        title={t('talent.heading')}
+        page={page_.cover}
+        title={t(page_.titleKey)}
         subtitle={
           results.data
             ? t('talent.resultCount', { count: results.data.meta.total })
@@ -99,7 +140,7 @@ export function TalentDirectoryPage() {
         {/* The other two directories, one tap away. Without this each
             directory was an island: a search that came up empty here left
             the browser's back button as the only way across. */}
-        <BrowseSwitcher current="talent" />
+        <BrowseSwitcher current={page_.browseKey} />
 
         <form
           role="search"

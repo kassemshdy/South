@@ -12,6 +12,7 @@ import type {
   PageKey,
   PageText,
   PageTextInput,
+  TalentKind,
   SiteSettings,
   DiscardedApplication,
   GoodsOrigin,
@@ -115,6 +116,7 @@ export interface ItemPayload {
 
 export interface TalentPayload {
   display_name: string
+  kind?: TalentKind
   bio?: string | null
   years_experience?: number | null
   skill_id?: string | null

@@ -193,7 +193,7 @@ export function OfferPage() {
           <h2 className="text-lg font-bold text-ink-900">{t('offerPage.doorsTitle')}</h2>
           {/* Buttons rather than links: the responsibility notice is the only
               way through an offering door, and a link would skip it. */}
-          <ul className="mt-5 grid gap-4 sm:grid-cols-3">
+          <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {OFFER_DOORS.map((door) => (
               <li key={door.key}>
                 <button type="button" className={doorCard('offer')} onClick={() => setPending(door)}>

@@ -107,9 +107,10 @@ test.describe('MVP acceptance flow', () => {
     // included.
     await page.getByRole('button', { name: t('consent.agree') }).click()
     await expect(page.getByRole('link', { name: t('onboarding.seekGoodsTitle') })).toBeVisible()
-    await page.getByRole('link', { name: t('onboarding.seekServiceTitle') }).click()
-    await expect(page).toHaveURL(/\/talent$/)
-    await expect(page.getByRole('heading', { name: t('talent.heading') })).toBeVisible()
+    // Scoped to the page body: the footer lists the same directory by name.
+    await page.getByRole('main').getByRole('link', { name: t('onboarding.seekServicesTitle') }).click()
+    await expect(page).toHaveURL(/\/services$/)
+    await expect(page.getByRole('heading', { name: t('nav.services'), exact: true })).toBeVisible()
     await page.goBack()
 
     await page.goto('/businesses')

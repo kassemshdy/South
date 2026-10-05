@@ -86,6 +86,9 @@ test.describe('Talent directory', () => {
       page.getByRole('heading', { name: t('talentDashboard.createHeading') }),
     ).toBeVisible()
 
+    // Which directory it goes in: the owners split services from job
+    // applications and left the choice to the profile's owner.
+    await page.getByRole('radio', { name: t('nav.services') }).check()
     await page.getByLabel(t('talentForm.displayName')).fill(fixture.displayName)
     await page.getByLabel(t('talentForm.bio')).fill(fixture.bio)
     await page.getByRole('combobox').first().click()
@@ -120,7 +123,7 @@ test.describe('Talent directory', () => {
     await expect(page.getByText(t('images.uploaded'), { exact: true }).first()).toBeVisible()
 
     // --- Not reachable before approval ------------------------------------------
-    await page.goto('/talent')
+    await page.goto('/services')
     await expect(page.getByText(fixture.displayName, { exact: true })).toHaveCount(0)
 
     // --- Submit for review --------------------------------------------------------
@@ -129,7 +132,7 @@ test.describe('Talent directory', () => {
     await expect(page.getByText(t('status.PENDING_REVIEW'), { exact: true }).first()).toBeVisible()
 
     // Still invisible while pending.
-    await page.goto('/talent')
+    await page.goto('/services')
     await expect(page.getByText(fixture.displayName, { exact: true })).toHaveCount(0)
 
     // --- Administrator approves ----------------------------------------------------
@@ -145,21 +148,21 @@ test.describe('Talent directory', () => {
     await expect(page.getByText(t('status.APPROVED'), { exact: true }).first()).toBeVisible()
 
     // --- The profile is now public --------------------------------------------------
-    await page.goto('/talent')
+    await page.goto('/services')
     const card = page.getByRole('article').filter({ hasText: fixture.displayName })
     await expect(card).toHaveCount(1)
     await expect(card.getByText(skillName)).toBeVisible()
 
     // Free-text search reaches it through the Arabic-normalized haystack.
-    await page.goto(`/talent?q=${encodeURIComponent(fixture.searchTerm)}`)
+    await page.goto(`/services?q=${encodeURIComponent(fixture.searchTerm)}`)
     await expect(page.getByRole('article').filter({ hasText: fixture.displayName })).toHaveCount(1)
 
     // Filtering by another skill excludes it.
-    await page.goto('/talent?skill=software')
+    await page.goto('/services?skill=software')
     await expect(page.getByText(fixture.displayName, { exact: true })).toHaveCount(0)
 
     // --- The public profile page renders, with no moderation state on it ----------
-    await page.goto('/talent')
+    await page.goto('/services')
     await page.getByRole('link', { name: fixture.displayName, exact: true }).click()
     await expect(page.getByRole('heading', { name: fixture.displayName, level: 1 })).toBeVisible()
     await expect(page.getByText(fixture.bio)).toBeVisible()
