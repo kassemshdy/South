@@ -206,8 +206,14 @@ test.describe('Audience chooser', () => {
 
     // Past the notice the doors are real links, with nothing further between
     // them and the directory they name.
-    for (const key of ['onboarding.seekGoodsTitle', 'onboarding.seekServiceTitle']) {
-      await expect(page.getByRole('link', { name: t(key) })).toBeVisible()
+    // Scoped to the page body: the footer lists the directories by name too.
+    const main = page.getByRole('main')
+    for (const key of [
+      'onboarding.seekGoodsTitle',
+      'onboarding.seekServicesTitle',
+      'onboarding.seekJobsTitle',
+    ] as const) {
+      await expect(main.getByRole('link', { name: t(key) })).toBeVisible()
     }
     await expect(
       page.getByRole('link', { name: t('browse.businessesTitle') }),
@@ -223,8 +229,8 @@ test.describe('Audience chooser', () => {
     // only of goods and products and of services and skills.
     const strip = page.getByRole('navigation', { name: t('browse.switcherLabel') })
     await expect(strip.getByRole('link', { name: t('browse.businessesShort') })).toHaveCount(0)
-    await strip.getByRole('link', { name: t('browse.talentShort') }).click()
-    await expect(page).toHaveURL(/\/talent/)
+    await strip.getByRole('link', { name: t('browse.servicesShort') }).click()
+    await expect(page).toHaveURL(/\/services/)
   })
 
   test('goods made in the South and imported goods are separate doors, on both halves', async ({
@@ -307,7 +313,7 @@ test.describe('Audience chooser', () => {
     // behaves correctly to anyone clicking through it — the notice simply
     // never appears — so "we are still on /offer" is the line that catches it.
     await page.goto('/offer')
-    await page.getByRole('button', { name: t('onboarding.talentTitle') }).click()
+    await page.getByRole('button', { name: t('onboarding.offerServiceTitle') }).click()
 
     await expect(page.getByRole('heading', { name: t('consent.heading') })).toBeVisible()
     expect(new URL(page.url()).pathname).toBe('/offer')
@@ -320,7 +326,7 @@ test.describe('Audience chooser', () => {
 
     // And agreeing carries on to the steps panel — anonymous, so there is no
     // direct link to the wizard yet.
-    await page.getByRole('button', { name: t('onboarding.talentTitle') }).click()
+    await page.getByRole('button', { name: t('onboarding.offerServiceTitle') }).click()
     await page.getByRole('button', { name: t('consent.agree') }).click()
     await expect(page.getByText(t('onboarding.step1'))).toBeVisible()
   })
@@ -334,11 +340,14 @@ test.describe('Audience chooser', () => {
     // ever rendered.
     await page.goto('/browse')
     await page.getByRole('button', { name: t('consent.agree') }).click()
-    await page.getByRole('link', { name: t('onboarding.seekServiceTitle') }).click()
+    await page
+      .getByRole('main')
+      .getByRole('link', { name: t('onboarding.seekServicesTitle') })
+      .click()
 
     // Answered once, the notice does not reappear between the door and the
     // directory: the gate is the page, not every link on it.
-    await expect(page).toHaveURL(/\/talent/)
+    await expect(page).toHaveURL(/\/services/)
     await expect(page.getByRole('heading', { name: t('consent.heading') })).toHaveCount(0)
   })
 

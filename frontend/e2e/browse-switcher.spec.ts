@@ -50,9 +50,9 @@ test.describe('Browse switcher', () => {
     )
     await expect(strip.getByRole('link', { name: t('browse.businessesShort') })).toHaveCount(0)
 
-    await strip.getByRole('link', { name: t('browse.talentShort') }).click()
+    await strip.getByRole('link', { name: t('browse.servicesShort') }).click()
 
-    await expect(page).toHaveURL(/\/talent/)
+    await expect(page).toHaveURL(/\/services/)
     const carried = new URL(page.url()).searchParams
     expect(carried.get('q')).toBe(fixture.query)
     expect(carried.get('location')).toBe(fixture.locationSlug)
@@ -67,9 +67,9 @@ test.describe('Browse switcher', () => {
   })
 
   test('both directories carry the strip, each one tap from the other', async ({ page }) => {
-    await page.goto('/talent')
+    await page.goto('/services')
     const strip = page.getByRole('navigation', { name: t('browse.switcherLabel') })
-    await expect(strip.getByRole('link', { name: t('browse.talentShort') })).toHaveAttribute(
+    await expect(strip.getByRole('link', { name: t('browse.servicesShort') })).toHaveAttribute(
       'aria-current',
       'page',
     )

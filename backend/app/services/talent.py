@@ -11,7 +11,7 @@ from app.core.arabic import build_search_text
 from app.core.errors import ConflictError, NotFoundError, ValidationError
 from app.core.i18n import LazyJoin
 from app.core.urls import normalize_social_url, normalize_url, youtube_video_id
-from app.models.enums import BusinessStatus, ViewSubject
+from app.models.enums import BusinessStatus, TalentKind, ViewSubject
 from app.models.talent import TalentLanguage, TalentProfile, TalentSocialLink
 from app.models.user import User
 from app.repositories.talent import TalentRepository, TalentSkillRepository
@@ -55,6 +55,7 @@ class TalentService:
         profile = TalentProfile(
             owner_id=owner.id,
             display_name=payload.display_name,
+            kind=payload.kind or TalentKind.SERVICE,
             slug=unique_slug(
                 payload.display_name, self._repo.slug_exists, fallback_prefix="talent"
             ),

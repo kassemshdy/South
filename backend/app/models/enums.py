@@ -205,6 +205,19 @@ class GoodsOrigin(str, enum.Enum):
     IMPORTED = "IMPORTED"
 
 
+class TalentKind(str, enum.Enum):
+    """Which of the two directories a talent profile belongs to.
+
+    The owners split «services and skills» in two: people who offer a
+    service (a mechanic, a travel office, a teacher, a plumber) and people
+    looking for a job. The owner of the profile chooses. Public, because it
+    is which page the profile is listed on.
+    """
+
+    SERVICE = "SERVICE"
+    JOB_SEEKER = "JOB_SEEKER"
+
+
 class EmploymentType(str, enum.Enum):
     """What kind of job a talent profile is looking for, if anything."""
 

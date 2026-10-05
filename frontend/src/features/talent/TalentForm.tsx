@@ -12,7 +12,7 @@ import { useLocationGroups, useTalentSkills } from '@/hooks/useTaxonomy'
 import { useT } from '@/i18n'
 import { useApplyServerFieldErrors } from '@/utils/serverFieldErrors'
 import type { TalentPayload } from '@/services/api/endpoints'
-import type { ContactChannel, OwnerTalent, SocialPlatform } from '@/types/api'
+import type { ContactChannel, OwnerTalent, SocialPlatform, TalentKind } from '@/types/api'
 import { PLATFORM_KEYS } from '@/utils/format'
 import { talentSchema, type TalentValues } from '@/utils/validation'
 
@@ -35,7 +35,15 @@ interface TalentFormProps {
    * elsewhere while they are typing them in is worse than saying nothing.
    */
   identityElsewhere?: boolean
+  /** The directory the visitor came from, preselected for a new profile. */
+  initialKind?: TalentKind
 }
+
+/** The two directories a profile can be listed in, with their own names. */
+const KINDS: { value: TalentKind; labelKey: 'nav.services' | 'nav.jobs' }[] = [
+  { value: 'SERVICE', labelKey: 'nav.services' },
+  { value: 'JOB_SEEKER', labelKey: 'nav.jobs' },
+]
 
 /** The whole profile on one form — a talent profile is small enough not to
  * need the multi-step wizard a business listing gets. */
@@ -62,6 +70,7 @@ function socialUrl(profile: OwnerTalent | undefined | null, platform: SocialPlat
 }
 
 export function TalentForm({
+  initialKind,
   profile,
   submitLabel,
   pending,
@@ -86,6 +95,7 @@ export function TalentForm({
   } = useForm<TalentValues>({
     resolver: zodResolver(schema),
     defaultValues: {
+      kind: profile?.kind ?? initialKind ?? '',
       display_name: profile?.display_name ?? '',
       bio: profile?.bio ?? '',
       years_experience:
@@ -146,6 +156,7 @@ export function TalentForm({
 
   const submit = handleSubmit((values) => {
     onSubmit({
+      kind: values.kind as TalentKind,
       display_name: values.display_name,
       bio: values.bio || null,
       years_experience: values.years_experience !== '' ? Number(values.years_experience) : null,
@@ -189,6 +200,34 @@ export function TalentForm({
 
   return (
     <form onSubmit={submit} className="space-y-5" noValidate>
+      {/* First, because it decides where the profile is listed: services,
+          or job applications. The owners split the one directory in two and
+          left the choice to the profile's owner. */}
+      <fieldset aria-describedby={errors.kind ? 'talent-kind-error' : undefined}>
+        <legend className="mb-2 text-sm font-semibold text-ink-700">
+          {t('talentForm.kindLabel')}
+          <span className="ms-1 text-clay-600" aria-hidden="true">
+            *
+          </span>
+        </legend>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {KINDS.map(({ value, labelKey }) => (
+            <label
+              key={value}
+              className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border-2 border-ink-100 bg-white px-4 font-semibold text-ink-700 transition-colors hover:border-ink-300 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-800"
+            >
+              <input type="radio" value={value} {...register('kind')} className="accent-brand-700" />
+              {t(labelKey)}
+            </label>
+          ))}
+        </div>
+        {errors.kind ? (
+          <p id="talent-kind-error" role="alert" className="mt-1.5 text-sm text-clay-600">
+            {errors.kind.message}
+          </p>
+        ) : null}
+      </fieldset>
+
       <Field
         label={t('talentForm.displayName')}
         required

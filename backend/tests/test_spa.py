@@ -371,6 +371,8 @@ def test_a_product_that_is_not_public_previews_as_the_site(spa_client: TestClien
         ("/products", "seo.page.products.title"),
         ("/businesses", "seo.page.businesses.title"),
         ("/talent", "seo.page.talent.title"),
+        ("/services", "seo.page.services.title"),
+        ("/jobs", "seo.page.jobs.title"),
     ],
 )
 def test_a_directory_page_is_served_with_its_own_title(

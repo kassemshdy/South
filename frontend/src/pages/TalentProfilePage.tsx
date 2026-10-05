@@ -24,6 +24,7 @@ import { useSeo } from '@/hooks/useSeo'
 import { useI18n, useT } from '@/i18n'
 import { EMPLOYMENT_TYPE_KEYS, PROFICIENCY_KEYS } from '@/features/talent/labels'
 import { FollowLinks } from '@/features/social/FollowLinks'
+import { directoryPath } from '@/features/talent/kind'
 import { ServiceRequestForm } from '@/features/talent/ServiceRequestForm'
 import { publicTalentApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
@@ -71,7 +72,7 @@ export function TalentProfilePage() {
         <ErrorState error={talent.error} onRetry={() => void talent.refetch()} />
         <div className="mt-6 text-center">
           <Button asChild variant="outline">
-            <Link to="/talent">{t('talent.backToDirectory')}</Link>
+            <Link to={directoryPath(data?.kind)}>{t('common.back')}</Link>
           </Button>
         </div>
       </div>
@@ -191,7 +192,7 @@ export function TalentProfilePage() {
   return (
     <article className="pb-16">
       <div className="container-page pt-10">
-        <BackLink fallback="/talent" />
+        <BackLink fallback={directoryPath(data.kind)} />
         <div className="mt-4 flex flex-col gap-4 rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:flex-row sm:items-center">
           <div className="h-28 w-28 shrink-0 overflow-hidden rounded-full border-4 border-white bg-sand-100 shadow-card">
             {data.photo_url ? (
@@ -220,7 +221,7 @@ export function TalentProfilePage() {
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-500">
               {data.skill ? (
                 <Link
-                  to={`/talent?skill=${encodeURIComponent(data.skill.slug)}`}
+                  to={`${directoryPath(data.kind)}?skill=${encodeURIComponent(data.skill.slug)}`}
                   className="font-semibold text-brand-700 hover:underline"
                 >
                   {skillLabel}
@@ -388,7 +389,7 @@ export function TalentProfilePage() {
             <ServiceRequestForm slug={slug} />
 
             <Button asChild variant="outline" block>
-              <Link to="/talent">{t('talent.backToDirectory')}</Link>
+              <Link to={directoryPath(data?.kind)}>{t('common.back')}</Link>
             </Button>
           </aside>
         </div>
