@@ -193,6 +193,8 @@ export const businessBasicsSchema = (t: Translate, otherCategoryId?: string) =>
 
       phone: optionalPhone(t),
       whatsapp: optionalPhone(t),
+      // Shown to visitors, or kept for the team and the dashboard only.
+      phone_public: z.boolean(),
       email: z.string().trim().email(t('validation.emailInvalid')).optional().or(z.literal('')),
       website: optionalUrl(t),
     })
@@ -305,6 +307,8 @@ export const talentSchema = (t: Translate, otherSkillId?: string) =>
       location_id: z.string().min(1, t('validation.locationRequired')),
       phone: optionalPhone(t),
       whatsapp: optionalPhone(t),
+      // Shown to visitors, or kept for the team and the dashboard only.
+      phone_public: z.boolean(),
       email: z.string().trim().email(t('validation.emailInvalid')).optional().or(z.literal('')),
       website: optionalUrl(t),
       // Optional social accounts, one per platform.

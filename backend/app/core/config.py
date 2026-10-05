@@ -138,6 +138,11 @@ class Settings(BaseSettings):
     # "auto" can pick path-style for a custom endpoint, so it is settable.
     s3_addressing_style: Literal["auto", "virtual", "path"] = "auto"
 
+    # Hours between the API's own database backups to the bucket (see
+    # app/services/db_backup.py); 0 turns them off. Production only: a
+    # development database is not worth a copy a day.
+    db_backup_interval_hours: int = 24
+
     # --- Admin bootstrap ---------------------------------------------------
     admin_email: str | None = "admin@example.com"
     # No default. A default password in a public repository is everybody's

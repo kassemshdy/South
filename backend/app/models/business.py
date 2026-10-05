@@ -109,6 +109,13 @@ class Business(Base, TimestampMixin):
     # phone, which is never published.
     phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
     whatsapp: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    # Whether the numbers above are shown to visitors. The owners asked that
+    # everyone listing give a number, and choose whether the public sees it:
+    # hidden, it still reaches the team and the dashboard, and a visitor
+    # contacts the owner through a message on the site instead.
+    phone_public: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     website: Mapped[str | None] = mapped_column(String(500), nullable=True)
 

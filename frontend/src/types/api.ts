@@ -267,6 +267,8 @@ export interface BusinessDetail extends BusinessSummary {
 export interface OwnerBusiness extends BusinessDetail {
   /** Never on BusinessDetail -- a reviewer's question, not a public one. */
   owner_relation: OwnerRelation | null
+  /** Whether visitors see the numbers; the owner always does. */
+  phone_public: boolean
   status: BusinessStatus
   rejection_reason: string | null
   submitted_at: string | null
@@ -427,6 +429,8 @@ export interface TalentDetail extends TalentSummary {
 
 /** The person's own view of their profile, including moderation state. */
 export interface OwnerTalent extends TalentDetail {
+  /** Whether visitors see the numbers; the owner always does. */
+  phone_public: boolean
   status: BusinessStatus
   rejection_reason: string | null
   submitted_at: string | null
