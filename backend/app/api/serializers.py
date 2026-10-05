@@ -95,7 +95,16 @@ def _gallery(business: Business) -> list[BusinessImageOut]:
     ]
 
 
+def _public_numbers(listing: Business | TalentProfile) -> tuple[str | None, str | None]:
+    """The phone and WhatsApp a visitor may see: none, when the owner chose
+    to keep them private. The owner's own view reads the columns directly."""
+    if not listing.phone_public:
+        return None, None
+    return listing.phone, listing.whatsapp
+
+
 def business_summary(business: Business) -> BusinessSummaryOut:
+    phone, whatsapp = _public_numbers(business)
     return BusinessSummaryOut(
         id=business.id,
         name=business.name,
@@ -103,8 +112,8 @@ def business_summary(business: Business) -> BusinessSummaryOut:
         short_description=business.short_description,
         logo_url=business.logo_url,
         cover_url=business.cover_url,
-        phone=business.phone,
-        whatsapp=business.whatsapp,
+        phone=phone,
+        whatsapp=whatsapp,
         category=category_out(business.category),
         custom_category_text=business.custom_category_text,
         location=location_out(business.location),
@@ -167,7 +176,13 @@ def admin_testimonial(testimonial: Testimonial) -> AdminTestimonialOut:
 def owner_business(business: Business) -> OwnerBusinessOut:
     """Owner's own view — adds moderation state and the rejection reason."""
     return OwnerBusinessOut(
-        **business_detail(business).model_dump(),
+        **{
+            **business_detail(business).model_dump(),
+            # The owner's own numbers, shown or not to the public.
+            "phone": business.phone,
+            "whatsapp": business.whatsapp,
+        },
+        phone_public=business.phone_public,
         owner_relation=business.owner_relation,
         status=business.status,
         rejection_reason=business.rejection_reason,
@@ -206,11 +221,12 @@ def admin_business(business: Business) -> AdminBusinessOut:
 
 
 def _product_business_ref(business: Business) -> ProductBusinessRef:
+    phone, whatsapp = _public_numbers(business)
     return ProductBusinessRef(
         name=business.name,
         slug=business.slug,
-        phone=business.phone,
-        whatsapp=business.whatsapp,
+        phone=phone,
+        whatsapp=whatsapp,
         category=category_out(business.category),
         location=location_out(business.location),
     )
@@ -265,14 +281,15 @@ def _talent_gallery(profile: TalentProfile) -> list[TalentImageOut]:
 
 
 def talent_summary(profile: TalentProfile) -> TalentSummaryOut:
+    phone, whatsapp = _public_numbers(profile)
     return TalentSummaryOut(
         id=profile.id,
         display_name=profile.display_name,
         slug=profile.slug,
         kind=profile.kind,
         photo_url=profile.photo_url,
-        phone=profile.phone,
-        whatsapp=profile.whatsapp,
+        phone=phone,
+        whatsapp=whatsapp,
         years_experience=profile.years_experience,
         skill=talent_skill_out(profile.skill),
         custom_skill_text=profile.custom_skill_text,
@@ -323,7 +340,13 @@ def talent_detail(profile: TalentProfile) -> TalentDetailOut:
 def owner_talent(profile: TalentProfile) -> OwnerTalentOut:
     """Owner's own view — the public profile plus its moderation state."""
     return OwnerTalentOut(
-        **talent_detail(profile).model_dump(),
+        **{
+            **talent_detail(profile).model_dump(),
+            # The owner's own numbers, shown or not to the public.
+            "phone": profile.phone,
+            "whatsapp": profile.whatsapp,
+        },
+        phone_public=profile.phone_public,
         status=profile.status,
         rejection_reason=profile.rejection_reason,
         submitted_at=profile.submitted_at,

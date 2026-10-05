@@ -86,6 +86,7 @@ export interface BusinessPayload {
   location_id?: string | null
   phone?: string | null
   whatsapp?: string | null
+  phone_public?: boolean
   email?: string | null
   website?: string | null
   /** A link; the server stores the video id it resolves to. */
@@ -126,6 +127,7 @@ export interface TalentPayload {
   location_id?: string | null
   phone?: string | null
   whatsapp?: string | null
+  phone_public?: boolean
   email?: string | null
   website?: string | null
   /** A link; the server stores the video id it resolves to. */

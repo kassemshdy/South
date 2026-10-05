@@ -5,6 +5,7 @@ import { Controller, useForm, useWatch } from 'react-hook-form'
 import { Button } from '@/components/ui/Button'
 import { Field } from '@/components/ui/Field'
 import { Input, Textarea } from '@/components/ui/Input'
+import { PhonePublicToggle } from '@/components/ui/PhonePublicToggle'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 import { useCategories } from '@/hooks/useTaxonomy'
 import { useT } from '@/i18n'
@@ -83,6 +84,7 @@ export function BasicsForm({
       owner_relation: business?.owner_relation ?? '',
       phone: business?.phone ?? '',
       whatsapp: business?.whatsapp ?? '',
+      phone_public: business?.phone_public ?? true,
       email: business?.email ?? '',
       website: business?.website ?? '',
     },
@@ -109,6 +111,7 @@ export function BasicsForm({
       owner_relation: (values.owner_relation || null) as BusinessPayload['owner_relation'],
       phone: values.phone || null,
       whatsapp: values.whatsapp || null,
+      phone_public: values.phone_public,
       email: values.email || null,
       website: values.website || null,
     })
@@ -228,6 +231,8 @@ export function BasicsForm({
           )}
         </Field>
       </div>
+
+      <PhonePublicToggle registration={register('phone_public')} />
 
       {/* Nothing in here is required to get reviewed.
           The submission rules in `app/services/business.py` ask for six

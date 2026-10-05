@@ -413,7 +413,7 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
                                     description=business.short_description,
                                     url=url,
                                     image_url=image,
-                                    telephone=business.phone,
+                                    telephone=business.phone if business.phone_public else None,
                                     location_name=location,
                                     latitude=business.latitude,
                                     longitude=business.longitude,
