@@ -2,6 +2,7 @@ import type {
   ArticleSection,
   BusinessQuery,
   BusinessStatus,
+  PageKey,
   ProductQuery,
   TalentQuery,
   TestimonialStatus,
@@ -52,6 +53,8 @@ export const queryKeys = {
   feedbackAssignees: ['admin', 'feedback', 'assignees'] as const,
   pageCovers: ['page-covers'] as const,
   adminPageCovers: ['admin', 'page-covers'] as const,
+  page: (key: PageKey) => ['page', key] as const,
+  adminPages: ['admin', 'pages'] as const,
   siteSettings: ['site-settings'] as const,
   adminSiteSettings: ['admin', 'site-settings'] as const,
   adminDiscardedApplications: (includeDismissed: boolean) =>

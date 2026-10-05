@@ -1,6 +1,7 @@
 import {
   BarChart3,
   Bug,
+  FileText,
   FolderTree,
   Inbox,
   MapPin,
@@ -35,6 +36,7 @@ const NAV: { to: string; labelKey: TranslationKey; icon: typeof BarChart3; end: 
     end: false,
   },
   { to: '/admin/articles', labelKey: 'admin.navArticles', icon: Newspaper, end: false },
+  { to: '/admin/pages', labelKey: 'admin.navPages', icon: FileText, end: false },
   { to: '/admin/page-covers', labelKey: 'admin.navPageCovers', icon: ImageIcon, end: false },
   { to: '/admin/site-settings', labelKey: 'nav.contact', icon: PhoneCall, end: false },
   { to: '/admin/feedback', labelKey: 'admin.navFeedback', icon: Bug, end: false },

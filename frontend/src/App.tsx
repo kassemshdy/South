@@ -78,6 +78,9 @@ const AdminPageCoversPage = lazy(() =>
     default: m.AdminPageCoversPage,
   })),
 )
+const AdminPagesPage = lazy(() =>
+  import('@/pages/admin/AdminPagesPage').then((m) => ({ default: m.AdminPagesPage })),
+)
 const AdminSiteSettingsPage = lazy(() =>
   import('@/pages/admin/AdminSiteSettingsPage').then((m) => ({
     default: m.AdminSiteSettingsPage,
@@ -252,6 +255,7 @@ export function App() {
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="applications" element={<AdminApplicationsPage />} />
             <Route path="page-covers" element={<AdminPageCoversPage />} />
+            <Route path="pages" element={<AdminPagesPage />} />
             <Route path="site-settings" element={<AdminSiteSettingsPage />} />
             <Route path="users/:id" element={<AdminUserDetailPage />} />
             <Route path="feedback" element={<AdminFeedbackPage />} />

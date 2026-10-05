@@ -748,6 +748,25 @@ export interface SiteSettings {
   social_instagram: string | null
 }
 
+/** The site's static pages; see `PageText`. */
+export type PageKey = 'about'
+
+/**
+ * A static page's administrator-written text. A null field means the page
+ * shows its built-in text from the locale catalog in its place.
+ */
+export interface PageText {
+  key: PageKey
+  title_ar: string | null
+  title_en: string | null
+  summary_ar: string | null
+  summary_en: string | null
+  body_ar: string | null
+  body_en: string | null
+}
+
+export type PageTextInput = Omit<PageText, 'key'>
+
 export type PageCoverKey =
   | 'home'
   | 'offer'

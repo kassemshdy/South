@@ -31,6 +31,7 @@ from app.models.enums import (
 )
 from app.models.feedback import FeedbackAttachment, FeedbackComment, FeedbackTicket
 from app.models.order import Order, OrderLine
+from app.models.page import Page
 from app.models.page_cover import PageCover
 from app.models.service_request import ServiceRequest
 from app.models.site_setting import SiteSetting
@@ -75,6 +76,7 @@ __all__ = [
     "OrderLine",
     "OrderStatus",
     "OwnerVerificationDocument",
+    "Page",
     "PageCover",
     "RateLimitEvent",
     "ServiceRequest",
