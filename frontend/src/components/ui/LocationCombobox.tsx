@@ -15,10 +15,10 @@ import { cn } from '@/utils/cn'
 function fold(text: string): string {
   return text
     .normalize('NFC')
-    .replace(/[ً-ْٰـ]/g, '')
-    .replace(/[آأإٱ]/g, 'ا')
-    .replace(/ى/g, 'ي')
-    .replace(/ة/g, 'ه')
+    .replace(/[\u064b-\u0652\u0670\u0640]/g, '')
+    .replace(/[\u0622\u0623\u0625\u0671]/g, '\u0627')
+    .replace(/\u0649/g, '\u064a')
+    .replace(/\u0629/g, '\u0647')
     .toLowerCase()
     .trim()
 }
@@ -42,8 +42,8 @@ interface LocationComboboxProps {
 }
 
 /**
- * A place picker you can type into: «نبط» brings النبطية to the top of the
- * list instead of scrolling a hundred towns for it. Districts and their towns
+ * A place picker you can type into: the first letters of a town bring it to
+ * the top of the list instead of scrolling a hundred towns for it. Districts and their towns
  * are both choices, as in the plain select it replaces; a district matching
  * the search comes before towns that do, and a town shows its district so
  * two villages with one name can be told apart.
@@ -86,8 +86,10 @@ export function LocationCombobox({
     const hits = options.filter((option) => option.search.includes(needle))
     // Names that start with what was typed first, then districts before towns.
     const rank = (option: Option) =>
-      (option.search.startsWith(needle) || option.search.startsWith(`ال${needle}`) ? 0 : 2) +
-      (option.district ? 1 : 0)
+      // A name typed without its article still counts as its start.
+      (option.search.startsWith(needle) || option.search.startsWith(`\u0627\u0644${needle}`)
+        ? 0
+        : 2) + (option.district ? 1 : 0)
     return [...hits].sort((a, b) => rank(a) - rank(b))
   }, [options, query])
 
