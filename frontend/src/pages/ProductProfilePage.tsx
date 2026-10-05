@@ -107,6 +107,7 @@ export function ProductProfilePage() {
                 businessSlug: data.business.slug,
                 businessName: data.business.name,
                 whatsapp: data.business.whatsapp,
+                phone: data.business.phone,
               }}
               line={{
                 itemId: data.id,

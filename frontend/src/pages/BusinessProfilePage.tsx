@@ -307,6 +307,7 @@ export function BusinessProfilePage() {
                                 businessSlug: data.slug,
                                 businessName: data.name,
                                 whatsapp: data.whatsapp,
+                                phone: data.phone,
                               }}
                               line={{
                                 itemId: item.id,

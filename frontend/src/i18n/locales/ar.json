@@ -446,6 +446,7 @@
   "contactChannel.PHONE": "الهاتف",
   "contactChannel.WEBSITE": "الموقع الإلكتروني",
   "contactChannel.WHATSAPP": "واتساب",
+  "contactSeller.title": "تواصل مع العارض مباشرةً",
   "credentials.copied": "تم النسخ",
   "credentials.copyFailed": "تعذّر النسخ، يمكنك تحديد النص يدويًا.",
   "credentials.copyMessage": "نسخ الرسالة",

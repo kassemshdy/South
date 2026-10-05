@@ -65,6 +65,14 @@ test.describe('Cart and order', () => {
     await page.getByLabel(t('cart.noteLabel')).fill(fixture.note)
     await page.getByRole('button', { name: t('cart.submit') }).click()
 
+    // The order is stored first; the dialog offers the direct line on top of
+    // it, and closing it loses nothing.
+    const contact = page.getByRole('dialog', { name: t('contactSeller.title') })
+    await expect(contact).toBeVisible()
+    await expect(contact.getByRole('link', { name: t('business.whatsappCta') })).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(contact).toHaveCount(0)
+
     await expect(page.getByRole('heading', { name: t('cart.sentTitle') })).toBeVisible()
 
     // Cleared only after the server accepted it, so the cart link is gone.
