@@ -4,6 +4,7 @@ import { ContactDetails } from '@/components/layout/ContactDetails'
 import { LocaleToggle } from '@/components/layout/LocaleToggle'
 import { useSiteSections } from '@/components/layout/navigation'
 import { SocialIcons } from '@/components/layout/SocialLinks'
+import { usePageText } from '@/hooks/usePageText'
 import { useSiteSettings } from '@/hooks/useSiteSettings'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useT } from '@/i18n'
@@ -13,6 +14,8 @@ export function Footer() {
   const { isAuthenticated } = useAuth()
   const sections = useSiteSections()
   const { hasContact } = useSiteSettings()
+  // The about page's short version, once an administrator has written one.
+  const about = usePageText('about')
 
   return (
     <footer className="mt-20 border-t border-ink-100 bg-white">
@@ -74,7 +77,9 @@ export function Footer() {
             <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-700">
               {t('footer.about')}
             </h2>
-            <p className="leading-relaxed text-ink-500">{t('footer.aboutBody')}</p>
+            <p className="whitespace-pre-line leading-relaxed text-ink-500">
+              {about.summary ?? t('footer.aboutBody')}
+            </p>
           </div>
 
           {/* How to reach the team, and its social accounts -- whatever an

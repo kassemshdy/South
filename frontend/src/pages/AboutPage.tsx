@@ -1,12 +1,45 @@
 import { ClipboardCheck, HandHeart, MapPin } from 'lucide-react'
 
 import { Card, CardBody } from '@/components/ui/Card'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { ArticleBody } from '@/features/articles/ArticleBody'
+import { usePageText } from '@/hooks/usePageText'
 import { useSeo } from '@/hooks/useSeo'
 import { useT } from '@/i18n'
 
 export function AboutPage() {
   const t = useT()
-  useSeo({ title: `${t('about.title')} | ${t('app.name')}`, description: t('about.intro') })
+  const page = usePageText('about')
+  const title = page.title ?? t('about.title')
+  useSeo({
+    title: `${title} | ${t('app.name')}`,
+    description: page.summary ?? page.body?.slice(0, 160) ?? t('about.intro'),
+  })
+
+  // Wait for the administrator's text rather than flash the built-in page
+  // and swap it out a moment later.
+  if (!page.ready) {
+    return (
+      <div className="container-page py-14">
+        <Skeleton className="mx-auto h-96 max-w-2xl" />
+      </div>
+    )
+  }
+
+  // Once an administrator has written the page, it is theirs: their text
+  // replaces the built-in introduction, points and closing line entirely.
+  if (page.body) {
+    return (
+      <div className="container-page py-14">
+        <article className="mx-auto max-w-2xl">
+          <h1 className="text-center text-2xl sm:text-3xl">{title}</h1>
+          <div className="mt-8 whitespace-pre-line text-lg leading-loose text-ink-700">
+            <ArticleBody text={page.body} />
+          </div>
+        </article>
+      </div>
+    )
+  }
 
   const points = [
     { icon: MapPin, title: t('about.pointLocalTitle'), body: t('about.pointLocalBody') },
@@ -17,7 +50,7 @@ export function AboutPage() {
   return (
     <div className="container-page py-14">
       <div className="mx-auto max-w-2xl text-center">
-        <h1 className="text-2xl sm:text-3xl">{t('about.title')}</h1>
+        <h1 className="text-2xl sm:text-3xl">{title}</h1>
         <p className="mt-4 leading-relaxed text-ink-700">{t('about.intro')}</p>
       </div>
 
