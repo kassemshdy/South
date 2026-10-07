@@ -88,6 +88,7 @@
   "platform.whatsapp": "WhatsApp",
   "platform.youtube": "YouTube",
   "registration.identity_required": "This field is required.",
+  "registration.location_required": "Choose a location",
   "registration.rate_limited": "Too many applications have been received. Please try again later.",
   "registration.received": "We have your application. Our team reviews it, then contacts you on WhatsApp with your login details.",
   "registration.talent_kind_required": "Choose services or a job application.",

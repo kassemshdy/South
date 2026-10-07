@@ -517,10 +517,10 @@ function SubmittedPanel({ phone }: { phone: string }) {
             </p>
           ) : null}
           <Link
-            to="/"
+            to="/login"
             className="mt-6 inline-block rounded-xl bg-brand-700 px-5 py-2.5 text-white hover:bg-brand-800"
           >
-            {t('register.doneHome')}
+            {t('nav.login')}
           </Link>
         </CardBody>
       </Card>

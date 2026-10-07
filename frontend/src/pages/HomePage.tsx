@@ -103,6 +103,12 @@ export function HomePage() {
             <p className="mt-4 max-w-xl text-lg leading-relaxed text-ink-500">
               {t('home.heroSubtitle')}
             </p>
+            {/* The owners' own sentence, set apart in a contrasting colour
+                because they asked for it to read as the most important line
+                on the page. */}
+            <p className="mt-4 max-w-xl rounded-xl border-s-4 border-clay-500 bg-clay-50 px-4 py-3 text-sm font-semibold leading-relaxed text-clay-800">
+              {t('home.disclaimer')}
+            </p>
           </div>
 
           <div className="order-2">

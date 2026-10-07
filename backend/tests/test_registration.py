@@ -944,3 +944,39 @@ def test_a_talent_application_must_say_service_or_job(
     )
     assert response.status_code == 422, response.text
     assert db.execute(select(TalentProfile)).first() is None
+
+
+def test_an_application_without_an_area_is_refused(
+    client: TestClient,
+    db: Session,
+    category: Category,
+    skill: TalentSkill,
+    location: Location,
+) -> None:
+    """Optional on a dashboard draft, required on an application: it goes
+    straight to review, and "from the South" cannot be judged without it."""
+    payload = _business_payload(category, location)
+    business = dict(payload["business"])  # type: ignore[call-overload]
+    del business["location_id"]
+    payload["business"] = business
+    refused = _register(client, "business", payload)
+    assert refused.status_code == 422, refused.text
+    assert _owner(db) is None
+
+    refused = _register(
+        client,
+        "talent",
+        {
+            "login_phone": APPLICANT_PHONE,
+            "identity": dict(IDENTITY),
+            "talent": {
+                "display_name": ar("talent.applicant"),
+                "skill_id": str(skill.id),
+                "whatsapp": APPLICANT_PHONE,
+                "years_experience": 3,
+                "kind": "SERVICE",
+            },
+        },
+    )
+    assert refused.status_code == 422, refused.text
+    assert db.execute(select(TalentProfile)).first() is None

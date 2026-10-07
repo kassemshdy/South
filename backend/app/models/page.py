@@ -12,7 +12,10 @@ from app.database.base import Base
 #: Every static page there is, in the order the admin screen lists them. Each
 #: key is a page the frontend already has a route for; a key with no row, or
 #: a field left empty, shows the page's built-in text from the locale catalog.
-PAGE_KEYS: tuple[str, ...] = ("about",)
+#: Not every key is a whole page: ``offer_eligibility`` is the "who can list in
+#: the first phase" block on /offer -- its title, its list (one item per line
+#: of the body) and the note under it (the summary).
+PAGE_KEYS: tuple[str, ...] = ("about", "offer_eligibility")
 
 
 class Page(Base):

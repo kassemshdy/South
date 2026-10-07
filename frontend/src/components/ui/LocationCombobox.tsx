@@ -36,6 +36,13 @@ interface LocationComboboxProps {
   value: string
   onChange: (id: string) => void
   groups: LocationGroup[]
+  /**
+   * Which field a choice is: the id a form stores, or the slug a directory
+   * filter puts in its URL.
+   */
+  by?: 'id' | 'slug'
+  /** A first choice meaning "no place", valued '' -- a filter's "all". */
+  emptyLabel?: string
   placeholder?: string
   invalid?: boolean
   'aria-describedby'?: string
@@ -53,6 +60,8 @@ export function LocationCombobox({
   value,
   onChange,
   groups,
+  by = 'id',
+  emptyLabel,
   placeholder,
   invalid,
   'aria-describedby': describedBy,
@@ -65,17 +74,19 @@ export function LocationCombobox({
   const [active, setActive] = useState(0)
 
   const options = useMemo<Option[]>(
-    () =>
-      groups.flatMap(({ district, towns }) => [
-        { id: district.id, name: district.name_ar, district: '', search: fold(district.name_ar) },
+    () => [
+      ...(emptyLabel ? [{ id: '', name: emptyLabel, district: '', search: fold(emptyLabel) }] : []),
+      ...groups.flatMap(({ district, towns }) => [
+        { id: district[by], name: district.name_ar, district: '', search: fold(district.name_ar) },
         ...towns.map((town) => ({
-          id: town.id,
+          id: town[by],
           name: town.name_ar,
           district: district.name_ar,
           search: fold(town.name_ar),
         })),
       ]),
-    [groups],
+    ],
+    [groups, by, emptyLabel],
   )
 
   const selected = options.find((option) => option.id === value)

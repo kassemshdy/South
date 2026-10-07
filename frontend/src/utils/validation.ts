@@ -140,7 +140,13 @@ export const adminLoginSchema = (t: Translate) =>
  * free-text requirement can only be wired up once the category list has
  * loaded.
  */
-export const businessBasicsSchema = (t: Translate, otherCategoryId?: string) =>
+export const businessBasicsSchema = (
+  t: Translate,
+  otherCategoryId?: string,
+  // The application form asks for the area up front, because the listing
+  // goes straight to review; the dashboard keeps it on its own step.
+  requireLocation = false,
+) =>
   z
     .object({
       name: z
@@ -197,8 +203,16 @@ export const businessBasicsSchema = (t: Translate, otherCategoryId?: string) =>
       phone_public: z.boolean(),
       email: z.string().trim().email(t('validation.emailInvalid')).optional().or(z.literal('')),
       website: optionalUrl(t),
+      location_id: z.string().optional().or(z.literal('')),
     })
     .superRefine((values, ctx) => {
+      if (requireLocation && !values.location_id) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['location_id'],
+          message: t('validation.locationRequired'),
+        })
+      }
       if (
         otherCategoryId &&
         values.category_id === otherCategoryId &&

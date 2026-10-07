@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Navigate, useLocation, useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/Button'
+import { LocationCombobox } from '@/components/ui/LocationCombobox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 import { BusinessCardSkeleton } from '@/components/ui/Skeleton'
 import { ErrorState, NoSearchResults } from '@/components/ui/States'
@@ -202,31 +203,19 @@ export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="filter-location">
+            <label className="mb-1.5 block text-sm font-semibold text-ink-700" htmlFor="filter-location">
               {t('directory.location')}
             </label>
-            <Select
-              value={location || ALL}
-              onValueChange={(value) => updateParams({ location: value === ALL ? '' : value })}
-            >
-              <SelectTrigger aria-labelledby="filter-location">
-                <SelectValue placeholder={t('directory.allLocations')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>{t('directory.allLocations')}</SelectItem>
-                {groups.map(({ district, towns }) => [
-                  <SelectItem key={district.id} value={district.slug}>
-                    {district.name_ar}
-                  </SelectItem>,
-                  ...towns.map((town) => (
-                    <SelectItem key={town.id} value={town.slug}>
-                      {'  '}
-                      {town.name_ar}
-                    </SelectItem>
-                  )),
-                ])}
-              </SelectContent>
-            </Select>
+            {/* Typed into, like the sellers' own picker, rather than scrolled. */}
+            <LocationCombobox
+              id="filter-location"
+              by="slug"
+              emptyLabel={t('directory.allLocations')}
+              value={location}
+              onChange={(value) => updateParams({ location: value })}
+              groups={groups}
+              placeholder={t('directory.allLocations')}
+            />
           </div>
 
           <div>

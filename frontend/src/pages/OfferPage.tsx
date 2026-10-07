@@ -9,6 +9,7 @@ import { ChoicePageShell } from '@/features/onboarding/ChoicePageShell'
 import { DoorBody, doorCard } from '@/features/onboarding/DoorCard'
 import { destinationFor, OFFER_DOORS, type Door } from '@/features/onboarding/destinations'
 import { useScrollToStep } from '@/hooks/useScrollToStep'
+import { usePageText } from '@/hooks/usePageText'
 import { useSeo } from '@/hooks/useSeo'
 import { useT, type TranslationKey } from '@/i18n'
 
@@ -46,6 +47,12 @@ export function OfferPage() {
   const t = useT()
   const { isAuthenticated } = useAuth()
   useSeo({ title: `${t('offerPage.title')} | ${t('app.name')}`, description: t('offerPage.subtitle') })
+  // Editable from the admin's pages screen: one item per line of the body,
+  // and the built-in list wherever nothing has been written.
+  const eligibility = usePageText('offer_eligibility')
+  const eligibilityItems = eligibility.body
+    ? eligibility.body.split('\n').map((line) => line.trim()).filter(Boolean)
+    : ELIGIBILITY_KEYS.map((key) => t(key))
 
   const [pending, setPending] = useState<Door | null>(null)
   const [agreed, setAgreed] = useState<Door | null>(null)
@@ -151,23 +158,23 @@ export function OfferPage() {
             >
               <UserCheck className="h-5 w-5" />
             </span>
-            {t('offerPage.eligibilityTitle')}
+            {eligibility.title ?? t('offerPage.eligibilityTitle')}
           </h2>
           <ol className="mt-5 space-y-3">
-            {ELIGIBILITY_KEYS.map((key, index) => (
-              <li key={key} className="flex items-start gap-3">
+            {eligibilityItems.map((item, index) => (
+              <li key={index} className="flex items-start gap-3">
                 <span
                   className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sand-100 text-sm font-bold text-brand-800 ltr-nums"
                   aria-hidden="true"
                 >
                   {index + 1}
                 </span>
-                <span className="leading-relaxed text-ink-700">{t(key)}</span>
+                <span className="leading-relaxed text-ink-700">{item}</span>
               </li>
             ))}
           </ol>
           <p className="mt-5 border-t border-ink-100 pt-4 text-sm leading-relaxed text-ink-500">
-            {t('offerPage.eligibilityNote')}
+            {eligibility.summary ?? t('offerPage.eligibilityNote')}
           </p>
         </section>
 

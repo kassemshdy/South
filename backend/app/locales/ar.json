@@ -88,6 +88,7 @@
   "platform.whatsapp": "واتساب",
   "platform.youtube": "يوتيوب",
   "registration.identity_required": "هذا الحقل مطلوب.",
+  "registration.location_required": "اختر الموقع",
   "registration.rate_limited": "وردنا عدد كبير من الطلبات. يرجى المحاولة لاحقاً.",
   "registration.received": "وصلنا طلبك. يراجعه فريق الإدارة، ثم نتواصل معك على واتساب لتسليمك بيانات الدخول.",
   "registration.talent_kind_required": "اختر «خدمات» أو «طلبات التوظيف».",
