@@ -766,7 +766,7 @@ export interface SiteSettings {
 }
 
 /** The site's static pages; see `PageText`. */
-export type PageKey = 'about'
+export type PageKey = 'about' | 'offer_eligibility'
 
 /**
  * A static page's administrator-written text. A null field means the page

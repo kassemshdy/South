@@ -49,7 +49,9 @@ def test_an_administrator_writes_a_page_and_every_visitor_reads_it(
     )
     # A field not sent stays unset, so the Arabic page keeps its built-in text.
     assert public["body_ar"] is None
-    assert client.get("/api/admin/pages", headers=headers).json() == [public]
+    listed = client.get("/api/admin/pages", headers=headers).json()
+    assert [page["key"] for page in listed] == ["about", "offer_eligibility"]
+    assert listed[0] == public
 
 
 def test_emptying_every_field_restores_the_built_in_text(client: TestClient, admin: User) -> None:
