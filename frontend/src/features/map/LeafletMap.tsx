@@ -1,7 +1,7 @@
 import 'leaflet/dist/leaflet.css'
 
 import L from 'leaflet'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import type { Pin } from '@/features/map/types'
 
@@ -46,6 +46,10 @@ export default function LeafletMap({ value, onChange, label, className }: Leafle
   const changeRef = useRef(onChange)
   changeRef.current = onChange
   const editable = Boolean(onChange)
+  // Set once Leaflet is listening. The container is on screen a moment
+  // before that, and a tap in between would be lost -- which is how a test
+  // that clicks fast enough once failed to drop a pin at all.
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
     if (!container.current) return
@@ -64,7 +68,9 @@ export default function LeafletMap({ value, onChange, label, className }: Leafle
       })
     }
     map.current = instance
+    setReady(true)
     return () => {
+      setReady(false)
       instance.remove()
       map.current = null
       marker.current = null
@@ -102,6 +108,7 @@ export default function LeafletMap({ value, onChange, label, className }: Leafle
       dir="ltr"
       role="region"
       aria-label={label}
+      data-ready={ready ? 'true' : 'false'}
       className={className ?? 'h-64 w-full overflow-hidden rounded-xl border-2 border-ink-100'}
     />
   )
