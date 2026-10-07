@@ -35,6 +35,7 @@ const ALL = '__all__'
 const SORT_KEYS: Record<ProductSortOption, TranslationKey> = {
   newest: 'directory.sortNewest',
   nearest: 'directory.sortNearest',
+  rating: 'directory.sortRating',
   name: 'directory.sortName',
   oldest: 'directory.sortOldest',
   price_asc: 'products.sortPriceAsc',

@@ -2,6 +2,7 @@ import { ClipboardCheck, HandHeart, MapPin } from 'lucide-react'
 
 import { Card, CardBody } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { TeamSection } from '@/features/about/TeamSection'
 import { ArticleBody } from '@/features/articles/ArticleBody'
 import { usePageText } from '@/hooks/usePageText'
 import { useSeo } from '@/hooks/useSeo'
@@ -68,6 +69,8 @@ export function AboutPage() {
       <p className="mx-auto mt-10 max-w-2xl text-center leading-relaxed text-ink-500">
         {t('about.closing')}
       </p>
+
+      <TeamSection />
     </div>
   )
 }

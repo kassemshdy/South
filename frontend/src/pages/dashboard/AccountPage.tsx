@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/Select'
 import { InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
+import { DeleteAccountCard } from '@/features/account/DeleteAccountCard'
 import { useAuth } from '@/features/auth/AuthContext'
 import {
   GENDERS,
@@ -98,6 +99,9 @@ export function AccountPage() {
           upload={authApi.uploadCvDocument}
         />
         <PasswordCard />
+        {/* Not for an administrator: the server refuses, since losing the
+            last one would lock the owners out of moderation. */}
+        {user.role === 'ADMIN' ? null : <DeleteAccountCard />}
       </div>
     </div>
   )

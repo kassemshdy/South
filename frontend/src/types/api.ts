@@ -230,6 +230,12 @@ export interface BusinessSummary {
   /** The owner's own words, shown instead of the literal "Other" category name. */
   custom_category_text: string | null
   location: LocationNode | null
+  /**
+   * The stars on the published testimonials -- an average of what the page
+   * shows, owner-selected like the text. Null until one is rated.
+   */
+  rating_average: number | null
+  rating_count: number
   goods_origin: GoodsOrigin
   created_at: string
 }
@@ -554,6 +560,9 @@ export interface ApiErrorPayload {
  */
 export type SortOption = 'newest' | 'name' | 'oldest' | 'nearest'
 
+/** Businesses and products can also sort by their stars, rated first. */
+export type BusinessSortOption = SortOption | 'rating'
+
 /** The talent directory can also sort by years of experience, most first. */
 export type TalentSortOption = SortOption | 'experience'
 
@@ -567,14 +576,14 @@ export type TalentSortOption = SortOption | 'experience'
  * owner named no price. An ordering asks neither question: nothing is
  * removed, and an unpriced product sorts last in both directions.
  */
-export type ProductSortOption = SortOption | 'price_asc' | 'price_desc'
+export type ProductSortOption = BusinessSortOption | 'price_asc' | 'price_desc'
 
 export interface BusinessQuery {
   q?: string
   category?: string
   location?: string
   origin?: GoodsOrigin
-  sort?: SortOption
+  sort?: BusinessSortOption
   /** The visitor's position, for `nearest` only. Never put in the page URL. */
   lat?: number
   lng?: number
@@ -674,6 +683,8 @@ export interface Testimonial {
   id: string
   author_name: string
   body: string
+  /** One to five stars, when the visitor gave any. */
+  rating: number | null
   created_at: string
 }
 
@@ -807,6 +818,20 @@ export type PageCoverKey =
   | 'talent'
   | 'jobs'
   | 'contact'
+
+/** One of the six places in the about page's team section. */
+export interface TeamMember {
+  slot: number
+  photo_url: string | null
+  caption_ar: string | null
+  caption_en: string | null
+  updated_at: string | null
+}
+
+export interface TeamCaptionInput {
+  caption_ar: string | null
+  caption_en: string | null
+}
 
 export interface PageCover {
   page_key: PageCoverKey

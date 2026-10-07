@@ -9,6 +9,8 @@ import { apiDownload, apiRequest } from '@/services/api/client'
 import type {
   PageCover,
   PageCoverKey,
+  TeamCaptionInput,
+  TeamMember,
   PageKey,
   PageText,
   PageTextInput,
@@ -232,6 +234,9 @@ export const authApi = {
       method: 'POST',
       body: { current_password, new_password },
     }),
+  /** Deletes the account and everything it published. Not undoable. */
+  deleteAccount: (password: string) =>
+    apiRequest<{ message: string }>('/api/me/delete', { method: 'POST', body: { password } }),
   me: () => apiRequest<User>('/api/me'),
   updateProfile: (
     payload: IdentityPayload & {
@@ -312,6 +317,11 @@ export const pageApi = {
   get: (key: PageKey) => apiRequest<PageText>(`/api/pages/${key}`),
 }
 
+export const teamApi = {
+  /** The filled slots of the about page's team section, in order. */
+  list: () => apiRequest<TeamMember[]>('/api/team'),
+}
+
 export const pageCoverApi = {
   /** `{page_key: image_url}` for every page whose cover has been replaced. */
   all: () => apiRequest<Partial<Record<PageCoverKey, string>>>('/api/page-covers'),
@@ -373,6 +383,7 @@ export const insightsApi = {
 export interface TestimonialPayload {
   author_name: string
   body: string
+  rating?: number | null
 }
 
 /**
@@ -557,6 +568,19 @@ export const adminApi = {
   },
   resetPageCover: (key: PageCoverKey) =>
     apiRequest<PageCover>(`/api/admin/page-covers/${key}`, { method: 'DELETE' }),
+  team: () => apiRequest<TeamMember[]>('/api/admin/team'),
+  setTeamCaption: (slot: number, values: TeamCaptionInput) =>
+    apiRequest<TeamMember>(`/api/admin/team/${slot}`, { method: 'PUT', body: values }),
+  setTeamPhoto: (slot: number, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return apiRequest<TeamMember>(`/api/admin/team/${slot}/photo`, {
+      method: 'POST',
+      formData: form,
+    })
+  },
+  removeTeamPhoto: (slot: number) =>
+    apiRequest<TeamMember>(`/api/admin/team/${slot}/photo`, { method: 'DELETE' }),
   pages: () => apiRequest<PageText[]>('/api/admin/pages'),
   updatePage: (key: PageKey, values: PageTextInput) =>
     apiRequest<PageText>(`/api/admin/pages/${key}`, { method: 'PUT', body: values }),

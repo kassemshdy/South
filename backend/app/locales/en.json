@@ -1,4 +1,6 @@
 {
+  "account.admin_cannot_delete": "An administrator account cannot be deleted from here.",
+  "account.deleted": "Your account and everything you published have been deleted.",
   "admin.default_display_name": "Platform administrator",
   "app.name": "Janoubna",
   "application.not_found": "Application not found.",

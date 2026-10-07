@@ -13,19 +13,23 @@ from app.core.dependencies import (
     DbSession,
     SignedInUser,
 )
-from app.core.errors import AuthenticationError, PayloadTooLargeError
+from app.core.errors import AuthenticationError, PayloadTooLargeError, PermissionDeniedError
+from app.core.i18n import translate
 from app.core.security import verify_password
-from app.models.enums import ImageKind, VerificationDocumentKind
+from app.models.enums import ImageKind, UserRole, VerificationDocumentKind
 from app.schemas.auth import (
     AdminLoginIn,
     ChangePasswordIn,
+    DeleteAccountIn,
     LoginIn,
     TokenOut,
     UpdateProfileIn,
     UserOut,
 )
+from app.schemas.common import MessageResponse
 from app.schemas.identity import IDENTITY_FIELDS
 from app.schemas.verification import VerificationDocumentOut
+from app.services.account import AccountDeletionService
 from app.services.auth import AuthService
 from app.services.images import ImageService
 from app.services.verification import VerificationDocumentService
@@ -93,6 +97,27 @@ def change_my_password(
         raise AuthenticationError("auth.invalid_credentials", code="invalid_credentials")
     service.set_password(user, payload.new_password)
     return UserOut.model_validate(user)
+
+
+@router.post("/me/delete", response_model=MessageResponse)
+def delete_my_account(
+    payload: DeleteAccountIn, user: SignedInUser, db: DbSession
+) -> MessageResponse:
+    """Delete one's own account and everything it published, for good.
+
+    An administrator account is refused: it is the way into moderation, and
+    losing the last one locks the platform's owners out of their own site.
+    Reachable while a password change is outstanding, because someone handed
+    credentials they did not want should be able to decline them.
+    """
+    if user.role is UserRole.ADMIN:
+        raise PermissionDeniedError("account.admin_cannot_delete")
+    # 403, not 401: the client treats any 401 as an ended session and signs
+    # out, which a mistyped password must not do to someone mid-decision.
+    if not verify_password(payload.password, user.password_hash):
+        raise PermissionDeniedError("auth.invalid_credentials", code="invalid_credentials")
+    AccountDeletionService(db, get_storage()).delete(user)
+    return MessageResponse(message=translate("account.deleted"))
 
 
 @router.get("/me", response_model=UserOut)

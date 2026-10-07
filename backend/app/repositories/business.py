@@ -10,7 +10,7 @@ from __future__ import annotations
 import uuid
 from typing import Literal
 
-from sqlalchemy import Select, exists, func, or_, select
+from sqlalchemy import Select, exists, func, nullslast, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.core.arabic import normalize_arabic
@@ -22,7 +22,7 @@ from app.models.user import User
 from app.repositories.base import BaseRepository
 from app.repositories.geo import Point, nearest_first
 
-SortOption = Literal["newest", "name", "oldest", "nearest"]
+SortOption = Literal["newest", "name", "oldest", "nearest", "rating"]
 
 
 class BusinessRepository(BaseRepository[Business]):
@@ -138,6 +138,13 @@ class BusinessRepository(BaseRepository[Business]):
         if sort == "nearest" and near is not None:
             return stmt.order_by(
                 nearest_first(Business.latitude, Business.longitude, near),
+                Business.created_at.desc(),
+            )
+        # Rated listings first, best first; then the unrated, newest first.
+        if sort == "rating":
+            return stmt.order_by(
+                nullslast(Business.rating_average.desc()),
+                Business.rating_count.desc(),
                 Business.created_at.desc(),
             )
         if sort == "name":

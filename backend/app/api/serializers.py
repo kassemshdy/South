@@ -117,6 +117,10 @@ def business_summary(business: Business) -> BusinessSummaryOut:
         category=category_out(business.category),
         custom_category_text=business.custom_category_text,
         location=location_out(business.location),
+        rating_average=(
+            float(business.rating_average) if business.rating_average is not None else None
+        ),
+        rating_count=business.rating_count,
         goods_origin=business.goods_origin,
         created_at=business.created_at,
     )

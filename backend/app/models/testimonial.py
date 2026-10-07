@@ -27,7 +27,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, Text
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, SmallInteger, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base, TimestampMixin, pg_enum, uuid_pk
@@ -43,6 +43,7 @@ class Testimonial(Base, TimestampMixin):
         # The public read is always (this business, approved); the owner's is
         # (this business, any status). One index serves both.
         Index("ix_testimonials_business_status", "business_id", "status"),
+        CheckConstraint("rating BETWEEN 1 AND 5", name="ck_testimonials_rating_range"),
     )
 
     id: Mapped[uuid.UUID] = uuid_pk()
@@ -53,6 +54,10 @@ class Testimonial(Base, TimestampMixin):
     # there is no account behind this and the column must not imply one.
     author_name: Mapped[str] = mapped_column(String(80), nullable=False)
     body: Mapped[str] = mapped_column(Text, nullable=False)
+    # One to five stars, optional, asked for by the owners beside the text.
+    # Counted into the business's average only once published -- see
+    # TestimonialService._refresh_rating.
+    rating: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
     status: Mapped[TestimonialStatus] = mapped_column(
         pg_enum(TestimonialStatus, "testimonial_status"),
         nullable=False,

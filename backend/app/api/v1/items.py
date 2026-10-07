@@ -49,7 +49,8 @@ def search_products(
         GoodsOrigin | None, Query(description="Made in the South, or imported")
     ] = None,
     sort: Annotated[
-        Literal["newest", "name", "oldest", "price_asc", "price_desc", "nearest"], Query()
+        Literal["newest", "name", "oldest", "price_asc", "price_desc", "nearest", "rating"],
+        Query(),
     ] = "newest",
     # The visitor's position, for "nearest" only -- see search_businesses.
     near_lat: Annotated[float | None, Query(ge=-90, le=90, alias="lat")] = None,

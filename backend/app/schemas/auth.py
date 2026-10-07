@@ -79,6 +79,13 @@ class ChangePasswordIn(BaseModel):
     new_password: str = Field(min_length=8, max_length=200)
 
 
+class DeleteAccountIn(BaseModel):
+    """Deleting one's own account: the password again, for the reason
+    ChangePasswordIn asks for it -- an unlocked phone is not consent."""
+
+    password: str = Field(min_length=1, max_length=200)
+
+
 class IssuedPasswordOut(BaseModel):
     """An administrator-issued password, returned exactly once.
 

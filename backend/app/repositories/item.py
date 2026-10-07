@@ -22,7 +22,9 @@ from app.models.taxonomy import Category, Location
 from app.repositories.base import BaseRepository
 from app.repositories.geo import Point, nearest_first
 
-SortOption = Literal["newest", "name", "oldest", "price_asc", "price_desc", "nearest"]
+SortOption = Literal[
+    "newest", "name", "oldest", "price_asc", "price_desc", "nearest", "rating"
+]
 
 
 class ItemRepository(BaseRepository[BusinessItem]):
@@ -172,6 +174,13 @@ class ItemRepository(BaseRepository[BusinessItem]):
         if sort == "nearest" and near is not None:
             return stmt.order_by(
                 nearest_first(Business.latitude, Business.longitude, near),
+                BusinessItem.created_at.desc(),
+            )
+        # A product is rated as its business is; unrated sellers last.
+        if sort == "rating":
+            return stmt.order_by(
+                nullslast(Business.rating_average.desc()),
+                Business.rating_count.desc(),
                 BusinessItem.created_at.desc(),
             )
         if sort == "name":

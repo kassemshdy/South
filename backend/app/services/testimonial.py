@@ -27,8 +27,10 @@ recorded here rather than inferred from the enum:
 
 from __future__ import annotations
 
+import uuid
 from datetime import UTC, datetime
 
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
@@ -114,6 +116,7 @@ class TestimonialService:
             business_id=business.id,
             author_name=payload.author_name.strip(),
             body=payload.body.strip(),
+            rating=payload.rating,
             status=TestimonialStatus.PENDING_REVIEW,
         )
         self._repo.add(testimonial)
@@ -135,14 +138,40 @@ class TestimonialService:
     def approve(self, testimonial: Testimonial) -> Testimonial:
         testimonial.status = TestimonialStatus.APPROVED
         testimonial.approved_at = datetime.now(UTC)
+        self._refresh_rating(testimonial.business_id)
         self._db.commit()
         return testimonial
 
     def hide(self, testimonial: Testimonial) -> Testimonial:
         testimonial.status = TestimonialStatus.HIDDEN
+        self._refresh_rating(testimonial.business_id)
         self._db.commit()
         return testimonial
 
     def remove(self, testimonial: Testimonial) -> None:
+        business_id = testimonial.business_id
         self._repo.delete(testimonial)
+        self._refresh_rating(business_id)
         self._db.commit()
+
+    def _refresh_rating(self, business_id: uuid.UUID) -> None:
+        """Recount the stars a visitor can see on this listing.
+
+        Only published testimonials count, so the average is exactly the
+        average of what the page shows -- owner-selected, like the text, and
+        labelled as such wherever it appears. Counting what the owner has not
+        published would put a number on the page that no visitor can check.
+        """
+        self._db.flush()
+        average, count = self._db.execute(
+            select(func.avg(Testimonial.rating), func.count(Testimonial.rating)).where(
+                Testimonial.business_id == business_id,
+                Testimonial.status == TestimonialStatus.APPROVED,
+                Testimonial.rating.is_not(None),
+            )
+        ).one()
+        business = self._db.get(Business, business_id)
+        if business is None:
+            return
+        business.rating_count = int(count)
+        business.rating_average = round(float(average), 2) if count else None

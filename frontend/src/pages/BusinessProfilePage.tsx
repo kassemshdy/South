@@ -363,7 +363,11 @@ export function BusinessProfilePage() {
                 the form is the point, and hiding the whole block when a
                 listing has no testimonials yet would mean the first person
                 who wanted to leave one had nowhere to do it. */}
-            <TestimonialList testimonials={data.testimonials} />
+            <TestimonialList
+              testimonials={data.testimonials}
+              average={data.rating_average}
+              count={data.rating_count}
+            />
             <TestimonialForm slug={data.slug} />
           </div>
 

@@ -52,7 +52,7 @@ def search_businesses(
     origin: Annotated[
         GoodsOrigin | None, Query(description="Made in the South, or imported")
     ] = None,
-    sort: Annotated[Literal["newest", "name", "oldest", "nearest"], Query()] = "newest",
+    sort: Annotated[Literal["newest", "name", "oldest", "nearest", "rating"], Query()] = "newest",
     # The visitor's position, for "nearest" only: from their browser, used
     # for this one ordering, and never stored (access logs drop the query).
     near_lat: Annotated[float | None, Query(ge=-90, le=90, alias="lat")] = None,

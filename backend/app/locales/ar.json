@@ -1,4 +1,6 @@
 {
+  "account.admin_cannot_delete": "لا يمكن حذف حساب المدير من هنا.",
+  "account.deleted": "حُذف حسابك وكل ما نشرته.",
   "admin.default_display_name": "مدير المنصة",
   "app.name": "جنوبنا",
   "application.not_found": "الطلب غير موجود.",

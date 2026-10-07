@@ -12,6 +12,7 @@ import { testimonialApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import { formatDate } from '@/utils/format'
 import type { OwnerTestimonial, TestimonialStatus } from '@/types/api'
+import { Stars } from '@/features/testimonials/Stars'
 
 /* PENDING_REVIEW and REJECTED are in these maps only because the type is
    exhaustive: the API does not send either to an owner, since text the
@@ -108,6 +109,7 @@ export function OwnerTestimonials({ businessId }: { businessId: string }) {
                   {formatDate(entry.created_at, locale)}
                 </span>
               </div>
+              {entry.rating ? <Stars value={entry.rating} className="mt-2" /> : null}
               <p className="mt-2 leading-relaxed text-ink-700">{entry.body}</p>
 
               <div className="mt-3 flex flex-wrap gap-2">

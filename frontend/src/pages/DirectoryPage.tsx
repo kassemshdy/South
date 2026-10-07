@@ -18,12 +18,13 @@ import { useT, type TranslationKey } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
 import { publicBusinessApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import type { SortOption } from '@/types/api'
+import type { BusinessSortOption } from '@/types/api'
 
 const ALL = '__all__'
-const SORT_KEYS: Record<SortOption, TranslationKey> = {
+const SORT_KEYS: Record<BusinessSortOption, TranslationKey> = {
   newest: 'directory.sortNewest',
   nearest: 'directory.sortNearest',
+  rating: 'directory.sortRating',
   name: 'directory.sortName',
   oldest: 'directory.sortOldest',
 }
@@ -34,10 +35,10 @@ export function DirectoryPage() {
   const q = searchParams.get('q') ?? ''
   const category = searchParams.get('category') ?? ''
   const location = searchParams.get('location') ?? ''
-  const chosenSort = searchParams.get('sort') as SortOption | null
+  const chosenSort = searchParams.get('sort') as BusinessSortOption | null
   const page = Number(searchParams.get('page') ?? '1')
   const setSort = useCallback(
-    (value: SortOption) => {
+    (value: BusinessSortOption) => {
       const next = new URLSearchParams(searchParams)
       next.set('sort', value)
       next.delete('page')
@@ -50,7 +51,7 @@ export function DirectoryPage() {
     choose: chooseSort,
     locating,
     near,
-  } = useNearestSort<SortOption>(chosenSort, setSort, 'newest')
+  } = useNearestSort<BusinessSortOption>(chosenSort, setSort, 'newest')
 
   // Local mirror so typing feels instant; the URL updates on submit, which
   // keeps searches shareable and back/forward working.
@@ -202,12 +203,12 @@ export function DirectoryPage() {
             <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="filter-sort">
               {t('directory.sort')}
             </label>
-            <Select value={sort} onValueChange={(value) => chooseSort(value as SortOption)}>
+            <Select value={sort} onValueChange={(value) => chooseSort(value as BusinessSortOption)}>
               <SelectTrigger aria-labelledby="filter-sort">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {(Object.keys(SORT_KEYS) as SortOption[]).map((option) => (
+                {(Object.keys(SORT_KEYS) as BusinessSortOption[]).map((option) => (
                   <SelectItem key={option} value={option}>
                     {t(SORT_KEYS[option])}
                   </SelectItem>
