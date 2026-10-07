@@ -28,6 +28,8 @@ def complete_business(
             "short_description": ar("business.manakish_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
             "whatsapp": "03800001",
         },
     )
@@ -102,6 +104,8 @@ def test_other_category_requires_custom_category_text_before_submission(
             "short_description": ar("business.generic_short"),
             "category_id": str(category_other.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
             "whatsapp": "03800009",
         },
     ).json()["id"]
@@ -303,6 +307,8 @@ def test_public_endpoints_never_return_non_approved_businesses(
                 "short_description": ar("business.generic_short"),
                 "category_id": str(category.id),
                 "location_id": str(location.id),
+                "latitude": 33.27,
+                "longitude": 35.2,
             },
         ).json()
         business = db.get(Business, created["id"])

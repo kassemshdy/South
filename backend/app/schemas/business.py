@@ -69,6 +69,10 @@ class BusinessSummaryOut(ORMModel):
     # owner's personal contact info, which never appears on a business tier).
     custom_category_text: str | None = None
     location: LocationOut | None = None
+    # The stars on the published testimonials: an average of what the page
+    # shows, owner-selected like the text. None until one is rated.
+    rating_average: float | None = None
+    rating_count: int = 0
     # Made in the South or imported: public, because it is one of the doors
     # a visitor chooses between. See ``GoodsOrigin``.
     goods_origin: GoodsOrigin = GoodsOrigin.LOCAL

@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 
 import { demoOwnerPhone, signIn } from './support/sign-in'
 import { ADMIN_EMAIL, ADMIN_PASSWORD } from './support/admin'
+import { dropPin } from './support/map'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
@@ -96,6 +97,8 @@ test.describe('Talent directory', () => {
     await page.getByLabel(t('talentForm.yearsExperience')).fill(fixture.yearsExperience)
     await page.getByRole('combobox').nth(1).click()
     await page.getByRole('option', { name: districtName, exact: true }).click()
+    // Every seller pins themselves on the map; a tap anywhere drops it.
+    await dropPin(page, t('form.mapPinLabel'))
     await page.getByLabel(t('form.whatsapp')).fill(fixture.phone)
     // The job-seeker's own warning, and it must be *above* the button: a
     // caution met after pressing send is a record that somebody was told,

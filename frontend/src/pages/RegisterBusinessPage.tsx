@@ -57,6 +57,7 @@ export function RegisterBusinessPage() {
           defaultOrigin={origin}
           submitLabel={t('register.submit')}
           identityElsewhere={false}
+          askLocation
           pending={apply.isPending}
           serverError={unwrapFieldErrors(apply.error, 'business')}
           onSubmit={(payload) => {

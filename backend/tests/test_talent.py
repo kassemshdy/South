@@ -56,6 +56,8 @@ def _create_profile(
             "bio": ar("talent.designer_bio"),
             "skill_id": str(skill.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
             "whatsapp": "03950101",
             "years_experience": 7,
         },
@@ -178,6 +180,8 @@ def test_custom_skill_text_is_searchable_for_an_other_profile(
             "skill_id": str(skill_other.id),
             "custom_skill_text": ar("talent.custom_skill_text"),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
             "whatsapp": "03950106",
         },
     ).json()
@@ -203,6 +207,8 @@ def test_one_profile_per_account(
             "display_name": ar("talent.renamed"),
             "skill_id": str(skill.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     )
     assert second.status_code == 409
@@ -267,6 +273,8 @@ def test_submission_lists_what_is_still_missing(
             "display_name": ar("talent.designer"),
             "skill_id": str(skill.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     )
 
@@ -295,6 +303,8 @@ def test_an_other_profile_must_name_its_own_skill(
             "bio": ar("talent.designer_bio"),
             "skill_id": str(skill_other.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
             "whatsapp": "03950112",
         },
     )

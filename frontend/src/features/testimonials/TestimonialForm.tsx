@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/Toast'
 import { useT } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { testimonialApi } from '@/services/api/endpoints'
+import { StarInput } from '@/features/testimonials/Stars'
 
 /**
  * Leaving praise on a listing, with no account.
@@ -28,10 +29,11 @@ export function TestimonialForm({ slug }: { slug: string }) {
   const toast = useToast()
   const [author, setAuthor] = useState('')
   const [body, setBody] = useState('')
+  const [rating, setRating] = useState<number | null>(null)
   const [sent, setSent] = useState(false)
 
   const submit = useMutation({
-    mutationFn: () => testimonialApi.submit(slug, { author_name: author, body }),
+    mutationFn: () => testimonialApi.submit(slug, { author_name: author, body, rating }),
     onSuccess: (result) => {
       setSent(true)
       // The API's own sentence, in the reader's locale, rather than a
@@ -95,6 +97,8 @@ export function TestimonialForm({ slug }: { slug: string }) {
           />
         )}
       </Field>
+
+      <StarInput value={rating} onChange={setRating} label={t('testimonials.ratingLabel')} />
 
       <Button type="submit" loading={submit.isPending}>
         <Send className="h-4 w-4" aria-hidden="true" />

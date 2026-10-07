@@ -55,6 +55,8 @@ export const queryKeys = {
   adminPageCovers: ['admin', 'page-covers'] as const,
   page: (key: PageKey) => ['page', key] as const,
   adminPages: ['admin', 'pages'] as const,
+  team: ['team'] as const,
+  adminTeam: ['admin', 'team'] as const,
   siteSettings: ['site-settings'] as const,
   adminSiteSettings: ['admin', 'site-settings'] as const,
   adminDiscardedApplications: (includeDismissed: boolean) =>

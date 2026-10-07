@@ -140,7 +140,19 @@ export const adminLoginSchema = (t: Translate) =>
  * free-text requirement can only be wired up once the category list has
  * loaded.
  */
-export const businessBasicsSchema = (t: Translate, otherCategoryId?: string) =>
+/** A point on the map, or none yet; "required" is a refine at the call site. */
+const pinSchema = z.object({ lat: z.number(), lng: z.number() }).nullable()
+
+const requiredPin = (t: Translate) =>
+  pinSchema.refine((pin) => Boolean(pin), t('validation.mapPinRequired'))
+
+export const businessBasicsSchema = (
+  t: Translate,
+  otherCategoryId?: string,
+  // The application form asks for the area up front, because the listing
+  // goes straight to review; the dashboard keeps it on its own step.
+  requireLocation = false,
+) =>
   z
     .object({
       name: z
@@ -197,8 +209,20 @@ export const businessBasicsSchema = (t: Translate, otherCategoryId?: string) =>
       phone_public: z.boolean(),
       email: z.string().trim().email(t('validation.emailInvalid')).optional().or(z.literal('')),
       website: optionalUrl(t),
+      location_id: z.string().optional().or(z.literal('')),
+      pin: pinSchema,
     })
     .superRefine((values, ctx) => {
+      if (requireLocation && !values.location_id) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['location_id'],
+          message: t('validation.locationRequired'),
+        })
+      }
+      if (requireLocation && !values.pin) {
+        ctx.addIssue({ code: 'custom', path: ['pin'], message: t('validation.mapPinRequired') })
+      }
       if (
         otherCategoryId &&
         values.category_id === otherCategoryId &&
@@ -222,6 +246,8 @@ export const businessLocationSchema = (t: Translate) =>
       .optional()
       .or(z.literal('')),
     maps_url: optionalUrl(t),
+    // Every seller, at the owners' request; the town is enough.
+    pin: requiredPin(t),
   })
 
 export const socialLinksSchema = (t: Translate) =>
@@ -305,6 +331,8 @@ export const talentSchema = (t: Translate, otherSkillId?: string) =>
       skill_id: z.string().min(1, t('validation.skillRequired')),
       custom_skill_text: z.string().trim().max(120).optional().or(z.literal('')),
       location_id: z.string().min(1, t('validation.locationRequired')),
+      // Every seller, at the owners' request; the town is enough.
+      pin: requiredPin(t),
       phone: optionalPhone(t),
       whatsapp: optionalPhone(t),
       // Shown to visitors, or kept for the team and the dashboard only.

@@ -20,8 +20,9 @@ from app.models.talent import TalentProfile, TalentSkill
 from app.models.taxonomy import Location
 from app.models.user import User
 from app.repositories.base import BaseRepository
+from app.repositories.geo import Point, nearest_first
 
-SortOption = Literal["newest", "name", "oldest", "experience"]
+SortOption = Literal["newest", "name", "oldest", "experience", "nearest"]
 
 
 class TalentSkillRepository(BaseRepository[TalentSkill]):
@@ -134,8 +135,14 @@ class TalentRepository(BaseRepository[TalentProfile]):
         return stmt
 
     def _apply_sort(
-        self, stmt: Select[tuple[TalentProfile]], sort: SortOption
+        self, stmt: Select[tuple[TalentProfile]], sort: SortOption, near: Point | None = None
     ) -> Select[tuple[TalentProfile]]:
+        # Nearest needs a position; without one it falls back to newest.
+        if sort == "nearest" and near is not None:
+            return stmt.order_by(
+                nearest_first(TalentProfile.latitude, TalentProfile.longitude, near),
+                TalentProfile.created_at.desc(),
+            )
         if sort == "name":
             return stmt.order_by(TalentProfile.display_name.asc())
         if sort == "oldest":
@@ -157,6 +164,7 @@ class TalentRepository(BaseRepository[TalentProfile]):
         location_slug: str | None = None,
         kind: TalentKind | None = None,
         sort: SortOption = "newest",
+        near: Point | None = None,
         page: int = 1,
         page_size: int = 12,
     ) -> Page[TalentProfile]:
@@ -173,7 +181,7 @@ class TalentRepository(BaseRepository[TalentProfile]):
             self.db.execute(select(func.count()).select_from(filtered.subquery())).scalar_one()
         )
 
-        stmt = self._apply_sort(self._with_relations(filtered), sort)
+        stmt = self._apply_sort(self._with_relations(filtered), sort, near)
         rows = (
             self.db.execute(stmt.limit(page_size).offset((page - 1) * page_size))
             .unique()

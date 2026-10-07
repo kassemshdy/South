@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { openBusinessWizard } from './support/wizard'
 
 import { demoOwnerPhone, signIn } from './support/sign-in'
+import { dropPin } from './support/map'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
@@ -84,6 +85,8 @@ test.describe('Lean onboarding', () => {
     // --- Area ----------------------------------------------------------------
     await page.getByRole('combobox').first().click()
     await page.getByRole('option').nth(1).click()
+    // Every seller pins themselves on the map; a tap anywhere drops it.
+    await dropPin(page, t('form.mapPinLabel'))
     await page.getByRole('button', { name: t('wizard.saveAndContinue') }).click()
 
     // --- Logo, which completes the required set ------------------------------

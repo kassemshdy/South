@@ -10,6 +10,7 @@ import { Input, Textarea } from '@/components/ui/Input'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
+import { TeamEditor } from '@/features/about/TeamEditor'
 import { useI18n, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { adminApi } from '@/services/api/endpoints'
@@ -23,12 +24,32 @@ import type { PageKey, PageText, PageTextInput } from '@/types/api'
  */
 const PAGES: Record<
   PageKey,
-  { path: string; labelKey: TranslationKey; defaults: Record<Field, TranslationKey> }
+  {
+    path: string
+    labelKey: TranslationKey
+    /** One key, or several shown one per line (a list's built-in items). */
+    defaults: Record<Field, TranslationKey | TranslationKey[]>
+    /** What each field is called and says about itself, where it differs
+     * from a whole page's title, summary and body. */
+    labels?: Partial<Record<Field, TranslationKey>>
+    hints?: Partial<Record<Field, TranslationKey>>
+  }
 > = {
   about: {
     path: '/about',
     labelKey: 'nav.about',
     defaults: { title: 'about.title', summary: 'footer.aboutBody', body: 'about.intro' },
+  },
+  offer_eligibility: {
+    path: '/offer',
+    labelKey: 'offerPage.eligibilityTitle',
+    defaults: {
+      title: 'offerPage.eligibilityTitle',
+      summary: 'offerPage.eligibilityNote',
+      body: ['offerPage.eligibilityOne', 'offerPage.eligibilityTwo'],
+    },
+    labels: { summary: 'admin.pageEligibilityNoteLabel', body: 'admin.pageEligibilityListLabel' },
+    hints: { summary: 'admin.pageEligibilityNoteHint', body: 'admin.pageEligibilityListHint' },
   },
 }
 
@@ -67,6 +88,9 @@ export function AdminPagesPage() {
       ) : (
         pages.data?.map((page) => <PageForm key={page.key} page={page} />)
       )}
+
+      {/* The about page's team section lives with the about page's text. */}
+      <TeamEditor />
     </div>
   )
 }
@@ -107,8 +131,11 @@ function PageForm({ page }: { page: PageText }) {
 
   // Only the catalog in use is loaded, so the built-in text can be shown as a
   // placeholder in the reader's own language and not the other one.
-  const placeholder = (lang: Lang, field: Field) =>
-    lang === locale ? t(meta.defaults[field]) : undefined
+  const placeholder = (lang: Lang, field: Field) => {
+    if (lang !== locale) return undefined
+    const keys = meta.defaults[field]
+    return Array.isArray(keys) ? keys.map((key) => t(key)).join('\n') : t(keys)
+  }
 
   return (
     <Card>
@@ -141,7 +168,10 @@ function PageForm({ page }: { page: PageText }) {
                   />
                 )}
               </Field>
-              <Field label={t('admin.pageSummaryLabel')} hint={t('admin.pageSummaryHint')}>
+              <Field
+                label={t(meta.labels?.summary ?? 'admin.pageSummaryLabel')}
+                hint={t(meta.hints?.summary ?? 'admin.pageSummaryHint')}
+              >
                 {(props) => (
                   <Textarea
                     {...props}
@@ -154,7 +184,10 @@ function PageForm({ page }: { page: PageText }) {
                   />
                 )}
               </Field>
-              <Field label={t('admin.pageBodyLabel')} hint={t('admin.pageBodyHint')}>
+              <Field
+                label={t(meta.labels?.body ?? 'admin.pageBodyLabel')}
+                hint={t(meta.hints?.body ?? 'admin.pageBodyHint')}
+              >
                 {(props) => (
                   <Textarea
                     {...props}

@@ -50,6 +50,8 @@ def approved_slug(client: TestClient, db: Session, category: Category, location:
             "short_description": ar("business.seo_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     ).json()
 
@@ -97,6 +99,8 @@ def approved_talent_slug(client: TestClient, db: Session, admin: User, location:
             "bio": ar("talent.designer_bio"),
             "skill_id": str(skill.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     ).json()
 

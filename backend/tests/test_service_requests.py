@@ -65,6 +65,8 @@ def _approved_profile(
             "display_name": display_name,
             "skill_id": str(skill.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
             "whatsapp": PROVIDER_PHONE,
         },
     )

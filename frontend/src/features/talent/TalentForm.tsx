@@ -9,6 +9,8 @@ import { Input, Textarea } from '@/components/ui/Input'
 import { LocationCombobox } from '@/components/ui/LocationCombobox'
 import { PhonePublicToggle } from '@/components/ui/PhonePublicToggle'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
+import { MapPinField } from '@/features/map/MapPinField'
+import { pinOf } from '@/features/map/types'
 import { useLocationGroups, useTalentSkills } from '@/hooks/useTaxonomy'
 import { useT } from '@/i18n'
 import { useApplyServerFieldErrors } from '@/utils/serverFieldErrors'
@@ -108,6 +110,7 @@ export function TalentForm({
       skill_specialty: profile?.skill_specialty ?? '',
       preferred_contact: profile?.preferred_contact ?? '',
       location_id: profile?.location?.id ?? '',
+      pin: pinOf(profile?.latitude, profile?.longitude),
       phone: profile?.phone ?? '',
       whatsapp: profile?.whatsapp ?? '',
       phone_public: profile?.phone_public ?? true,
@@ -167,6 +170,8 @@ export function TalentForm({
       skill_specialty: values.skill_specialty || null,
       preferred_contact: values.preferred_contact || null,
       location_id: values.location_id || null,
+      latitude: values.pin?.lat ?? null,
+      longitude: values.pin?.lng ?? null,
       phone: values.phone || null,
       whatsapp: values.whatsapp || null,
       phone_public: values.phone_public,
@@ -361,6 +366,14 @@ export function TalentForm({
           />
         )}
       </Field>
+
+      <Controller
+        control={control}
+        name="pin"
+        render={({ field }) => (
+          <MapPinField value={field.value} onChange={field.onChange} error={errors.pin?.message} />
+        )}
+      />
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label={t('form.phone')} error={errors.phone?.message} hint={t('form.phoneHint')}>

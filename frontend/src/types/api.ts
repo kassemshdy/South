@@ -230,6 +230,12 @@ export interface BusinessSummary {
   /** The owner's own words, shown instead of the literal "Other" category name. */
   custom_category_text: string | null
   location: LocationNode | null
+  /**
+   * The stars on the published testimonials -- an average of what the page
+   * shows, owner-selected like the text. Null until one is rated.
+   */
+  rating_average: number | null
+  rating_count: number
   goods_origin: GoodsOrigin
   created_at: string
 }
@@ -394,6 +400,9 @@ export type ContactChannel = 'PHONE' | 'WHATSAPP' | 'EMAIL' | 'WEBSITE'
 
 export interface TalentDetail extends TalentSummary {
   bio: string | null
+  /** The owner's own pin on the map, as a business has. */
+  latitude: number | null
+  longitude: number | null
   /** Which contact detail the page leads with. Never narrows what is shown. */
   preferred_contact: ContactChannel | null
   email: string | null
@@ -545,7 +554,14 @@ export interface ApiErrorPayload {
   }
 }
 
-export type SortOption = 'newest' | 'name' | 'oldest'
+/**
+ * `nearest` orders by distance from the visitor, and needs `lat`/`lng` sent
+ * alongside it; without them the server falls back to newest.
+ */
+export type SortOption = 'newest' | 'name' | 'oldest' | 'nearest'
+
+/** Businesses and products can also sort by their stars, rated first. */
+export type BusinessSortOption = SortOption | 'rating'
 
 /** The talent directory can also sort by years of experience, most first. */
 export type TalentSortOption = SortOption | 'experience'
@@ -560,14 +576,17 @@ export type TalentSortOption = SortOption | 'experience'
  * owner named no price. An ordering asks neither question: nothing is
  * removed, and an unpriced product sorts last in both directions.
  */
-export type ProductSortOption = SortOption | 'price_asc' | 'price_desc'
+export type ProductSortOption = BusinessSortOption | 'price_asc' | 'price_desc'
 
 export interface BusinessQuery {
   q?: string
   category?: string
   location?: string
   origin?: GoodsOrigin
-  sort?: SortOption
+  sort?: BusinessSortOption
+  /** The visitor's position, for `nearest` only. Never put in the page URL. */
+  lat?: number
+  lng?: number
   page?: number
   page_size?: number
 }
@@ -583,6 +602,9 @@ export interface TalentQuery {
   location?: string
   kind?: TalentKind
   sort?: TalentSortOption
+  /** The visitor's position, for `nearest` only. Never put in the page URL. */
+  lat?: number
+  lng?: number
   page?: number
   page_size?: number
 }
@@ -661,6 +683,8 @@ export interface Testimonial {
   id: string
   author_name: string
   body: string
+  /** One to five stars, when the visitor gave any. */
+  rating: number | null
   created_at: string
 }
 
@@ -766,7 +790,7 @@ export interface SiteSettings {
 }
 
 /** The site's static pages; see `PageText`. */
-export type PageKey = 'about'
+export type PageKey = 'about' | 'offer_eligibility'
 
 /**
  * A static page's administrator-written text. A null field means the page
@@ -794,6 +818,20 @@ export type PageCoverKey =
   | 'talent'
   | 'jobs'
   | 'contact'
+
+/** One of the six places in the about page's team section. */
+export interface TeamMember {
+  slot: number
+  photo_url: string | null
+  caption_ar: string | null
+  caption_en: string | null
+  updated_at: string | null
+}
+
+export interface TeamCaptionInput {
+  caption_ar: string | null
+  caption_en: string | null
+}
 
 export interface PageCover {
   page_key: PageCoverKey

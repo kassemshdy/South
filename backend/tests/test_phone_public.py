@@ -32,6 +32,8 @@ def test_a_business_with_private_numbers_publishes_none_of_them(
             "short_description": ar("business.manakish_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
             "phone": NUMBER,
             "whatsapp": NUMBER,
             "phone_public": False,

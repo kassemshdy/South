@@ -116,6 +116,12 @@ class Business(Base, TimestampMixin):
     phone_public: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default="true"
     )
+    # The stars on this listing's *published* testimonials, kept here so the
+    # directory sorts on a column. Written only by TestimonialService.
+    rating_average: Mapped[float | None] = mapped_column(Numeric(3, 2), nullable=True)
+    rating_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     website: Mapped[str | None] = mapped_column(String(500), nullable=True)
 

@@ -73,6 +73,8 @@ def _business_payload(
             "description": ar("business.applicant_description"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
             "phone": phone,
         },
     }
@@ -372,6 +374,8 @@ def test_a_talent_applicant_can_attach_one_too(
                 "display_name": ar("talent.applicant"),
                 "skill_id": str(skill.id),
                 "location_id": str(location.id),
+                "latitude": 33.27,
+                "longitude": 35.2,
                 "whatsapp": APPLICANT_PHONE,
                 "years_experience": 3,
                 "kind": "SERVICE",
@@ -403,6 +407,8 @@ def test_a_talent_application_lands_in_the_review_queue(
                 "display_name": ar("talent.applicant"),
                 "skill_id": str(skill.id),
                 "location_id": str(location.id),
+                "latitude": 33.27,
+                "longitude": 35.2,
                 "whatsapp": APPLICANT_PHONE,
                 "years_experience": 3,
                 "kind": "SERVICE",
@@ -458,6 +464,8 @@ def test_a_known_number_is_answered_identically_and_creates_nothing(
                 "name": ar("business.applicant_second"),
                 "category_id": str(category.id),
                 "location_id": str(location.id),
+                "latitude": 33.27,
+                "longitude": 35.2,
             },
         },
     )
@@ -895,6 +903,8 @@ def test_a_talent_application_without_years_of_experience_is_refused(
                 "display_name": ar("talent.applicant"),
                 "skill_id": str(skill.id),
                 "location_id": str(location.id),
+                "latitude": 33.27,
+                "longitude": 35.2,
                 "whatsapp": APPLICANT_PHONE,
             },
         },
@@ -937,6 +947,8 @@ def test_a_talent_application_must_say_service_or_job(
                 "display_name": ar("talent.applicant"),
                 "skill_id": str(skill.id),
                 "location_id": str(location.id),
+                "latitude": 33.27,
+                "longitude": 35.2,
                 "whatsapp": APPLICANT_PHONE,
                 "years_experience": 3,
             },
@@ -944,3 +956,52 @@ def test_a_talent_application_must_say_service_or_job(
     )
     assert response.status_code == 422, response.text
     assert db.execute(select(TalentProfile)).first() is None
+
+
+def test_an_application_without_an_area_is_refused(
+    client: TestClient,
+    db: Session,
+    category: Category,
+    skill: TalentSkill,
+    location: Location,
+) -> None:
+    """Optional on a dashboard draft, required on an application: it goes
+    straight to review, and "from the South" cannot be judged without it."""
+    payload = _business_payload(category, location)
+    business = dict(payload["business"])  # type: ignore[call-overload]
+    del business["location_id"]
+    payload["business"] = business
+    refused = _register(client, "business", payload)
+    assert refused.status_code == 422, refused.text
+    assert _owner(db) is None
+
+    refused = _register(
+        client,
+        "talent",
+        {
+            "login_phone": APPLICANT_PHONE,
+            "identity": dict(IDENTITY),
+            "talent": {
+                "display_name": ar("talent.applicant"),
+                "skill_id": str(skill.id),
+                "whatsapp": APPLICANT_PHONE,
+                "years_experience": 3,
+                "kind": "SERVICE",
+            },
+        },
+    )
+    assert refused.status_code == 422, refused.text
+    assert db.execute(select(TalentProfile)).first() is None
+
+
+def test_an_application_without_a_map_pin_is_refused(
+    client: TestClient, db: Session, category: Category, location: Location
+) -> None:
+    """The owners made the pin compulsory for every seller; the town will do."""
+    payload = _business_payload(category, location)
+    business = dict(payload["business"])  # type: ignore[call-overload]
+    del business["latitude"], business["longitude"]
+    payload["business"] = business
+    refused = _register(client, "business", payload)
+    assert refused.status_code == 422, refused.text
+    assert _owner(db) is None

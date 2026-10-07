@@ -5,9 +5,12 @@ import { Controller, useForm, useWatch } from 'react-hook-form'
 import { Button } from '@/components/ui/Button'
 import { Field } from '@/components/ui/Field'
 import { Input, Textarea } from '@/components/ui/Input'
+import { LocationCombobox } from '@/components/ui/LocationCombobox'
 import { PhonePublicToggle } from '@/components/ui/PhonePublicToggle'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
-import { useCategories } from '@/hooks/useTaxonomy'
+import { MapPinField } from '@/features/map/MapPinField'
+import { pinOf } from '@/features/map/types'
+import { useCategories, useLocationGroups } from '@/hooks/useTaxonomy'
 import { useT } from '@/i18n'
 import { useApplyServerFieldErrors } from '@/utils/serverFieldErrors'
 import type { BusinessPayload } from '@/services/api/endpoints'
@@ -41,6 +44,13 @@ interface BasicsFormProps {
    * listing's own mark always wins, and anything else starts local.
    */
   defaultOrigin?: GoodsOrigin | undefined
+  /**
+   * Ask for the area here, and require it. The application form does: the
+   * listing goes straight to review, and a reviewer cannot judge "from the
+   * South" without it. The dashboard leaves it to its own step, and never
+   * sends it from here, so saving this tab cannot clear an area set there.
+   */
+  askLocation?: boolean
 }
 
 /** Step 1 of the wizard, and the first tab of the edit screen. */
@@ -53,13 +63,18 @@ export function BasicsForm({
   footer,
   identityElsewhere = true,
   defaultOrigin,
+  askLocation = false,
 }: BasicsFormProps) {
   const categories = useCategories()
+  const { groups } = useLocationGroups()
   const t = useT()
   const otherCategoryId = categories.data?.find((category) => category.slug === 'other')?.id
   // Rebuilt when the locale or the "Other" category id changes so validation
   // messages follow the UI and the conditional-required rule stays current.
-  const schema = useMemo(() => businessBasicsSchema(t, otherCategoryId), [t, otherCategoryId])
+  const schema = useMemo(
+    () => businessBasicsSchema(t, otherCategoryId, askLocation),
+    [t, otherCategoryId, askLocation],
+  )
 
   const {
     register,
@@ -87,6 +102,8 @@ export function BasicsForm({
       phone_public: business?.phone_public ?? true,
       email: business?.email ?? '',
       website: business?.website ?? '',
+      location_id: business?.location?.id ?? '',
+      pin: pinOf(business?.latitude, business?.longitude),
     },
   })
 
@@ -114,6 +131,13 @@ export function BasicsForm({
       phone_public: values.phone_public,
       email: values.email || null,
       website: values.website || null,
+      ...(askLocation
+        ? {
+            location_id: values.location_id || null,
+            latitude: values.pin?.lat ?? null,
+            longitude: values.pin?.lng ?? null,
+          }
+        : {}),
     })
   })
 
@@ -199,6 +223,43 @@ export function BasicsForm({
           />
         )}
       </Field>
+
+      {askLocation ? (
+        <Field
+          label={t('form.area')}
+          required
+          error={errors.location_id?.message}
+          hint={t('form.areaHint')}
+        >
+          {(props) => (
+            <Controller
+              control={control}
+              name="location_id"
+              render={({ field }) => (
+                <LocationCombobox
+                  id={props.id}
+                  aria-describedby={props['aria-describedby']}
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  groups={groups}
+                  placeholder={t('form.areaPlaceholder')}
+                  invalid={Boolean(errors.location_id)}
+                />
+              )}
+            />
+          )}
+        </Field>
+      ) : null}
+
+      {askLocation ? (
+        <Controller
+          control={control}
+          name="pin"
+          render={({ field }) => (
+            <MapPinField value={field.value ?? null} onChange={field.onChange} error={errors.pin?.message} />
+          )}
+        />
+      ) : null}
 
       {isOtherCategory ? (
         <Field

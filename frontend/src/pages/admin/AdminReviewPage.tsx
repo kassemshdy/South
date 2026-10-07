@@ -16,6 +16,7 @@ import { ErrorState, InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
 import { IssueCredentialsCard } from '@/features/admin/IssueCredentialsCard'
 import { OwnerIdentityCard } from '@/features/admin/OwnerIdentityCard'
+import { OwnerWhatsappButton } from '@/features/admin/OwnerWhatsappButton'
 import { OWNER_RELATION_KEYS } from '@/features/businesses/labels'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
 import { useI18n, type TranslationKey } from '@/i18n'
@@ -316,6 +317,7 @@ export function AdminReviewPage() {
               <Detail labelKey="admin.ownerName" value={data.owner_display_name} />
               <Detail labelKey="admin.ownerAccount" value={data.owner_phone} ltr />
               <Detail labelKey="admin.ownerPersonalPhone" value={data.owner_personal_phone} ltr />
+              <OwnerWhatsappButton phone={data.owner_phone} />
               <p className="text-xs text-ink-300">{t('admin.ownerPrivacyNote')}</p>
               {data.owner_has_verification_document ? (
                 <Button

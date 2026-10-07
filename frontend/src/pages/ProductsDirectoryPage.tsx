@@ -1,9 +1,10 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { Search, SlidersHorizontal, X } from 'lucide-react'
+import { LocateFixed, Search, SlidersHorizontal, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/Button'
+import { LocationCombobox } from '@/components/ui/LocationCombobox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 import { BusinessCardSkeleton } from '@/components/ui/Skeleton'
 import { ErrorState, NoSearchResults } from '@/components/ui/States'
@@ -12,6 +13,7 @@ import { ProductCard } from '@/features/items/ProductCard'
 import { PageBanner } from '@/components/layout/PageBanner'
 import { BrowseSwitcher } from '@/features/onboarding/BrowseSwitcher'
 import { originFromParams } from '@/features/onboarding/destinations'
+import { useNearestSort } from '@/features/directory/useNearestSort'
 import { useCategories, useLocationGroups } from '@/hooks/useTaxonomy'
 import { useT, type TranslationKey } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
@@ -32,6 +34,8 @@ const ALL = '__all__'
  */
 const SORT_KEYS: Record<ProductSortOption, TranslationKey> = {
   newest: 'directory.sortNewest',
+  nearest: 'directory.sortNearest',
+  rating: 'directory.sortRating',
   name: 'directory.sortName',
   oldest: 'directory.sortOldest',
   price_asc: 'products.sortPriceAsc',
@@ -61,8 +65,23 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
   const location = searchParams.get('location') ?? ''
   // Fixed by the page on the two origin pages; otherwise an optional filter.
   const origin = fixedOrigin ?? originFromParams(searchParams)
-  const sort = (searchParams.get('sort') as ProductSortOption | null) ?? 'newest'
+  const chosenSort = searchParams.get('sort') as ProductSortOption | null
   const page = Number(searchParams.get('page') ?? '1')
+  const setSort = useCallback(
+    (value: ProductSortOption) => {
+      const next = new URLSearchParams(searchParams)
+      next.set('sort', value)
+      next.delete('page')
+      setSearchParams(next)
+    },
+    [searchParams, setSearchParams],
+  )
+  const {
+    sort,
+    choose: chooseSort,
+    locating,
+    near,
+  } = useNearestSort<ProductSortOption>(chosenSort, setSort, 'newest')
 
   // Local mirror so typing feels instant; the URL updates on submit, which
   // keeps searches shareable and back/forward working.
@@ -91,7 +110,7 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
   const { groups } = useLocationGroups()
 
   const results = useQuery({
-    queryKey: queryKeys.products({ q, category, location, origin, sort, page }),
+    queryKey: queryKeys.products({ q, category, location, origin, sort, lat: near?.lat, lng: near?.lng, page }),
     queryFn: () =>
       publicItemApi.search({
         q: q || undefined,
@@ -99,6 +118,8 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
         location: location || undefined,
         origin,
         sort,
+        lat: near?.lat,
+        lng: near?.lng,
         page,
         page_size: 12,
       }),
@@ -122,7 +143,7 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
 
   // The page's own origin is not a filter anyone set, so it cannot be cleared.
   const hasFilters =
-    Boolean(q || category || location || (origin && !fixedOrigin)) || sort !== 'newest'
+    Boolean(q || category || location || (origin && !fixedOrigin)) || chosenSort !== null
   const resetFilters = () => setSearchParams(new URLSearchParams())
 
   return (
@@ -208,31 +229,19 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="filter-location">
+            <label className="mb-1.5 block text-sm font-semibold text-ink-700" htmlFor="filter-location">
               {t('directory.location')}
             </label>
-            <Select
-              value={location || ALL}
-              onValueChange={(value) => updateParams({ location: value === ALL ? '' : value })}
-            >
-              <SelectTrigger aria-labelledby="filter-location">
-                <SelectValue placeholder={t('directory.allLocations')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>{t('directory.allLocations')}</SelectItem>
-                {groups.map(({ district, towns }) => [
-                  <SelectItem key={district.id} value={district.slug}>
-                    {district.name_ar}
-                  </SelectItem>,
-                  ...towns.map((town) => (
-                    <SelectItem key={town.id} value={town.slug}>
-                      {'  '}
-                      {town.name_ar}
-                    </SelectItem>
-                  )),
-                ])}
-              </SelectContent>
-            </Select>
+            {/* Typed into, like the sellers' own picker, rather than scrolled. */}
+            <LocationCombobox
+              id="filter-location"
+              by="slug"
+              emptyLabel={t('directory.allLocations')}
+              value={location}
+              onChange={(value) => updateParams({ location: value })}
+              groups={groups}
+              placeholder={t('directory.allLocations')}
+            />
           </div>
 
           {/* Not on the origin pages, where the page itself is the choice. */}
@@ -261,7 +270,7 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
             <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="filter-sort">
               {t('directory.sort')}
             </label>
-            <Select value={sort} onValueChange={(value) => updateParams({ sort: value })}>
+            <Select value={sort} onValueChange={(value) => chooseSort(value as ProductSortOption)}>
               <SelectTrigger aria-labelledby="filter-sort">
                 <SelectValue />
               </SelectTrigger>
@@ -276,14 +285,26 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
           </div>
         </div>
 
-        {hasFilters ? (
-          <div className="mb-6">
+        <div className="mb-6 flex flex-wrap items-center gap-2">
+          {/* A button as well as an entry in the sort list, as the owners
+              asked: it is the one order a visitor would not think to look for. */}
+          <Button
+            variant={sort === 'nearest' ? 'primary' : 'outline'}
+            size="sm"
+            aria-pressed={sort === 'nearest'}
+            loading={locating}
+            onClick={() => chooseSort('nearest')}
+          >
+            <LocateFixed className="h-4 w-4" aria-hidden="true" />
+            {t('directory.sortNearest')}
+          </Button>
+          {hasFilters ? (
             <Button variant="ghost" size="sm" onClick={resetFilters}>
               <X className="h-4 w-4" aria-hidden="true" />
               {t('states.clearFilters')}
             </Button>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
 
         <div aria-live="polite" aria-busy={results.isFetching}>
           {results.isLoading ? (

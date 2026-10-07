@@ -8,6 +8,7 @@ import { openBusinessWizard } from './support/wizard'
 
 import { demoOwnerPhone, signIn } from './support/sign-in'
 import { ADMIN_EMAIL, ADMIN_PASSWORD } from './support/admin'
+import { dropPin } from './support/map'
 
 const here = dirname(fileURLToPath(import.meta.url))
 // Read rather than import: Playwright's ESM loader would require import
@@ -143,6 +144,8 @@ test.describe('MVP acceptance flow', () => {
     await expect(page.getByLabel(t('form.area'))).toBeVisible()
     await page.getByRole('combobox').first().click()
     await page.getByRole('option', { name: districtName, exact: true }).click()
+    // Every seller pins themselves on the map; a tap anywhere drops it.
+    await dropPin(page, t('form.mapPinLabel'))
     await page.getByLabel(t('form.address')).fill(fixture.address)
     await page.getByRole('button', { name: t('wizard.saveAndContinue') }).click()
 

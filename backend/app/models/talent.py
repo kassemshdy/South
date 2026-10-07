@@ -22,6 +22,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    Numeric,
     String,
     Text,
     UniqueConstraint,
@@ -98,6 +99,11 @@ class TalentProfile(Base, TimestampMixin):
     location_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("locations.id", ondelete="SET NULL"), nullable=True, index=True
     )
+    # Where the owner pinned themselves on the map -- public, shown on the
+    # profile page and used for nearest-first, as a business's pin is. A pin
+    # on the town is enough.
+    latitude: Mapped[float | None] = mapped_column(Numeric(9, 6), nullable=True)
+    longitude: Mapped[float | None] = mapped_column(Numeric(9, 6), nullable=True)
 
     # The name shown publicly, which need not be the account's display_name:
     # someone may work under a professional name.

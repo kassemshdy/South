@@ -112,6 +112,9 @@ class TalentDetailOut(TalentSummaryOut):
     # URL so the client composes the embed itself and never renders a string
     # the profile's owner typed — see app.core.urls.youtube_video_id.
     youtube_video_id: str | None = None
+    # The owner's own pin, published on the profile page's map.
+    latitude: float | None = None
+    longitude: float | None = None
     images: list[TalentImageOut] = Field(default_factory=list)
     approved_at: datetime | None = None
 
@@ -218,6 +221,10 @@ class TalentCreateIn(TalentProfileFieldsIn):
     website: str | None = Field(default=None, max_length=500)
     # A link, because that is what the person has; stored as an id.
     video_url: str | None = Field(default=None, max_length=500)
+    # Where they are on the map, as a business's pin is: public, and enough
+    # at the level of the town.
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
 
     @field_validator("display_name")
     @classmethod
@@ -256,6 +263,10 @@ class TalentUpdateIn(TalentProfileFieldsIn):
     website: str | None = Field(default=None, max_length=500)
     # A link, because that is what the person has; stored as an id.
     video_url: str | None = Field(default=None, max_length=500)
+    # Where they are on the map, as a business's pin is: public, and enough
+    # at the level of the town.
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
 
     @field_validator("phone", "whatsapp")
     @classmethod

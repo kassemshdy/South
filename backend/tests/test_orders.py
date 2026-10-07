@@ -51,6 +51,8 @@ def _make_business(
             "short_description": ar("business.generic_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     )
     assert created.status_code == 201, created.text
