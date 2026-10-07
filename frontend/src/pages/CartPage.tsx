@@ -10,12 +10,13 @@ import { Input, Textarea } from '@/components/ui/Input'
 import { EmptyState } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
 import { useCart } from '@/features/cart/CartContext'
+import { ContactSellerDialog } from '@/features/contact/ContactSellerDialog'
 import { useSeo } from '@/hooks/useSeo'
 import { useT } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { orderApi } from '@/services/api/endpoints'
 import { useServerFieldErrors } from '@/utils/serverFieldErrors'
-import { formatPrice, whatsappHref } from '@/utils/format'
+import { formatPrice, telHref, whatsappHref } from '@/utils/format'
 import type { Currency } from '@/types/api'
 
 /**
@@ -39,7 +40,10 @@ export function CartPage() {
   const [phone, setPhone] = useState('')
   const [note, setNote] = useState('')
   const { fieldErrors, showErrorsFrom, clearFieldErrors } = useServerFieldErrors()
-  const [sent, setSent] = useState<{ whatsapp: string | null } | null>(null)
+  const [sent, setSent] = useState<{ whatsapp: string | null; phone: string | null } | null>(
+    null,
+  )
+  const [contactOpen, setContactOpen] = useState(false)
 
   useSeo({ title: t('cart.title'), noIndex: true })
 
@@ -58,7 +62,11 @@ export function CartPage() {
         .map((line) => `• ${line.title} × ${line.quantity}`)
         .join('\n')
       const message = t('cart.whatsappMessage', { lines: summary })
-      setSent({ whatsapp: whatsappHref(cart?.whatsapp ?? null, message) })
+      setSent({
+        whatsapp: whatsappHref(cart?.whatsapp ?? null, message),
+        phone: telHref(cart?.phone ?? null),
+      })
+      setContactOpen(true)
       // Cleared only after the server accepted it, so a failed submission
       // never costs someone the list they built.
       clear()
@@ -95,6 +103,12 @@ export function CartPage() {
             </>
           ) : null}
         </div>
+        <ContactSellerDialog
+          open={contactOpen}
+          onOpenChange={setContactOpen}
+          whatsapp={sent.whatsapp}
+          phone={sent.phone}
+        />
       </div>
     )
   }

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { Field } from '@/components/ui/Field'
 import { Input, Textarea } from '@/components/ui/Input'
 import { useToast } from '@/components/ui/Toast'
+import { ContactSellerDialog } from '@/features/contact/ContactSellerDialog'
 import { useT } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { serviceRequestApi } from '@/services/api/endpoints'
@@ -32,13 +33,23 @@ import { useServerFieldErrors } from '@/utils/serverFieldErrors'
  * The success state stays on screen instead of resetting the form: a form
  * that simply emptied itself reads as a failure.
  */
-export function ServiceRequestForm({ slug }: { slug: string }) {
+export function ServiceRequestForm({
+  slug,
+  whatsappLink,
+  callLink,
+}: {
+  slug: string
+  /** Ready `wa.me` / `tel:` links, offered once the request is stored. */
+  whatsappLink: string | null
+  callLink: string | null
+}) {
   const t = useT()
   const toast = useToast()
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [details, setDetails] = useState('')
   const [sent, setSent] = useState(false)
+  const [contactOpen, setContactOpen] = useState(false)
   // The API answers a rejected request with a sentence per bad field; without
   // this the reader got only "check the fields below", which named none.
   const { fieldErrors, showErrorsFrom, clearFieldErrors } = useServerFieldErrors()
@@ -52,6 +63,7 @@ export function ServiceRequestForm({ slug }: { slug: string }) {
       }),
     onSuccess: (result) => {
       setSent(true)
+      setContactOpen(true)
       // The API's own sentence, in the reader's locale, rather than a
       // generic "thanks": it says who will be in touch.
       toast.success(t('serviceRequests.sent'), result.message)
@@ -72,6 +84,12 @@ export function ServiceRequestForm({ slug }: { slug: string }) {
         <p className="text-sm leading-relaxed text-olive-900">
           {t('serviceRequests.sent')} — {t('serviceRequests.sentHint')}
         </p>
+        <ContactSellerDialog
+          open={contactOpen}
+          onOpenChange={setContactOpen}
+          whatsapp={whatsappLink}
+          phone={callLink}
+        />
       </div>
     )
   }

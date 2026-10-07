@@ -386,7 +386,7 @@ export function TalentProfilePage() {
             {/* Beside the WhatsApp button, not instead of it: the message
                 gets a faster answer, the stored request is what survives the
                 answer not coming. */}
-            <ServiceRequestForm slug={slug} />
+            <ServiceRequestForm slug={slug} whatsappLink={whatsapp} callLink={phone} />
 
             <Button asChild variant="outline" block>
               <Link to={directoryPath(data?.kind)}>{t('common.back')}</Link>
