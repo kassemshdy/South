@@ -82,6 +82,12 @@ test.describe('Service requests', () => {
     await page.getByLabel(t('serviceRequests.detailsLabel')).fill(fixture.details)
     await page.getByRole('button', { name: t('serviceRequests.submit') }).click()
 
+    // The request is stored, then the direct line is offered on top of it.
+    const contact = page.getByRole('dialog', { name: t('contactSeller.title') })
+    await expect(contact).toBeVisible()
+    await expect(contact.getByRole('link', { name: t('business.whatsappCta') })).toBeVisible()
+    await page.keyboard.press('Escape')
+
     // Says what happened and stays said, because nothing else will say it.
     await expect(page.getByText(t('serviceRequests.sentHint'))).toBeVisible()
 
