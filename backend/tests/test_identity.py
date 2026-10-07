@@ -96,6 +96,8 @@ def test_identity_never_reaches_a_public_business_payload(
             "short_description": ar("business.manakish_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
             "whatsapp": "03960004",
         },
     ).json()
@@ -177,6 +179,8 @@ def test_the_account_photo_never_reaches_a_public_payload(
             "short_description": ar("business.manakish_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
             "whatsapp": "03960011",
         },
     ).json()
@@ -224,6 +228,8 @@ def test_admin_review_payload_carries_the_owner_photo(
             "name": ar("business.manakish"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     ).json()
 
@@ -245,6 +251,8 @@ def test_admin_review_payload_carries_the_owner_identity(
             "name": ar("business.manakish"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     ).json()
 
@@ -271,6 +279,8 @@ def test_owner_identity_is_null_when_nothing_was_provided(
             "name": ar("business.manakish"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     ).json()
 
@@ -297,6 +307,8 @@ def test_one_account_shares_one_identity_across_its_listings(
                 "name": ar(name_key),
                 "category_id": str(category.id),
                 "location_id": str(location.id),
+                "latitude": 33.27,
+                "longitude": 35.2,
             },
         )
         assert created.status_code == 201, created.text
@@ -330,6 +342,8 @@ def test_producer_detail_is_published_and_searchable(
             "short_description": ar("business.manakish_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
             "whatsapp": "03960008",
             "institution_name": ar("business.institution_name"),
             "founding_date": "1998-04-15",
@@ -377,6 +391,8 @@ def test_producer_detail_can_be_edited_after_creation(
             "name": ar("business.manakish"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     ).json()
 

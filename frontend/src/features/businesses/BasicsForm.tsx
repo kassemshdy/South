@@ -8,6 +8,8 @@ import { Input, Textarea } from '@/components/ui/Input'
 import { LocationCombobox } from '@/components/ui/LocationCombobox'
 import { PhonePublicToggle } from '@/components/ui/PhonePublicToggle'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
+import { MapPinField } from '@/features/map/MapPinField'
+import { pinOf } from '@/features/map/types'
 import { useCategories, useLocationGroups } from '@/hooks/useTaxonomy'
 import { useT } from '@/i18n'
 import { useApplyServerFieldErrors } from '@/utils/serverFieldErrors'
@@ -101,6 +103,7 @@ export function BasicsForm({
       email: business?.email ?? '',
       website: business?.website ?? '',
       location_id: business?.location?.id ?? '',
+      pin: pinOf(business?.latitude, business?.longitude),
     },
   })
 
@@ -128,7 +131,13 @@ export function BasicsForm({
       phone_public: values.phone_public,
       email: values.email || null,
       website: values.website || null,
-      ...(askLocation ? { location_id: values.location_id || null } : {}),
+      ...(askLocation
+        ? {
+            location_id: values.location_id || null,
+            latitude: values.pin?.lat ?? null,
+            longitude: values.pin?.lng ?? null,
+          }
+        : {}),
     })
   })
 
@@ -240,6 +249,16 @@ export function BasicsForm({
             />
           )}
         </Field>
+      ) : null}
+
+      {askLocation ? (
+        <Controller
+          control={control}
+          name="pin"
+          render={({ field }) => (
+            <MapPinField value={field.value ?? null} onChange={field.onChange} error={errors.pin?.message} />
+          )}
+        />
       ) : null}
 
       {isOtherCategory ? (

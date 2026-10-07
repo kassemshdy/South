@@ -22,6 +22,8 @@ import { YouTubePlayer } from '@/components/ui/YouTubePlayer'
 import { ShareButton } from '@/components/ui/ShareButton'
 import { AddToCartButton } from '@/features/cart/AddToCartButton'
 import { FavouriteButton } from '@/features/favourites/FavouriteButton'
+import { ListingMap } from '@/features/map/ListingMap'
+import { pinOf } from '@/features/map/types'
 import { TestimonialForm } from '@/features/testimonials/TestimonialForm'
 import { TestimonialList } from '@/features/testimonials/TestimonialList'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -397,6 +399,8 @@ export function BusinessProfilePage() {
                     {data.address_text}
                   </p>
                 ) : null}
+
+                <ListingMap pin={pinOf(data.latitude, data.longitude)} />
 
                 {mapsUrl ? (
                   <Button asChild variant="outline" block>

@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/Button'
 import { Field } from '@/components/ui/Field'
 import { Input, Textarea } from '@/components/ui/Input'
 import { LocationCombobox } from '@/components/ui/LocationCombobox'
+import { MapPinField } from '@/features/map/MapPinField'
+import { pinOf } from '@/features/map/types'
 import { useLocationGroups } from '@/hooks/useTaxonomy'
 import { useT } from '@/i18n'
 import { useApplyServerFieldErrors } from '@/utils/serverFieldErrors'
@@ -41,6 +43,7 @@ export function LocationForm({ business, submitLabel, pending, onSubmit, serverE
       location_id: business?.location?.id ?? '',
       address_text: business?.address_text ?? '',
       maps_url: business?.maps_url ?? '',
+      pin: pinOf(business?.latitude, business?.longitude),
     },
   })
 
@@ -51,6 +54,8 @@ export function LocationForm({ business, submitLabel, pending, onSubmit, serverE
       location_id: values.location_id || null,
       address_text: values.address_text || null,
       maps_url: values.maps_url || null,
+      latitude: values.pin?.lat ?? null,
+      longitude: values.pin?.lng ?? null,
     })
   })
 
@@ -80,6 +85,14 @@ export function LocationForm({ business, submitLabel, pending, onSubmit, serverE
           />
         )}
       </Field>
+
+      <Controller
+        control={control}
+        name="pin"
+        render={({ field }) => (
+          <MapPinField value={field.value} onChange={field.onChange} error={errors.pin?.message} />
+        )}
+      />
 
       <Field
         label={t('form.address')}

@@ -125,6 +125,8 @@ export interface TalentPayload {
   skill_specialty?: string | null
   preferred_contact?: ContactChannel | null
   location_id?: string | null
+  latitude?: number | null
+  longitude?: number | null
   phone?: string | null
   whatsapp?: string | null
   phone_public?: boolean

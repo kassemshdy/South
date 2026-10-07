@@ -394,6 +394,9 @@ export type ContactChannel = 'PHONE' | 'WHATSAPP' | 'EMAIL' | 'WEBSITE'
 
 export interface TalentDetail extends TalentSummary {
   bio: string | null
+  /** The owner's own pin on the map, as a business has. */
+  latitude: number | null
+  longitude: number | null
   /** Which contact detail the page leads with. Never narrows what is shown. */
   preferred_contact: ContactChannel | null
   email: string | null
@@ -545,7 +548,11 @@ export interface ApiErrorPayload {
   }
 }
 
-export type SortOption = 'newest' | 'name' | 'oldest'
+/**
+ * `nearest` orders by distance from the visitor, and needs `lat`/`lng` sent
+ * alongside it; without them the server falls back to newest.
+ */
+export type SortOption = 'newest' | 'name' | 'oldest' | 'nearest'
 
 /** The talent directory can also sort by years of experience, most first. */
 export type TalentSortOption = SortOption | 'experience'
@@ -568,6 +575,9 @@ export interface BusinessQuery {
   location?: string
   origin?: GoodsOrigin
   sort?: SortOption
+  /** The visitor's position, for `nearest` only. Never put in the page URL. */
+  lat?: number
+  lng?: number
   page?: number
   page_size?: number
 }
@@ -583,6 +593,9 @@ export interface TalentQuery {
   location?: string
   kind?: TalentKind
   sort?: TalentSortOption
+  /** The visitor's position, for `nearest` only. Never put in the page URL. */
+  lat?: number
+  lng?: number
   page?: number
   page_size?: number
 }

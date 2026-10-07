@@ -56,6 +56,8 @@ def business(
             "short_description": ar("business.sweets_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     )
     assert created.status_code == 201, created.text
@@ -350,6 +352,8 @@ def test_one_owner_cannot_reach_another_listings_testimonial(
             "short_description": ar("business.generic_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     ).json()
 

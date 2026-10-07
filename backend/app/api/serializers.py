@@ -314,6 +314,8 @@ def talent_detail(profile: TalentProfile) -> TalentDetailOut:
         website=profile.website,
         preferred_contact=profile.preferred_contact,
         youtube_video_id=profile.youtube_video_id,
+        latitude=float(profile.latitude) if profile.latitude is not None else None,
+        longitude=float(profile.longitude) if profile.longitude is not None else None,
         images=_talent_gallery(profile),
         approved_at=profile.approved_at,
         highest_degree=profile.highest_degree,

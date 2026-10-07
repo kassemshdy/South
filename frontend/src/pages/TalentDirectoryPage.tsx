@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { Search, SlidersHorizontal, X } from 'lucide-react'
+import { LocateFixed, Search, SlidersHorizontal, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { Navigate, useLocation, useSearchParams } from 'react-router-dom'
 
@@ -13,6 +13,7 @@ import { TalentCard } from '@/features/talent/TalentCard'
 import { useLocationGroups, useTalentSkills } from '@/hooks/useTaxonomy'
 import { PageBanner } from '@/components/layout/PageBanner'
 import { BrowseSwitcher } from '@/features/onboarding/BrowseSwitcher'
+import { useNearestSort } from '@/features/directory/useNearestSort'
 import { useT, type TranslationKey } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
 import { publicTalentApi } from '@/services/api/endpoints'
@@ -22,6 +23,7 @@ import type { PageCoverKey, TalentKind, TalentSortOption } from '@/types/api'
 const ALL = '__all__'
 const SORT_KEYS: Record<TalentSortOption, TranslationKey> = {
   newest: 'directory.sortNewest',
+  nearest: 'directory.sortNearest',
   experience: 'talent.sortExperience',
   name: 'talent.sortName',
   oldest: 'directory.sortOldest',
@@ -73,8 +75,23 @@ export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
   const q = searchParams.get('q') ?? ''
   const skill = searchParams.get('skill') ?? ''
   const location = searchParams.get('location') ?? ''
-  const sort = (searchParams.get('sort') as TalentSortOption | null) ?? 'newest'
+  const chosenSort = searchParams.get('sort') as TalentSortOption | null
   const page = Number(searchParams.get('page') ?? '1')
+  const setSort = useCallback(
+    (value: TalentSortOption) => {
+      const next = new URLSearchParams(searchParams)
+      next.set('sort', value)
+      next.delete('page')
+      setSearchParams(next)
+    },
+    [searchParams, setSearchParams],
+  )
+  const {
+    sort,
+    choose: chooseSort,
+    locating,
+    near,
+  } = useNearestSort<TalentSortOption>(chosenSort, setSort, 'newest')
 
   // Local mirror so typing feels instant; the URL updates on submit, which
   // keeps searches shareable and back/forward working.
@@ -94,7 +111,7 @@ export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
   const { groups } = useLocationGroups()
 
   const results = useQuery({
-    queryKey: queryKeys.talents({ q, skill, location, sort, page, kind }),
+    queryKey: queryKeys.talents({ q, skill, location, sort, lat: near?.lat, lng: near?.lng, page, kind }),
     queryFn: () =>
       publicTalentApi.search({
         kind,
@@ -102,6 +119,8 @@ export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
         skill: skill || undefined,
         location: location || undefined,
         sort,
+        lat: near?.lat,
+        lng: near?.lng,
         page,
         page_size: 12,
       }),
@@ -123,7 +142,7 @@ export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
     [searchParams, setSearchParams],
   )
 
-  const hasFilters = Boolean(q || skill || location) || sort !== 'newest'
+  const hasFilters = Boolean(q || skill || location) || chosenSort !== null
   const resetFilters = () => setSearchParams(new URLSearchParams())
 
   return (
@@ -222,7 +241,7 @@ export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
             <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="filter-sort">
               {t('directory.sort')}
             </label>
-            <Select value={sort} onValueChange={(value) => updateParams({ sort: value })}>
+            <Select value={sort} onValueChange={(value) => chooseSort(value as TalentSortOption)}>
               <SelectTrigger aria-labelledby="filter-sort">
                 <SelectValue />
               </SelectTrigger>
@@ -237,14 +256,26 @@ export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
           </div>
         </div>
 
-        {hasFilters ? (
-          <div className="mb-6">
+        <div className="mb-6 flex flex-wrap items-center gap-2">
+          {/* A button as well as an entry in the sort list, as the owners
+              asked: it is the one order a visitor would not think to look for. */}
+          <Button
+            variant={sort === 'nearest' ? 'primary' : 'outline'}
+            size="sm"
+            aria-pressed={sort === 'nearest'}
+            loading={locating}
+            onClick={() => chooseSort('nearest')}
+          >
+            <LocateFixed className="h-4 w-4" aria-hidden="true" />
+            {t('directory.sortNearest')}
+          </Button>
+          {hasFilters ? (
             <Button variant="ghost" size="sm" onClick={resetFilters}>
               <X className="h-4 w-4" aria-hidden="true" />
               {t('states.clearFilters')}
             </Button>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
 
         <div aria-live="polite" aria-busy={results.isFetching}>
           {results.isLoading ? (

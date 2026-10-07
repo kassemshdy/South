@@ -20,8 +20,9 @@ from app.models.enums import BusinessStatus, GoodsOrigin
 from app.models.taxonomy import Category, Location
 from app.models.user import User
 from app.repositories.base import BaseRepository
+from app.repositories.geo import Point, nearest_first
 
-SortOption = Literal["newest", "name", "oldest"]
+SortOption = Literal["newest", "name", "oldest", "nearest"]
 
 
 class BusinessRepository(BaseRepository[Business]):
@@ -130,8 +131,15 @@ class BusinessRepository(BaseRepository[Business]):
         return stmt
 
     def _apply_sort(
-        self, stmt: Select[tuple[Business]], sort: SortOption
+        self, stmt: Select[tuple[Business]], sort: SortOption, near: Point | None = None
     ) -> Select[tuple[Business]]:
+        # Nearest needs a position; without one it falls back to newest
+        # rather than failing, since the browser may have refused to share it.
+        if sort == "nearest" and near is not None:
+            return stmt.order_by(
+                nearest_first(Business.latitude, Business.longitude, near),
+                Business.created_at.desc(),
+            )
         if sort == "name":
             return stmt.order_by(Business.name.asc())
         if sort == "oldest":
@@ -146,6 +154,7 @@ class BusinessRepository(BaseRepository[Business]):
         location_slug: str | None = None,
         origin: GoodsOrigin | None = None,
         sort: SortOption = "newest",
+        near: Point | None = None,
         page: int = 1,
         page_size: int = 12,
     ) -> Page[Business]:
@@ -161,7 +170,7 @@ class BusinessRepository(BaseRepository[Business]):
             ).scalar_one()
         )
 
-        stmt = self._apply_sort(self._with_relations(filtered), sort)
+        stmt = self._apply_sort(self._with_relations(filtered), sort, near)
         rows = (
             self.db.execute(stmt.limit(page_size).offset((page - 1) * page_size))
             .unique()

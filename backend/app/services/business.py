@@ -171,6 +171,10 @@ class BusinessService:
             missing.append("business.field.logo")
         if not (business.phone or business.whatsapp):
             missing.append("business.field.contact")
+        # The owners made a pin compulsory for every seller; the town is
+        # enough. Checked against None: 0.0 is a coordinate.
+        if business.latitude is None or business.longitude is None:
+            missing.append("business.field.map_pin")
         if (
             business.category is not None
             and business.category.slug == "other"

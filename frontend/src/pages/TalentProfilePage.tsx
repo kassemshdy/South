@@ -24,6 +24,8 @@ import { useSeo } from '@/hooks/useSeo'
 import { useI18n, useT } from '@/i18n'
 import { EMPLOYMENT_TYPE_KEYS, PROFICIENCY_KEYS } from '@/features/talent/labels'
 import { FollowLinks } from '@/features/social/FollowLinks'
+import { ListingMap } from '@/features/map/ListingMap'
+import { googleMapsHref, pinOf } from '@/features/map/types'
 import { directoryPath } from '@/features/talent/kind'
 import { ServiceRequestForm } from '@/features/talent/ServiceRequestForm'
 import { publicTalentApi } from '@/services/api/endpoints'
@@ -84,6 +86,7 @@ export function TalentProfilePage() {
     t('talent.whatsappMessage', { name: data.display_name }),
   )
   const phone = telHref(data.phone)
+  const profilePin = pinOf(data.latitude, data.longitude)
   const skillLabel =
     data.skill?.slug === 'other' && data.custom_skill_text
       ? data.custom_skill_text
@@ -378,6 +381,17 @@ export function TalentProfilePage() {
                     </div>
                   )
                 })}
+
+                {/* The pin, and a way to get there from it. */}
+                <ListingMap pin={profilePin} />
+                {profilePin ? (
+                  <Button asChild variant="outline" block>
+                    <a href={googleMapsHref(profilePin)} target="_blank" rel="noopener noreferrer">
+                      <MapPin className="h-4 w-4" aria-hidden="true" />
+                      {t('business.locationCta')}
+                    </a>
+                  </Button>
+                ) : null}
               </CardBody>
             </Card>
 
