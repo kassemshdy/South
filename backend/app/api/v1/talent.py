@@ -23,6 +23,7 @@ from app.core.errors import NotFoundError
 from app.core.i18n import translate
 from app.core.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from app.models.enums import TalentKind, ViewSubject
+from app.repositories.geo import point_or_none
 from app.repositories.talent import TalentRepository
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.talent import (
@@ -52,7 +53,12 @@ def search_talent(
     kind: Annotated[
         TalentKind | None, Query(description="Services or job applications; both when absent")
     ] = None,
-    sort: Annotated[Literal["newest", "name", "oldest", "experience"], Query()] = "newest",
+    sort: Annotated[
+        Literal["newest", "name", "oldest", "experience", "nearest"], Query()
+    ] = "newest",
+    # The visitor's position, for "nearest" only -- see search_businesses.
+    near_lat: Annotated[float | None, Query(ge=-90, le=90, alias="lat")] = None,
+    near_lng: Annotated[float | None, Query(ge=-180, le=180, alias="lng")] = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
 ) -> PaginatedResponse[TalentSummaryOut]:
@@ -63,6 +69,7 @@ def search_talent(
         location_slug=location,
         kind=kind,
         sort=sort,
+        near=point_or_none(near_lat, near_lng),
         page=page,
         page_size=page_size,
     )

@@ -43,6 +43,8 @@ def business_with_item(
             "short_description": ar("business.sweets_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
             "whatsapp": "03970001",
         },
     ).json()
@@ -115,6 +117,8 @@ def test_fields_are_optional(client: TestClient, category: Category, location: L
             "name": ar("business.manakish"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     ).json()
     response = client.post(

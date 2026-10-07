@@ -47,6 +47,23 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(payload, ensure_ascii=False, default=str)
 
 
+class DropQueryString(logging.Filter):
+    """Logs uvicorn's access line with the path only, never the query.
+
+    A query string carries what a visitor typed into search and, for the
+    directories' nearest-first order, where they are standing. ``app.access``
+    already logs the path alone; uvicorn's own line printed the whole URL
+    beside it, so the same request left both in the deployment's logs.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        args = record.args
+        # uvicorn's access record: (client, method, full_path, http_version, status).
+        if isinstance(args, tuple) and len(args) >= 3 and isinstance(args[2], str):
+            record.args = (*args[:2], args[2].split("?", 1)[0], *args[3:])
+        return True
+
+
 def configure_logging(level: str = "INFO", *, json_output: bool = True) -> None:
     handler = logging.StreamHandler(sys.stdout)
     if json_output:
@@ -66,3 +83,6 @@ def configure_logging(level: str = "INFO", *, json_output: bool = True) -> None:
         logger = logging.getLogger(name)
         logger.handlers.clear()
         logger.propagate = True
+    access = logging.getLogger("uvicorn.access")
+    if not any(isinstance(existing, DropQueryString) for existing in access.filters):
+        access.addFilter(DropQueryString())

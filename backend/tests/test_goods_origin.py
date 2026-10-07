@@ -43,6 +43,8 @@ def _approved_business(
         "short_description": ar("business.sweets_short"),
         "category_id": str(category.id),
         "location_id": str(location.id),
+        "latitude": 33.27,
+        "longitude": 35.2,
     }
     if origin is not None:
         body["goods_origin"] = origin
@@ -184,6 +186,8 @@ def test_the_public_application_carries_it(
             "name": ar("business.applicant"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
             "goods_origin": "IMPORTED",
         },
     }

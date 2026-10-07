@@ -143,6 +143,8 @@ test.describe('MVP acceptance flow', () => {
     await expect(page.getByLabel(t('form.area'))).toBeVisible()
     await page.getByRole('combobox').first().click()
     await page.getByRole('option', { name: districtName, exact: true }).click()
+    // Every seller pins themselves on the map; a tap anywhere drops it.
+    await page.getByRole('region', { name: t('form.mapPinLabel') }).click()
     await page.getByLabel(t('form.address')).fill(fixture.address)
     await page.getByRole('button', { name: t('wizard.saveAndContinue') }).click()
 

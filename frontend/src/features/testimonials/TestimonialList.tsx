@@ -3,6 +3,7 @@ import { Quote } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { formatDate } from '@/utils/format'
 import type { Testimonial } from '@/types/api'
+import { Stars } from '@/features/testimonials/Stars'
 
 /**
  * The praise an owner chose to display.
@@ -15,11 +16,22 @@ import type { Testimonial } from '@/types/api'
  * be able to tell."* Removing that line turns an honest feature into a
  * misleading one, so it renders with the heading rather than as a footnote.
  *
- * There is deliberately no count anywhere near a listing card: a count of
- * owner-selected praise would rank listings by how diligently their owners
- * collected compliments, and create pressure to farm them.
+ * **The stars are the owners' decision, and inherit the same caveat.** They
+ * asked for a five-star rating and for the directory to sort by it. Only
+ * published testimonials count, so the average is the average of what this
+ * list shows -- selected, like the text -- and the disclaimer above it still
+ * applies to the number. Counting what the owner declined would put a figure
+ * here no visitor could check.
  */
-export function TestimonialList({ testimonials }: { testimonials: Testimonial[] }) {
+export function TestimonialList({
+  testimonials,
+  average,
+  count,
+}: {
+  testimonials: Testimonial[]
+  average: number | null
+  count: number
+}) {
   const { t, locale } = useI18n()
 
   return (
@@ -27,6 +39,17 @@ export function TestimonialList({ testimonials }: { testimonials: Testimonial[] 
       <h2 id="testimonials-heading" className="mb-1 text-xl">
         {t('testimonials.heading')}
       </h2>
+      {average !== null && count > 0 ? (
+        <p className="mb-1 flex items-center gap-2 text-sm font-semibold text-ink-700">
+          <Stars value={average} />
+          <span className="ltr-nums">
+            {t('testimonials.ratingSummary', {
+              average: average.toFixed(1),
+              count: String(count),
+            })}
+          </span>
+        </p>
+      ) : null}
       <p className="mb-3 text-xs text-ink-400">{t('testimonials.disclaimer')}</p>
 
       {testimonials.length === 0 ? (
@@ -40,7 +63,10 @@ export function TestimonialList({ testimonials }: { testimonials: Testimonial[] 
               key={entry.id}
               className="rounded-xl border border-ink-100 bg-white p-4 shadow-sm"
             >
-              <Quote className="h-4 w-4 text-clay-300" aria-hidden="true" />
+              <div className="flex items-center justify-between gap-2">
+                <Quote className="h-4 w-4 text-clay-300" aria-hidden="true" />
+                {entry.rating ? <Stars value={entry.rating} /> : null}
+              </div>
               <p className="mt-1.5 leading-relaxed text-ink-700">{entry.body}</p>
               <p className="mt-2 text-sm font-semibold text-ink-500">
                 {entry.author_name}

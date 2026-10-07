@@ -15,6 +15,7 @@ import { queryKeys } from '@/services/api/queryKeys'
 import type { AdminTestimonial, TestimonialStatus } from '@/types/api'
 import { cn } from '@/utils/cn'
 import { formatDate } from '@/utils/format'
+import { Stars } from '@/features/testimonials/Stars'
 
 type Filter = TestimonialStatus | 'ALL'
 
@@ -155,6 +156,7 @@ export function AdminTestimonialsPage() {
                     </Badge>
                   </div>
 
+                  {entry.rating ? <Stars value={entry.rating} /> : null}
                   <p className="whitespace-pre-line leading-relaxed text-ink-700" dir="auto">
                     {entry.body}
                   </p>

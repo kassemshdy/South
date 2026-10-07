@@ -22,6 +22,7 @@ from app.api.v1 import (
     talent,
     talent_images,
     taxonomy,
+    team,
     testimonials,
 )
 from app.api.v1.admin import applications as admin_applications
@@ -49,6 +50,7 @@ api_router.include_router(admin_taxonomy.router)
 api_router.include_router(admin_stats.router)
 api_router.include_router(admin_users.router)
 api_router.include_router(page_covers.admin_router)
+api_router.include_router(team.admin_router)
 api_router.include_router(pages.admin_router)
 api_router.include_router(site_settings.admin_router)
 api_router.include_router(testimonials.admin_router)
@@ -77,6 +79,7 @@ api_router.include_router(items.public_router)
 api_router.include_router(service_requests.public_router)
 api_router.include_router(talent.public_router)
 api_router.include_router(page_covers.public_router)
+api_router.include_router(team.public_router)
 api_router.include_router(pages.public_router)
 api_router.include_router(site_settings.public_router)
 

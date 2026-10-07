@@ -84,6 +84,8 @@ test.describe('Lean onboarding', () => {
     // --- Area ----------------------------------------------------------------
     await page.getByRole('combobox').first().click()
     await page.getByRole('option').nth(1).click()
+    // Every seller pins themselves on the map; a tap anywhere drops it.
+    await page.getByRole('region', { name: t('form.mapPinLabel') }).click()
     await page.getByRole('button', { name: t('wizard.saveAndContinue') }).click()
 
     // --- Logo, which completes the required set ------------------------------

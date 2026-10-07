@@ -29,6 +29,8 @@ def victim_business(client: TestClient, category: Category, location: Location) 
             "short_description": ar("business.generic_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
             "whatsapp": "03700001",
         },
     )
@@ -129,6 +131,8 @@ def test_item_ids_are_scoped_to_their_business(
                 "name": name,
                 "category_id": str(category.id),
                 "location_id": str(location.id),
+                "latitude": 33.27,
+                "longitude": 35.2,
             },
         )
         return response.json()["id"]

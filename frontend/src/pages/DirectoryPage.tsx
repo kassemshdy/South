@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { Search, SlidersHorizontal, X } from 'lucide-react'
+import { LocateFixed, Search, SlidersHorizontal, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
@@ -12,16 +12,19 @@ import { BusinessCard } from '@/features/businesses/BusinessCard'
 import { Pagination } from '@/features/businesses/Pagination'
 import { PageBanner } from '@/components/layout/PageBanner'
 import { BrowseSwitcher } from '@/features/onboarding/BrowseSwitcher'
+import { useNearestSort } from '@/features/directory/useNearestSort'
 import { useCategories, useLocationGroups } from '@/hooks/useTaxonomy'
 import { useT, type TranslationKey } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
 import { publicBusinessApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import type { SortOption } from '@/types/api'
+import type { BusinessSortOption } from '@/types/api'
 
 const ALL = '__all__'
-const SORT_KEYS: Record<SortOption, TranslationKey> = {
+const SORT_KEYS: Record<BusinessSortOption, TranslationKey> = {
   newest: 'directory.sortNewest',
+  nearest: 'directory.sortNearest',
+  rating: 'directory.sortRating',
   name: 'directory.sortName',
   oldest: 'directory.sortOldest',
 }
@@ -32,8 +35,23 @@ export function DirectoryPage() {
   const q = searchParams.get('q') ?? ''
   const category = searchParams.get('category') ?? ''
   const location = searchParams.get('location') ?? ''
-  const sort = (searchParams.get('sort') as SortOption | null) ?? 'newest'
+  const chosenSort = searchParams.get('sort') as BusinessSortOption | null
   const page = Number(searchParams.get('page') ?? '1')
+  const setSort = useCallback(
+    (value: BusinessSortOption) => {
+      const next = new URLSearchParams(searchParams)
+      next.set('sort', value)
+      next.delete('page')
+      setSearchParams(next)
+    },
+    [searchParams, setSearchParams],
+  )
+  const {
+    sort,
+    choose: chooseSort,
+    locating,
+    near,
+  } = useNearestSort<BusinessSortOption>(chosenSort, setSort, 'newest')
 
   // Local mirror so typing feels instant; the URL updates on submit, which
   // keeps searches shareable and back/forward working.
@@ -53,13 +71,15 @@ export function DirectoryPage() {
   const { groups } = useLocationGroups()
 
   const results = useQuery({
-    queryKey: queryKeys.businesses({ q, category, location, sort, page }),
+    queryKey: queryKeys.businesses({ q, category, location, sort, lat: near?.lat, lng: near?.lng, page }),
     queryFn: () =>
       publicBusinessApi.search({
         q: q || undefined,
         category: category || undefined,
         location: location || undefined,
         sort,
+        lat: near?.lat,
+        lng: near?.lng,
         page,
         page_size: 12,
       }),
@@ -81,7 +101,7 @@ export function DirectoryPage() {
     [searchParams, setSearchParams],
   )
 
-  const hasFilters = Boolean(q || category || location) || sort !== 'newest'
+  const hasFilters = Boolean(q || category || location) || chosenSort !== null
   const resetFilters = () => setSearchParams(new URLSearchParams())
 
   return (
@@ -183,12 +203,12 @@ export function DirectoryPage() {
             <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="filter-sort">
               {t('directory.sort')}
             </label>
-            <Select value={sort} onValueChange={(value) => updateParams({ sort: value })}>
+            <Select value={sort} onValueChange={(value) => chooseSort(value as BusinessSortOption)}>
               <SelectTrigger aria-labelledby="filter-sort">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {(Object.keys(SORT_KEYS) as SortOption[]).map((option) => (
+                {(Object.keys(SORT_KEYS) as BusinessSortOption[]).map((option) => (
                   <SelectItem key={option} value={option}>
                     {t(SORT_KEYS[option])}
                   </SelectItem>
@@ -198,14 +218,26 @@ export function DirectoryPage() {
           </div>
         </div>
 
-        {hasFilters ? (
-          <div className="mb-6">
+        <div className="mb-6 flex flex-wrap items-center gap-2">
+          {/* A button as well as an entry in the sort list, as the owners
+              asked: it is the one order a visitor would not think to look for. */}
+          <Button
+            variant={sort === 'nearest' ? 'primary' : 'outline'}
+            size="sm"
+            aria-pressed={sort === 'nearest'}
+            loading={locating}
+            onClick={() => chooseSort('nearest')}
+          >
+            <LocateFixed className="h-4 w-4" aria-hidden="true" />
+            {t('directory.sortNearest')}
+          </Button>
+          {hasFilters ? (
             <Button variant="ghost" size="sm" onClick={resetFilters}>
               <X className="h-4 w-4" aria-hidden="true" />
               {t('states.clearFilters')}
             </Button>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
 
         <div aria-live="polite" aria-busy={results.isFetching}>
           {results.isLoading ? (

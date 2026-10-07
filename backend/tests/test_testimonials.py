@@ -56,6 +56,8 @@ def business(
             "short_description": ar("business.sweets_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     )
     assert created.status_code == 201, created.text
@@ -162,7 +164,9 @@ def test_an_approved_testimonial_appears_on_the_public_profile(
         ar("testimonial.author")
     ]
     # A visitor gets the text and nothing about moderation.
-    assert set(profile["testimonials"][0]) == {"id", "author_name", "body", "created_at"}
+    assert set(profile["testimonials"][0]) == {
+        "id", "author_name", "body", "rating", "created_at"
+    }
 
 
 def test_hiding_removes_it_from_the_public_profile_without_deleting_it(
@@ -350,6 +354,8 @@ def test_one_owner_cannot_reach_another_listings_testimonial(
             "short_description": ar("business.generic_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     ).json()
 
@@ -665,3 +671,127 @@ def test_the_platform_gate_is_admin_only(
 
     assert cleared.status_code == 403
     assert rejected.status_code == 403
+
+
+# --- Stars -------------------------------------------------------------------
+
+
+def _publish(
+    client: TestClient,
+    business: Business,
+    owner_headers: dict[str, str],
+    *,
+    rating: int | None,
+    ip: str,
+) -> str:
+    """Submit, clear and approve one testimonial; return its id."""
+    response = client.post(
+        f"/api/businesses/{business.slug}/testimonials",
+        json={
+            "author_name": ar("testimonial.author"),
+            "body": ar("testimonial.body"),
+            "rating": rating,
+        },
+        headers={"X-Forwarded-For": ip},
+    )
+    assert response.status_code == 201, response.text
+    _clear_all(client)
+    waiting = [
+        entry
+        for entry in client.get(
+            f"/api/businesses/{business.id}/testimonials", headers=owner_headers
+        ).json()
+        if entry["status"] == "PENDING_OWNER"
+    ]
+    assert len(waiting) == 1
+    approved = client.post(
+        f"/api/businesses/{business.id}/testimonials/{waiting[0]['id']}/approve",
+        headers=owner_headers,
+    )
+    assert approved.status_code == 200, approved.text
+    testimonial_id: str = waiting[0]["id"]
+    return testimonial_id
+
+
+def test_stars_count_only_once_published_and_only_while_published(
+    client: TestClient,
+    business: Business,
+    admin: User,
+    owner_headers: dict[str, str],
+) -> None:
+    """The average is the average of what the page shows -- nothing waiting
+    on a gate, nothing the owner has taken down."""
+    def summary() -> tuple[float | None, int]:
+        page = client.get(f"/api/businesses/{business.slug}").json()
+        return page["rating_average"], page["rating_count"]
+
+    # Waiting on the platform: not counted.
+    client.post(
+        f"/api/businesses/{business.slug}/testimonials",
+        json={"author_name": ar("testimonial.author"), "body": ar("testimonial.body"), "rating": 1},
+        headers={"X-Forwarded-For": "10.0.1.1"},
+    )
+    assert summary() == (None, 0)
+    reject = client.get(
+        "/api/admin/testimonials", params={"status": "PENDING_REVIEW"}, headers=admin_headers(client)
+    ).json()[0]
+    client.post(f"/api/admin/testimonials/{reject['id']}/reject", headers=admin_headers(client))
+
+    five = _publish(client, business, owner_headers, rating=5, ip="10.0.1.2")
+    _publish(client, business, owner_headers, rating=4, ip="10.0.1.3")
+    # Text without stars is published but leaves the average alone.
+    _publish(client, business, owner_headers, rating=None, ip="10.0.1.4")
+    assert summary() == (4.5, 2)
+
+    hidden = client.post(
+        f"/api/businesses/{business.id}/testimonials/{five}/hide", headers=owner_headers
+    )
+    assert hidden.status_code == 200, hidden.text
+    assert summary() == (4.0, 1)
+
+
+def test_a_rating_outside_one_to_five_is_refused(client: TestClient, business: Business) -> None:
+    for rating in (0, 6):
+        response = client.post(
+            f"/api/businesses/{business.slug}/testimonials",
+            json={
+                "author_name": ar("testimonial.author"),
+                "body": ar("testimonial.body"),
+                "rating": rating,
+            },
+        )
+        assert response.status_code == 422, response.text
+
+
+def test_sorting_by_rating_puts_rated_listings_first(
+    client: TestClient,
+    db: Session,
+    business: Business,
+    admin: User,
+    owner_headers: dict[str, str],
+    category: Category,
+    location: Location,
+) -> None:
+    """The owners' order: rated listings, best first, then the unrated."""
+    other = client.post(
+        "/api/businesses",
+        headers=sign_in(client, OTHER_PHONE),
+        json={
+            "name": ar("business.second_shop"),
+            "short_description": ar("business.generic_short"),
+            "category_id": str(category.id),
+            "location_id": str(location.id),
+        },
+    ).json()
+    record = db.get(Business, other["id"])
+    assert record is not None
+    record.status = BusinessStatus.APPROVED
+    db.commit()
+
+    # The unrated one is newer, so it would lead an ordinary listing.
+    assert client.get("/api/businesses").json()["items"][0]["name"] == ar("business.second_shop")
+
+    _publish(client, business, owner_headers, rating=3, ip="10.0.2.1")
+    names = [row["name"] for row in client.get("/api/businesses?sort=rating").json()["items"]]
+    assert names == [ar("business.sweets_shop"), ar("business.second_shop")]
+    assert client.get("/api/items?sort=rating").status_code == 200

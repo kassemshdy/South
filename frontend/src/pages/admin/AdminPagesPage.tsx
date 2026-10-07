@@ -10,6 +10,7 @@ import { Input, Textarea } from '@/components/ui/Input'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
+import { TeamEditor } from '@/features/about/TeamEditor'
 import { useI18n, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { adminApi } from '@/services/api/endpoints'
@@ -87,6 +88,9 @@ export function AdminPagesPage() {
       ) : (
         pages.data?.map((page) => <PageForm key={page.key} page={page} />)
       )}
+
+      {/* The about page's team section lives with the about page's text. */}
+      <TeamEditor />
     </div>
   )
 }

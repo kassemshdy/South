@@ -69,6 +69,8 @@ def approved_business(
             "short_description": ar("business.manakish_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     )
     assert created.status_code == 201, created.text
@@ -171,6 +173,8 @@ def test_a_talent_profile_view_is_counted_and_the_owner_excluded(
             "display_name": ar("talent.designer"),
             "skill_id": str(skill.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     ).json()
     profile = db.get(TalentProfile, created["id"])

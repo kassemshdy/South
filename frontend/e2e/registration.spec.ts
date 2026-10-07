@@ -100,6 +100,8 @@ test.describe('Applying for a listing', () => {
     // The area is asked for here now, and required.
     await page.getByLabel(t('form.area')).click()
     await page.getByRole('option').nth(1).click()
+    // Every seller pins themselves on the map; a tap anywhere drops it.
+    await page.getByRole('region', { name: t('form.mapPinLabel') }).click()
     await page.getByRole('button', { name: t('register.submit') }).click()
 
     await expect(page.getByRole('heading', { name: t('register.doneTitle') })).toBeVisible()

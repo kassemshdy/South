@@ -68,6 +68,8 @@ test.describe('"Other" business category', () => {
     await expect(page.getByLabel(t('form.area'))).toBeVisible()
     await page.getByRole('combobox').first().click()
     await page.getByRole('option', { name: districtName, exact: true }).click()
+    // Every seller pins themselves on the map; a tap anywhere drops it.
+    await page.getByRole('region', { name: t('form.mapPinLabel') }).click()
     await page.getByRole('button', { name: t('wizard.saveAndContinue') }).click()
 
     // The dashboard card shows the owner's own words, not the literal "Other".

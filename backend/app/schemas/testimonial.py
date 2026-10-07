@@ -12,14 +12,15 @@ from app.schemas.common import ORMModel
 class TestimonialSubmitIn(BaseModel):
     """What a visitor may send.
 
-    No contact details and no rating. A contact field would make this a lead
-    form for the sender rather than praise for the listing, and a rating
-    would turn owner-selected text into a score -- which is the review system
-    this deliberately is not.
+    No contact details: a contact field would make this a lead form for the
+    sender rather than praise for the listing. The optional star rating is
+    the owners' decision; what it adds up to is still owner-selected, since
+    only published testimonials count -- see TestimonialService.
     """
 
     author_name: str = Field(min_length=2, max_length=80)
     body: str = Field(min_length=10, max_length=1000)
+    rating: int | None = Field(default=None, ge=1, le=5)
 
 
 class TestimonialOut(ORMModel):
@@ -29,6 +30,7 @@ class TestimonialOut(ORMModel):
     id: uuid.UUID
     author_name: str
     body: str
+    rating: int | None = None
     created_at: datetime
 
 

@@ -294,6 +294,18 @@ for something that hands out sessions.
   *published* phone number is public and deliberately survives — `tests/
   test_observability.py` pins that distinction, so widen `SENSITIVE_KEYS` rather than
   loosening the scrub.
+- **A visitor's position is used for one request and kept nowhere.** The
+  directories' nearest-first order sends `lat`/`lng` rounded to about a
+  kilometre, from session storage, never in the page URL; the browser is
+  asked only when someone chooses «الأقرب إليّ». Query strings are dropped
+  from uvicorn's access line (`DropQueryString` in `app/core/logging.py`)
+  so neither a position nor a search term reaches the deployment logs —
+  `tests/test_map_pin.py` pins it.
+- **Deleting an account deletes its files too.** `AccountDeletionService`
+  removes the rows in one transaction and then every file they pointed at,
+  private documents included; a new upload type that belongs to an account
+  must be added to `_files_of`, or it outlives the person who asked for it
+  to be gone. Administrators cannot delete themselves this way.
 
 ## Error Tracking
 
@@ -391,6 +403,20 @@ contains a private screen; strict masking is what makes that survive a
 mistake, including on the one screen a signed-out visitor types into — the
 public application form, where they enter the phone number that becomes their
 login.
+
+## Maps and Stars
+
+- **Maps are OpenStreetMap through Leaflet** — free, no key, no account,
+  which is what the owners chose over Google's paid maps. Leaflet is its own
+  chunk, fetched only by pages that draw a map (`features/map/MapView.tsx`),
+  and the listing pages link to Google Maps for directions, which is free.
+  Every seller must pin themselves (the town is enough): the pin is part of
+  readiness and of both public applications.
+- **Stars count only published testimonials.** A testimonial is owner-
+  selected praise (see the model's docstring), so the average shown is the
+  average of what the page shows, under the same disclaimer. Counting what
+  an owner declined would put a number on the page nobody could check;
+  counting it instead would be a product decision for the owners, not a fix.
 
 ## Deploy Gotchas (learned the hard way)
 

@@ -43,6 +43,7 @@ from app.models.talent import (
     TalentSocialLink,
 )
 from app.models.taxonomy import Category, Location
+from app.models.team import TeamMember
 from app.models.testimonial import Testimonial
 from app.models.user import User
 from app.models.verification import OwnerVerificationDocument
@@ -87,6 +88,7 @@ __all__ = [
     "TalentProfile",
     "TalentSkill",
     "TalentSocialLink",
+    "TeamMember",
     "Testimonial",
     "TestimonialStatus",
     "User",

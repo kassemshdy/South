@@ -117,6 +117,10 @@ def business_summary(business: Business) -> BusinessSummaryOut:
         category=category_out(business.category),
         custom_category_text=business.custom_category_text,
         location=location_out(business.location),
+        rating_average=(
+            float(business.rating_average) if business.rating_average is not None else None
+        ),
+        rating_count=business.rating_count,
         goods_origin=business.goods_origin,
         created_at=business.created_at,
     )
@@ -314,6 +318,8 @@ def talent_detail(profile: TalentProfile) -> TalentDetailOut:
         website=profile.website,
         preferred_contact=profile.preferred_contact,
         youtube_video_id=profile.youtube_video_id,
+        latitude=float(profile.latitude) if profile.latitude is not None else None,
+        longitude=float(profile.longitude) if profile.longitude is not None else None,
         images=_talent_gallery(profile),
         approved_at=profile.approved_at,
         highest_degree=profile.highest_degree,

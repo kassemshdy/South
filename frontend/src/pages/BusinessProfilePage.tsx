@@ -22,6 +22,8 @@ import { YouTubePlayer } from '@/components/ui/YouTubePlayer'
 import { ShareButton } from '@/components/ui/ShareButton'
 import { AddToCartButton } from '@/features/cart/AddToCartButton'
 import { FavouriteButton } from '@/features/favourites/FavouriteButton'
+import { ListingMap } from '@/features/map/ListingMap'
+import { pinOf } from '@/features/map/types'
 import { TestimonialForm } from '@/features/testimonials/TestimonialForm'
 import { TestimonialList } from '@/features/testimonials/TestimonialList'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -361,7 +363,11 @@ export function BusinessProfilePage() {
                 the form is the point, and hiding the whole block when a
                 listing has no testimonials yet would mean the first person
                 who wanted to leave one had nowhere to do it. */}
-            <TestimonialList testimonials={data.testimonials} />
+            <TestimonialList
+              testimonials={data.testimonials}
+              average={data.rating_average}
+              count={data.rating_count}
+            />
             <TestimonialForm slug={data.slug} />
           </div>
 
@@ -397,6 +403,8 @@ export function BusinessProfilePage() {
                     {data.address_text}
                   </p>
                 ) : null}
+
+                <ListingMap pin={pinOf(data.latitude, data.longitude)} />
 
                 {mapsUrl ? (
                   <Button asChild variant="outline" block>

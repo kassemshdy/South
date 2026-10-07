@@ -91,12 +91,14 @@ class BusinessRegistrationIn(RegistrationBase):
     business: BusinessCreateIn
 
     @model_validator(mode="after")
-    def _location(self) -> BusinessRegistrationIn:
+    def _place(self) -> BusinessRegistrationIn:
         # Optional on a dashboard draft, where it has a step of its own, but
         # an application goes straight to review and "from the South" cannot
         # be judged without it.
         if self.business.location_id is None:
             raise ValueError(translate("registration.location_required"))
+        if self.business.latitude is None or self.business.longitude is None:
+            raise ValueError(translate("registration.map_pin_required"))
         return self
 
 
@@ -116,6 +118,8 @@ class TalentRegistrationIn(RegistrationBase):
             raise ValueError(translate("registration.talent_kind_required"))
         if self.talent.location_id is None:
             raise ValueError(translate("registration.location_required"))
+        if self.talent.latitude is None or self.talent.longitude is None:
+            raise ValueError(translate("registration.map_pin_required"))
         return self
 
 

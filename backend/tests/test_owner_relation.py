@@ -38,6 +38,8 @@ def _create_business(
             "short_description": ar("business.manakish_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
             "whatsapp": "03960101",
             "years_of_experience": 12,
             "owner_relation": "MANAGER",
@@ -123,6 +125,8 @@ def test_owner_relation_is_optional(
             "name": ar("business.manakish"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     )
     assert created.status_code == 201, created.text
@@ -140,6 +144,8 @@ def test_an_unrecognised_relation_is_rejected(
             "name": ar("business.manakish"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
             "owner_relation": "FOUNDER",
         },
     )

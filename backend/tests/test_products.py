@@ -37,6 +37,8 @@ def draft_business_with_item(client: TestClient, category: Category, location: L
             "short_description": ar("business.manakish_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     ).json()
     client.post(
@@ -76,6 +78,8 @@ def approved_business_with_items(
             "short_description": ar("business.sweets_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
             "whatsapp": "03950002",
         },
     ).json()
@@ -157,6 +161,8 @@ def test_two_items_with_the_same_title_get_distinct_slugs(
             "short_description": ar("business.generic_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     ).json()
     second_business = client.post(
@@ -167,6 +173,8 @@ def test_two_items_with_the_same_title_get_distinct_slugs(
             "short_description": ar("business.generic_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     ).json()
 
@@ -257,6 +265,8 @@ def priced_catalogue(client: TestClient, db: Session, category: Category, locati
             "short_description": ar("business.manakish_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     ).json()
 

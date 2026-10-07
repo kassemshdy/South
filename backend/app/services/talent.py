@@ -66,6 +66,8 @@ class TalentService:
             skill_specialty=payload.skill_specialty,
             preferred_contact=payload.preferred_contact,
             location_id=payload.location_id,
+            latitude=payload.latitude,
+            longitude=payload.longitude,
             phone=payload.phone,
             whatsapp=payload.whatsapp,
             phone_public=payload.phone_public is not False,
@@ -173,6 +175,10 @@ class TalentService:
         # just starting out -- and the owners made the question compulsory.
         if profile.years_experience is None:
             missing.append("talent.field.years_experience")
+        # The owners made a pin compulsory for every seller; the town is
+        # enough. Checked against None: 0.0 is a coordinate.
+        if profile.latitude is None or profile.longitude is None:
+            missing.append("talent.field.map_pin")
         if not profile.photo_url:
             missing.append("talent.field.photo")
         if not (profile.phone or profile.whatsapp):
