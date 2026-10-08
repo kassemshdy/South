@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ADMIN_EMAIL, ADMIN_PASSWORD } from './support/admin'
+import { dropPin } from './support/map'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
@@ -101,7 +102,7 @@ test.describe('Applying for a listing', () => {
     await page.getByLabel(t('form.area')).click()
     await page.getByRole('option').nth(1).click()
     // Every seller pins themselves on the map; a tap anywhere drops it.
-    await page.getByRole('region', { name: t('form.mapPinLabel') }).click()
+    await dropPin(page, t('form.mapPinLabel'))
     await page.getByRole('button', { name: t('register.submit') }).click()
 
     await expect(page.getByRole('heading', { name: t('register.doneTitle') })).toBeVisible()

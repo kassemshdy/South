@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { openBusinessWizard } from './support/wizard'
 
 import { demoOwnerPhone, signIn } from './support/sign-in'
+import { dropPin } from './support/map'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
@@ -69,7 +70,7 @@ test.describe('"Other" business category', () => {
     await page.getByRole('combobox').first().click()
     await page.getByRole('option', { name: districtName, exact: true }).click()
     // Every seller pins themselves on the map; a tap anywhere drops it.
-    await page.getByRole('region', { name: t('form.mapPinLabel') }).click()
+    await dropPin(page, t('form.mapPinLabel'))
     await page.getByRole('button', { name: t('wizard.saveAndContinue') }).click()
 
     // The dashboard card shows the owner's own words, not the literal "Other".

@@ -8,6 +8,7 @@ import { openBusinessWizard } from './support/wizard'
 
 import { demoOwnerPhone, signIn } from './support/sign-in'
 import { ADMIN_EMAIL, ADMIN_PASSWORD } from './support/admin'
+import { dropPin } from './support/map'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
@@ -83,7 +84,7 @@ test.describe('Products directory', () => {
     await page.getByRole('combobox').first().click()
     await page.getByRole('option', { name: districtName, exact: true }).click()
     // Every seller pins themselves on the map; a tap anywhere drops it.
-    await page.getByRole('region', { name: t('form.mapPinLabel') }).click()
+    await dropPin(page, t('form.mapPinLabel'))
     await page.getByLabel(t('form.address')).fill(fixture.address)
     await page.getByRole('button', { name: t('wizard.saveAndContinue') }).click()
 
