@@ -47,6 +47,7 @@ def _create_profile(
     location: Location,
     *,
     display_name: str | None = None,
+    work_mode: str | None = "BOTH",
 ) -> dict:
     response = client.post(
         "/api/talent",
@@ -60,6 +61,7 @@ def _create_profile(
             "longitude": 35.2,
             "whatsapp": "03950101",
             "years_experience": 7,
+            "work_mode": work_mode,
         },
     )
     assert response.status_code == 201, response.text
@@ -284,6 +286,7 @@ def test_submission_lists_what_is_still_missing(
         "talent.field.years_experience",
         "talent.field.photo",
         "talent.field.contact",
+        "talent.field.work_mode",
     }
 
     submitted = client.post("/api/my/talent/submit", headers=headers)
@@ -448,6 +451,7 @@ IDENTITY_FIELDS = (
     "marital_status",
     "registration_place",
     "residence_place",
+    "pre_displacement_place",
 )
 
 DETAIL_PAYLOAD = {
@@ -743,6 +747,60 @@ def test_each_directory_lists_only_its_own_kind(
     assert slugs("JOB_SEEKER") == {seeker["slug"]}
     # No kind: both, as the one directory always listed.
     assert slugs(None) == {service["slug"], seeker["slug"]}
+
+
+def test_a_service_must_say_how_it_is_delivered_and_a_job_application_need_not(
+    client: TestClient, skill: TalentSkill, location: Location
+) -> None:
+    """The owners made remote / in person / both compulsory for a service."""
+    headers = sign_in(client, "03950124")
+    _create_profile(client, headers, skill, location, work_mode=None)
+    readiness = client.get("/api/my/talent/readiness", headers=headers).json()
+    assert "talent.field.work_mode" in readiness
+
+    client.put("/api/my/talent", headers=headers, json={"kind": "JOB_SEEKER"})
+    readiness = client.get("/api/my/talent/readiness", headers=headers).json()
+    assert "talent.field.work_mode" not in readiness
+
+
+def test_the_old_remote_flag_follows_the_work_mode(
+    client: TestClient, skill: TalentSkill, location: Location
+) -> None:
+    headers = sign_in(client, "03950125")
+    created = _create_profile(client, headers, skill, location, work_mode="REMOTE")
+    assert created["remote_capable"] is True
+
+    changed = client.put("/api/my/talent", headers=headers, json={"work_mode": "ON_SITE"})
+    assert changed.status_code == 200, changed.text
+    assert changed.json()["work_mode"] == "ON_SITE"
+    assert changed.json()["remote_capable"] is False
+
+
+def test_the_work_mode_filter_counts_both_as_either(
+    client: TestClient, db: Session, admin: User, skill: TalentSkill, location: Location
+) -> None:
+    """Someone who works both ways answers a visitor asking for either."""
+    created = {
+        mode: _create_profile(
+            client,
+            sign_in(client, phone),
+            skill,
+            location,
+            display_name=f"{ar('talent.designer')} {mode}",
+            work_mode=mode,
+        )
+        for mode, phone in (("REMOTE", "03950126"), ("ON_SITE", "03950127"), ("BOTH", "03950128"))
+    }
+    for profile in created.values():
+        _approve(client, db, admin, profile["id"])
+
+    def slugs(mode: str | None) -> set[str]:
+        params = {"work_mode": mode} if mode else {}
+        return {row["slug"] for row in client.get("/api/talent", params=params).json()["items"]}
+
+    assert slugs("REMOTE") == {created["REMOTE"]["slug"], created["BOTH"]["slug"]}
+    assert slugs("ON_SITE") == {created["ON_SITE"]["slug"], created["BOTH"]["slug"]}
+    assert slugs(None) == {profile["slug"] for profile in created.values()}
 
 
 def test_the_sitemap_lists_both_directories(client: TestClient) -> None:

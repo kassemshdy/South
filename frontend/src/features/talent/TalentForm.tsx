@@ -19,7 +19,7 @@ import type { ContactChannel, OwnerTalent, SocialPlatform, TalentKind } from '@/
 import { PLATFORM_KEYS } from '@/utils/format'
 import { talentSchema, type TalentValues } from '@/utils/validation'
 
-import { LANGUAGE_PROFICIENCIES, PROFICIENCY_KEYS } from './labels'
+import { LANGUAGE_PROFICIENCIES, PROFICIENCY_KEYS, WORK_MODE_KEYS, WORK_MODES } from './labels'
 
 interface TalentFormProps {
   profile?: OwnerTalent | undefined
@@ -140,6 +140,7 @@ export function TalentForm({
       hobbies: profile?.hobbies ?? '',
       employment_type: profile?.employment_type ?? '',
       remote_capable: profile?.remote_capable ?? false,
+      work_mode: profile?.work_mode ?? '',
       languages:
         profile?.languages?.map((language) => ({
           name: language.name,
@@ -155,6 +156,7 @@ export function TalentForm({
   } = useFieldArray({ control, name: 'languages' })
 
   const skillId = useWatch({ control, name: 'skill_id' })
+  const kind = useWatch({ control, name: 'kind' })
   const isOtherSkill = Boolean(otherSkillId) && skillId === otherSkillId
 
   useApplyServerFieldErrors(serverError, setError, getValues)
@@ -191,6 +193,8 @@ export function TalentForm({
       hobbies: values.hobbies || null,
       employment_type: (values.employment_type || null) as TalentPayload['employment_type'],
       remote_capable: values.remote_capable,
+      // Only a service is asked; a job application keeps the checkbox below.
+      work_mode: values.kind === 'SERVICE' ? values.work_mode || null : null,
       // Always sent, even when empty: an omitted key means "leave as-is",
       // so clearing the last language has to be an explicit empty list.
       languages: (values.languages ?? []).map((language) => ({
@@ -235,6 +239,40 @@ export function TalentForm({
           </p>
         ) : null}
       </fieldset>
+
+      {/* Right after the kind, because only a service is asked, and because
+          it is what visitors to the services directory filter on. */}
+      {kind === 'SERVICE' ? (
+        <fieldset aria-describedby={errors.work_mode ? 'talent-work-mode-error' : undefined}>
+          <legend className="mb-2 text-sm font-semibold text-ink-700">
+            {t('talentForm.workModeLabel')}
+            <span className="ms-1 text-clay-600" aria-hidden="true">
+              *
+            </span>
+          </legend>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {WORK_MODES.map((mode) => (
+              <label
+                key={mode}
+                className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border-2 border-ink-100 bg-white px-4 font-semibold text-ink-700 transition-colors hover:border-ink-300 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-800"
+              >
+                <input
+                  type="radio"
+                  value={mode}
+                  {...register('work_mode')}
+                  className="accent-brand-700"
+                />
+                {t(WORK_MODE_KEYS[mode])}
+              </label>
+            ))}
+          </div>
+          {errors.work_mode ? (
+            <p id="talent-work-mode-error" role="alert" className="mt-1.5 text-sm text-clay-600">
+              {errors.work_mode.message}
+            </p>
+          ) : null}
+        </fieldset>
+      ) : null}
 
       <Field
         label={t('talentForm.displayName')}
@@ -630,10 +668,13 @@ export function TalentForm({
             )}
           </Field>
 
-          <label className="flex items-center gap-3 self-end rounded-xl border-2 border-ink-100 p-3.5">
-            <input type="checkbox" {...register('remote_capable')} className="h-5 w-5 accent-brand-600" />
-            <span className="font-medium">{t('talentForm.remoteCapable')}</span>
-          </label>
+          {/* A service answers the remote / in-person question above instead. */}
+          {kind !== 'SERVICE' ? (
+            <label className="flex items-center gap-3 self-end rounded-xl border-2 border-ink-100 p-3.5">
+              <input type="checkbox" {...register('remote_capable')} className="h-5 w-5 accent-brand-600" />
+              <span className="font-medium">{t('talentForm.remoteCapable')}</span>
+            </label>
+          ) : null}
         </div>
 
         <div className="space-y-3">

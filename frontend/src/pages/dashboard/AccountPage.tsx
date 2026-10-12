@@ -118,6 +118,7 @@ function ProfileCard({ user, onSaved }: { user: User; onSaved: () => Promise<voi
     control,
     setError,
     getValues,
+    watch,
     formState: { errors },
   } = useForm<AccountValues>({
     resolver: zodResolver(schema),
@@ -131,6 +132,7 @@ function ProfileCard({ user, onSaved }: { user: User; onSaved: () => Promise<voi
       registration_place: user.registration_place ?? '',
       residence_place: user.residence_place ?? '',
       is_displaced: user.is_displaced === null ? '' : user.is_displaced ? 'yes' : 'no',
+      pre_displacement_place: user.pre_displacement_place ?? '',
     },
   })
 
@@ -146,6 +148,10 @@ function ProfileCard({ user, onSaved }: { user: User; onSaved: () => Promise<voi
         registration_place: values.registration_place || null,
         residence_place: values.residence_place || null,
         is_displaced: values.is_displaced === '' ? null : values.is_displaced === 'yes',
+        // Cleared rather than kept when the answer is no longer yes, so the
+        // team never reads a "before" for someone who was not displaced.
+        pre_displacement_place:
+          values.is_displaced === 'yes' ? values.pre_displacement_place || null : null,
       }),
     onSuccess: async () => {
       await onSaved()
@@ -321,6 +327,15 @@ function ProfileCard({ user, onSaved }: { user: User; onSaved: () => Promise<voi
                 />
               )}
             </Field>
+
+            {watch('is_displaced') === 'yes' ? (
+              <Field
+                label={t('account.preDisplacementPlaceLabel')}
+                error={errors.pre_displacement_place?.message}
+              >
+                {(props) => <Input {...props} {...register('pre_displacement_place')} />}
+              </Field>
+            ) : null}
           </fieldset>
 
           <Button type="submit" loading={save.isPending}>

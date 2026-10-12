@@ -85,7 +85,7 @@ export function unwrapFieldErrors(error: unknown, prefix: string): unknown {
 }
 
 /** The typed-in fields; the yes/no question beside them is held on its own. */
-type IdentityField = Exclude<keyof ApplicantIdentity, 'is_displaced'>
+type IdentityField = Exclude<keyof ApplicantIdentity, 'is_displaced' | 'pre_displacement_place'>
 
 const IDENTITY_FIELDS: IdentityField[] = [
   'full_name',
@@ -236,6 +236,10 @@ export function RegistrationShell({
   // team only and is never shown on a listing.
   const [displaced, setDisplaced] = useState<'' | 'yes' | 'no'>('')
   const [displacedError, setDisplacedError] = useState<string | null>(null)
+  // Only asked once the answer above is yes: someone who was not displaced
+  // has no "before" to give.
+  const [placeBefore, setPlaceBefore] = useState('')
+  const [placeBeforeError, setPlaceBeforeError] = useState<string | null>(null)
   const [documents, setDocuments] = useState<ApplicantDocuments>({
     front: null,
     back: null,
@@ -272,7 +276,10 @@ export function RegistrationShell({
 
     setIdentityErrors(errors)
     setDisplacedError(displaced ? null : t('validation.displacedRequired'))
-    if (Object.keys(errors).length > 0 || !displaced) return null
+    const before = placeBefore.trim()
+    const beforeMissing = displaced === 'yes' && !before
+    setPlaceBeforeError(beforeMissing ? t('validation.preDisplacementPlaceRequired') : null)
+    if (Object.keys(errors).length > 0 || !displaced || beforeMissing) return null
 
     return {
       full_name: identity.full_name.trim(),
@@ -280,6 +287,7 @@ export function RegistrationShell({
       registration_place: identity.registration_place.trim(),
       residence_place: identity.residence_place.trim(),
       is_displaced: displaced === 'yes',
+      pre_displacement_place: displaced === 'yes' ? before : null,
     }
   }
 
@@ -434,6 +442,26 @@ export function RegistrationShell({
               </p>
             ) : null}
           </fieldset>
+
+          {displaced === 'yes' ? (
+            <Field
+              label={t('account.preDisplacementPlaceLabel')}
+              required
+              error={placeBeforeError ?? undefined}
+            >
+              {(props) => (
+                <Input
+                  {...props}
+                  value={placeBefore}
+                  onChange={(event) => {
+                    setPlaceBefore(event.target.value)
+                    if (placeBeforeError) setPlaceBeforeError(null)
+                  }}
+                  invalid={Boolean(placeBeforeError)}
+                />
+              )}
+            </Field>
+          ) : null}
 
           {/* Both sides: the reviewer checks the name against the front and
               the place of registration against the back. */}

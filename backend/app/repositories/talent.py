@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.core.arabic import normalize_arabic
 from app.core.pagination import Page
-from app.models.enums import BusinessStatus, TalentKind
+from app.models.enums import BusinessStatus, TalentKind, WorkMode
 from app.models.talent import TalentProfile, TalentSkill
 from app.models.taxonomy import Location
 from app.models.user import User
@@ -105,9 +105,14 @@ class TalentRepository(BaseRepository[TalentProfile]):
         skill_slug: str | None,
         location_slug: str | None,
         kind: TalentKind | None = None,
+        work_mode: WorkMode | None = None,
     ) -> Select[tuple[TalentProfile]]:
         if kind is not None:
             stmt = stmt.where(TalentProfile.kind == kind)
+
+        if work_mode is not None:
+            # Someone who works both ways answers either question.
+            stmt = stmt.where(TalentProfile.work_mode.in_({work_mode, WorkMode.BOTH}))
 
         if skill_slug:
             stmt = stmt.join(TalentSkill, TalentProfile.skill_id == TalentSkill.id).where(
@@ -163,6 +168,7 @@ class TalentRepository(BaseRepository[TalentProfile]):
         skill_slug: str | None = None,
         location_slug: str | None = None,
         kind: TalentKind | None = None,
+        work_mode: WorkMode | None = None,
         sort: SortOption = "newest",
         near: Point | None = None,
         page: int = 1,
@@ -175,6 +181,7 @@ class TalentRepository(BaseRepository[TalentProfile]):
             skill_slug=skill_slug,
             location_slug=location_slug,
             kind=kind,
+            work_mode=work_mode,
         )
 
         total = int(

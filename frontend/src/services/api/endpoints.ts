@@ -15,6 +15,7 @@ import type {
   PageText,
   PageTextInput,
   TalentKind,
+  WorkMode,
   SiteSettings,
   DiscardedApplication,
   GoodsOrigin,
@@ -151,6 +152,8 @@ export interface TalentPayload {
   hobbies?: string | null
   employment_type?: EmploymentType | null
   remote_capable?: boolean
+  /** Required of a service; the API derives `remote_capable` from it. */
+  work_mode?: WorkMode | null
   languages?: { name: string; proficiency: LanguageProficiency }[]
   social_links?: { platform: SocialPlatform; url: string }[]
 }
@@ -170,6 +173,7 @@ export interface IdentityPayload {
   registration_place?: string | null
   residence_place?: string | null
   is_displaced?: boolean | null
+  pre_displacement_place?: string | null
 }
 
 /**
@@ -186,6 +190,8 @@ export interface ApplicantIdentity {
   registration_place: string
   residence_place: string
   is_displaced: boolean
+  /** Required when `is_displaced`; the API refuses the application without it. */
+  pre_displacement_place: string | null
 }
 
 /** Both sides of the applicant's ID card. */

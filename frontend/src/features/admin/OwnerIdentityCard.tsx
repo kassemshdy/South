@@ -56,6 +56,11 @@ export function OwnerIdentityCard({ identity }: { identity: OwnerIdentity | null
             ? t('common.no')
             : null,
     },
+    {
+      key: 'pre_displacement_place',
+      label: 'account.preDisplacementPlaceLabel',
+      value: identity?.pre_displacement_place ?? null,
+    },
   ]
 
   return (

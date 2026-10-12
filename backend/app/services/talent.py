@@ -11,7 +11,7 @@ from app.core.arabic import build_search_text
 from app.core.errors import ConflictError, NotFoundError, ValidationError
 from app.core.i18n import LazyJoin
 from app.core.urls import normalize_social_url, normalize_url, youtube_video_id
-from app.models.enums import BusinessStatus, TalentKind, ViewSubject
+from app.models.enums import BusinessStatus, TalentKind, ViewSubject, WorkMode
 from app.models.talent import TalentLanguage, TalentProfile, TalentSocialLink
 from app.models.user import User
 from app.repositories.talent import TalentRepository, TalentSkillRepository
@@ -89,7 +89,8 @@ class TalentService:
             services_offered=payload.services_offered,
             hobbies=payload.hobbies,
             employment_type=payload.employment_type,
-            remote_capable=payload.remote_capable,
+            remote_capable=_remote_capable(payload.work_mode, payload.remote_capable),
+            work_mode=payload.work_mode,
         )
         if payload.languages is not None:
             self._apply_languages(profile, payload.languages)
@@ -131,6 +132,11 @@ class TalentService:
         # dicts, which setattr would happily assign and then fail on flush.
         languages = data.pop("languages", None)
         social_links = data.pop("social_links", None)
+
+        if "work_mode" in data:
+            data["remote_capable"] = _remote_capable(
+                data["work_mode"], data.get("remote_capable", profile.remote_capable)
+            )
 
         for field, value in data.items():
             setattr(profile, field, value)
@@ -183,6 +189,10 @@ class TalentService:
             missing.append("talent.field.photo")
         if not (profile.phone or profile.whatsapp):
             missing.append("talent.field.contact")
+        # The owners made it compulsory for a service; a job application is
+        # not asked.
+        if profile.kind == TalentKind.SERVICE and profile.work_mode is None:
+            missing.append("talent.field.work_mode")
         if (
             profile.skill is not None
             and profile.skill.slug == "other"
@@ -292,3 +302,10 @@ class TalentService:
             profile.skills_text,
             profile.services_offered,
         )
+
+
+def _remote_capable(work_mode: WorkMode | None, fallback: bool) -> bool:
+    """The old flag, kept in step with the answer that replaced it."""
+    if work_mode is None:
+        return fallback
+    return work_mode in (WorkMode.REMOTE, WorkMode.BOTH)

@@ -298,6 +298,7 @@ def talent_summary(profile: TalentProfile) -> TalentSummaryOut:
         skill=talent_skill_out(profile.skill),
         custom_skill_text=profile.custom_skill_text,
         skill_specialty=profile.skill_specialty,
+        work_mode=profile.work_mode,
         location=location_out(profile.location),
         created_at=profile.created_at,
     )

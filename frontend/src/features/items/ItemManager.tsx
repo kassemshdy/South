@@ -456,7 +456,7 @@ function ItemForm({
         </Field>
 
         <div className="grid grid-cols-2 gap-4">
-          <Field label={t('items.priceLabel')} error={errors.price?.message}>
+          <Field label={t('items.priceLabel')} required error={errors.price?.message}>
             {(props) => (
               <Input
                 {...props}

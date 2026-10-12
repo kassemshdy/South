@@ -272,13 +272,13 @@ export const itemSchema = (t: Translate) =>
       .min(1, t('validation.itemNameRequired'))
       .max(160, t('validation.nameTooLong')),
     description: z.string().trim().max(2000).optional().or(z.literal('')),
+    // Required since the owners made it so.
     price: z
       .string()
       .trim()
-      .optional()
-      .or(z.literal(''))
+      .min(1, t('validation.priceRequired'))
       .refine(
-        (value) => !value || (/^\d+(\.\d{1,2})?$/.test(value) && Number(value) >= 0),
+        (value) => /^\d+(\.\d{1,2})?$/.test(value) && Number(value) >= 0,
         t('validation.priceInvalid'),
       ),
     currency: z.enum(['USD', 'LBP']),
@@ -381,6 +381,7 @@ export const talentSchema = (t: Translate, otherSkillId?: string) =>
       hobbies: z.string().trim().max(1000).optional().or(z.literal('')),
       employment_type: z.enum(['FULL_TIME', 'PART_TIME']).optional().or(z.literal('')),
       remote_capable: z.boolean(),
+      work_mode: z.enum(['REMOTE', 'ON_SITE', 'BOTH']).optional().or(z.literal('')),
       languages: z
         .array(
           z.object({
@@ -397,6 +398,15 @@ export const talentSchema = (t: Translate, otherSkillId?: string) =>
           code: 'custom',
           path: ['custom_skill_text'],
           message: t('validation.customSkillRequired'),
+        })
+      }
+      // Compulsory for a service, at the owners' request; a job application
+      // is not asked.
+      if (values.kind === 'SERVICE' && !values.work_mode) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['work_mode'],
+          message: t('validation.workModeRequired'),
         })
       }
     })
@@ -425,6 +435,7 @@ export const accountSchema = (t: Translate) =>
     registration_place: z.string().trim().max(160).optional().or(z.literal('')),
     residence_place: z.string().trim().max(200).optional().or(z.literal('')),
     is_displaced: z.enum(['yes', 'no']).optional().or(z.literal('')),
+    pre_displacement_place: z.string().trim().max(200).optional().or(z.literal('')),
   })
 
 export const rejectSchema = (t: Translate) =>

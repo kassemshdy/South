@@ -40,6 +40,7 @@ from app.models.enums import (
     ModerationActionType,
     SocialPlatform,
     TalentKind,
+    WorkMode,
 )
 
 if TYPE_CHECKING:
@@ -159,7 +160,14 @@ class TalentProfile(Base, TimestampMixin):
     employment_type: Mapped[EmploymentType | None] = mapped_column(
         pg_enum(EmploymentType, "employment_type"), nullable=True
     )
+    # Derived from work_mode whenever that is set (see TalentService), and
+    # kept so nothing that reads it changes.
     remote_capable: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Remotely, in person or both. Required of a service at review; a job
+    # application is not asked.
+    work_mode: Mapped[WorkMode | None] = mapped_column(
+        pg_enum(WorkMode, "work_mode"), nullable=True
+    )
 
     # Identity — legal name, birth year, gender, marital status and the two
     # civil-record places — lives on :class:`~app.models.user.User`, not
