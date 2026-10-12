@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom'
 
 import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/features/auth/AuthContext'
-import { AssistedListing } from '@/features/onboarding/AssistedListing'
 import { ChoicePageShell } from '@/features/onboarding/ChoicePageShell'
 import { DoorBody, doorCard } from '@/features/onboarding/DoorCard'
 import { destinationFor, OFFER_DOORS, type Door } from '@/features/onboarding/destinations'
@@ -26,6 +25,11 @@ const ELIGIBILITY_KEYS: TranslationKey[] = [
 
 /**
  * Listing something: its own page, at `/offer`.
+ *
+ * Round 3: for a visitor without an account, choosing a door now goes
+ * straight to the application, which holds the notice, the steps and the
+ * form on one page -- it used to be three (the notice, a steps panel ending
+ * in a start button, then the form).
  *
  * This used to happen inside the homepage. Pressing "I want to list" swapped
  * two cards for two other cards while the hero, the video and everything
@@ -55,54 +59,11 @@ export function OfferPage() {
     : ELIGIBILITY_KEYS.map((key) => t(key))
 
   const [pending, setPending] = useState<Door | null>(null)
-  const [agreed, setAgreed] = useState<Door | null>(null)
 
-  // The doors sit a long way down this page and the panels that replace them
-  // are short, so without this a visitor presses a card and sees nothing move.
-  useScrollToStep(agreed ? `agreed:${agreed.key}` : pending ? `pending:${pending.key}` : 'doors')
-
-  // Someone already signed in has been through the three steps and has an
-  // account, so agreeing is the last thing between them and the wizard.
-  const stepsNeeded = !isAuthenticated
-
-  if (agreed) {
-    return (
-      <ChoicePageShell page="offer" title={t(agreed.titleKey)} subtitle={t('onboarding.stepsIntro')}>
-        <div className="mx-auto max-w-2xl">
-          <ol className="space-y-5">
-            {STEP_KEYS.map((key, index) => (
-              <li key={key} className="flex items-start gap-4">
-                <span
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-700 font-bold text-white ltr-nums"
-                  aria-hidden="true"
-                >
-                  {index + 1}
-                </span>
-                <span className="pt-1 leading-relaxed text-ink-700">{t(key)}</span>
-              </li>
-            ))}
-          </ol>
-
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Button asChild size="lg">
-              {/* Straight to the application form, never to /login: there is
-                  no account to sign into yet, and the form is step one of the
-                  three just described. */}
-              <Link to={destinationFor(agreed, isAuthenticated)}>
-                <Check className="h-5 w-5" aria-hidden="true" />
-                {t('onboarding.start')}
-              </Link>
-            </Button>
-            <Button type="button" variant="ghost" size="lg" onClick={() => setAgreed(null)}>
-              {t('onboarding.back')}
-            </Button>
-          </div>
-
-          <AssistedListing contextKey="assisted.contextHome" />
-        </div>
-      </ChoicePageShell>
-    )
-  }
+  // The doors sit a long way down this page and the notice that replaces
+  // them is short, so without this a visitor presses a card and sees nothing
+  // move.
+  useScrollToStep(pending ? `pending:${pending.key}` : 'doors')
 
   if (pending) {
     return (
@@ -117,26 +78,12 @@ export function OfferPage() {
           <p className="mt-5 leading-relaxed text-ink-700 sm:text-lg">{t('consent.body')}</p>
 
           <div className="mt-8 flex flex-wrap gap-3">
-            {stepsNeeded ? (
-              <Button
-                type="button"
-                size="lg"
-                onClick={() => {
-                  setAgreed(pending)
-                  setPending(null)
-                }}
-              >
+            <Button asChild size="lg">
+              <Link to={destinationFor(pending, isAuthenticated)}>
                 <Check className="h-5 w-5" aria-hidden="true" />
                 {t('consent.agree')}
-              </Button>
-            ) : (
-              <Button asChild size="lg">
-                <Link to={destinationFor(pending, isAuthenticated)}>
-                  <Check className="h-5 w-5" aria-hidden="true" />
-                  {t('consent.agree')}
-                </Link>
-              </Button>
-            )}
+              </Link>
+            </Button>
             <Button type="button" variant="ghost" size="lg" onClick={() => setPending(null)}>
               {t('onboarding.back')}
             </Button>
@@ -198,14 +145,22 @@ export function OfferPage() {
 
         <section>
           <h2 className="text-lg font-bold text-ink-900">{t('offerPage.doorsTitle')}</h2>
-          {/* Buttons rather than links: the responsibility notice is the only
-              way through an offering door, and a link would skip it. */}
+          {/* Without an account, a door is a link straight to the one-page
+              application, which carries the responsibility notice and the
+              steps itself (round 3: one page instead of three). Signed in, it
+              is a button: the notice still stands before the dashboard. */}
           <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {OFFER_DOORS.map((door) => (
               <li key={door.key}>
-                <button type="button" className={doorCard('offer')} onClick={() => setPending(door)}>
-                  <DoorBody door={door} />
-                </button>
+                {isAuthenticated ? (
+                  <button type="button" className={doorCard('offer')} onClick={() => setPending(door)}>
+                    <DoorBody door={door} />
+                  </button>
+                ) : (
+                  <Link to={destinationFor(door, false)} className={doorCard('offer')}>
+                    <DoorBody door={door} />
+                  </Link>
+                )}
               </li>
             ))}
           </ul>

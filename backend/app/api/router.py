@@ -16,6 +16,7 @@ from app.api.v1 import (
     orders,
     page_covers,
     pages,
+    partners,
     registration,
     service_requests,
     site_settings,
@@ -75,6 +76,8 @@ api_router.include_router(orders.public_router)
 api_router.include_router(businesses.public_router)
 api_router.include_router(articles.router)
 api_router.include_router(registration.router)
+api_router.include_router(partners.public_router)
+api_router.include_router(partners.admin_router)
 api_router.include_router(items.public_router)
 api_router.include_router(service_requests.public_router)
 api_router.include_router(talent.public_router)

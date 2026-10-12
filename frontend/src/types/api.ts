@@ -724,6 +724,17 @@ export interface AdminTestimonial extends OwnerTestimonial {
   talent_slug: string | null
 }
 
+/** A partner-form submission; administrators only. */
+export interface AdminPartnerRequest {
+  id: string
+  name: string
+  phone: string
+  occupation: string
+  residence: string
+  offer: string
+  created_at: string
+}
+
 export type ArticleSection = 'BLOG' | 'NEWS'
 
 /**
@@ -807,10 +818,13 @@ export interface SiteSettings {
   contact_email: string | null
   social_facebook: string | null
   social_instagram: string | null
+  /** The homepage video, as a YouTube id; null plays the one the site shipped with. */
+  home_video: string | null
 }
 
-/** The site's static pages; see `PageText`. */
-export type PageKey = 'about' | 'offer_eligibility'
+/** The site's static pages; see `PageText`. `home` is the homepage's
+ * photograph section and the line under its video. */
+export type PageKey = 'about' | 'offer_eligibility' | 'home'
 
 /**
  * A static page's administrator-written text. A null field means the page

@@ -24,6 +24,7 @@ import type {
   AdminBusiness,
   AdminTalent,
   AdminTestimonial,
+  AdminPartnerRequest,
   AdminUser,
   AdminUserDetail,
   Article,
@@ -313,6 +314,23 @@ export const publicItemApi = {
     apiRequest<Paginated<ProductSummary>>('/api/items', { query: { ...query } }),
   bySlug: (slug: string) =>
     apiRequest<ProductDetail>(`/api/items/${encodeURIComponent(slug)}`),
+}
+
+/** The partner form (round 3). */
+export interface PartnerPayload {
+  name: string
+  phone: string
+  occupation: string
+  residence: string
+  offer: string
+}
+
+export const partnerApi = {
+  send: (payload: PartnerPayload, captchaToken: string | null) =>
+    apiRequest<{ message: string }>('/api/partners', {
+      method: 'POST',
+      body: { ...payload, captcha_token: captchaToken },
+    }),
 }
 
 export const siteSettingsApi = {
@@ -608,6 +626,9 @@ export const adminApi = {
     apiRequest<{ message: string }>(`/api/admin/talent/${id}`, { method: 'DELETE' }),
   deleteUser: (id: string) =>
     apiRequest<{ message: string }>(`/api/admin/users/${id}`, { method: 'DELETE' }),
+  partners: () => apiRequest<AdminPartnerRequest[]>('/api/admin/partners'),
+  deletePartner: (id: string) =>
+    apiRequest<{ message: string }>(`/api/admin/partners/${id}`, { method: 'DELETE' }),
   approve: (id: string) =>
     apiRequest<AdminBusiness>(`/api/admin/businesses/${id}/approve`, { method: 'POST' }),
   reject: (id: string, reason: string) =>

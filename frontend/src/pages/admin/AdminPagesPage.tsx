@@ -51,6 +51,16 @@ const PAGES: Record<
     labels: { summary: 'admin.pageEligibilityNoteLabel', body: 'admin.pageEligibilityListLabel' },
     hints: { summary: 'admin.pageEligibilityNoteHint', body: 'admin.pageEligibilityListHint' },
   },
+  // The homepage's photograph section and the line under its video (round
+  // 3). The photograph itself is set under page covers, the video under the
+  // site settings.
+  home: {
+    path: '/',
+    labelKey: 'admin.pageHomeLabel',
+    defaults: { title: 'home.southTitle', summary: 'home.southBody', body: 'home.videoHeading' },
+    labels: { summary: 'admin.pageHomeSummaryLabel', body: 'admin.pageHomeBodyLabel' },
+    hints: { summary: 'admin.pageHomeSummaryHint', body: 'admin.pageHomeBodyHint' },
+  },
 }
 
 type Field = 'title' | 'summary' | 'body'

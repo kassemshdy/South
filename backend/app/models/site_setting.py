@@ -17,6 +17,9 @@ SITE_SETTING_KEYS: tuple[str, ...] = (
     "contact_email",
     "social_facebook",
     "social_instagram",
+    # The homepage video, as a YouTube id (round 3). Unset plays the
+    # recording the site shipped with.
+    "home_video",
 )
 
 

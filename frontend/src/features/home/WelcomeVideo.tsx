@@ -1,4 +1,5 @@
 import { YouTubePlayer } from '@/components/ui/YouTubePlayer'
+import { useSiteSettings } from '@/hooks/useSiteSettings'
 import { useT } from '@/i18n'
 
 /**
@@ -27,11 +28,16 @@ const POSTER = '/welcome-hossam-matar.webp'
 
 export function WelcomeVideoPlayer() {
   const t = useT()
+  // An administrator can replace the recording (round 3). Our poster shows
+  // Dr Hossam, so it stays with his recording only; another one gets the
+  // brand panel instead of a face that is not in it.
+  const { settings } = useSiteSettings()
+  const custom = settings?.home_video ?? null
 
   return (
     <YouTubePlayer
-      videoId={VIDEO_ID}
-      poster={POSTER}
+      videoId={custom ?? VIDEO_ID}
+      poster={custom && custom !== VIDEO_ID ? null : POSTER}
       title={t('home.videoHeading')}
       playLabel={t('home.videoPlayAria')}
     />
