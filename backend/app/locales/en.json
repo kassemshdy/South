@@ -100,7 +100,7 @@
   "registration.map_pin_required": "Mark your location on the map.",
   "registration.pre_displacement_required": "Enter where you lived before displacement.",
   "registration.rate_limited": "Too many applications have been received. Please try again later.",
-  "registration.received": "We have your application. Our team reviews it, then contacts you on WhatsApp with your login details.",
+  "registration.received": "We have your application. You can sign in now with your phone number and the password you chose; our team will contact you on WhatsApp before anything you sent is published.",
   "registration.talent_kind_required": "Choose services or a job application.",
   "registration.work_mode_required": "Choose how the service is delivered: remotely, in person, or both.",
   "registration.years_experience_required": "Enter your years of experience.",
