@@ -134,6 +134,43 @@ def test_unavailable_item_excluded_from_search_but_visible_on_business_page(
     assert ar("item.generic") in [item["title"] for item in profile["items"]]
 
 
+def test_the_shops_with_products_filter_wants_something_on_sale(
+    client: TestClient,
+    db: Session,
+    approved_business_with_items: str,
+    category: Category,
+    location: Location,
+) -> None:
+    """The products page lists shops (round 3): one with nothing on sale --
+    no items, or only unavailable ones -- is not on it."""
+    headers = sign_in(client, "03950003")
+    empty = client.post(
+        "/api/businesses",
+        headers=headers,
+        json={
+            "name": ar("business.manakish"),
+            "short_description": ar("business.manakish_short"),
+            "category_id": str(category.id),
+            "location_id": str(location.id),
+        },
+    ).json()
+    record = db.get(Business, empty["id"])
+    assert record is not None
+    record.status = BusinessStatus.APPROVED
+    db.commit()
+
+    every = {row["id"] for row in client.get("/api/businesses").json()["items"]}
+    assert every == {approved_business_with_items, empty["id"]}
+    shops = client.get("/api/businesses", params={"with_products": "true"}).json()["items"]
+    assert [row["id"] for row in shops] == [approved_business_with_items]
+
+    for item in db.get(Business, approved_business_with_items).items:  # type: ignore[union-attr]
+        item.is_available = False
+    db.commit()
+    shops = client.get("/api/businesses", params={"with_products": "true"}).json()["items"]
+    assert shops == []
+
+
 def test_category_and_location_filters_join_through_the_business(
     client: TestClient, db: Session, approved_business_with_items: str, category: Category, location: Location
 ) -> None:

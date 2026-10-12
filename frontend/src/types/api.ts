@@ -595,6 +595,8 @@ export interface BusinessQuery {
   category?: string
   location?: string
   origin?: GoodsOrigin
+  /** Only shops with at least one product on sale -- the products page. */
+  with_products?: boolean
   sort?: BusinessSortOption
   /** The visitor's position, for `nearest` only. Never put in the page URL. */
   lat?: number

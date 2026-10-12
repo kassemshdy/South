@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import type { z } from 'zod'
 
 import { Badge } from '@/components/ui/Badge'
@@ -23,6 +23,7 @@ import { Field } from '@/components/ui/Field'
 import { Textarea } from '@/components/ui/Input'
 import { ErrorState, InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
+import { DeleteForeverButton } from '@/features/admin/DeleteForeverButton'
 import { IssueCredentialsCard } from '@/features/admin/IssueCredentialsCard'
 import { OwnerIdentityCard } from '@/features/admin/OwnerIdentityCard'
 import { OwnerWhatsappButton } from '@/features/admin/OwnerWhatsappButton'
@@ -40,6 +41,7 @@ type ConfirmAction = 'approve' | 'reject' | 'suspend' | 'reactivate' | null
 
 export function AdminTalentReviewPage() {
   const { id = '' } = useParams()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const toast = useToast()
   const { t, locale } = useI18n()
@@ -215,6 +217,14 @@ export function AdminTalentReviewPage() {
               {t('admin.reactivate')}
             </Button>
           ) : null}
+
+          <div className="ms-auto">
+            <DeleteForeverButton
+              description={t('admin.deleteTalentBody', { name: data.display_name })}
+              onDelete={() => adminApi.deleteTalent(data.id)}
+              onDeleted={() => navigate('/admin/talent')}
+            />
+          </div>
 
           {data.status === 'DRAFT' || data.status === 'REJECTED' ? (
             <p className="text-ink-500">

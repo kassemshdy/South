@@ -186,6 +186,7 @@
   "url.required": "{field} is required.",
   "user.credentials_need_phone": "Credentials cannot be issued to an account with no phone number.",
   "user.credentials_not_for_admin": "Credentials are not issued for an administrator account.",
+  "user.deleted": "The account and everything it published have been deleted.",
   "user.not_found": "Account not found.",
   "validation.bool_parsing": "Choose yes or no.",
   "validation.bool_type": "Choose yes or no.",

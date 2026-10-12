@@ -14,12 +14,15 @@ from fastapi import APIRouter, Query
 from app.api.serializers import admin_talent, paginate
 from app.core.dependencies import AdminUser, DbSession
 from app.core.errors import NotFoundError
+from app.core.i18n import translate
 from app.models.enums import BusinessStatus
 from app.models.talent import TalentProfile
 from app.repositories.talent import TalentRepository
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.moderation import AdminTalentOut, RejectIn, SuspendIn
+from app.services.account import AccountDeletionService
 from app.services.talent_moderation import TalentModerationService
+from app.storage.factory import get_storage
 
 router = APIRouter(prefix="/admin", tags=["admin-talent"])
 
@@ -91,3 +94,11 @@ def suspend(
 def reactivate(profile_id: uuid.UUID, db: DbSession, admin: AdminUser) -> AdminTalentOut:
     profile = TalentModerationService(db).reactivate(_load(db, profile_id), admin)
     return admin_talent(profile)
+
+
+@router.delete("/talent/{profile_id}", response_model=MessageResponse)
+def delete_talent(profile_id: uuid.UUID, db: DbSession, admin: AdminUser) -> MessageResponse:
+    """Remove the profile and its files for good -- see admin/businesses.py.
+    The owner's account stays."""
+    AccountDeletionService(db, get_storage()).delete_profile(_load(db, profile_id))
+    return MessageResponse(message=translate("talent.deleted"))

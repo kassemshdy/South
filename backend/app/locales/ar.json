@@ -186,6 +186,7 @@
   "url.required": "{field} مطلوب.",
   "user.credentials_need_phone": "لا يمكن إصدار بيانات دخول لحساب بلا رقم هاتف.",
   "user.credentials_not_for_admin": "لا تُصدر بيانات دخول لحساب إداري.",
+  "user.deleted": "حُذف الحساب وكل ما نشره.",
   "user.not_found": "الحساب غير موجود.",
   "validation.bool_parsing": "اختر نعم أو لا.",
   "validation.bool_type": "اختر نعم أو لا.",
