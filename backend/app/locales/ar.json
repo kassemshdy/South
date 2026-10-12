@@ -100,7 +100,7 @@
   "registration.map_pin_required": "حدّد موقعك على الخريطة.",
   "registration.pre_displacement_required": "أدخل مكان السكن قبل النزوح.",
   "registration.rate_limited": "وردنا عدد كبير من الطلبات. يرجى المحاولة لاحقاً.",
-  "registration.received": "وصلنا طلبك. يراجعه فريق الإدارة، ثم نتواصل معك على واتساب لتسليمك بيانات الدخول.",
+  "registration.received": "وصلنا طلبك. يمكنك الدخول الآن برقم هاتفك وكلمة المرور التي اخترتها، وسيتواصل معك فريق الإدارة على واتساب قبل نشر ما أرسلته.",
   "registration.talent_kind_required": "اختر «خدمات» أو «طلبات التوظيف».",
   "registration.work_mode_required": "اختر طريقة تقديم الخدمة: عن بُعد، أو حضوريًّا، أو كليهما.",
   "registration.years_experience_required": "أدخل عدد سنوات الخبرة.",

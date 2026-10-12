@@ -16,6 +16,7 @@ const fixture = load<{
   shortDescription: string
   loginPhone: string
   chosenPassword: string
+  resetPassword: string
   fullName: string
   birthYear: string
   registrationPlace: string
@@ -33,24 +34,24 @@ const PNG_BYTES = Buffer.from(
 /**
  * The only way onto this site.
  *
- * There is no self-service sign-up and no working SMS or WhatsApp gateway, so
- * every listing arrives this way: somebody applies on a public form, an
- * administrator audits it, and the login is handed over from that
- * administrator's own WhatsApp. Nothing else in this suite covers it, and it
- * is the path every real owner takes.
+ * There is no SMS or WhatsApp gateway, so every listing arrives this way:
+ * somebody applies on a public form, choosing the password for their account
+ * as they do (round 3), and an administrator confirms them on WhatsApp before
+ * anything is published. Nothing else in this suite covers it, and it is the
+ * path every real owner takes.
  *
- * Four claims, each of which would be a live incident if it stopped holding:
+ * The claims, each of which would be a live incident if it stopped holding:
  *
- * - an application is **not published** and **not signable-into** before a
- *   person has looked at it;
- * - the administrator can hand over a working credential without the site
- *   sending anything, and the WhatsApp message carries the right two values;
- * - that credential opens **one screen** and nothing else until it is
- *   replaced;
+ * - an application is **not published** before a person has looked at it,
+ *   though its applicant can sign in and see it under review;
+ * - an administrator can still hand over a password -- a reset now -- without
+ *   the site sending anything, and the WhatsApp message carries both values;
+ * - that handed-over password opens **one screen** and nothing else until it
+ *   is replaced, and it ends the session opened with the old one;
  * - replacing it reaches the dashboard, with the listing there.
  */
 test.describe('Applying for a listing', () => {
-  test('a visitor applies, an admin audits and hands over a login, the owner gets in', async ({
+  test('a visitor applies with their own password, an admin audits, a reset still works', async ({
     page,
     browser,
   }) => {
@@ -66,6 +67,14 @@ test.describe('Applying for a listing', () => {
     await expect(page.getByText(t('register.stepCredentials'))).toBeVisible()
 
     await page.getByLabel(t('register.loginPhoneLabel')).fill(fixture.loginPhone)
+    // The password is chosen here now; exact, because the confirmation's
+    // label contains this one.
+    await page
+      .getByRole('textbox', { name: t('register.passwordLabel'), exact: true })
+      .fill(fixture.chosenPassword)
+    await page
+      .getByRole('textbox', { name: t('register.passwordConfirmLabel'), exact: true })
+      .fill(fixture.chosenPassword)
 
     // Who they are, asked here because the reviewer is about to decide
     // whether this is a real person from the South.
@@ -114,7 +123,7 @@ test.describe('Applying for a listing', () => {
 
     await expect(page.getByRole('heading', { name: t('register.doneTitle') })).toBeVisible()
 
-    // --- 2. It is not published, and the account cannot be signed into -------
+    // --- 2. Not published, but its applicant can sign in and see it ----------
     await page.goto(`/businesses?q=${encodeURIComponent(fixture.businessName)}`)
     await expect(page.getByText(fixture.businessName)).toHaveCount(0)
 
@@ -122,9 +131,13 @@ test.describe('Applying for a listing', () => {
     await page.getByLabel(t('login.identifierLabel')).fill(fixture.loginPhone)
     await page.getByLabel(t('login.passwordLabel')).fill(fixture.chosenPassword)
     await page.getByRole('button', { name: t('login.signIn'), exact: true }).click()
-    await expect(page).not.toHaveURL(/\/dashboard/)
+    await expect(page).toHaveURL(/\/dashboard/)
+    await expect(page.getByText(fixture.businessName).first()).toBeVisible()
+    await expect(page.getByText(t('status.PENDING_REVIEW')).first()).toBeVisible()
+    // Signed out again for what follows: the issued password below is a reset.
+    await page.evaluate(() => window.localStorage.clear())
 
-    // --- 3. An administrator audits it and issues a password ----------------
+    // --- 3. An administrator audits it, and can reset the password ----------
     // A separate context, not another tab: the session token lives in this
     // origin's local storage, so an administrator signing in beside the
     // applicant would replace them — and the rest of this test would be
@@ -183,7 +196,13 @@ test.describe('Applying for a listing', () => {
     expect(whatsapp).toContain('wa.me/')
     expect(decodeURIComponent(whatsapp ?? '')).toContain(issued)
 
-    // --- 4. The issued password opens exactly one screen --------------------
+    // --- 4. The issued password replaces the chosen one, and opens one screen -
+    await page.goto('/login')
+    await page.getByLabel(t('login.identifierLabel')).fill(fixture.loginPhone)
+    await page.getByLabel(t('login.passwordLabel')).fill(fixture.chosenPassword)
+    await page.getByRole('button', { name: t('login.signIn'), exact: true }).click()
+    await expect(page).not.toHaveURL(/\/dashboard/)
+
     await page.goto('/login')
     await page.getByLabel(t('login.identifierLabel')).fill(fixture.loginPhone)
     await page.getByLabel(t('login.passwordLabel')).fill(issued)
@@ -199,8 +218,8 @@ test.describe('Applying for a listing', () => {
     // contains the new password field's, so a label lookup matches both.
     await page.getByLabel(t('password.currentLabel')).fill(issued)
     const chosen = page.locator('input[autocomplete="new-password"]')
-    await chosen.nth(0).fill(fixture.chosenPassword)
-    await chosen.nth(1).fill(fixture.chosenPassword)
+    await chosen.nth(0).fill(fixture.resetPassword)
+    await chosen.nth(1).fill(fixture.resetPassword)
     await page.getByRole('button', { name: t('password.submit') }).click()
 
     await expect(page).toHaveURL(/\/dashboard$/)
