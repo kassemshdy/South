@@ -13,6 +13,7 @@ EMPTY = {
     "contact_email": None,
     "social_facebook": None,
     "social_instagram": None,
+    "home_video": None,
 }
 
 FULL = {
@@ -84,3 +85,25 @@ def test_only_an_administrator_can_read_the_admin_view_or_change_them(
         client.put("/api/admin/site-settings", headers=owner_headers, json=FULL).status_code == 403
     )
     assert client.get("/api/site-settings").json() == EMPTY
+
+
+def test_the_homepage_video_is_stored_as_its_id(client: TestClient, admin: User) -> None:
+    """Round 3: an administrator changes the homepage video by pasting a link.
+    Only the id is kept, so nothing typed reaches the page; a link that is
+    not YouTube is refused."""
+    headers = admin_headers(client)
+    saved = client.put(
+        "/api/admin/site-settings",
+        headers=headers,
+        json={**FULL, "home_video": "https://youtu.be/dQw4w9WgXcQ?t=42"},
+    )
+    assert saved.status_code == 200, saved.text
+    assert client.get("/api/site-settings").json()["home_video"] == "dQw4w9WgXcQ"
+
+    refused = client.put(
+        "/api/admin/site-settings",
+        headers=headers,
+        json={**FULL, "home_video": "https://example.com/watch?v=dQw4w9WgXcQ"},
+    )
+    assert refused.status_code == 422, refused.text
+    assert client.get("/api/site-settings").json()["home_video"] == "dQw4w9WgXcQ"

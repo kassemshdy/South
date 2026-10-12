@@ -14,8 +14,10 @@ from app.database.base import Base
 #: a field left empty, shows the page's built-in text from the locale catalog.
 #: Not every key is a whole page: ``offer_eligibility`` is the "who can list in
 #: the first phase" block on /offer -- its title, its list (one item per line
-#: of the body) and the note under it (the summary).
-PAGE_KEYS: tuple[str, ...] = ("about", "offer_eligibility")
+#: of the body) and the note under it (the summary). ``home`` is the
+#: homepage's photograph section and video (round 3): the title and summary
+#: are the words over the photograph, the body the line under the video.
+PAGE_KEYS: tuple[str, ...] = ("about", "offer_eligibility", "home")
 
 
 class Page(Base):

@@ -30,20 +30,14 @@
  * gets a public URL — see `app/services/verification.py`.
  */
 
-import {
-  CheckCircle2,
-  MessageCircle,
-  Phone,
-  ShieldCheck,
-  Upload,
-  UserRound,
-} from 'lucide-react'
+import { AlertTriangle, CheckCircle2, MessageCircle, Phone, ShieldCheck, Upload, UserRound } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
 import { Card, CardBody } from '@/components/ui/Card'
 import { Field } from '@/components/ui/Field'
 import { Input } from '@/components/ui/Input'
+import { AssistedListing } from '@/features/onboarding/AssistedListing'
 import { Turnstile } from '@/components/ui/Turnstile'
 import { useT, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
@@ -247,6 +241,11 @@ export function RegistrationShell({
   const [documentErrors, setDocumentErrors] = useState<
     Partial<Record<DocumentSide, string>>
   >({})
+  // The responsibility notice, on this page now rather than two screens
+  // before it (round 3: one page instead of three). Still asked of everyone,
+  // and still before anything is sent.
+  const [consented, setConsented] = useState(false)
+  const [consentError, setConsentError] = useState<string | null>(null)
 
   const requirePhone = (): string | null => {
     const value = loginPhone.trim()
@@ -311,7 +310,8 @@ export function RegistrationShell({
     const phone = requirePhone()
     const values = requireIdentity()
     const scans = requireDocuments()
-    if (!phone || !values || !scans) return null
+    setConsentError(consented ? null : t('validation.consentRequired'))
+    if (!phone || !values || !scans || !consented) return null
     return { phone, identity: values, documents: scans }
   }
 
@@ -480,6 +480,35 @@ export function RegistrationShell({
         </CardBody>
       </Card>
 
+      <Card className="mb-6 border-2 border-clay-300">
+        <CardBody className="space-y-4 p-6">
+          <div className="flex items-center gap-2 text-ink-900">
+            <AlertTriangle className="h-5 w-5 text-clay-600" aria-hidden="true" />
+            <h2 className="text-lg">{t('consent.heading')}</h2>
+          </div>
+          <p className="leading-relaxed text-ink-700">{t('consent.body')}</p>
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={consented}
+              onChange={(event) => {
+                setConsented(event.target.checked)
+                if (event.target.checked) setConsentError(null)
+              }}
+              aria-describedby={consentError ? 'consent-error' : undefined}
+              aria-invalid={Boolean(consentError)}
+              className="mt-1 h-5 w-5 shrink-0 accent-brand-700"
+            />
+            <span className="font-semibold text-ink-900">{t('consent.agree')}</span>
+          </label>
+          {consentError ? (
+            <p id="consent-error" role="alert" className="text-sm text-clay-600">
+              {consentError}
+            </p>
+          ) : null}
+        </CardBody>
+      </Card>
+
       <Card>
         <CardBody className="p-6">
           {children({
@@ -490,6 +519,10 @@ export function RegistrationShell({
           })}
         </CardBody>
       </Card>
+
+      {/* Moved here with the steps it used to follow: someone who would
+          rather not fill this in can still ask the team to do it. */}
+      <AssistedListing contextKey="assisted.contextHome" />
 
       <p className="mt-6 text-center text-sm text-ink-500">
         {t('register.alreadyHaveAccount')}{' '}

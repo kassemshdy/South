@@ -84,6 +84,13 @@ class Settings(BaseSettings):
     service_request_per_profile_limit: int = 15
     service_request_per_profile_window_seconds: int = 86400
 
+    # The partner form (round 3): a considered offer, not something one
+    # person sends repeatedly, so a low allowance per address and a ceiling
+    # for the whole site.
+    partner_per_ip_limit: int = 3
+    partner_per_ip_window_seconds: int = 3600
+    partner_per_day_limit: int = 100
+
     # Password sign-in: the guess budget for one identifier — the phone
     # number or the email address as typed. Low, because a person signing in
     # knows their password and a person who does not is guessing. Keyed on the
