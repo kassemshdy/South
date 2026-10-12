@@ -13,6 +13,7 @@ from fastapi import APIRouter, Path, Query, status
 
 from app.api.serializers import owner_talent, paginate, talent_detail, talent_summary
 from app.core.dependencies import (
+    AppSettings,
     CurrentUser,
     DbSession,
     ListingOwner,
@@ -36,6 +37,7 @@ from app.schemas.talent import (
 from app.services.analytics import ViewCounterService
 from app.services.talent import TalentService
 from app.services.talent_moderation import TalentModerationService
+from app.services.testimonial import TestimonialService
 
 public_router = APIRouter(tags=["talent"])
 owner_router = APIRouter(tags=["my-talent"])
@@ -58,7 +60,7 @@ def search_talent(
         Query(description="Remotely or in person; a profile that does both matches either"),
     ] = None,
     sort: Annotated[
-        Literal["newest", "name", "oldest", "experience", "nearest"], Query()
+        Literal["newest", "name", "oldest", "experience", "nearest", "rating"], Query()
     ] = "newest",
     # The visitor's position, for "nearest" only -- see search_businesses.
     near_lat: Annotated[float | None, Query(ge=-90, le=90, alias="lat")] = None,
@@ -94,12 +96,15 @@ def latest_talent(
 
 @public_router.get("/talent/{slug}", response_model=TalentDetailOut)
 def get_talent(
-    slug: Annotated[str, Path(max_length=200)], db: DbSession, viewer: Viewer
+    slug: Annotated[str, Path(max_length=200)],
+    db: DbSession,
+    settings: AppSettings,
+    viewer: Viewer,
 ) -> TalentDetailOut:
     profile = TalentRepository(db).get_by_slug(slug, public_only=True)
     if profile is None:
         raise NotFoundError("talent.not_public")
-    payload = talent_detail(profile)
+    payload = talent_detail(profile, TestimonialService(db, settings).public_for(profile))
     ViewCounterService(db).record(
         ViewSubject.TALENT, profile.id, owner_id=profile.owner_id, viewer=viewer
     )

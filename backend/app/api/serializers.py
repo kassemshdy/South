@@ -167,13 +167,18 @@ def owner_testimonial(testimonial: Testimonial) -> OwnerTestimonialOut:
 
 
 def admin_testimonial(testimonial: Testimonial) -> AdminTestimonialOut:
-    """Platform view — the owner's moderation fields plus which listing it is
-    on, so the admin survey can name and link through to the business."""
+    """Platform view — the moderation state plus which listing it is on, so
+    the admin survey can name and link through to it."""
+    business = testimonial.business
+    profile = testimonial.talent_profile
     return AdminTestimonialOut(
         **owner_testimonial(testimonial).model_dump(),
-        business_id=testimonial.business_id,
-        business_name=testimonial.business.name,
-        business_slug=testimonial.business.slug,
+        business_id=business.id if business else None,
+        business_name=business.name if business else None,
+        business_slug=business.slug if business else None,
+        talent_id=profile.id if profile else None,
+        talent_name=profile.display_name if profile else None,
+        talent_slug=profile.slug if profile else None,
     )
 
 
@@ -299,13 +304,23 @@ def talent_summary(profile: TalentProfile) -> TalentSummaryOut:
         custom_skill_text=profile.custom_skill_text,
         skill_specialty=profile.skill_specialty,
         work_mode=profile.work_mode,
+        rating_average=(
+            float(profile.rating_average) if profile.rating_average is not None else None
+        ),
+        rating_count=profile.rating_count,
         location=location_out(profile.location),
         created_at=profile.created_at,
     )
 
 
-def talent_detail(profile: TalentProfile) -> TalentDetailOut:
+def talent_detail(
+    profile: TalentProfile, testimonials: Sequence[Testimonial] | None = None
+) -> TalentDetailOut:
     """Public profile. Contains only what the person chose to publish.
+
+    ``testimonials`` is explicit for the reason given on ``business_detail``:
+    the only way to publish one is to fetch it from
+    ``TestimonialService.public_for``.
 
     Note what is *not* here: the owner's legal name, birth year, gender,
     marital status and civil-record places. Those describe the person rather
@@ -323,6 +338,9 @@ def talent_detail(profile: TalentProfile) -> TalentDetailOut:
         longitude=float(profile.longitude) if profile.longitude is not None else None,
         images=_talent_gallery(profile),
         approved_at=profile.approved_at,
+        testimonials=[
+            TestimonialOut.model_validate(entry) for entry in (testimonials or [])
+        ],
         highest_degree=profile.highest_degree,
         specialization=profile.specialization,
         university=profile.university,

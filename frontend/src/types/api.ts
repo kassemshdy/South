@@ -388,6 +388,9 @@ export interface TalentSummary {
   skill_specialty: string | null
   /** Remotely, in person or both; null on a profile from before it was asked. */
   work_mode: WorkMode | null
+  /** The stars on the published testimonials; null until one is rated. */
+  rating_average: number | null
+  rating_count: number
   location: LocationNode | null
   created_at: string
 }
@@ -406,6 +409,8 @@ export type ContactChannel = 'PHONE' | 'WHATSAPP' | 'EMAIL' | 'WEBSITE'
 
 export interface TalentDetail extends TalentSummary {
   bio: string | null
+  /** Published ones only; a job application never has any. */
+  testimonials: Testimonial[]
   /** The owner's own pin on the map, as a business has. */
   latitude: number | null
   longitude: number | null
@@ -569,8 +574,9 @@ export type SortOption = 'newest' | 'name' | 'oldest' | 'nearest'
 /** Businesses and products can also sort by their stars, rated first. */
 export type BusinessSortOption = SortOption | 'rating'
 
-/** The talent directory can also sort by years of experience, most first. */
-export type TalentSortOption = SortOption | 'experience'
+/** The talent directory can also sort by years of experience, most first,
+ * and services by their stars, rated first. */
+export type TalentSortOption = SortOption | 'experience' | 'rating'
 
 /**
  * The products directory sorts by price as well, which the other two cannot:
@@ -684,8 +690,8 @@ export type TestimonialStatus =
   | 'REJECTED'
 
 /**
- * Owner-selected praise, never a review — the owner decides what appears, so
- * a testimonial is not independent evidence and no surface may imply it is.
+ * A visitor's praise, published once an administrator has read it. The
+ * author is not verified, so no surface may present it as a verified review.
  */
 export interface Testimonial {
   id: string
@@ -702,14 +708,18 @@ export interface OwnerTestimonial extends Testimonial {
 }
 
 /**
- * The platform's view: the owner's moderation fields plus which listing the
- * testimonial is on, so an admin can survey every submission in one place.
- * Carries only the business's public identity, never the owner's.
+ * The platform's view: the moderation state plus which listing the
+ * testimonial is on -- a business or a service profile, exactly one -- so an
+ * admin can survey every submission in one place. Carries only the
+ * listing's public identity, never the owner's.
  */
 export interface AdminTestimonial extends OwnerTestimonial {
-  business_id: string
-  business_name: string
-  business_slug: string
+  business_id: string | null
+  business_name: string | null
+  business_slug: string | null
+  talent_id: string | null
+  talent_name: string | null
+  talent_slug: string | null
 }
 
 export type ArticleSection = 'BLOG' | 'NEWS'

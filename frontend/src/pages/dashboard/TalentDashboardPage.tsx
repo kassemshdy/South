@@ -16,6 +16,7 @@ import { OwnerServiceRequests } from '@/features/talent/OwnerServiceRequests'
 import { TalentForm } from '@/features/talent/TalentForm'
 import { TalentImageManager } from '@/features/talent/TalentImageManager'
 import { OfferSwitcher } from '@/features/onboarding/OfferSwitcher'
+import { OwnerTestimonials } from '@/features/testimonials/OwnerTestimonials'
 import { useSeo } from '@/hooks/useSeo'
 import { useT, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
@@ -238,6 +239,9 @@ export function TalentDashboardPage() {
             <TabTrigger value="details">{t('talentDashboard.tabDetails')}</TabTrigger>
             <TabTrigger value="images">{t('talentDashboard.tabImages')}</TabTrigger>
             <TabTrigger value="requests">{t('serviceRequests.ownerTab')}</TabTrigger>
+            {data.kind === 'SERVICE' ? (
+              <TabTrigger value="testimonials">{t('wizard.stepTestimonials')}</TabTrigger>
+            ) : null}
           </Tabs.List>
 
           <CardBody>
@@ -271,6 +275,12 @@ export function TalentDashboardPage() {
             <Tabs.Content value="requests">
               <OwnerServiceRequests />
             </Tabs.Content>
+
+            {data.kind === 'SERVICE' ? (
+              <Tabs.Content value="testimonials">
+                <OwnerTestimonials source={{ kind: 'talent' }} />
+              </Tabs.Content>
+            ) : null}
           </CardBody>
         </Tabs.Root>
       </Card>
