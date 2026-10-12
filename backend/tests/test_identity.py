@@ -31,6 +31,7 @@ IDENTITY_FIELDS = (
     "marital_status",
     "registration_place",
     "residence_place",
+    "pre_displacement_place",
     # A face is identity too, and is kept out of public payloads by the same
     # rule. It is not in IDENTITY_PAYLOAD below because it is not settable by
     # PATCH — it arrives as an upload — but every "must not appear publicly"
@@ -45,6 +46,7 @@ IDENTITY_PAYLOAD = {
     "marital_status": "SINGLE",
     "registration_place": ar("identity.registration_place"),
     "residence_place": ar("identity.residence_place"),
+    "pre_displacement_place": ar("identity.pre_displacement_place"),
 }
 
 

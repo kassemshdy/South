@@ -15,6 +15,7 @@ import type {
   PageText,
   PageTextInput,
   TalentKind,
+  WorkMode,
   SiteSettings,
   DiscardedApplication,
   GoodsOrigin,
@@ -23,6 +24,7 @@ import type {
   AdminBusiness,
   AdminTalent,
   AdminTestimonial,
+  AdminPartnerRequest,
   AdminUser,
   AdminUserDetail,
   Article,
@@ -151,6 +153,8 @@ export interface TalentPayload {
   hobbies?: string | null
   employment_type?: EmploymentType | null
   remote_capable?: boolean
+  /** Required of a service; the API derives `remote_capable` from it. */
+  work_mode?: WorkMode | null
   languages?: { name: string; proficiency: LanguageProficiency }[]
   social_links?: { platform: SocialPlatform; url: string }[]
 }
@@ -170,6 +174,7 @@ export interface IdentityPayload {
   registration_place?: string | null
   residence_place?: string | null
   is_displaced?: boolean | null
+  pre_displacement_place?: string | null
 }
 
 /**
@@ -186,6 +191,8 @@ export interface ApplicantIdentity {
   registration_place: string
   residence_place: string
   is_displaced: boolean
+  /** Required when `is_displaced`; the API refuses the application without it. */
+  pre_displacement_place: string | null
 }
 
 /** Both sides of the applicant's ID card. */
@@ -309,6 +316,23 @@ export const publicItemApi = {
     apiRequest<ProductDetail>(`/api/items/${encodeURIComponent(slug)}`),
 }
 
+/** The partner form (round 3). */
+export interface PartnerPayload {
+  name: string
+  phone: string
+  occupation: string
+  residence: string
+  offer: string
+}
+
+export const partnerApi = {
+  send: (payload: PartnerPayload, captchaToken: string | null) =>
+    apiRequest<{ message: string }>('/api/partners', {
+      method: 'POST',
+      body: { ...payload, captcha_token: captchaToken },
+    }),
+}
+
 export const siteSettingsApi = {
   get: () => apiRequest<SiteSettings>('/api/site-settings'),
 }
@@ -386,28 +410,23 @@ export interface TestimonialPayload {
   rating?: number | null
 }
 
+/** Which kind of listing a testimonial is about. */
+export type TestimonialTarget = 'business' | 'talent'
+
 /**
  * Submitting is anonymous and rate limited; reading a testimonial publicly
- * happens through the business profile, which carries approved ones only.
+ * happens through the listing's own page, which carries approved ones only.
+ * An owner only reads: an administrator's approval publishes one.
  */
 export const testimonialApi = {
-  submit: (slug: string, payload: TestimonialPayload) =>
+  submit: (slug: string, payload: TestimonialPayload, target: TestimonialTarget = 'business') =>
     apiRequest<{ message: string }>(
-      `/api/businesses/${encodeURIComponent(slug)}/testimonials`,
+      `/api/${target === 'talent' ? 'talent' : 'businesses'}/${encodeURIComponent(slug)}/testimonials`,
       { method: 'POST', body: payload },
     ),
   listMine: (businessId: string) =>
     apiRequest<OwnerTestimonial[]>(`/api/businesses/${businessId}/testimonials`),
-  approve: (businessId: string, id: string) =>
-    apiRequest<OwnerTestimonial>(
-      `/api/businesses/${businessId}/testimonials/${id}/approve`,
-      { method: 'POST' },
-    ),
-  hide: (businessId: string, id: string) =>
-    apiRequest<OwnerTestimonial>(
-      `/api/businesses/${businessId}/testimonials/${id}/hide`,
-      { method: 'POST' },
-    ),
+  listMyTalent: () => apiRequest<OwnerTestimonial[]>('/api/my/talent/testimonials'),
 }
 
 export interface OrderPayload {
@@ -596,6 +615,20 @@ export const adminApi = {
   pending: (page = 1) =>
     apiRequest<Paginated<AdminBusiness>>('/api/admin/businesses/pending', { query: { page } }),
   get: (id: string) => apiRequest<AdminBusiness>(`/api/admin/businesses/${id}`),
+  // Permanent: the rows and every file they pointed at. See DeleteForeverButton.
+  deleteBusiness: (id: string) =>
+    apiRequest<{ message: string }>(`/api/admin/businesses/${id}`, { method: 'DELETE' }),
+  deleteItem: (businessId: string, itemId: string) =>
+    apiRequest<{ message: string }>(`/api/admin/businesses/${businessId}/items/${itemId}`, {
+      method: 'DELETE',
+    }),
+  deleteTalent: (id: string) =>
+    apiRequest<{ message: string }>(`/api/admin/talent/${id}`, { method: 'DELETE' }),
+  deleteUser: (id: string) =>
+    apiRequest<{ message: string }>(`/api/admin/users/${id}`, { method: 'DELETE' }),
+  partners: () => apiRequest<AdminPartnerRequest[]>('/api/admin/partners'),
+  deletePartner: (id: string) =>
+    apiRequest<{ message: string }>(`/api/admin/partners/${id}`, { method: 'DELETE' }),
   approve: (id: string) =>
     apiRequest<AdminBusiness>(`/api/admin/businesses/${id}/approve`, { method: 'POST' }),
   reject: (id: string, reason: string) =>
@@ -688,8 +721,8 @@ export const adminApi = {
   removeTestimonial: (id: string) =>
     apiRequest<{ message: string }>(`/api/admin/testimonials/${id}`, { method: 'DELETE' }),
   /** Pass the platform gate. Not a publish — the owner still decides. */
-  clearTestimonial: (id: string) =>
-    apiRequest<AdminTestimonial>(`/api/admin/testimonials/${id}/clear`, { method: 'POST' }),
+  approveTestimonial: (id: string) =>
+    apiRequest<AdminTestimonial>(`/api/admin/testimonials/${id}/approve`, { method: 'POST' }),
   rejectTestimonial: (id: string) =>
     apiRequest<AdminTestimonial>(`/api/admin/testimonials/${id}/reject`, { method: 'POST' }),
 

@@ -1,14 +1,19 @@
-import { ShieldCheck } from 'lucide-react'
+import { Handshake, ShieldCheck } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 import { WelcomeVideoPlayer } from '@/features/home/WelcomeVideo'
 import { AudienceChooser } from '@/features/onboarding/AudienceChooser'
 import { useT } from '@/i18n'
 import { usePageCover } from '@/hooks/usePageCover'
+import { usePageText } from '@/hooks/usePageText'
 import { useSeo } from '@/hooks/useSeo'
 
 export function HomePage() {
   const t = useT()
   const southCover = usePageCover('home')
+  // An administrator's words where they wrote some (round 3), the shipped
+  // catalog text where they did not.
+  const text = usePageText('home')
 
   useSeo({
     title: t('home.seoTitle'),
@@ -26,7 +31,7 @@ export function HomePage() {
           `object-cover` with a fixed height rather than the image's own
           aspect: a 16:9 photograph at phone width is a letterbox strip, and
           this needs to feel like somewhere you could stand. */}
-      <section className="relative isolate" aria-label={t('home.southTitle')}>
+      <section className="relative isolate" aria-label={text.title ?? t('home.southTitle')}>
         <img
           src={southCover.src}
           // The alt text describes the default photograph; over one an
@@ -60,10 +65,10 @@ export function HomePage() {
         <div className="container-page absolute inset-x-0 bottom-0 pb-8 sm:pb-12">
           <div className="max-w-2xl">
             <h2 className="font-display text-2xl font-bold text-white sm:text-3xl lg:text-4xl">
-              {t('home.southTitle')}
+              {text.title ?? t('home.southTitle')}
             </h2>
-            <p className="mt-3 text-base leading-relaxed text-white/90 sm:text-lg">
-              {t('home.southBody')}
+            <p className="mt-3 whitespace-pre-line text-base leading-relaxed text-white/90 sm:text-lg">
+              {text.summary ?? t('home.southBody')}
             </p>
           </div>
         </div>
@@ -114,7 +119,7 @@ export function HomePage() {
           <div className="order-2">
             <WelcomeVideoPlayer />
             <p className="mt-3 text-center text-sm font-semibold text-ink-500">
-              {t('home.videoHeading')}
+              {text.body ?? t('home.videoHeading')}
             </p>
           </div>
 
@@ -130,6 +135,27 @@ export function HomePage() {
           <div className="order-3 w-full lg:col-span-2">
             <AudienceChooser />
           </div>
+
+          {/* The owners' third way in (round 3): not selling or buying, but
+              supporting. Under the chooser rather than a section of its own,
+              for the reason given above the green band below. */}
+          <Link
+            to="/partner"
+            className="order-4 flex w-full items-center gap-4 rounded-2xl border-2 border-olive-200 bg-white p-5 shadow-card transition-colors hover:border-olive-400 lg:col-span-2"
+          >
+            <span
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-olive-100 text-olive-700"
+              aria-hidden="true"
+            >
+              <Handshake className="h-6 w-6" />
+            </span>
+            <span className="flex-1">
+              <span className="block text-lg font-bold text-ink-900">{t('partner.title')}</span>
+              <span className="mt-0.5 block text-sm font-semibold text-brand-700">
+                {t('partner.cardCta')}
+              </span>
+            </span>
+          </Link>
         </div>
       </section>
 

@@ -85,7 +85,18 @@ class BusinessRepository(BaseRepository[Business]):
         category_slug: str | None,
         location_slug: str | None,
         origin: GoodsOrigin | None = None,
+        with_products: bool = False,
     ) -> Select[tuple[Business]]:
+        if with_products:
+            # The products page lists shops (round 3): a shop belongs there
+            # once it has something a visitor can buy.
+            stmt = stmt.where(
+                exists().where(
+                    BusinessItem.business_id == Business.id,
+                    BusinessItem.is_available.is_(True),
+                )
+            )
+
         if origin is not None:
             # A shop belongs under a door if it came through it, or if any
             # of its goods carry that mark -- a shop selling both is found
@@ -160,6 +171,7 @@ class BusinessRepository(BaseRepository[Business]):
         category_slug: str | None = None,
         location_slug: str | None = None,
         origin: GoodsOrigin | None = None,
+        with_products: bool = False,
         sort: SortOption = "newest",
         near: Point | None = None,
         page: int = 1,
@@ -168,7 +180,7 @@ class BusinessRepository(BaseRepository[Business]):
         """Paginated public search. Never returns a non-APPROVED business."""
         filtered = self._apply_filters(
             self.public_query(), q=q, category_slug=category_slug, location_slug=location_slug,
-            origin=origin,
+            origin=origin, with_products=with_products,
         )
 
         total = int(

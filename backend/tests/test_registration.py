@@ -59,6 +59,7 @@ IDENTITY: dict[str, object] = {
     "registration_place": ar("identity.registration_place"),
     "residence_place": ar("identity.residence_place"),
     "is_displaced": True,
+    "pre_displacement_place": ar("identity.pre_displacement_place"),
 }
 
 
@@ -379,6 +380,7 @@ def test_a_talent_applicant_can_attach_one_too(
                 "whatsapp": APPLICANT_PHONE,
                 "years_experience": 3,
                 "kind": "SERVICE",
+                "work_mode": "BOTH",
             },
         },
         document=("id.png", PNG_BYTES, "image/png"),
@@ -412,6 +414,7 @@ def test_a_talent_application_lands_in_the_review_queue(
                 "whatsapp": APPLICANT_PHONE,
                 "years_experience": 3,
                 "kind": "SERVICE",
+                "work_mode": "BOTH",
             },
         },
     )
@@ -928,6 +931,32 @@ def test_the_displacement_answer_is_required_and_kept_for_the_team(
     owner = _owner(db)
     assert owner is not None
     assert owner.is_displaced is True
+    assert owner.pre_displacement_place == ar("identity.pre_displacement_place")
+
+
+def test_a_displaced_applicant_says_where_they_lived_before(
+    client: TestClient, db: Session, category: Category, location: Location
+) -> None:
+    """Displaced means two places, and the team needs both to judge the application."""
+    payload = _business_payload(category, location)
+    identity = dict(IDENTITY)
+    identity.pop("pre_displacement_place")
+    payload["identity"] = identity
+    refused = _register(client, "business", payload)
+    assert refused.status_code == 422, refused.text
+    assert _owner(db) is None
+
+    # Someone who was not displaced has no "before", whatever the form sent.
+    payload["identity"] = {
+        **IDENTITY,
+        "is_displaced": False,
+        "pre_displacement_place": ar("identity.pre_displacement_place"),
+    }
+    accepted = _register(client, "business", payload)
+    assert accepted.status_code == 202, accepted.text
+    owner = _owner(db)
+    assert owner is not None
+    assert owner.pre_displacement_place is None
 
 
 def test_a_talent_application_must_say_service_or_job(
@@ -956,6 +985,39 @@ def test_a_talent_application_must_say_service_or_job(
     )
     assert response.status_code == 422, response.text
     assert db.execute(select(TalentProfile)).first() is None
+
+
+def test_a_service_application_must_say_how_it_is_delivered(
+    client: TestClient,
+    db: Session,
+    skill: TalentSkill,
+    location: Location,
+) -> None:
+    """Remotely, in person or both: compulsory for a service, not for a job."""
+
+    def apply(kind: str) -> int:
+        return _register(
+            client,
+            "talent",
+            {
+                "login_phone": APPLICANT_PHONE,
+                "identity": dict(IDENTITY),
+                "talent": {
+                    "display_name": ar("talent.applicant"),
+                    "skill_id": str(skill.id),
+                    "location_id": str(location.id),
+                    "latitude": 33.27,
+                    "longitude": 35.2,
+                    "whatsapp": APPLICANT_PHONE,
+                    "years_experience": 3,
+                    "kind": kind,
+                },
+            },
+        ).status_code
+
+    assert apply("SERVICE") == 422
+    assert db.execute(select(TalentProfile)).first() is None
+    assert apply("JOB_SEEKER") == 202
 
 
 def test_an_application_without_an_area_is_refused(
@@ -987,6 +1049,7 @@ def test_an_application_without_an_area_is_refused(
                 "whatsapp": APPLICANT_PHONE,
                 "years_experience": 3,
                 "kind": "SERVICE",
+                "work_mode": "BOTH",
             },
         },
     )

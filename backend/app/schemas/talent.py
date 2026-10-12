@@ -15,10 +15,12 @@ from app.models.enums import (
     ImageKind,
     LanguageProficiency,
     TalentKind,
+    WorkMode,
 )
 from app.schemas.business import SocialLinkIn, SocialLinkOut
 from app.schemas.common import ORMModel
 from app.schemas.taxonomy import LocationOut
+from app.schemas.testimonial import TestimonialOut
 from app.services.images import thumbnail_url
 
 OptionalPhone = Annotated[str | None, Field(default=None, max_length=25)]
@@ -85,6 +87,11 @@ class TalentSummaryOut(ORMModel):
     # One level below the skill and in their own words, which is what makes a
     # card worth reading: the trade narrowed to what this person actually does.
     skill_specialty: str | None = None
+    # Remotely, in person or both: on the card because it is filtered on.
+    work_mode: WorkMode | None = None
+    # The stars on the published testimonials, as a business card shows them.
+    rating_average: float | None = None
+    rating_count: int = 0
     location: LocationOut | None = None
     created_at: datetime
 
@@ -117,6 +124,8 @@ class TalentDetailOut(TalentSummaryOut):
     longitude: float | None = None
     images: list[TalentImageOut] = Field(default_factory=list)
     approved_at: datetime | None = None
+    # Published ones only -- see talent_detail.
+    testimonials: list[TestimonialOut] = Field(default_factory=list)
 
     # Professional detail: what the person can do, which is the whole point
     # of publishing a profile.
@@ -190,7 +199,9 @@ class TalentProfileFieldsIn(BaseModel):
     services_offered: str | None = Field(default=None, max_length=2000)
     hobbies: str | None = Field(default=None, max_length=1000)
     employment_type: EmploymentType | None = None
+    # Superseded by work_mode, which sets it; still accepted from older clients.
     remote_capable: bool = False
+    work_mode: WorkMode | None = None
 
     languages: list[TalentLanguageIn] | None = Field(default=None, max_length=20)
     # Optional; omitted leaves them as they are, an empty list clears them.

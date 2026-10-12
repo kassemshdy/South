@@ -32,6 +32,7 @@ export const queryKeys = {
   readiness: (id: string) => ['my-business', id, 'readiness'] as const,
   myViews: ['my-views'] as const,
   myTestimonials: (id: string) => ['my-business', id, 'testimonials'] as const,
+  myTalentTestimonials: ['my-talent', 'testimonials'] as const,
   myOrders: (id: string) => ['my-business', id, 'orders'] as const,
   myTalent: ['my-talent'] as const,
   myTalentReadiness: ['my-talent', 'readiness'] as const,
@@ -61,6 +62,7 @@ export const queryKeys = {
   adminSiteSettings: ['admin', 'site-settings'] as const,
   adminDiscardedApplications: (includeDismissed: boolean) =>
     ['admin', 'discarded-applications', includeDismissed] as const,
+  adminPartners: ['admin', 'partners'] as const,
   adminTestimonials: (status: TestimonialStatus | 'ALL') =>
     ['admin', 'testimonials', status] as const,
   articles: (section: ArticleSection) => ['articles', section] as const,

@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import type { z } from 'zod'
 
 import { Badge } from '@/components/ui/Badge'
@@ -23,11 +23,12 @@ import { Field } from '@/components/ui/Field'
 import { Textarea } from '@/components/ui/Input'
 import { ErrorState, InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
+import { DeleteForeverButton } from '@/features/admin/DeleteForeverButton'
 import { IssueCredentialsCard } from '@/features/admin/IssueCredentialsCard'
 import { OwnerIdentityCard } from '@/features/admin/OwnerIdentityCard'
 import { OwnerWhatsappButton } from '@/features/admin/OwnerWhatsappButton'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
-import { EMPLOYMENT_TYPE_KEYS, PROFICIENCY_KEYS } from '@/features/talent/labels'
+import { EMPLOYMENT_TYPE_KEYS, PROFICIENCY_KEYS, WORK_MODE_KEYS } from '@/features/talent/labels'
 import { useI18n, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { adminApi } from '@/services/api/endpoints'
@@ -40,6 +41,7 @@ type ConfirmAction = 'approve' | 'reject' | 'suspend' | 'reactivate' | null
 
 export function AdminTalentReviewPage() {
   const { id = '' } = useParams()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const toast = useToast()
   const { t, locale } = useI18n()
@@ -216,6 +218,14 @@ export function AdminTalentReviewPage() {
             </Button>
           ) : null}
 
+          <div className="ms-auto">
+            <DeleteForeverButton
+              description={t('admin.deleteTalentBody', { name: data.display_name })}
+              onDelete={() => adminApi.deleteTalent(data.id)}
+              onDeleted={() => navigate('/admin/talent')}
+            />
+          </div>
+
           {data.status === 'DRAFT' || data.status === 'REJECTED' ? (
             <p className="text-ink-500">
               {data.status === 'DRAFT' ? t('admin.draftNotice') : t('admin.rejectedNotice')}
@@ -276,6 +286,10 @@ export function AdminTalentReviewPage() {
               <Detail
                 labelKey="talent.employmentTypeLabel"
                 value={data.employment_type ? t(EMPLOYMENT_TYPE_KEYS[data.employment_type]) : null}
+              />
+              <Detail
+                labelKey="talent.workModeLabel"
+                value={data.work_mode ? t(WORK_MODE_KEYS[data.work_mode]) : null}
               />
               <Detail
                 labelKey="talent.remoteCapableLabel"

@@ -33,6 +33,7 @@ from app.models.feedback import FeedbackAttachment, FeedbackComment, FeedbackTic
 from app.models.order import Order, OrderLine
 from app.models.page import Page
 from app.models.page_cover import PageCover
+from app.models.partner import PartnerRequest
 from app.models.service_request import ServiceRequest
 from app.models.site_setting import SiteSetting
 from app.models.talent import (
@@ -79,6 +80,7 @@ __all__ = [
     "OwnerVerificationDocument",
     "Page",
     "PageCover",
+    "PartnerRequest",
     "RateLimitEvent",
     "ServiceRequest",
     "SiteSetting",

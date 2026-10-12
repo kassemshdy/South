@@ -199,7 +199,7 @@ export function EditBusinessPage() {
               <DocumentManager business={data} />
             </Tabs.Content>
             <Tabs.Content value="testimonials">
-              <OwnerTestimonials businessId={data.id} />
+              <OwnerTestimonials source={{ kind: 'business', id: data.id }} />
             </Tabs.Content>
             <Tabs.Content value="orders">
               <OwnerOrders businessId={data.id} businessName={data.name} />

@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { BusinessCardSkeleton } from '@/components/ui/Skeleton'
 import { ErrorState, NoSearchResults } from '@/components/ui/States'
 import { Pagination } from '@/features/businesses/Pagination'
-import { ProductCard } from '@/features/items/ProductCard'
+import { BusinessCard } from '@/features/businesses/BusinessCard'
 import { PageBanner } from '@/components/layout/PageBanner'
 import { BrowseSwitcher } from '@/features/onboarding/BrowseSwitcher'
 import { originFromParams } from '@/features/onboarding/destinations'
@@ -17,29 +17,27 @@ import { useNearestSort } from '@/features/directory/useNearestSort'
 import { useCategories, useLocationGroups } from '@/hooks/useTaxonomy'
 import { useT, type TranslationKey } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
-import { publicItemApi } from '@/services/api/endpoints'
+import { publicBusinessApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import type { GoodsOrigin, ProductSortOption } from '@/types/api'
+import type { BusinessSortOption, GoodsOrigin } from '@/types/api'
 
 const ALL = '__all__'
+
 /**
- * Price appears here as two orderings, not as a range.
+ * The shops, not their products, at the owners' request (round 3): each card
+ * is a shop with something on sale, and the products are searched inside the
+ * shop's own page. A search here still reaches a shop by what it sells,
+ * because a listing's search text carries its products' names.
  *
- * A range needed three controls — a currency, because a bound spanning
- * dollars and lira means two things at once, plus both ends — and a fourth
- * decision about the products whose owner named no price. That is four
- * questions asked before the visitor has seen a result, to narrow a
- * catalogue of 28. Ordering asks none of them: nothing is removed, and an
- * unpriced product sorts to the end rather than being called cheap.
+ * So the price orderings went with the product cards: a shop has no single
+ * price to order by.
  */
-const SORT_KEYS: Record<ProductSortOption, TranslationKey> = {
+const SORT_KEYS: Record<BusinessSortOption, TranslationKey> = {
   newest: 'directory.sortNewest',
   nearest: 'directory.sortNearest',
   rating: 'directory.sortRating',
   name: 'directory.sortName',
   oldest: 'directory.sortOldest',
-  price_asc: 'products.sortPriceAsc',
-  price_desc: 'products.sortPriceDesc',
 }
 
 /**
@@ -65,10 +63,10 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
   const location = searchParams.get('location') ?? ''
   // Fixed by the page on the two origin pages; otherwise an optional filter.
   const origin = fixedOrigin ?? originFromParams(searchParams)
-  const chosenSort = searchParams.get('sort') as ProductSortOption | null
+  const chosenSort = searchParams.get('sort') as BusinessSortOption | null
   const page = Number(searchParams.get('page') ?? '1')
   const setSort = useCallback(
-    (value: ProductSortOption) => {
+    (value: BusinessSortOption) => {
       const next = new URLSearchParams(searchParams)
       next.set('sort', value)
       next.delete('page')
@@ -81,7 +79,7 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
     choose: chooseSort,
     locating,
     near,
-  } = useNearestSort<ProductSortOption>(chosenSort, setSort, 'newest')
+  } = useNearestSort<BusinessSortOption>(chosenSort, setSort, 'newest')
 
   // Local mirror so typing feels instant; the URL updates on submit, which
   // keeps searches shareable and back/forward working.
@@ -110,9 +108,20 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
   const { groups } = useLocationGroups()
 
   const results = useQuery({
-    queryKey: queryKeys.products({ q, category, location, origin, sort, lat: near?.lat, lng: near?.lng, page }),
+    queryKey: queryKeys.businesses({
+      q,
+      category,
+      location,
+      origin,
+      with_products: true,
+      sort,
+      lat: near?.lat,
+      lng: near?.lng,
+      page,
+    }),
     queryFn: () =>
-      publicItemApi.search({
+      publicBusinessApi.search({
+        with_products: true,
         q: q || undefined,
         category: category || undefined,
         location: location || undefined,
@@ -270,12 +279,12 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
             <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="filter-sort">
               {t('directory.sort')}
             </label>
-            <Select value={sort} onValueChange={(value) => chooseSort(value as ProductSortOption)}>
+            <Select value={sort} onValueChange={(value) => chooseSort(value as BusinessSortOption)}>
               <SelectTrigger aria-labelledby="filter-sort">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {(Object.keys(SORT_KEYS) as ProductSortOption[]).map((option) => (
+                {(Object.keys(SORT_KEYS) as BusinessSortOption[]).map((option) => (
                   <SelectItem key={option} value={option}>
                     {t(SORT_KEYS[option])}
                   </SelectItem>
@@ -318,8 +327,8 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
           ) : results.data && results.data.items.length > 0 ? (
             <>
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {results.data.items.map((product) => (
-                  <ProductCard key={product.id} product={product} />
+                {results.data.items.map((business) => (
+                  <BusinessCard key={business.id} business={business} />
                 ))}
               </div>
               <Pagination

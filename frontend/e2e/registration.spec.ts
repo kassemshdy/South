@@ -103,6 +103,13 @@ test.describe('Applying for a listing', () => {
     await page.getByRole('option').nth(1).click()
     // Every seller pins themselves on the map; a tap anywhere drops it.
     await dropPin(page, t('form.mapPinLabel'))
+
+    // The responsibility notice is on this page now (round 3), and nothing
+    // is sent until it is agreed to.
+    await page.getByRole('button', { name: t('register.submit') }).click()
+    await expect(page.getByText(t('validation.consentRequired'))).toBeVisible()
+    await expect(page.getByRole('heading', { name: t('register.doneTitle') })).toHaveCount(0)
+    await page.getByRole('checkbox', { name: t('consent.agree') }).check()
     await page.getByRole('button', { name: t('register.submit') }).click()
 
     await expect(page.getByRole('heading', { name: t('register.doneTitle') })).toBeVisible()

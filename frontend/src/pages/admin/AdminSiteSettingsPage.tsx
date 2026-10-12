@@ -59,7 +59,22 @@ const FIELDS: {
     type: 'text',
     placeholder: 'https://instagram.com/…',
   },
+  {
+    // The homepage video (round 3). Stored as an id; shown as a link.
+    key: 'home_video',
+    labelKey: 'admin.homeVideoLabel',
+    type: 'text',
+    placeholder: 'https://www.youtube.com/watch?v=…',
+  },
 ]
+
+/** The API returns the video as an id; the field holds a link, as pasted. */
+const asForm = (settings: SiteSettings): SiteSettings => ({
+  ...settings,
+  home_video: settings.home_video
+    ? `https://www.youtube.com/watch?v=${settings.home_video}`
+    : null,
+})
 
 const EMPTY: SiteSettings = {
   contact_phone: null,
@@ -67,6 +82,7 @@ const EMPTY: SiteSettings = {
   contact_email: null,
   social_facebook: null,
   social_instagram: null,
+  home_video: null,
 }
 
 export function AdminSiteSettingsPage() {
@@ -80,13 +96,13 @@ export function AdminSiteSettingsPage() {
   const [values, setValues] = useState<SiteSettings>(EMPTY)
 
   useEffect(() => {
-    if (current.data) setValues(current.data)
+    if (current.data) setValues(asForm(current.data))
   }, [current.data])
 
   const save = useMutation({
     mutationFn: adminApi.updateSiteSettings,
     onSuccess: (saved) => {
-      setValues(saved)
+      setValues(asForm(saved))
       queryClient.setQueryData(queryKeys.adminSiteSettings, saved)
       // The header and footer read the public copy; refresh it too.
       void queryClient.invalidateQueries({ queryKey: queryKeys.siteSettings })

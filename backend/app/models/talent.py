@@ -40,11 +40,13 @@ from app.models.enums import (
     ModerationActionType,
     SocialPlatform,
     TalentKind,
+    WorkMode,
 )
 
 if TYPE_CHECKING:
     from app.models.service_request import ServiceRequest
     from app.models.taxonomy import Location
+    from app.models.testimonial import Testimonial
     from app.models.user import User
 
 
@@ -159,7 +161,20 @@ class TalentProfile(Base, TimestampMixin):
     employment_type: Mapped[EmploymentType | None] = mapped_column(
         pg_enum(EmploymentType, "employment_type"), nullable=True
     )
+    # Derived from work_mode whenever that is set (see TalentService), and
+    # kept so nothing that reads it changes.
     remote_capable: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Remotely, in person or both. Required of a service at review; a job
+    # application is not asked.
+    work_mode: Mapped[WorkMode | None] = mapped_column(
+        pg_enum(WorkMode, "work_mode"), nullable=True
+    )
+    # The stars on this profile's published testimonials, as a business
+    # carries them. Written only by TestimonialService.
+    rating_average: Mapped[float | None] = mapped_column(Numeric(3, 2), nullable=True)
+    rating_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
 
     # Identity — legal name, birth year, gender, marital status and the two
     # civil-record places — lives on :class:`~app.models.user.User`, not
@@ -225,6 +240,11 @@ class TalentProfile(Base, TimestampMixin):
         back_populates="profile",
         cascade="all, delete-orphan",
         order_by="ServiceRequest.created_at.desc()",
+    )
+    testimonials: Mapped[list[Testimonial]] = relationship(
+        back_populates="talent_profile",
+        cascade="all, delete-orphan",
+        order_by="Testimonial.created_at.desc()",
     )
 
     @property

@@ -90,6 +90,8 @@ test.describe('Talent directory', () => {
     // Which directory it goes in: the owners split services from job
     // applications and left the choice to the profile's owner.
     await page.getByRole('radio', { name: t('nav.services') }).check()
+    // Compulsory for a service: remotely, in person, or both.
+    await page.getByRole('radio', { name: t('talent.workModeRemote'), exact: true }).check()
     await page.getByLabel(t('talentForm.displayName')).fill(fixture.displayName)
     await page.getByLabel(t('talentForm.bio')).fill(fixture.bio)
     await page.getByRole('combobox').first().click()
@@ -162,6 +164,12 @@ test.describe('Talent directory', () => {
 
     // Filtering by another skill excludes it.
     await page.goto('/services?skill=software')
+    await expect(page.getByText(fixture.displayName, { exact: true })).toHaveCount(0)
+
+    // Remote only: found when a visitor asks for remote help, not in person.
+    await page.goto('/services?work_mode=REMOTE')
+    await expect(page.getByRole('article').filter({ hasText: fixture.displayName })).toHaveCount(1)
+    await page.goto('/services?work_mode=ON_SITE')
     await expect(page.getByText(fixture.displayName, { exact: true })).toHaveCount(0)
 
     // --- The public profile page renders, with no moderation state on it ----------

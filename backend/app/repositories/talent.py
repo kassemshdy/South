@@ -15,14 +15,14 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.core.arabic import normalize_arabic
 from app.core.pagination import Page
-from app.models.enums import BusinessStatus, TalentKind
+from app.models.enums import BusinessStatus, TalentKind, WorkMode
 from app.models.talent import TalentProfile, TalentSkill
 from app.models.taxonomy import Location
 from app.models.user import User
 from app.repositories.base import BaseRepository
 from app.repositories.geo import Point, nearest_first
 
-SortOption = Literal["newest", "name", "oldest", "experience", "nearest"]
+SortOption = Literal["newest", "name", "oldest", "experience", "nearest", "rating"]
 
 
 class TalentSkillRepository(BaseRepository[TalentSkill]):
@@ -105,9 +105,14 @@ class TalentRepository(BaseRepository[TalentProfile]):
         skill_slug: str | None,
         location_slug: str | None,
         kind: TalentKind | None = None,
+        work_mode: WorkMode | None = None,
     ) -> Select[tuple[TalentProfile]]:
         if kind is not None:
             stmt = stmt.where(TalentProfile.kind == kind)
+
+        if work_mode is not None:
+            # Someone who works both ways answers either question.
+            stmt = stmt.where(TalentProfile.work_mode.in_({work_mode, WorkMode.BOTH}))
 
         if skill_slug:
             stmt = stmt.join(TalentSkill, TalentProfile.skill_id == TalentSkill.id).where(
@@ -147,6 +152,14 @@ class TalentRepository(BaseRepository[TalentProfile]):
             return stmt.order_by(TalentProfile.display_name.asc())
         if sort == "oldest":
             return stmt.order_by(TalentProfile.created_at.asc())
+        if sort == "rating":
+            # Highest average first, the busier of two equal averages ahead;
+            # a profile nobody has rated comes last rather than as zero.
+            return stmt.order_by(
+                TalentProfile.rating_average.desc().nulls_last(),
+                TalentProfile.rating_count.desc(),
+                TalentProfile.created_at.desc(),
+            )
         if sort == "experience":
             # Most years first; a profile that never said comes last rather
             # than being read as no experience at all.
@@ -163,6 +176,7 @@ class TalentRepository(BaseRepository[TalentProfile]):
         skill_slug: str | None = None,
         location_slug: str | None = None,
         kind: TalentKind | None = None,
+        work_mode: WorkMode | None = None,
         sort: SortOption = "newest",
         near: Point | None = None,
         page: int = 1,
@@ -175,6 +189,7 @@ class TalentRepository(BaseRepository[TalentProfile]):
             skill_slug=skill_slug,
             location_slug=location_slug,
             kind=kind,
+            work_mode=work_mode,
         )
 
         total = int(

@@ -22,12 +22,14 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { useSeo } from '@/hooks/useSeo'
 import { useI18n, useT } from '@/i18n'
-import { EMPLOYMENT_TYPE_KEYS, PROFICIENCY_KEYS } from '@/features/talent/labels'
+import { EMPLOYMENT_TYPE_KEYS, PROFICIENCY_KEYS, WORK_MODE_KEYS } from '@/features/talent/labels'
 import { FollowLinks } from '@/features/social/FollowLinks'
 import { ListingMap } from '@/features/map/ListingMap'
 import { googleMapsHref, pinOf } from '@/features/map/types'
 import { directoryPath } from '@/features/talent/kind'
 import { ServiceRequestForm } from '@/features/talent/ServiceRequestForm'
+import { TestimonialForm } from '@/features/testimonials/TestimonialForm'
+import { TestimonialList } from '@/features/testimonials/TestimonialList'
 import { publicTalentApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { ContactChannel } from '@/types/api'
@@ -133,7 +135,14 @@ export function TalentProfilePage() {
       value: t(EMPLOYMENT_TYPE_KEYS[data.employment_type]),
     })
   }
-  if (data.remote_capable) {
+  if (data.work_mode) {
+    derivedFields.push({
+      key: 'work_mode',
+      label: t('talent.workModeLabel'),
+      value: t(WORK_MODE_KEYS[data.work_mode]),
+    })
+  } else if (data.remote_capable) {
+    // A profile from before the question was asked.
     derivedFields.push({
       key: 'remote_capable',
       label: t('talent.remoteCapableLabel'),
@@ -354,6 +363,21 @@ export function TalentProfilePage() {
                   ))}
                 </div>
               </section>
+            ) : null}
+
+            {/* A service only, and always rendered there, as on a business
+                page: the form is the point, and the first person who wants
+                to leave one must have somewhere to do it. A job application
+                takes no testimonials. */}
+            {data.kind === 'SERVICE' ? (
+              <>
+                <TestimonialList
+                  testimonials={data.testimonials}
+                  average={data.rating_average}
+                  count={data.rating_count}
+                />
+                <TestimonialForm slug={data.slug} target="talent" />
+              </>
             ) : null}
           </div>
 

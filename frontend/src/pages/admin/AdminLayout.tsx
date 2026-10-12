@@ -3,6 +3,7 @@ import {
   Bug,
   FileText,
   FolderTree,
+  Handshake,
   Inbox,
   MapPin,
   MessageSquareQuote,
@@ -29,6 +30,7 @@ const NAV: { to: string; labelKey: TranslationKey; icon: typeof BarChart3; end: 
   { to: '/admin/locations', labelKey: 'admin.navLocations', icon: MapPin, end: false },
   { to: '/admin/users', labelKey: 'admin.navUsers', icon: Users, end: false },
   { to: '/admin/applications', labelKey: 'admin.navApplications', icon: Inbox, end: false },
+  { to: '/admin/partners', labelKey: 'admin.navPartners', icon: Handshake, end: false },
   {
     to: '/admin/testimonials',
     labelKey: 'admin.navTestimonials',

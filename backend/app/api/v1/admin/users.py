@@ -15,14 +15,17 @@ from fastapi import APIRouter, Response
 
 from app.api.serializers import admin_user_detail
 from app.core.dependencies import AdminUser, AppSettings, DbSession
-from app.core.errors import NotFoundError, ValidationError
+from app.core.errors import NotFoundError, PermissionDeniedError, ValidationError
+from app.core.i18n import translate
 from app.models.enums import UserRole, VerificationDocumentKind
 from app.repositories.business import BusinessRepository
 from app.repositories.talent import TalentRepository
 from app.repositories.user import UserRepository
 from app.schemas.auth import IssuedPasswordOut
+from app.schemas.common import MessageResponse
 from app.schemas.moderation import AdminUserDetailOut
 from app.schemas.verification import VerificationDocumentOut
+from app.services.account import AccountDeletionService
 from app.services.auth import AuthService
 from app.services.verification import VerificationDocumentService
 from app.storage.factory import get_storage
@@ -145,3 +148,20 @@ def issue_credentials(
 
     password = AuthService(db, settings).issue_password(user)
     return IssuedPasswordOut(phone_number=user.phone_number, password=password)
+
+
+@router.delete("/users/{user_id}", response_model=MessageResponse)
+def delete_user(user_id: uuid.UUID, db: DbSession, admin: AdminUser) -> MessageResponse:
+    """Delete a seller's account and everything it published, files included.
+
+    The same deletion an owner can ask for themselves. Never an administrator
+    account: that is the way into moderation, and this route must not be a
+    way to lock the platform's owners out of their own site.
+    """
+    user = UserRepository(db).get(user_id)
+    if user is None:
+        raise NotFoundError("user.not_found")
+    if user.role is UserRole.ADMIN:
+        raise PermissionDeniedError("account.admin_cannot_delete")
+    AccountDeletionService(db, get_storage()).delete(user)
+    return MessageResponse(message=translate("user.deleted"))

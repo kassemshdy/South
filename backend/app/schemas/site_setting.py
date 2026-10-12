@@ -15,6 +15,8 @@ class SiteSettingsOut(BaseModel):
     contact_email: str | None = None
     social_facebook: str | None = None
     social_instagram: str | None = None
+    # A YouTube id, never the link that was pasted -- see youtube_video_id.
+    home_video: str | None = None
 
 
 class SiteSettingsIn(BaseModel):
@@ -31,6 +33,8 @@ class SiteSettingsIn(BaseModel):
     contact_email: EmailStr | None = None
     social_facebook: str | None = Field(default=None, max_length=500)
     social_instagram: str | None = Field(default=None, max_length=500)
+    # A YouTube link, stored as its id by the route.
+    home_video: str | None = Field(default=None, max_length=500)
 
     @field_validator("*", mode="before")
     @classmethod
