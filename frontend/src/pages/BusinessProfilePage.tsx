@@ -9,9 +9,11 @@ import {
   MessageCircle,
   Music2,
   Phone,
+  Search,
   Store,
   Youtube,
 } from 'lucide-react'
+import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
@@ -34,6 +36,7 @@ import { useSeo } from '@/hooks/useSeo'
 import { useI18n, useT } from '@/i18n'
 import type { SocialPlatform } from '@/types/api'
 import { formatDate, formatPrice, PLATFORM_KEYS, telHref, whatsappHref } from '@/utils/format'
+import { matchesSearch } from '@/utils/search'
 import { CardImage } from '@/components/ui/CardImage'
 
 const PLATFORM_ICONS: Record<SocialPlatform, typeof Instagram> = {
@@ -49,6 +52,7 @@ export function BusinessProfilePage() {
   const { slug = '' } = useParams()
   const t = useT()
   const { locale } = useI18n()
+  const [itemQuery, setItemQuery] = useState('')
 
   const business = useQuery({
     queryKey: queryKeys.business(slug),
@@ -97,6 +101,9 @@ export function BusinessProfilePage() {
     t('business.whatsappMessage', { name: data.name }),
   )
   const phone = telHref(data.phone)
+  const visibleItems = data.items.filter((item) =>
+    matchesSearch(itemQuery, item.title, item.description),
+  )
   const mapsUrl =
     data.maps_url ??
     (data.latitude !== null && data.longitude !== null
@@ -283,8 +290,34 @@ export function BusinessProfilePage() {
                 <h2 id="items-heading" className="mb-3 text-xl">
                   {t('business.itemsHeading')}
                 </h2>
+                {/* Searching inside the shop, at the owners' request (round
+                    3): the products page lists shops, so this is where a
+                    visitor looks for one product. Every item is already on
+                    the page, so it filters here rather than asking again. */}
+                <div className="relative mb-4">
+                  <label htmlFor="items-search" className="sr-only">
+                    {t('business.itemsSearchLabel')}
+                  </label>
+                  <Search
+                    className="pointer-events-none absolute inset-y-0 start-4 my-auto h-5 w-5 text-ink-300"
+                    aria-hidden="true"
+                  />
+                  <input
+                    id="items-search"
+                    type="search"
+                    value={itemQuery}
+                    onChange={(event) => setItemQuery(event.target.value)}
+                    placeholder={t('business.itemsSearchLabel')}
+                    className="h-12 w-full rounded-xl border-2 border-ink-100 bg-white ps-12 pe-4 text-[15px] placeholder:text-ink-300 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                  />
+                </div>
+                {visibleItems.length === 0 ? (
+                  <p className="rounded-xl bg-sand-50 p-4 text-sm text-ink-500">
+                    {t('business.itemsNoMatch')}
+                  </p>
+                ) : null}
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {data.items.map((item) => (
+                  {visibleItems.map((item) => (
                     <Card key={item.id} className={item.is_available ? '' : 'opacity-60'}>
                       {item.image_url ? (
                         <CardImage src={item.image_url} thumbSrc={item.image_thumb_url} alt={item.title} loading="lazy" className="h-40 w-full rounded-t-2xl object-cover" />

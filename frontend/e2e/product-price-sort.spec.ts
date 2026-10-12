@@ -8,9 +8,6 @@ const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
   JSON.parse(readFileSync(resolve(here, relative), 'utf-8')) as T
 
-const ar = load<Record<string, string>>('../src/i18n/locales/ar.json')
-const t = (key: string): string => ar[key]!
-
 interface Product {
   title: string
   price: string | null
@@ -25,7 +22,10 @@ async function products(request: APIRequestContext, sort: string): Promise<Produ
 }
 
 /**
- * Ordering the products directory by price.
+ * Ordering products by price, on the API.
+ *
+ * The products page lists shops now (round 3), so the ordering is no longer
+ * offered there; it stays on `/api/items`, which the rest of this pins.
  *
  * This replaced a price *filter*, which needed a currency (a bound spanning
  * dollars and lira means two things at once) plus a fourth control deciding
@@ -74,24 +74,5 @@ test.describe('Products price sort', () => {
       const expected = [...amounts].sort((a, b) => (sort === 'price_asc' ? a - b : b - a))
       expect(amounts, sort).toEqual(expected)
     }
-  })
-
-  test('a visitor picks the order from the sort dropdown', async ({ page }) => {
-    await page.goto('/products')
-
-    // The filter row is collapsed at phone width behind this toggle, so the
-    // sort control does not exist on screen until it is opened.
-    await page.getByRole('button', { name: t('directory.filtersAria') }).click()
-
-    // By its label rather than its current text: the trigger is the one
-    // `filter-sort` names, whatever option happens to be selected.
-    await page.getByRole('combobox', { name: t('directory.sort') }).click()
-    await page.getByRole('option', { name: t('products.sortPriceAsc') }).click()
-
-    await expect(page).toHaveURL(/sort=price_asc/)
-
-    // The price filter that used to live under this row is gone, not merely
-    // collapsed: its currency picker was the control the whole thing hung on.
-    await expect(page.getByText(t('items.currencyLabel'))).toHaveCount(0)
   })
 })

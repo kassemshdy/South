@@ -14,10 +14,14 @@ from fastapi import APIRouter, Query, Response
 from app.api.serializers import admin_business, paginate
 from app.core.dependencies import AdminUser, AppSettings, DbSession
 from app.core.errors import NotFoundError
+from app.core.i18n import translate
+from app.models.business import BusinessItem
 from app.models.enums import BusinessStatus
 from app.repositories.business import BusinessRepository
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.moderation import AdminBusinessOut, RejectIn, SuspendIn
+from app.services.account import AccountDeletionService
+from app.services.business import BusinessService
 from app.services.business_documents import BusinessDocumentService
 from app.services.moderation import ModerationService
 from app.storage.factory import get_storage
@@ -121,3 +125,32 @@ def suspend(
 def reactivate(business_id: uuid.UUID, db: DbSession, admin: AdminUser) -> AdminBusinessOut:
     business = ModerationService(db).reactivate(_load(db, business_id), admin)
     return admin_business(business)
+
+
+# --- Permanent deletion -----------------------------------------------------
+#
+# The owners asked for it (round 3): suspending hides a listing, this removes
+# it and every file it pointed at, for good. The owner's account stays; it is
+# deleted on its own from the user's page.
+
+
+@router.delete("/businesses/{business_id}", response_model=MessageResponse)
+def delete_business(business_id: uuid.UUID, db: DbSession, admin: AdminUser) -> MessageResponse:
+    AccountDeletionService(db, get_storage()).delete_business(_load(db, business_id))
+    return MessageResponse(message=translate("business.deleted"))
+
+
+@router.delete("/businesses/{business_id}/items/{item_id}", response_model=MessageResponse)
+def delete_item(
+    business_id: uuid.UUID, item_id: uuid.UUID, db: DbSession, admin: AdminUser
+) -> MessageResponse:
+    business = _load(db, business_id)
+    # Scoped by business, as the owner's route is: an item id from another
+    # listing reaches nothing.
+    item = db.get(BusinessItem, item_id)
+    if item is None or item.business_id != business.id:
+        raise NotFoundError("item.not_found")
+    AccountDeletionService(db, get_storage()).delete_item(item)
+    BusinessService(db).refresh_search_text(business)
+    db.commit()
+    return MessageResponse(message=translate("item.deleted"))
