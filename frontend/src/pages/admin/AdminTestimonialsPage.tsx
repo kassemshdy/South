@@ -22,7 +22,6 @@ type Filter = TestimonialStatus | 'ALL'
 /** Awaiting review first: it is the only one with work waiting in it. */
 const FILTERS: { value: Filter; labelKey: TranslationKey }[] = [
   { value: 'PENDING_REVIEW', labelKey: 'admin.testimonialFilterPendingReview' },
-  { value: 'PENDING_OWNER', labelKey: 'admin.testimonialFilterPendingOwner' },
   { value: 'APPROVED', labelKey: 'admin.testimonialFilterApproved' },
   { value: 'HIDDEN', labelKey: 'admin.testimonialFilterHidden' },
   { value: 'REJECTED', labelKey: 'admin.testimonialFilterRejected' },
@@ -46,15 +45,16 @@ const STATUS_LABELS: Record<TestimonialStatus, TranslationKey> = {
 }
 
 /**
- * The platform's window onto submitted praise, and the first of its two
- * gates. Submitted text waits here before the owner sees it at all, because
- * an owner asked to hide abuse has already read it — so this page can pass
- * one to the owner or refuse it outright.
+ * The platform's window onto submitted praise, and the only gate it passes.
  *
- * What it still cannot do is publish. Whether a cleared testimonial appears
- * stays the owner's decision, which is what keeps this selected praise
- * rather than a review system; "pass to the owner" is therefore not an
- * approve button, and the hint under the heading says so.
+ * Approving here publishes a testimonial on its listing -- a business or a
+ * service profile -- and counts its stars; the owners removed the listing
+ * owner's own approval in round 3. Rejecting refuses one, or takes a
+ * published one down; removing deletes it outright.
+ *
+ * ``PENDING_OWNER`` is not filterable any more: nothing is put in it, and
+ * the migration returned what was there to review. ``HIDDEN`` stays, for
+ * what owners hid before the change, and can be approved from here.
  */
 export function AdminTestimonialsPage() {
   const { t, locale } = useI18n()
@@ -77,8 +77,8 @@ export function AdminTestimonialsPage() {
     onError: () => toast.error(t('admin.testimonialActionFailed')),
   })
 
-  const clear = useMutation({
-    mutationFn: (id: string) => adminApi.clearTestimonial(id),
+  const approve = useMutation({
+    mutationFn: (id: string) => adminApi.approveTestimonial(id),
     ...act('admin.testimonialCleared'),
   })
 
@@ -141,12 +141,21 @@ export function AdminTestimonialsPage() {
                     <div>
                       <p className="font-semibold text-ink-900">{entry.author_name}</p>
                       <p className="mt-0.5 text-sm text-ink-500">
-                        <Link
-                          to={`/business/${encodeURIComponent(entry.business_slug)}`}
-                          className="text-brand-700 hover:underline"
-                        >
-                          {entry.business_name}
-                        </Link>
+                        {entry.business_slug ? (
+                          <Link
+                            to={`/business/${encodeURIComponent(entry.business_slug)}`}
+                            className="text-brand-700 hover:underline"
+                          >
+                            {entry.business_name}
+                          </Link>
+                        ) : entry.talent_slug ? (
+                          <Link
+                            to={`/talent/${encodeURIComponent(entry.talent_slug)}`}
+                            className="text-brand-700 hover:underline"
+                          >
+                            {entry.talent_name}
+                          </Link>
+                        ) : null}
                         {' · '}
                         {formatDate(entry.created_at, locale)}
                       </p>
@@ -162,29 +171,28 @@ export function AdminTestimonialsPage() {
                   </p>
 
                   <div className="flex flex-wrap items-center justify-end gap-2">
-                    {/* Only while it is ours to act on. Once it is with the
-                        owner, or they have acted, the platform's remaining
-                        power is removal. */}
-                    {entry.status === 'PENDING_REVIEW' ? (
-                      <>
-                        <Button
-                          size="sm"
-                          loading={clear.isPending}
-                          onClick={() => clear.mutate(entry.id)}
-                        >
-                          <Check className="h-4 w-4" aria-hidden="true" />
-                          {t('admin.testimonialClear')}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          loading={reject.isPending}
-                          onClick={() => reject.mutate(entry.id)}
-                        >
-                          <X className="h-4 w-4" aria-hidden="true" />
-                          {t('admin.testimonialReject')}
-                        </Button>
-                      </>
+                    {/* Publish anything not already published; refuse, or take
+                        down, anything not already refused. */}
+                    {entry.status !== 'APPROVED' ? (
+                      <Button
+                        size="sm"
+                        loading={approve.isPending}
+                        onClick={() => approve.mutate(entry.id)}
+                      >
+                        <Check className="h-4 w-4" aria-hidden="true" />
+                        {t('admin.testimonialClear')}
+                      </Button>
+                    ) : null}
+                    {entry.status !== 'REJECTED' ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        loading={reject.isPending}
+                        onClick={() => reject.mutate(entry.id)}
+                      >
+                        <X className="h-4 w-4" aria-hidden="true" />
+                        {t('admin.testimonialReject')}
+                      </Button>
                     ) : null}
                     {confirmingId === entry.id ? (
                       <div className="flex items-center gap-2">

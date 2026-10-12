@@ -28,6 +28,8 @@ import { ListingMap } from '@/features/map/ListingMap'
 import { googleMapsHref, pinOf } from '@/features/map/types'
 import { directoryPath } from '@/features/talent/kind'
 import { ServiceRequestForm } from '@/features/talent/ServiceRequestForm'
+import { TestimonialForm } from '@/features/testimonials/TestimonialForm'
+import { TestimonialList } from '@/features/testimonials/TestimonialList'
 import { publicTalentApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { ContactChannel } from '@/types/api'
@@ -361,6 +363,21 @@ export function TalentProfilePage() {
                   ))}
                 </div>
               </section>
+            ) : null}
+
+            {/* A service only, and always rendered there, as on a business
+                page: the form is the point, and the first person who wants
+                to leave one must have somewhere to do it. A job application
+                takes no testimonials. */}
+            {data.kind === 'SERVICE' ? (
+              <>
+                <TestimonialList
+                  testimonials={data.testimonials}
+                  average={data.rating_average}
+                  count={data.rating_count}
+                />
+                <TestimonialForm slug={data.slug} target="talent" />
+              </>
             ) : null}
           </div>
 

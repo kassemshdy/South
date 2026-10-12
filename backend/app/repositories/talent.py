@@ -22,7 +22,7 @@ from app.models.user import User
 from app.repositories.base import BaseRepository
 from app.repositories.geo import Point, nearest_first
 
-SortOption = Literal["newest", "name", "oldest", "experience", "nearest"]
+SortOption = Literal["newest", "name", "oldest", "experience", "nearest", "rating"]
 
 
 class TalentSkillRepository(BaseRepository[TalentSkill]):
@@ -152,6 +152,14 @@ class TalentRepository(BaseRepository[TalentProfile]):
             return stmt.order_by(TalentProfile.display_name.asc())
         if sort == "oldest":
             return stmt.order_by(TalentProfile.created_at.asc())
+        if sort == "rating":
+            # Highest average first, the busier of two equal averages ahead;
+            # a profile nobody has rated comes last rather than as zero.
+            return stmt.order_by(
+                TalentProfile.rating_average.desc().nulls_last(),
+                TalentProfile.rating_count.desc(),
+                TalentProfile.created_at.desc(),
+            )
         if sort == "experience":
             # Most years first; a profile that never said comes last rather
             # than being read as no experience at all.

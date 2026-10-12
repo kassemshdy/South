@@ -131,21 +131,17 @@ class ViewSubject(str, enum.Enum):
 
 
 class TestimonialStatus(str, enum.Enum):
-    """Where a piece of submitted praise is, across two gates.
+    """Where a piece of submitted praise is.
 
-    Submitted text waits on the platform first (``PENDING_REVIEW``), because
-    handing abuse straight to the shop owner it was aimed at is the thing a
-    review gate exists to prevent. Only what an administrator clears reaches
-    the owner (``PENDING_OWNER``); only what the owner then approves is public
-    (``APPROVED``). ``REJECTED`` never reaches the owner at all.
+    Submitted text waits on an administrator (``PENDING_REVIEW``), whose
+    approval publishes it (``APPROVED``); ``REJECTED`` is never shown.
 
-    Both gates are deliberate. The platform gate is about abuse, which is the
-    platform's problem; the owner gate is what keeps this *selected praise*
-    rather than a review system, and removing it would make a business unable
-    to decline praise it knows to be untrue. ``HIDDEN`` is an owner taking a
-    published one down again -- kept rather than deleted so the same text
-    cannot be resubmitted and re-approved by accident, and so an administrator
-    can still see what was once published.
+    ``PENDING_OWNER`` and ``HIDDEN`` belong to the old two-gate design, in
+    which the listing's owner also approved and could hide. The owners
+    removed that step (round 3). Both values stay because Postgres cannot
+    drop an enum value: nothing writes ``PENDING_OWNER`` any more (the
+    migration returned those rows to review), and a row an owner hid before
+    the change stays hidden until an administrator approves it.
     """
 
     PENDING_REVIEW = "PENDING_REVIEW"

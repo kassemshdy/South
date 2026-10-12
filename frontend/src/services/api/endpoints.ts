@@ -392,28 +392,23 @@ export interface TestimonialPayload {
   rating?: number | null
 }
 
+/** Which kind of listing a testimonial is about. */
+export type TestimonialTarget = 'business' | 'talent'
+
 /**
  * Submitting is anonymous and rate limited; reading a testimonial publicly
- * happens through the business profile, which carries approved ones only.
+ * happens through the listing's own page, which carries approved ones only.
+ * An owner only reads: an administrator's approval publishes one.
  */
 export const testimonialApi = {
-  submit: (slug: string, payload: TestimonialPayload) =>
+  submit: (slug: string, payload: TestimonialPayload, target: TestimonialTarget = 'business') =>
     apiRequest<{ message: string }>(
-      `/api/businesses/${encodeURIComponent(slug)}/testimonials`,
+      `/api/${target === 'talent' ? 'talent' : 'businesses'}/${encodeURIComponent(slug)}/testimonials`,
       { method: 'POST', body: payload },
     ),
   listMine: (businessId: string) =>
     apiRequest<OwnerTestimonial[]>(`/api/businesses/${businessId}/testimonials`),
-  approve: (businessId: string, id: string) =>
-    apiRequest<OwnerTestimonial>(
-      `/api/businesses/${businessId}/testimonials/${id}/approve`,
-      { method: 'POST' },
-    ),
-  hide: (businessId: string, id: string) =>
-    apiRequest<OwnerTestimonial>(
-      `/api/businesses/${businessId}/testimonials/${id}/hide`,
-      { method: 'POST' },
-    ),
+  listMyTalent: () => apiRequest<OwnerTestimonial[]>('/api/my/talent/testimonials'),
 }
 
 export interface OrderPayload {
@@ -694,8 +689,8 @@ export const adminApi = {
   removeTestimonial: (id: string) =>
     apiRequest<{ message: string }>(`/api/admin/testimonials/${id}`, { method: 'DELETE' }),
   /** Pass the platform gate. Not a publish — the owner still decides. */
-  clearTestimonial: (id: string) =>
-    apiRequest<AdminTestimonial>(`/api/admin/testimonials/${id}/clear`, { method: 'POST' }),
+  approveTestimonial: (id: string) =>
+    apiRequest<AdminTestimonial>(`/api/admin/testimonials/${id}/approve`, { method: 'POST' }),
   rejectTestimonial: (id: string) =>
     apiRequest<AdminTestimonial>(`/api/admin/testimonials/${id}/reject`, { method: 'POST' }),
 

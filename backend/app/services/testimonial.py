@@ -1,28 +1,20 @@
-"""Testimonial lifecycle: submit, approve, hide, remove.
+"""Testimonial lifecycle: submit, approve, reject, remove.
 
 The state machine is small and the reasoning behind it is not, so it is
 recorded here rather than inferred from the enum:
 
-- **submit** is anonymous and rate limited. Nobody signs in, because
-  requiring an account kills submissions from exactly the audience this
-  project exists for, and verifying a phone number would imply an
-  independence the feature does not have -- an owner can write and approve
-  their own testimonial under any auth model, so verification buys the
-  appearance of trust rather than trust itself. What keeps this honest is
-  labelling it as owner-selected praise everywhere it is shown.
-- **clear** and **reject** are the platform's, and come first. Submitted
-  text is not shown to the owner until an administrator has looked at it:
-  forwarding abuse to the person it was written about is precisely what a
-  review gate is for, and "the owner can just hide it" means they read it.
-- **approve** is the owner's, and is still the only route to a public
-  payload. Both gates are load-bearing — the platform's answers for abuse,
-  the owner's is what keeps this selected praise rather than a review
-  system.
-- **hide** takes one down again without deleting it, so the same text
-  cannot quietly be resubmitted and re-approved, and an administrator can
-  still see what was once published.
-- **remove** is the administrator's, and is a real delete: the owner
-  controls display, the platform keeps the last word on abuse.
+- **submit** is anonymous and rate limited, on a business or a service
+  profile. Nobody signs in, because requiring an account kills submissions
+  from exactly the audience this project exists for.
+- **approve** and **reject** are the administrator's, and approve is the
+  only route to a public payload. Nothing is published before a person has
+  read it, because open praise in a small region carries real social risk.
+  The listing's owner used to approve as well; the owners removed that step
+  (round 3), so the owner reads what is published and decides nothing.
+- **remove** is the administrator's too, and is a real delete.
+
+Every published rating counts toward the listing's stars -- see
+``_refresh_rating``.
 """
 
 from __future__ import annotations
@@ -38,22 +30,17 @@ from app.core.errors import RateLimitedError
 from app.core.rate_limit import DatabaseRateLimiter, RateLimitRule
 from app.models.business import Business
 from app.models.enums import TestimonialStatus
+from app.models.talent import TalentProfile
 from app.models.testimonial import Testimonial
 from app.repositories.testimonial import TestimonialRepository
 from app.schemas.testimonial import TestimonialSubmitIn
 
-# Only these ever reach a visitor. Named here so the public read has one
-# definition rather than a status comparison repeated at each call site.
+# Only these ever reach a visitor -- or the listing's owner, who reads the
+# page as a visitor would. Named here so the reads have one definition rather
+# than a status comparison repeated at each call site.
 PUBLIC_STATUSES = (TestimonialStatus.APPROVED,)
 
-# What the owner may see and act on: everything the platform has cleared.
-# PENDING_REVIEW and REJECTED are deliberately absent — an owner is never
-# shown text an administrator has not passed, which is the point of the gate.
-OWNER_VISIBLE_STATUSES = (
-    TestimonialStatus.PENDING_OWNER,
-    TestimonialStatus.APPROVED,
-    TestimonialStatus.HIDDEN,
-)
+Subject = Business | TalentProfile
 
 
 class TestimonialService:
@@ -74,36 +61,32 @@ class TestimonialService:
 
     # --- Reading -----------------------------------------------------------
 
-    def public_for(self, business: Business) -> list[Testimonial]:
-        return self._repo.for_business(business.id, statuses=list(PUBLIC_STATUSES))
+    def public_for(self, subject: Subject) -> list[Testimonial]:
+        return self._repo.for_subject(subject, statuses=list(PUBLIC_STATUSES))
 
-    def owner_for(self, business: Business) -> list[Testimonial]:
-        """What the owner may act on -- platform-cleared states only."""
-        return self._repo.for_business(
-            business.id, statuses=list(OWNER_VISIBLE_STATUSES)
-        )
-
-    def all_for(self, business: Business) -> list[Testimonial]:
+    def all_for(self, subject: Subject) -> list[Testimonial]:
         """Every status, including the ones only an administrator sees."""
-        return self._repo.for_business(business.id)
+        return self._repo.for_subject(subject)
 
     # --- Writing -----------------------------------------------------------
 
     def submit(
         self,
-        business: Business,
+        subject: Subject,
         payload: TestimonialSubmitIn,
         *,
         client_ip: str | None,
     ) -> Testimonial:
-        """Record praise for review. Not shown to the owner, let alone a
-        visitor, until an administrator has cleared it."""
-        # Per-business first: it protects the person who would otherwise have
+        """Record praise for review. Not shown to anyone but an administrator
+        until one has approved it."""
+        # Per-listing first: it protects the person who would otherwise have
         # to read the flood, and it holds even when the sender rotates address.
-        business_status = self._limiter.hit(self._business_rule, str(business.id))
-        if not business_status.allowed:
+        # The bucket is keyed by id, and a business and a profile never share
+        # one, so the existing bucket name serves both.
+        subject_status = self._limiter.hit(self._business_rule, str(subject.id))
+        if not subject_status.allowed:
             raise RateLimitedError(
-                business_status.retry_after_seconds, "testimonial.rate_limited"
+                subject_status.retry_after_seconds, "testimonial.rate_limited"
             )
         if client_ip:
             ip_status = self._limiter.hit(self._ip_rule, client_ip)
@@ -113,65 +96,66 @@ class TestimonialService:
                 )
 
         testimonial = Testimonial(
-            business_id=business.id,
             author_name=payload.author_name.strip(),
             body=payload.body.strip(),
             rating=payload.rating,
             status=TestimonialStatus.PENDING_REVIEW,
         )
+        if isinstance(subject, Business):
+            testimonial.business_id = subject.id
+        else:
+            testimonial.talent_profile_id = subject.id
         self._repo.add(testimonial)
         self._db.commit()
         return testimonial
 
-    def clear(self, testimonial: Testimonial) -> Testimonial:
-        """Platform gate passed: hand it to the owner to decide on."""
-        testimonial.status = TestimonialStatus.PENDING_OWNER
+    def approve(self, testimonial: Testimonial) -> Testimonial:
+        """Publish it. The only route by which a testimonial becomes visible."""
+        testimonial.status = TestimonialStatus.APPROVED
+        testimonial.approved_at = datetime.now(UTC)
+        self._refresh_rating(testimonial)
         self._db.commit()
         return testimonial
 
     def reject(self, testimonial: Testimonial) -> Testimonial:
-        """Refused by the platform. Never reaches the owner or the page."""
+        """Refused. Never reaches the page; taken down if it was on it."""
         testimonial.status = TestimonialStatus.REJECTED
-        self._db.commit()
-        return testimonial
-
-    def approve(self, testimonial: Testimonial) -> Testimonial:
-        testimonial.status = TestimonialStatus.APPROVED
-        testimonial.approved_at = datetime.now(UTC)
-        self._refresh_rating(testimonial.business_id)
-        self._db.commit()
-        return testimonial
-
-    def hide(self, testimonial: Testimonial) -> Testimonial:
-        testimonial.status = TestimonialStatus.HIDDEN
-        self._refresh_rating(testimonial.business_id)
+        self._refresh_rating(testimonial)
         self._db.commit()
         return testimonial
 
     def remove(self, testimonial: Testimonial) -> None:
-        business_id = testimonial.business_id
         self._repo.delete(testimonial)
-        self._refresh_rating(business_id)
+        self._refresh_rating(testimonial)
         self._db.commit()
 
-    def _refresh_rating(self, business_id: uuid.UUID) -> None:
+    def _refresh_rating(self, testimonial: Testimonial) -> None:
         """Recount the stars a visitor can see on this listing.
 
-        Only published testimonials count, so the average is exactly the
-        average of what the page shows -- owner-selected, like the text, and
-        labelled as such wherever it appears. Counting what the owner has not
-        published would put a number on the page that no visitor can check.
+        Every published rating counts -- the owners' decision -- and only
+        published ones, so the average is exactly the average of what the
+        page shows and a visitor can check it.
         """
         self._db.flush()
+        subject: Subject | None
+        if testimonial.business_id is not None:
+            column = Testimonial.business_id
+            subject_id: uuid.UUID = testimonial.business_id
+            subject = self._db.get(Business, subject_id)
+        elif testimonial.talent_profile_id is not None:
+            column = Testimonial.talent_profile_id
+            subject_id = testimonial.talent_profile_id
+            subject = self._db.get(TalentProfile, subject_id)
+        else:
+            return
+        if subject is None:
+            return
         average, count = self._db.execute(
             select(func.avg(Testimonial.rating), func.count(Testimonial.rating)).where(
-                Testimonial.business_id == business_id,
+                column == subject_id,
                 Testimonial.status == TestimonialStatus.APPROVED,
                 Testimonial.rating.is_not(None),
             )
         ).one()
-        business = self._db.get(Business, business_id)
-        if business is None:
-            return
-        business.rating_count = int(count)
-        business.rating_average = round(float(average), 2) if count else None
+        subject.rating_count = int(count)
+        subject.rating_average = round(float(average), 2) if count else None

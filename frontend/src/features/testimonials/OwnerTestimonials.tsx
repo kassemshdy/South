@@ -1,78 +1,38 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Eye, EyeOff } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 
-import { Badge } from '@/components/ui/Badge'
-import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
-import { useToast } from '@/components/ui/Toast'
-import { useI18n, type TranslationKey } from '@/i18n'
-import { ApiError } from '@/services/api/client'
+import { useI18n } from '@/i18n'
 import { testimonialApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import { formatDate } from '@/utils/format'
-import type { OwnerTestimonial, TestimonialStatus } from '@/types/api'
+import type { OwnerTestimonial } from '@/types/api'
 import { Stars } from '@/features/testimonials/Stars'
 
-/* PENDING_REVIEW and REJECTED are in these maps only because the type is
-   exhaustive: the API does not send either to an owner, since text the
-   platform has not cleared is absent from this list rather than shown in a
-   state they cannot act on. */
-const STATUS_LABEL: Record<TestimonialStatus, TranslationKey> = {
-  PENDING_REVIEW: 'testimonials.pendingReview',
-  PENDING_OWNER: 'testimonials.pending',
-  APPROVED: 'testimonials.approved',
-  HIDDEN: 'testimonials.hidden',
-  REJECTED: 'testimonials.pendingReview',
-}
-
-const STATUS_TONE: Record<TestimonialStatus, string> = {
-  PENDING_REVIEW: 'bg-ink-100 text-ink-600',
-  PENDING_OWNER: 'bg-wheat-100 text-wheat-700',
-  APPROVED: 'bg-olive-100 text-olive-800',
-  HIDDEN: 'bg-ink-100 text-ink-600',
-  REJECTED: 'bg-ink-100 text-ink-600',
-}
+/** Whose testimonials: one of the account's businesses, or its profile. */
+export type OwnerTestimonialsSource = { kind: 'business'; id: string } | { kind: 'talent' }
 
 /**
- * The owner deciding what appears on their own page.
+ * What is published on the owner's own page, read-only.
  *
- * Every state the platform has cleared is shown, not just the ones awaiting
- * a decision: an owner needs to see what is currently displayed in order to
- * take it down, and a hidden testimonial has to stay visible *here* or the
- * only way to find it again would be to have remembered it.
- *
- * What is not here is anything still awaiting review, or refused — the API
- * does not send those to an owner. Being asked to hide abuse means having
- * read it, which is what the platform gate exists to prevent.
+ * The owners decided (round 3) that an administrator's approval alone
+ * publishes a testimonial: the listing's owner neither approves nor hides.
+ * So this is the page as a visitor sees it, and the API sends nothing that
+ * is still awaiting review or was refused -- handing an owner unread text
+ * aimed at them is what the review exists to prevent.
  */
-export function OwnerTestimonials({ businessId }: { businessId: string }) {
+export function OwnerTestimonials({ source }: { source: OwnerTestimonialsSource }) {
   const { t, locale } = useI18n()
-  const toast = useToast()
-  const queryClient = useQueryClient()
 
   const testimonials = useQuery({
-    queryKey: queryKeys.myTestimonials(businessId),
-    queryFn: () => testimonialApi.listMine(businessId),
-  })
-
-  const decide = useMutation({
-    mutationFn: ({ id, next }: { id: string; next: 'approve' | 'hide' }) =>
-      next === 'approve'
-        ? testimonialApi.approve(businessId, id)
-        : testimonialApi.hide(businessId, id),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.myTestimonials(businessId),
-      })
-      // The public profile carries approved ones, so it is now stale.
-      void queryClient.invalidateQueries({ queryKey: queryKeys.myBusiness(businessId) })
-    },
-    onError: (error) =>
-      toast.error(
-        t('testimonials.updateFailed'),
-        error instanceof ApiError ? error.message : undefined,
-      ),
+    queryKey:
+      source.kind === 'business'
+        ? queryKeys.myTestimonials(source.id)
+        : queryKeys.myTalentTestimonials,
+    queryFn: () =>
+      source.kind === 'business'
+        ? testimonialApi.listMine(source.id)
+        : testimonialApi.listMyTalent(),
   })
 
   if (testimonials.isLoading) return <Skeleton className="h-40 rounded-2xl" />
@@ -102,38 +62,12 @@ export function OwnerTestimonials({ businessId }: { businessId: string }) {
             <li key={entry.id} className="rounded-xl border border-ink-100 p-4">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-semibold">{entry.author_name}</span>
-                <Badge className={STATUS_TONE[entry.status]}>
-                  {t(STATUS_LABEL[entry.status])}
-                </Badge>
                 <span className="text-xs text-ink-300">
                   {formatDate(entry.created_at, locale)}
                 </span>
               </div>
               {entry.rating ? <Stars value={entry.rating} className="mt-2" /> : null}
               <p className="mt-2 leading-relaxed text-ink-700">{entry.body}</p>
-
-              <div className="mt-3 flex flex-wrap gap-2">
-                {entry.status === 'APPROVED' ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    loading={decide.isPending}
-                    onClick={() => decide.mutate({ id: entry.id, next: 'hide' })}
-                  >
-                    <EyeOff className="h-4 w-4" aria-hidden="true" />
-                    {t('testimonials.hide')}
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    loading={decide.isPending}
-                    onClick={() => decide.mutate({ id: entry.id, next: 'approve' })}
-                  >
-                    <Eye className="h-4 w-4" aria-hidden="true" />
-                    {t('testimonials.approve')}
-                  </Button>
-                )}
-              </div>
             </li>
           ))}
         </ul>

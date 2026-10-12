@@ -412,11 +412,11 @@ login.
   and the listing pages link to Google Maps for directions, which is free.
   Every seller must pin themselves (the town is enough): the pin is part of
   readiness and of both public applications.
-- **Stars count only published testimonials.** A testimonial is owner-
-  selected praise (see the model's docstring), so the average shown is the
-  average of what the page shows, under the same disclaimer. Counting what
-  an owner declined would put a number on the page nobody could check;
-  counting it instead would be a product decision for the owners, not a fix.
+- **An administrator's approval alone publishes a testimonial**, on a
+  business or a service profile; the listing's owner reads what is
+  published and neither approves nor hides (the owners' decision, round 3).
+  **Stars count every published rating and nothing else**, so the average
+  is the average of what the page shows and a visitor can check it.
 
 ## Deploy Gotchas (learned the hard way)
 

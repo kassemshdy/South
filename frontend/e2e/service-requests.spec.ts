@@ -77,10 +77,13 @@ test.describe('Service requests', () => {
       page.getByRole('heading', { name: t('serviceRequests.askHeading') }),
     ).toBeVisible()
 
-    await page.getByLabel(t('serviceRequests.nameLabel')).fill(fixture.customer)
-    await page.getByLabel(t('serviceRequests.phoneLabel')).fill(fixture.phone)
-    await page.getByLabel(t('serviceRequests.detailsLabel')).fill(fixture.details)
-    await page.getByRole('button', { name: t('serviceRequests.submit') }).click()
+    // Scoped to the side panel: a service page also carries the testimonial
+    // form, which has a name field of its own.
+    const ask = page.getByRole('complementary')
+    await ask.getByLabel(t('serviceRequests.nameLabel')).fill(fixture.customer)
+    await ask.getByLabel(t('serviceRequests.phoneLabel')).fill(fixture.phone)
+    await ask.getByLabel(t('serviceRequests.detailsLabel')).fill(fixture.details)
+    await ask.getByRole('button', { name: t('serviceRequests.submit') }).click()
 
     // The request is stored, then the direct line is offered on top of it.
     const contact = page.getByRole('dialog', { name: t('contactSeller.title') })

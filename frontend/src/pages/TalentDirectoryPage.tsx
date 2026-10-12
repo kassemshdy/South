@@ -31,10 +31,13 @@ const WORK_MODE_FILTERS: WorkModeFilter[] = ['ON_SITE', 'REMOTE']
 function workModeFrom(value: string | null): WorkModeFilter | undefined {
   return WORK_MODE_FILTERS.find((mode) => mode === value)
 }
+
 const SORT_KEYS: Record<TalentSortOption, TranslationKey> = {
   newest: 'directory.sortNewest',
   nearest: 'directory.sortNearest',
   experience: 'talent.sortExperience',
+  // Services only: a job application takes no testimonials.
+  rating: 'directory.sortRating',
   name: 'talent.sortName',
   oldest: 'directory.sortOldest',
 }
@@ -295,11 +298,13 @@ export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {(Object.keys(SORT_KEYS) as TalentSortOption[]).map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {t(SORT_KEYS[option])}
-                  </SelectItem>
-                ))}
+                {(Object.keys(SORT_KEYS) as TalentSortOption[])
+                  .filter((option) => option !== 'rating' || kind === 'SERVICE')
+                  .map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {t(SORT_KEYS[option])}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>
