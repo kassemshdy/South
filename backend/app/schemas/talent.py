@@ -15,6 +15,7 @@ from app.models.enums import (
     ImageKind,
     LanguageProficiency,
     TalentKind,
+    WorkMode,
 )
 from app.schemas.business import SocialLinkIn, SocialLinkOut
 from app.schemas.common import ORMModel
@@ -85,6 +86,8 @@ class TalentSummaryOut(ORMModel):
     # One level below the skill and in their own words, which is what makes a
     # card worth reading: the trade narrowed to what this person actually does.
     skill_specialty: str | None = None
+    # Remotely, in person or both: on the card because it is filtered on.
+    work_mode: WorkMode | None = None
     location: LocationOut | None = None
     created_at: datetime
 
@@ -190,7 +193,9 @@ class TalentProfileFieldsIn(BaseModel):
     services_offered: str | None = Field(default=None, max_length=2000)
     hobbies: str | None = Field(default=None, max_length=1000)
     employment_type: EmploymentType | None = None
+    # Superseded by work_mode, which sets it; still accepted from older clients.
     remote_capable: bool = False
+    work_mode: WorkMode | None = None
 
     languages: list[TalentLanguageIn] | None = Field(default=None, max_length=20)
     # Optional; omitted leaves them as they are, an empty list clears them.

@@ -124,7 +124,7 @@ def test_fields_are_optional(client: TestClient, category: Category, location: L
     response = client.post(
         f"/api/businesses/{business['id']}/items",
         headers=headers,
-        json={"title": ar("item.generic")},
+        json={"title": ar("item.generic"), "price": "1.00"},
     )
     assert response.status_code == 201
     item = response.json()

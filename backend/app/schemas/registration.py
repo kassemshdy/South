@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.core.i18n import translate
 from app.core.phone import normalize_phone
+from app.models.enums import TalentKind
 from app.schemas.business import BusinessCreateIn
 from app.schemas.identity import IdentityFieldsIn
 from app.schemas.talent import TalentCreateIn
@@ -63,6 +64,16 @@ class RegistrationIdentityIn(IdentityFieldsIn):
         if value is None or len(value) < 2:
             raise ValueError(translate("registration.identity_required"))
         return value
+
+    @model_validator(mode="after")
+    def _where_before(self) -> RegistrationIdentityIn:
+        # The owners asked a displaced applicant where they lived before as
+        # well as now; residence_place above is the "now".
+        if self.is_displaced and not self.pre_displacement_place:
+            raise ValueError(translate("registration.pre_displacement_required"))
+        if not self.is_displaced:
+            self.pre_displacement_place = None
+        return self
 
 
 class RegistrationBase(BaseModel):
@@ -116,6 +127,10 @@ class TalentRegistrationIn(RegistrationBase):
         # which directory the profile is listed in once approved.
         if self.talent.kind is None:
             raise ValueError(translate("registration.talent_kind_required"))
+        # Remotely, in person or both: compulsory for a service, which is
+        # what visitors filter on; a job application is not asked.
+        if self.talent.kind == TalentKind.SERVICE and self.talent.work_mode is None:
+            raise ValueError(translate("registration.work_mode_required"))
         if self.talent.location_id is None:
             raise ValueError(translate("registration.location_required"))
         if self.talent.latitude is None or self.talent.longitude is None:

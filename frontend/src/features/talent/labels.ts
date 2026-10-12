@@ -8,7 +8,7 @@
  */
 
 import type { TranslationKey } from '@/i18n'
-import type { EmploymentType, LanguageProficiency } from '@/types/api'
+import type { EmploymentType, LanguageProficiency, WorkMode } from '@/types/api'
 
 export const LANGUAGE_PROFICIENCIES = ['BASIC', 'GOOD', 'FLUENT', 'NATIVE'] as const
 
@@ -22,4 +22,13 @@ export const PROFICIENCY_KEYS: Record<LanguageProficiency, TranslationKey> = {
 export const EMPLOYMENT_TYPE_KEYS: Record<EmploymentType, TranslationKey> = {
   FULL_TIME: 'talentForm.employmentTypeFullTime',
   PART_TIME: 'talentForm.employmentTypePartTime',
+}
+
+/** Remotely, in person, or both, in the order the form offers them. */
+export const WORK_MODES = ['ON_SITE', 'REMOTE', 'BOTH'] as const satisfies readonly WorkMode[]
+
+export const WORK_MODE_KEYS: Record<WorkMode, TranslationKey> = {
+  REMOTE: 'talent.workModeRemote',
+  ON_SITE: 'talent.workModeOnSite',
+  BOTH: 'talent.workModeBoth',
 }

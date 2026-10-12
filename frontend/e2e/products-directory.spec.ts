@@ -110,6 +110,7 @@ test.describe('Products directory', () => {
 
     await page.getByRole('button', { name: t('items.addItem') }).first().click()
     await page.getByLabel(t('items.nameLabel')).fill(fixture.unavailableItem.title)
+    await page.getByLabel(t('items.priceLabel')).fill(fixture.unavailableItem.price)
     await page.getByLabel(t('items.availableLabel')).uncheck()
     await page.getByRole('button', { name: t('items.addAction') }).click()
     await expect(

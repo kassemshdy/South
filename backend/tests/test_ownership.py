@@ -139,7 +139,7 @@ def test_item_ids_are_scoped_to_their_business(
 
     first, second = make(ar("business.first")), make(ar("business.second"))
     item_id = client.post(
-        f"/api/businesses/{first}/items", headers=headers, json={"title": ar("item.generic")}
+        f"/api/businesses/{first}/items", headers=headers, json={"title": ar("item.generic"), "price": "1.00"}
     ).json()["id"]
 
     # The item belongs to `first`, so addressing it under `second` must fail.

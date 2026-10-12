@@ -50,6 +50,8 @@ export interface OwnerIdentity {
   residence_place: string | null
   /** Currently displaced from the South: asked on the application, for the team only. */
   is_displaced: boolean | null
+  /** Where a displaced account holder lived before; null for anyone else. */
+  pre_displacement_place: string | null
   /**
    * The account holder's own photo — a face, not a logo, and admin-only for
    * the same reason as every field beside it. It is in this block rather than
@@ -365,6 +367,8 @@ export interface TalentImage {
  * job applications. Chosen by the profile's owner.
  */
 export type TalentKind = 'SERVICE' | 'JOB_SEEKER'
+/** How a service is delivered. `BOTH` matches either filter. */
+export type WorkMode = 'REMOTE' | 'ON_SITE' | 'BOTH'
 
 export interface TalentSummary {
   id: string
@@ -382,6 +386,8 @@ export interface TalentSummary {
   custom_skill_text: string | null
   /** The trade in their own words, one level below the taxonomy skill. */
   skill_specialty: string | null
+  /** Remotely, in person or both; null on a profile from before it was asked. */
+  work_mode: WorkMode | null
   location: LocationNode | null
   created_at: string
 }
@@ -601,6 +607,8 @@ export interface TalentQuery {
   skill?: string
   location?: string
   kind?: TalentKind
+  /** Remotely or in person; a profile that does both matches either. */
+  work_mode?: Exclude<WorkMode, 'BOTH'>
   sort?: TalentSortOption
   /** The visitor's position, for `nearest` only. Never put in the page URL. */
   lat?: number

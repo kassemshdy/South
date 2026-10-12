@@ -49,7 +49,10 @@ class BusinessItemOut(ORMModel):
 class BusinessItemIn(BaseModel):
     title: str = Field(min_length=1, max_length=160)
     description: str | None = Field(default=None, max_length=2000)
-    price: Decimal | None = Field(default=None, ge=0, le=Decimal("99999999.99"))
+    # Required since the owners made it so: a product with no price sends the
+    # buyer to WhatsApp just to ask. Products saved before carry none, and the
+    # price sorts still put those last.
+    price: Decimal = Field(ge=0, le=Decimal("99999999.99"))
     currency: Currency = Currency.USD
     is_available: bool = True
     sort_order: int = 0
@@ -95,6 +98,15 @@ class BusinessItemUpdateIn(BaseModel):
     def _origin_not_null(cls, value: object) -> object:
         if value is None:
             raise ValueError(translate("business.goods_origin_required"))
+        return value
+
+    @field_validator("price", mode="before")
+    @classmethod
+    def _price_not_cleared(cls, value: object) -> object:
+        # Omitted keeps the price; an explicit null would remove one, which a
+        # required price may not be.
+        if value is None:
+            raise ValueError(translate("item.price_required"))
         return value
 
 

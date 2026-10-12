@@ -22,7 +22,7 @@ from app.core.dependencies import (
 from app.core.errors import NotFoundError
 from app.core.i18n import translate
 from app.core.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
-from app.models.enums import TalentKind, ViewSubject
+from app.models.enums import TalentKind, ViewSubject, WorkMode
 from app.repositories.geo import point_or_none
 from app.repositories.talent import TalentRepository
 from app.schemas.common import MessageResponse, PaginatedResponse
@@ -53,6 +53,10 @@ def search_talent(
     kind: Annotated[
         TalentKind | None, Query(description="Services or job applications; both when absent")
     ] = None,
+    work_mode: Annotated[
+        WorkMode | None,
+        Query(description="Remotely or in person; a profile that does both matches either"),
+    ] = None,
     sort: Annotated[
         Literal["newest", "name", "oldest", "experience", "nearest"], Query()
     ] = "newest",
@@ -68,6 +72,7 @@ def search_talent(
         skill_slug=skill,
         location_slug=location,
         kind=kind,
+        work_mode=work_mode,
         sort=sort,
         near=point_or_none(near_lat, near_lng),
         page=page,

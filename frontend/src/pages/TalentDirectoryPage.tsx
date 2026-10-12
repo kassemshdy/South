@@ -10,6 +10,7 @@ import { BusinessCardSkeleton } from '@/components/ui/Skeleton'
 import { ErrorState, NoSearchResults } from '@/components/ui/States'
 import { Pagination } from '@/features/businesses/Pagination'
 import { TalentCard } from '@/features/talent/TalentCard'
+import { WORK_MODE_KEYS } from '@/features/talent/labels'
 import { useLocationGroups, useTalentSkills } from '@/hooks/useTaxonomy'
 import { PageBanner } from '@/components/layout/PageBanner'
 import { BrowseSwitcher } from '@/features/onboarding/BrowseSwitcher'
@@ -18,9 +19,18 @@ import { useT, type TranslationKey } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
 import { publicTalentApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import type { PageCoverKey, TalentKind, TalentSortOption } from '@/types/api'
+import type { PageCoverKey, TalentKind, TalentQuery, TalentSortOption } from '@/types/api'
 
 const ALL = '__all__'
+
+type WorkModeFilter = NonNullable<TalentQuery['work_mode']>
+
+/** What a visitor filters on; a profile that does both matches either. */
+const WORK_MODE_FILTERS: WorkModeFilter[] = ['ON_SITE', 'REMOTE']
+
+function workModeFrom(value: string | null): WorkModeFilter | undefined {
+  return WORK_MODE_FILTERS.find((mode) => mode === value)
+}
 const SORT_KEYS: Record<TalentSortOption, TranslationKey> = {
   newest: 'directory.sortNewest',
   nearest: 'directory.sortNearest',
@@ -75,6 +85,8 @@ export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
   const q = searchParams.get('q') ?? ''
   const skill = searchParams.get('skill') ?? ''
   const location = searchParams.get('location') ?? ''
+  // Services only: a job application is not asked how it is delivered.
+  const workMode = kind === 'SERVICE' ? workModeFrom(searchParams.get('work_mode')) : undefined
   const chosenSort = searchParams.get('sort') as TalentSortOption | null
   const page = Number(searchParams.get('page') ?? '1')
   const setSort = useCallback(
@@ -111,13 +123,24 @@ export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
   const { groups } = useLocationGroups()
 
   const results = useQuery({
-    queryKey: queryKeys.talents({ q, skill, location, sort, lat: near?.lat, lng: near?.lng, page, kind }),
+    queryKey: queryKeys.talents({
+      q,
+      skill,
+      location,
+      sort,
+      lat: near?.lat,
+      lng: near?.lng,
+      page,
+      kind,
+      work_mode: workMode,
+    }),
     queryFn: () =>
       publicTalentApi.search({
         kind,
         q: q || undefined,
         skill: skill || undefined,
         location: location || undefined,
+        work_mode: workMode,
         sort,
         lat: near?.lat,
         lng: near?.lng,
@@ -142,7 +165,7 @@ export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
     [searchParams, setSearchParams],
   )
 
-  const hasFilters = Boolean(q || skill || location) || chosenSort !== null
+  const hasFilters = Boolean(q || skill || location || workMode) || chosenSort !== null
   const resetFilters = () => setSearchParams(new URLSearchParams())
 
   return (
@@ -198,7 +221,9 @@ export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
           </Button>
         </form>
 
-        <div className={`mb-6 grid gap-3 sm:grid-cols-3 ${filtersOpen ? 'grid' : 'hidden sm:grid'}`}>
+        <div
+          className={`mb-6 grid gap-3 ${kind === 'SERVICE' ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-3'} ${filtersOpen ? 'grid' : 'hidden sm:grid'}`}
+        >
           <div>
             <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="filter-skill">
               {t('talent.skill')}
@@ -236,6 +261,30 @@ export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
               placeholder={t('directory.allLocations')}
             />
           </div>
+
+          {kind === 'SERVICE' ? (
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="filter-work-mode">
+                {t('talent.workModeLabel')}
+              </label>
+              <Select
+                value={workMode ?? ALL}
+                onValueChange={(value) => updateParams({ work_mode: value === ALL ? '' : value })}
+              >
+                <SelectTrigger aria-labelledby="filter-work-mode">
+                  <SelectValue placeholder={t('talent.workModeAll')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL}>{t('talent.workModeAll')}</SelectItem>
+                  {WORK_MODE_FILTERS.map((mode) => (
+                    <SelectItem key={mode} value={mode}>
+                      {t(WORK_MODE_KEYS[mode])}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
 
           <div>
             <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="filter-sort">

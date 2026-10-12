@@ -218,6 +218,19 @@ class TalentKind(str, enum.Enum):
     JOB_SEEKER = "JOB_SEEKER"
 
 
+class WorkMode(str, enum.Enum):
+    """How a service is delivered. Public: visitors filter on it.
+
+    Asked of everyone offering a service at the owners' request. ``BOTH``
+    matches either filter, so a visitor looking for remote help still finds
+    someone who also works in person.
+    """
+
+    REMOTE = "REMOTE"
+    ON_SITE = "ON_SITE"
+    BOTH = "BOTH"
+
+
 class EmploymentType(str, enum.Enum):
     """What kind of job a talent profile is looking for, if anything."""
 

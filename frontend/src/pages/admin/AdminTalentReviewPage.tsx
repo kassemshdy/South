@@ -27,7 +27,7 @@ import { IssueCredentialsCard } from '@/features/admin/IssueCredentialsCard'
 import { OwnerIdentityCard } from '@/features/admin/OwnerIdentityCard'
 import { OwnerWhatsappButton } from '@/features/admin/OwnerWhatsappButton'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
-import { EMPLOYMENT_TYPE_KEYS, PROFICIENCY_KEYS } from '@/features/talent/labels'
+import { EMPLOYMENT_TYPE_KEYS, PROFICIENCY_KEYS, WORK_MODE_KEYS } from '@/features/talent/labels'
 import { useI18n, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { adminApi } from '@/services/api/endpoints'
@@ -276,6 +276,10 @@ export function AdminTalentReviewPage() {
               <Detail
                 labelKey="talent.employmentTypeLabel"
                 value={data.employment_type ? t(EMPLOYMENT_TYPE_KEYS[data.employment_type]) : null}
+              />
+              <Detail
+                labelKey="talent.workModeLabel"
+                value={data.work_mode ? t(WORK_MODE_KEYS[data.work_mode]) : null}
               />
               <Detail
                 labelKey="talent.remoteCapableLabel"

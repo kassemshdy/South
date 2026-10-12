@@ -22,7 +22,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { useSeo } from '@/hooks/useSeo'
 import { useI18n, useT } from '@/i18n'
-import { EMPLOYMENT_TYPE_KEYS, PROFICIENCY_KEYS } from '@/features/talent/labels'
+import { EMPLOYMENT_TYPE_KEYS, PROFICIENCY_KEYS, WORK_MODE_KEYS } from '@/features/talent/labels'
 import { FollowLinks } from '@/features/social/FollowLinks'
 import { ListingMap } from '@/features/map/ListingMap'
 import { googleMapsHref, pinOf } from '@/features/map/types'
@@ -133,7 +133,14 @@ export function TalentProfilePage() {
       value: t(EMPLOYMENT_TYPE_KEYS[data.employment_type]),
     })
   }
-  if (data.remote_capable) {
+  if (data.work_mode) {
+    derivedFields.push({
+      key: 'work_mode',
+      label: t('talent.workModeLabel'),
+      value: t(WORK_MODE_KEYS[data.work_mode]),
+    })
+  } else if (data.remote_capable) {
+    // A profile from before the question was asked.
     derivedFields.push({
       key: 'remote_capable',
       label: t('talent.remoteCapableLabel'),
