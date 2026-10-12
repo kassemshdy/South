@@ -6,9 +6,9 @@ pending review — so the shapes stay in step by construction: a field added to
 `BusinessCreateIn` is a field an applicant can fill, with no second definition
 to forget.
 
-What this adds on top is the three things an applicant has and an owner does
-not: the phone number that will become their login, the captcha token, and who
-they are.
+What this adds on top is the four things an applicant has and an owner does
+not: the phone number that will become their login, the password they choose
+for it, the captcha token, and who they are.
 """
 
 from __future__ import annotations
@@ -82,6 +82,11 @@ class RegistrationBase(BaseModel):
     # Required, unlike the listing's published phone: without it there is no
     # account to create and nowhere to send the credentials.
     login_phone: str = Field(min_length=6, max_length=25)
+    # Chosen by the applicant (round 3: the owners dropped the administrator
+    # issuing one). Same bounds as a password change. Hashed on the way in,
+    # and excluded from everything else that is kept -- see
+    # RegistrationService._claim_account.
+    password: str = Field(min_length=8, max_length=128)
     # Absent when Turnstile is not configured; see app/core/captcha.py.
     captcha_token: str | None = Field(default=None, max_length=4096)
     # Nested rather than flattened, for the reason OwnerIdentityOut is: these

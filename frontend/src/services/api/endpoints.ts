@@ -204,6 +204,8 @@ export interface ApplicantDocuments {
 /** An applicant, before they have an account. */
 export interface Applicant {
   phone: string
+  /** Chosen on the form; with the phone number, how they sign in. */
+  password: string
   identity: ApplicantIdentity
   /** The scans they attached. The API does not insist; the forms do. */
   documents: ApplicantDocuments
@@ -890,6 +892,7 @@ export const registrationApi = {
       formData: applicationForm(
         {
           login_phone: applicant.phone,
+          password: applicant.password,
           identity: applicant.identity,
           business,
           captcha_token,
@@ -903,6 +906,7 @@ export const registrationApi = {
       formData: applicationForm(
         {
           login_phone: applicant.phone,
+          password: applicant.password,
           identity: applicant.identity,
           talent,
           captcha_token,
