@@ -1,20 +1,15 @@
 import { MessageCircle } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 
-import { useSiteSettings } from '@/hooks/useSiteSettings'
+import { useSupportWhatsapp } from '@/hooks/useSiteSettings'
 import { useT } from '@/i18n'
 import { whatsappHref } from '@/utils/format'
-
-const SUPPORT_NUMBER = import.meta.env.VITE_SUPPORT_WHATSAPP as string | undefined
 
 /**
  * A floating button that opens a WhatsApp chat with the team, on every page
  * a visitor or an owner might need help on.
  *
- * The number is the one an administrator set at /admin/site-settings, with
- * `VITE_SUPPORT_WHATSAPP` as the fallback, the same order the footer follows.
- * With neither there is no button: `whatsappHref` returns null for a missing
- * number and for one with no digits in it.
+ * The number comes from `useSupportWhatsapp`; with none there is no button.
  *
  * Not on /admin: the people there are the ones it would reach. It sits on the
  * start side because the feedback button already holds the end corner.
@@ -22,9 +17,7 @@ const SUPPORT_NUMBER = import.meta.env.VITE_SUPPORT_WHATSAPP as string | undefin
 export function WhatsAppButton() {
   const t = useT()
   const { pathname } = useLocation()
-  const { settings } = useSiteSettings()
-
-  const href = whatsappHref(settings?.contact_whatsapp || SUPPORT_NUMBER || null)
+  const href = whatsappHref(useSupportWhatsapp())
   if (!href || pathname.startsWith('/admin')) return null
 
   return (
