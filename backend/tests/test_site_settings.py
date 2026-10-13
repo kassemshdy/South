@@ -14,6 +14,7 @@ EMPTY = {
     "social_facebook": None,
     "social_instagram": None,
     "home_video": None,
+    "offer_video": None,
 }
 
 FULL = {
@@ -107,3 +108,27 @@ def test_the_homepage_video_is_stored_as_its_id(client: TestClient, admin: User)
     )
     assert refused.status_code == 422, refused.text
     assert client.get("/api/site-settings").json()["home_video"] == "dQw4w9WgXcQ"
+
+
+def test_the_offer_page_video_is_stored_as_its_id(client: TestClient, admin: User) -> None:
+    """The "how to register" video on /offer, set the way the homepage's is:
+    a pasted link kept as its id, and a link that is not YouTube refused."""
+    headers = admin_headers(client)
+    saved = client.put(
+        "/api/admin/site-settings",
+        headers=headers,
+        json={**FULL, "offer_video": "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=5"},
+    )
+    assert saved.status_code == 200, saved.text
+    assert client.get("/api/site-settings").json()["offer_video"] == "dQw4w9WgXcQ"
+
+    refused = client.put(
+        "/api/admin/site-settings",
+        headers=headers,
+        json={**FULL, "offer_video": "https://vimeo.com/123"},
+    )
+    assert refused.status_code == 422, refused.text
+
+    cleared = client.put("/api/admin/site-settings", headers=headers, json=FULL)
+    assert cleared.status_code == 200, cleared.text
+    assert client.get("/api/site-settings").json()["offer_video"] is None

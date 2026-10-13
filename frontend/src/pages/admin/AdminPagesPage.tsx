@@ -27,8 +27,11 @@ const PAGES: Record<
   {
     path: string
     labelKey: TranslationKey
-    /** One key, or several shown one per line (a list's built-in items). */
-    defaults: Record<Field, TranslationKey | TranslationKey[]>
+    /** One key, or several shown one per line (a list's built-in items). A
+     * field with none has no built-in text: empty shows nothing. */
+    defaults: Partial<Record<Field, TranslationKey | TranslationKey[]>>
+    /** The fields this block uses, where it is not all three. */
+    fields?: Field[]
     /** What each field is called and says about itself, where it differs
      * from a whole page's title, summary and body. */
     labels?: Partial<Record<Field, TranslationKey>>
@@ -60,6 +63,16 @@ const PAGES: Record<
     defaults: { title: 'home.southTitle', summary: 'home.southBody', body: 'home.videoHeading' },
     labels: { summary: 'admin.pageHomeSummaryLabel', body: 'admin.pageHomeBodyLabel' },
     hints: { summary: 'admin.pageHomeSummaryHint', body: 'admin.pageHomeBodyHint' },
+  },
+  // The "how to register" video on /offer: its heading and the text under
+  // it. The video itself is set under the site settings.
+  offer_video: {
+    path: '/offer',
+    labelKey: 'admin.pageOfferVideoLabel',
+    defaults: { title: 'offerPage.videoTitle' },
+    fields: ['title', 'summary'],
+    labels: { summary: 'admin.pageOfferVideoTextLabel' },
+    hints: { summary: 'admin.pageOfferVideoTextHint' },
   },
 }
 
@@ -141,9 +154,12 @@ function PageForm({ page }: { page: PageText }) {
 
   // Only the catalog in use is loaded, so the built-in text can be shown as a
   // placeholder in the reader's own language and not the other one.
+  const shows = (field: Field) => !meta.fields || meta.fields.includes(field)
+
   const placeholder = (lang: Lang, field: Field) => {
     if (lang !== locale) return undefined
     const keys = meta.defaults[field]
+    if (!keys) return undefined
     return Array.isArray(keys) ? keys.map((key) => t(key)).join('\n') : t(keys)
   }
 
@@ -194,22 +210,24 @@ function PageForm({ page }: { page: PageText }) {
                   />
                 )}
               </Field>
-              <Field
-                label={t(meta.labels?.body ?? 'admin.pageBodyLabel')}
-                hint={t(meta.hints?.body ?? 'admin.pageBodyHint')}
-              >
-                {(props) => (
-                  <Textarea
-                    {...props}
-                    dir={lang === 'ar' ? 'rtl' : 'ltr'}
-                    rows={14}
-                    maxLength={20000}
-                    value={values[`body_${lang}`] ?? ''}
-                    placeholder={placeholder(lang, 'body')}
-                    onChange={(event) => set(`body_${lang}`, event.target.value)}
-                  />
-                )}
-              </Field>
+              {shows('body') ? (
+                <Field
+                  label={t(meta.labels?.body ?? 'admin.pageBodyLabel')}
+                  hint={t(meta.hints?.body ?? 'admin.pageBodyHint')}
+                >
+                  {(props) => (
+                    <Textarea
+                      {...props}
+                      dir={lang === 'ar' ? 'rtl' : 'ltr'}
+                      rows={14}
+                      maxLength={20000}
+                      value={values[`body_${lang}`] ?? ''}
+                      placeholder={placeholder(lang, 'body')}
+                      onChange={(event) => set(`body_${lang}`, event.target.value)}
+                    />
+                  )}
+                </Field>
+              ) : null}
             </fieldset>
           ))}
 

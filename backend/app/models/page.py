@@ -17,7 +17,9 @@ from app.database.base import Base
 #: of the body) and the note under it (the summary). ``home`` is the
 #: homepage's photograph section and video (round 3): the title and summary
 #: are the words over the photograph, the body the line under the video.
-PAGE_KEYS: tuple[str, ...] = ("about", "offer_eligibility", "home")
+#: ``offer_video`` is the "how to register" video on /offer: its heading (the
+#: title) and the text under it (the summary); the video is a site setting.
+PAGE_KEYS: tuple[str, ...] = ("about", "offer_eligibility", "home", "offer_video")
 
 
 class Page(Base):

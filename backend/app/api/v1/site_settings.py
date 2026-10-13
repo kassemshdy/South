@@ -37,8 +37,9 @@ def update_site_settings(
     values = payload.model_dump()
     # Stored as an id, so the page composes the embed address itself and
     # renders nothing an administrator typed (see youtube_video_id).
-    if values.get("home_video"):
-        values["home_video"] = youtube_video_id(values["home_video"])
+    for video in ("home_video", "offer_video"):
+        if values.get(video):
+            values[video] = youtube_video_id(values[video])
     for key in SITE_SETTING_KEYS:
         value = values.get(key)
         row = db.get(SiteSetting, key)

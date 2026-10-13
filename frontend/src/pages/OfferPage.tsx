@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/features/auth/AuthContext'
 import { ChoicePageShell } from '@/features/onboarding/ChoicePageShell'
 import { DoorBody, doorCard } from '@/features/onboarding/DoorCard'
+import { OfferVideo } from '@/features/onboarding/OfferVideo'
 import { destinationFor, OFFER_DOORS, type Door } from '@/features/onboarding/destinations'
 import { useScrollToStep } from '@/hooks/useScrollToStep'
 import { usePageText } from '@/hooks/usePageText'
@@ -124,6 +125,10 @@ export function OfferPage() {
             {eligibility.summary ?? t('offerPage.eligibilityNote')}
           </p>
         </section>
+
+        {/* Before the steps, as the owners asked: nothing until an
+            administrator sets the video. */}
+        <OfferVideo />
 
         <section>
           <h2 className="text-lg font-bold text-ink-900">{t('offerPage.stepsTitle')}</h2>
