@@ -166,31 +166,22 @@ There is **no self-service sign-up**, and no way in but a password. What
 there is, end to end:
 
 ```
-public form (+ Turnstile)  →  User(OWNER, password chosen on the form, identity
-                                    set, ID scan attached)
+public form (+ Turnstile)  →  User(OWNER, password_hash NULL, identity set,
+                                    ID scan attached)
                               + Business/TalentProfile(PENDING_REVIEW)
-applicant signs in         →  dashboard, listing shown as under review
-administrator audits it    →  confirms the person on WhatsApp (the button on the
-                              review page), then approve / reject
-"issue credentials"        →  now a reset: password generated, shown ONCE, wa.me
-                              link, forced change on next sign-in
+administrator audits it    →  approve / reject, in the queue that already existed
+"issue credentials"        →  password generated, shown ONCE, wa.me link opens
+                              WhatsApp Web with the message written
+owner signs in (phone+pw)  →  forced password change  →  dashboard
 ```
 
 Five things about it are load-bearing rather than incidental:
 
 - **An application is stored as the listing itself**, pending review — not as a
   separate "application" table. The moderation queue, the serializers and the
-  admin screens then work unchanged and approval has nothing to migrate.
-- **The applicant chooses their password on the form** (the owners' decision,
-  round 3, replacing an administrator-issued one). They can sign in at once
-  and see the listing under review; what keeps that safe is that **nothing is
-  published until an administrator approves it**, and the administrator
-  confirms the person over WhatsApp first. The cost, accepted: someone can
-  apply with a number that is not theirs, and that number's real owner then
-  meets the "already has an account" path below — which is why the
-  administrator's WhatsApp check comes before approval, and why an account can
-  be deleted from the admin user page. The password is hashed on the way in
-  and never kept on a set-aside application.
+  admin screens then work unchanged and approval has nothing to migrate. What
+  makes that safe is the account having no password: the row exists, but nobody
+  can act as its owner until a person has looked at it.
 - **Both registration routes answer the same sentence whatever happened**,
   including for a phone number that already has an account — which is neither
   refused nor acted on. Answering differently would turn the form into a way to
@@ -202,10 +193,9 @@ Five things about it are load-bearing rather than incidental:
   applying twice is not silently lost — `tests/test_discarded_applications.py`.
 - **An issued password is returned exactly once** by
   `POST /api/admin/users/{id}/credentials`, stored only as a hash, and relayed
-  by the administrator from their own WhatsApp. It is now the reset for a
-  forgotten password, since there is no "forgot password" without a gateway.
-  This application never sends it anywhere. Issuing one replaces whatever the
-  account had and signs out any session opened with it.
+  by the administrator from their own WhatsApp. This application never sends
+  it anywhere. Issuing a second one replaces the first and signs out any
+  session opened with it.
 - **`must_change_password` shuts every owner route with a 403** until the
   password is replaced, enforced once in `get_current_user` rather than per
   route, so a new owner endpoint is covered by default. The password travelled

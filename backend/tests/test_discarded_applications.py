@@ -59,9 +59,6 @@ def test_a_repeat_application_is_set_aside_rather_than_lost(
     assert row.login_phone == owner.phone_number
     assert row.payload["business"]["name"] == ar("business.applicant")
     assert "captcha_token" not in row.payload
-    # Nor the password the second applicant chose: an administrator reads
-    # this row, and the number's real owner never chose it.
-    assert "password" not in row.payload
 
     # And still nothing on the existing account: one listing, not two.
     listings = db.execute(
