@@ -109,7 +109,10 @@ export default function LeafletMap({ value, onChange, label, className }: Leafle
       role="region"
       aria-label={label}
       data-ready={ready ? 'true' : 'false'}
-      className={className ?? 'h-64 w-full overflow-hidden rounded-xl border-2 border-ink-100'}
+      // `isolate` keeps Leaflet's own z-indices (400 for its panes, 1000 for
+      // its controls) inside the map: without it they outrank the sticky
+      // header, its menus and every dialog, and the map paints over them.
+      className={`isolate ${className ?? 'h-64 w-full overflow-hidden rounded-xl border-2 border-ink-100'}`}
     />
   )
 }
