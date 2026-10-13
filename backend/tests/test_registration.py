@@ -1,19 +1,17 @@
 """Applying for a listing without an account, and being let in afterwards.
 
 This is the route onto the site that does not need an SMS or WhatsApp
-gateway, so it is the only one that currently works: a visitor applies,
-choosing their own password (round 3), and an administrator audits the
-application before anything is published; an administrator can still issue a
-password, which is now the reset. What is pinned here is the handful of ways
-that arrangement could quietly betray somebody:
+gateway, so it is the only one that currently works: a visitor applies, an
+administrator audits the application, and on approval the administrator issues
+a password and relays it themselves. What is pinned here is the handful of
+ways that arrangement could quietly betray somebody:
 
-- an application must not be **published** before anyone has looked at it,
-  and the password chosen with it is kept only as a hash;
+- an application must not be signable-into **before** anyone has looked at it;
 - the form must not become a way to ask **which numbers already have
   accounts**, nor to hang a listing inside a stranger's dashboard;
-- a password that travelled through a chat message must open the account
-  **once** -- everything else stays shut until it is replaced, and replacing it
-  ends every session opened with it;
+- a password that travelled through a chat message is the owner's to keep
+  (no forced change, the owners' decision), and replacing it, whenever they
+  choose to, ends every session opened with it;
 - the plaintext must exist in that one response and **nowhere else**.
 """
 
@@ -42,8 +40,6 @@ from tests.samples import ar
 APPLICANT_PHONE = "03970001"
 APPLICANT_E164 = "+9613970001"
 OTHER_PHONE = "03970002"
-#: What the applicant chooses on the form (round 3); not a secret.
-APPLICANT_PASSWORD = "Chosen-pass-123"
 
 
 @pytest.fixture
@@ -72,7 +68,6 @@ def _business_payload(
 ) -> dict[str, object]:
     return {
         "login_phone": phone,
-        "password": APPLICANT_PASSWORD,
         "identity": dict(IDENTITY),
         "business": {
             "name": ar("business.applicant"),
@@ -136,22 +131,17 @@ def _owner(db: Session, phone: str = APPLICANT_E164) -> User | None:
 # --- The application ------------------------------------------------------
 
 
-def test_an_application_creates_a_pending_listing_its_applicant_can_sign_into(
+def test_an_application_creates_a_pending_listing_nobody_can_sign_into(
     client: TestClient, db: Session, category: Category, location: Location
 ) -> None:
-    """Round 3: the applicant chooses their password on the form and can sign
-    in straight away to watch the listing under review. What keeps that safe
-    is that nothing is published until an administrator approves it."""
+    """The account exists so approval has nothing to migrate; it has no
+    password, which is what makes creating it before review safe."""
     _apply(client, _business_payload(category, location))
 
     owner = _owner(db)
     assert owner is not None
     assert owner.role is UserRole.OWNER
-    # Stored only as a hash, and nothing to change on first sign-in: they
-    # chose it themselves.
-    assert owner.password_hash is not None
-    assert APPLICANT_PASSWORD not in owner.password_hash
-    assert verify_password(APPLICANT_PASSWORD, owner.password_hash)
+    assert owner.password_hash is None
     assert owner.must_change_password is False
 
     business = db.execute(
@@ -160,30 +150,11 @@ def test_an_application_creates_a_pending_listing_its_applicant_can_sign_into(
     assert business.status is BusinessStatus.PENDING_REVIEW
     assert business.name == ar("business.applicant")
 
-    signed_in = client.post(
-        "/api/auth/login", json={"identifier": APPLICANT_PHONE, "password": APPLICANT_PASSWORD}
+    # No password means no way in, however the login route is asked.
+    refused = client.post(
+        "/api/auth/login", json={"identifier": APPLICANT_PHONE, "password": ""}
     )
-    assert signed_in.status_code == 200, signed_in.text
-    headers = {"Authorization": f"Bearer {signed_in.json()['access_token']}"}
-    mine = client.get("/api/my/businesses", headers=headers)
-    assert mine.status_code == 200, mine.text
-    assert [row["status"] for row in mine.json()] == ["PENDING_REVIEW"]
-    # Still nowhere public.
-    assert client.get("/api/businesses").json()["items"] == []
-
-
-def test_an_application_without_a_password_is_refused(
-    client: TestClient, db: Session, category: Category, location: Location
-) -> None:
-    for password in (None, "short"):
-        payload = _business_payload(category, location)
-        if password is None:
-            del payload["password"]
-        else:
-            payload["password"] = password
-        response = _register(client, "business", payload)
-        assert response.status_code == 422, response.text
-    assert _owner(db) is None
+    assert refused.status_code in (401, 422)
 
 
 def test_a_pending_application_is_invisible_to_the_public(
@@ -399,7 +370,6 @@ def test_a_talent_applicant_can_attach_one_too(
         "talent",
         {
             "login_phone": APPLICANT_PHONE,
-            "password": APPLICANT_PASSWORD,
             "identity": dict(IDENTITY),
             "talent": {
                 "display_name": ar("talent.applicant"),
@@ -434,7 +404,6 @@ def test_a_talent_application_lands_in_the_review_queue(
         "talent",
         {
             "login_phone": APPLICANT_PHONE,
-            "password": APPLICANT_PASSWORD,
             "identity": dict(IDENTITY),
             "talent": {
                 "display_name": ar("talent.applicant"),
@@ -493,7 +462,6 @@ def test_a_known_number_is_answered_identically_and_creates_nothing(
         "business",
         {
             "login_phone": APPLICANT_PHONE,
-            "password": APPLICANT_PASSWORD,
             "identity": dict(IDENTITY),
             "business": {
                 "name": ar("business.applicant_second"),
@@ -646,7 +614,8 @@ def test_an_issued_password_is_returned_once_and_stored_only_as_a_hash(
     assert owner.password_hash is not None
     assert password not in owner.password_hash
     assert verify_password(password, owner.password_hash)
-    assert owner.must_change_password is True
+    # The owner's to keep: nothing forces a change on first sign-in.
+    assert owner.must_change_password is False
 
     # There is no route that reads it back; a second call replaces it.
     again = _issue(client, owner)
@@ -705,7 +674,7 @@ def test_credentials_for_an_unknown_account_are_not_found(
     assert missing.status_code == 404
 
 
-# --- Signing in and the forced change --------------------------------------
+# --- Signing in, and changing the password ---------------------------------
 
 
 def _sign_in(client: TestClient, phone: str, password: str) -> dict[str, str]:
@@ -727,7 +696,7 @@ def test_the_owner_signs_in_with_the_phone_number_and_the_issued_password(
     body = client.post(
         "/api/auth/login", json={"identifier": APPLICANT_PHONE, "password": password}
     ).json()
-    assert body["user"]["must_change_password"] is True
+    assert body["user"]["must_change_password"] is False
 
 
 @pytest.mark.parametrize(
@@ -848,27 +817,43 @@ def test_the_role_comes_from_the_account_not_the_form(
     assert owner.status_code == 401
 
 
-def test_every_owner_route_is_shut_until_the_password_is_replaced(
+def test_an_issued_password_opens_the_dashboard_straight_away(
     client: TestClient, db: Session, category: Category, location: Location, admin: User
 ) -> None:
+    """The owners' decision: no forced change. The WhatsApp message the
+    password arrived in is the owner's record of it."""
     _apply(client, _business_payload(category, location))
     owner = _owner(db)
     assert owner is not None
     headers = _sign_in(client, APPLICANT_PHONE, _issue(client, owner))
 
+    listed = client.get("/api/my/businesses", headers=headers)
+    assert listed.status_code == 200, listed.text
+    assert [item["name"] for item in listed.json()] == [ar("business.applicant")]
+
+
+def test_a_flagged_account_is_still_shut_until_the_password_is_replaced(
+    client: TestClient, db: Session, category: Category, location: Location, admin: User
+) -> None:
+    """Nothing sets the flag now, but the check stays in one place."""
+    _apply(client, _business_payload(category, location))
+    owner = _owner(db)
+    assert owner is not None
+    headers = _sign_in(client, APPLICANT_PHONE, _issue(client, owner))
+    owner.must_change_password = True
+    db.commit()
+
     blocked = client.get("/api/my/businesses", headers=headers)
     assert blocked.status_code == 403
     assert blocked.json()["error"]["code"] == "password_change_required"
-
-    # Except the two the client needs to get out of that state.
     assert client.get("/api/me", headers=headers).status_code == 200
 
 
-def test_changing_the_password_unblocks_the_account_and_ends_the_session(
+def test_changing_the_password_ends_the_other_sessions(
     client: TestClient, db: Session, category: Category, location: Location, admin: User
 ) -> None:
-    """The point of the forced change: whoever else read that WhatsApp chat is
-    signed out the moment the owner picks their own password."""
+    """Optional now, but still worth having: whoever else read that WhatsApp
+    chat is signed out the moment the owner picks their own password."""
     _apply(client, _business_payload(category, location))
     owner = _owner(db)
     assert owner is not None
@@ -906,7 +891,7 @@ def test_the_current_password_is_required_to_replace_it(
         json={"current_password": "not-it", "new_password": "OwnerChosen9"},
     )
     assert refused.status_code == 401
-    assert client.get("/api/my/businesses", headers=headers).status_code == 403
+    assert client.get("/api/my/businesses", headers=headers).status_code == 200
 
 
 def test_an_issued_password_ends_any_session_opened_with_the_previous_one(
@@ -933,7 +918,6 @@ def test_a_talent_application_without_years_of_experience_is_refused(
         "talent",
         {
             "login_phone": APPLICANT_PHONE,
-            "password": APPLICANT_PASSWORD,
             "identity": dict(IDENTITY),
             "talent": {
                 "display_name": ar("talent.applicant"),
@@ -1004,7 +988,6 @@ def test_a_talent_application_must_say_service_or_job(
         "talent",
         {
             "login_phone": APPLICANT_PHONE,
-            "password": APPLICANT_PASSWORD,
             "identity": dict(IDENTITY),
             "talent": {
                 "display_name": ar("talent.applicant"),
@@ -1035,7 +1018,6 @@ def test_a_service_application_must_say_how_it_is_delivered(
             "talent",
             {
                 "login_phone": APPLICANT_PHONE,
-                "password": APPLICANT_PASSWORD,
                 "identity": dict(IDENTITY),
                 "talent": {
                     "display_name": ar("talent.applicant"),
@@ -1077,7 +1059,6 @@ def test_an_application_without_an_area_is_refused(
         "talent",
         {
             "login_phone": APPLICANT_PHONE,
-            "password": APPLICANT_PASSWORD,
             "identity": dict(IDENTITY),
             "talent": {
                 "display_name": ar("talent.applicant"),

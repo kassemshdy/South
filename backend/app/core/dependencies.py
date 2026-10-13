@@ -89,11 +89,11 @@ def get_current_user(
 ) -> User:
     """The caller, refused while an issued password has not been replaced.
 
-    A password an administrator generated travelled to its owner through a
-    WhatsApp message, so anyone who has seen that chat can sign in with it.
-    Blocking every other route until it is replaced is what makes it a way in
-    exactly once rather than a standing credential. Enforced here rather than
-    per route so a new owner endpoint is covered by default.
+    Nothing sets the flag any more: the owners decided an issued password is
+    the owner's to keep, with the WhatsApp message as their record of it
+    (migration d7a1c4e9b305 cleared it on the accounts that carried it). The
+    check stays so that setting it again shuts every owner route in one
+    place, with a new owner endpoint covered by default.
     """
     if user.must_change_password:
         raise PermissionDeniedError(

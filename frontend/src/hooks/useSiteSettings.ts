@@ -29,3 +29,16 @@ export function useSiteSettings(): { settings: SiteSettings | undefined; hasCont
   )
   return { settings, hasContact }
 }
+
+const SUPPORT_NUMBER = import.meta.env.VITE_SUPPORT_WHATSAPP as string | undefined
+
+/**
+ * The team's WhatsApp number: the one an administrator set at
+ * /admin/site-settings, else `VITE_SUPPORT_WHATSAPP`, else null. Callers pass
+ * it through `whatsappHref`, which also returns null for a number with no
+ * digits in it, and render nothing then.
+ */
+export function useSupportWhatsapp(): string | null {
+  const { settings } = useSiteSettings()
+  return settings?.contact_whatsapp || SUPPORT_NUMBER || null
+}
