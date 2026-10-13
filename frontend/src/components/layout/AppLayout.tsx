@@ -4,6 +4,7 @@ import { Footer } from '@/components/layout/Footer'
 import { Header } from '@/components/layout/Header'
 import { RouteAnalytics } from '@/components/layout/RouteAnalytics'
 import { ScrollToTop } from '@/components/layout/ScrollToTop'
+import { WhatsAppButton } from '@/components/layout/WhatsAppButton'
 import { useAuth } from '@/features/auth/AuthContext'
 import { FeedbackWidget } from '@/features/feedback/FeedbackWidget'
 import { useT } from '@/i18n'
@@ -34,6 +35,7 @@ export function AppLayout() {
           say so. Anonymous reporting is a larger change (a nullable reporter
           and rate limiting) and is tracked separately. */}
       {isAuthenticated ? <FeedbackWidget /> : null}
+      <WhatsAppButton />
     </div>
   )
 }

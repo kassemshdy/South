@@ -175,7 +175,6 @@ def test_the_public_application_carries_it(
 ) -> None:
     payload = {
         "login_phone": "03980004",
-        "password": "Chosen-pass-123",
         "identity": {
             "full_name": ar("identity.full_name"),
             "birth_year": 1986,

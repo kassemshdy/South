@@ -216,12 +216,6 @@ export function RegistrationShell({
   const t = useT()
   const [loginPhone, setLoginPhone] = useState('')
   const [phoneError, setPhoneError] = useState<string | null>(null)
-  // Chosen here (round 3): the owners dropped the administrator issuing one.
-  // With the phone number above it is the login, usable straight away.
-  const [password, setPassword] = useState('')
-  const [passwordConfirm, setPasswordConfirm] = useState('')
-  const [passwordError, setPasswordError] = useState<string | null>(null)
-  const [confirmError, setConfirmError] = useState<string | null>(null)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const [identity, setIdentity] = useState<Record<IdentityField, string>>({
     full_name: '',
@@ -265,20 +259,6 @@ export function RegistrationShell({
     }
     setPhoneError(null)
     return value
-  }
-
-  const requirePassword = (): string | null => {
-    const tooShort = password.length < 8
-    setPasswordError(
-      !password
-        ? t('validation.passwordRequired')
-        : tooShort
-          ? t('validation.passwordShort')
-          : null,
-    )
-    const mismatch = !tooShort && password !== passwordConfirm
-    setConfirmError(mismatch ? t('validation.passwordMismatch') : null)
-    return tooShort || mismatch ? null : password
   }
 
   const requireIdentity = (): ApplicantIdentity | null => {
@@ -328,12 +308,11 @@ export function RegistrationShell({
     // All of them, always, rather than stopping at the first failure:
     // somebody who has left two fields blank should be told about two fields.
     const phone = requirePhone()
-    const chosen = requirePassword()
     const values = requireIdentity()
     const scans = requireDocuments()
     setConsentError(consented ? null : t('validation.consentRequired'))
-    if (!phone || !chosen || !values || !scans || !consented) return null
-    return { phone, password: chosen, identity: values, documents: scans }
+    if (!phone || !values || !scans || !consented) return null
+    return { phone, identity: values, documents: scans }
   }
 
   if (submitted) return <SubmittedPanel phone={loginPhone} />
@@ -377,52 +356,6 @@ export function RegistrationShell({
               />
             )}
           </Field>
-          <div className="grid gap-5 sm:grid-cols-2">
-            <Field
-              label={t('register.passwordLabel')}
-              required
-              error={passwordError ?? undefined}
-              hint={t('register.passwordHint')}
-            >
-              {(props) => (
-                <Input
-                  {...props}
-                  type="password"
-                  autoComplete="new-password"
-                  dir="ltr"
-                  minLength={8}
-                  maxLength={128}
-                  value={password}
-                  onChange={(event) => {
-                    setPassword(event.target.value)
-                    if (passwordError) setPasswordError(null)
-                  }}
-                  invalid={Boolean(passwordError)}
-                />
-              )}
-            </Field>
-            <Field
-              label={t('register.passwordConfirmLabel')}
-              required
-              error={confirmError ?? undefined}
-            >
-              {(props) => (
-                <Input
-                  {...props}
-                  type="password"
-                  autoComplete="new-password"
-                  dir="ltr"
-                  maxLength={128}
-                  value={passwordConfirm}
-                  onChange={(event) => {
-                    setPasswordConfirm(event.target.value)
-                    if (confirmError) setConfirmError(null)
-                  }}
-                  invalid={Boolean(confirmError)}
-                />
-              )}
-            </Field>
-          </div>
         </CardBody>
       </Card>
 

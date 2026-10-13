@@ -32,9 +32,11 @@ import { Input } from '@/components/ui/Input'
 import { useToast } from '@/components/ui/Toast'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useSeo } from '@/hooks/useSeo'
+import { useSupportWhatsapp } from '@/hooks/useSiteSettings'
 import { useT } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { authApi } from '@/services/api/endpoints'
+import { whatsappHref } from '@/utils/format'
 import { signInSchema } from '@/utils/validation'
 
 type SignInValues = z.infer<ReturnType<typeof signInSchema>>
@@ -47,6 +49,8 @@ export function LoginPage() {
   const t = useT()
   const [submitting, setSubmitting] = useState(false)
   const schema = useMemo(() => signInSchema(t), [t])
+  // Only with a number to send the request to; see ForgotPasswordPage.
+  const canAskForReset = Boolean(whatsappHref(useSupportWhatsapp()))
 
   useSeo({ title: t('login.seoTitle'), noIndex: true })
 
@@ -135,6 +139,14 @@ export function LoginPage() {
                 />
               )}
             </Field>
+
+            {canAskForReset ? (
+              <p className="-mt-2 text-end text-sm">
+                <Link to="/forgot-password" className="text-brand-700 hover:underline">
+                  {t('login.forgotLink')}
+                </Link>
+              </p>
+            ) : null}
 
             <Button type="submit" size="lg" block loading={submitting}>
               {t('login.signIn')}

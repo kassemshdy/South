@@ -30,6 +30,8 @@ const VIDEO_ID = 'cxylydvdiNE'
 const POSTERS: Record<string, string> = {
   // Dr Hossam Matar's earlier introduction.
   '3Np8hKhrbB4': '/welcome-hossam-matar.webp',
+  // The owners' new introduction is Dr Hossam too, so it takes his poster.
+  cxylydvdiNE: '/welcome-hossam-matar.webp',
 }
 
 export function WelcomeVideoPlayer() {

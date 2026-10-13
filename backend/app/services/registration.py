@@ -27,7 +27,6 @@ from app.core.captcha import verify_captcha
 from app.core.config import Settings
 from app.core.errors import RateLimitedError
 from app.core.rate_limit import DatabaseRateLimiter, RateLimitRule
-from app.core.security import hash_password
 from app.models.application import DiscardedApplication
 from app.models.enums import ApplicationKind, BusinessStatus, VerificationDocumentKind
 from app.models.user import User
@@ -135,11 +134,7 @@ class RegistrationService:
                     kind=kind,
                     login_phone=existing.phone_number or payload.login_phone,
                     existing_user_id=existing.id,
-                    # Never the password: this row is read by administrators,
-                    # and the number's real owner did not choose it.
-                    payload=payload.model_dump(
-                        mode="json", exclude={"captcha_token", "password"}
-                    ),
+                    payload=payload.model_dump(mode="json", exclude={"captcha_token"}),
                 )
             )
             logger.info(
@@ -150,12 +145,6 @@ class RegistrationService:
 
         owner = self._users.create_owner(payload.login_phone)
         _apply_identity(owner, payload.identity)
-        # The applicant's own choice, so there is nothing to force them to
-        # change: they can sign in straight away and watch their listing
-        # under review. Nothing is published until an administrator approves
-        # it, and the administrator confirms the person on WhatsApp first.
-        owner.password_hash = hash_password(payload.password)
-        owner.must_change_password = False
         return owner
 
     # --- The applicant's document -------------------------------------------

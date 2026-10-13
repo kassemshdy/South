@@ -17,6 +17,7 @@ import { ContactPage } from '@/pages/ContactPage'
 import { PartnerPage } from '@/pages/PartnerPage'
 import { DirectoryPage } from '@/pages/DirectoryPage'
 import { HomePage } from '@/pages/HomePage'
+import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { NewsPage } from '@/pages/NewsPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
@@ -179,6 +180,7 @@ export function App() {
           <Route path="contact" element={<ContactPage />} />
           <Route path="partner" element={<PartnerPage />} />
           <Route path="login" element={<LoginPage />} />
+          <Route path="forgot-password" element={<ForgotPasswordPage />} />
           <Route path="admin/login" element={<AdminLoginPage />} />
           {/* Applying needs no account — it is how you get one. */}
           <Route path="register/business" element={<RegisterBusinessPage />} />

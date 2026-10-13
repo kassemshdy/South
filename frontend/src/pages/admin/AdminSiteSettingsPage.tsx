@@ -66,14 +66,23 @@ const FIELDS: {
     type: 'text',
     placeholder: 'https://www.youtube.com/watch?v=…',
   },
+  {
+    // The "how to register" video on /offer. Its heading and text are on the
+    // pages screen.
+    key: 'offer_video',
+    labelKey: 'admin.offerVideoLabel',
+    type: 'text',
+    placeholder: 'https://www.youtube.com/watch?v=…',
+  },
 ]
 
-/** The API returns the video as an id; the field holds a link, as pasted. */
+const asLink = (id: string | null) => (id ? `https://www.youtube.com/watch?v=${id}` : null)
+
+/** The API returns each video as an id; the field holds a link, as pasted. */
 const asForm = (settings: SiteSettings): SiteSettings => ({
   ...settings,
-  home_video: settings.home_video
-    ? `https://www.youtube.com/watch?v=${settings.home_video}`
-    : null,
+  home_video: asLink(settings.home_video),
+  offer_video: asLink(settings.offer_video),
 })
 
 const EMPTY: SiteSettings = {
@@ -83,6 +92,7 @@ const EMPTY: SiteSettings = {
   social_facebook: null,
   social_instagram: null,
   home_video: null,
+  offer_video: null,
 }
 
 export function AdminSiteSettingsPage() {

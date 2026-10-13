@@ -820,11 +820,12 @@ export interface SiteSettings {
   social_instagram: string | null
   /** The homepage video, as a YouTube id; null plays the one the site shipped with. */
   home_video: string | null
+  offer_video: string | null
 }
 
 /** The site's static pages; see `PageText`. `home` is the homepage's
  * photograph section and the line under its video. */
-export type PageKey = 'about' | 'offer_eligibility' | 'home'
+export type PageKey = 'about' | 'offer_eligibility' | 'home' | 'offer_video'
 
 /**
  * A static page's administrator-written text. A null field means the page
