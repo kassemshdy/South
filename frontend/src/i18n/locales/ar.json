@@ -497,7 +497,7 @@
   "credentials.reissue": "إنشاء كلمة مرور جديدة",
   "credentials.sendOnWhatsapp": "إرسالها عبر واتساب",
   "credentials.usernameLabel": "اسم المستخدم",
-  "credentials.whatsappMessage": "أهلًا بك في جنوبنا. تمت الموافقة على طلبك، وهذه بيانات الدخول:\nالموقع: {url}/login\nاسم المستخدم: {phone}\nكلمة المرور: {password}\nيُرجى تغيير كلمة المرور بعد أول تسجيل دخول.",
+  "credentials.whatsappMessage": "أهلًا بك في جنوبنا. تمت الموافقة على طلبك، وهذه بيانات الدخول:\nالموقع: {url}/login\nاسم المستخدم: {phone}\nكلمة المرور: {password}\nاحتفظ بهذه الرسالة للرجوع إليها عند الحاجة.",
   "dashboard.addNew": "إضافة نشاط جديد",
   "dashboard.completeFirst": "أكمل البيانات التالية أولاً:",
   "dashboard.editBusiness": "تعديل النشاط",

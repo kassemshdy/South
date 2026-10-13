@@ -497,7 +497,7 @@
   "credentials.reissue": "Generate a new password",
   "credentials.sendOnWhatsapp": "Send on WhatsApp",
   "credentials.usernameLabel": "Username",
-  "credentials.whatsappMessage": "Welcome to Daleel Al-Janoub. Your application has been approved. Here are your login details:\nSite: {url}/login\nUsername: {phone}\nPassword: {password}\nPlease change your password after your first sign-in.",
+  "credentials.whatsappMessage": "Welcome to Daleel Al-Janoub. Your application has been approved. Here are your login details:\nSite: {url}/login\nUsername: {phone}\nPassword: {password}\nKeep this message to refer back to when you need it.",
   "dashboard.addNew": "Add a new business",
   "dashboard.completeFirst": "Complete the following first:",
   "dashboard.editBusiness": "Edit business",

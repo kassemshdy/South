@@ -9,9 +9,9 @@ ways that arrangement could quietly betray somebody:
 - an application must not be signable-into **before** anyone has looked at it;
 - the form must not become a way to ask **which numbers already have
   accounts**, nor to hang a listing inside a stranger's dashboard;
-- a password that travelled through a chat message must open the account
-  **once** -- everything else stays shut until it is replaced, and replacing it
-  ends every session opened with it;
+- a password that travelled through a chat message is the owner's to keep
+  (no forced change, the owners' decision), and replacing it, whenever they
+  choose to, ends every session opened with it;
 - the plaintext must exist in that one response and **nowhere else**.
 """
 
@@ -614,7 +614,8 @@ def test_an_issued_password_is_returned_once_and_stored_only_as_a_hash(
     assert owner.password_hash is not None
     assert password not in owner.password_hash
     assert verify_password(password, owner.password_hash)
-    assert owner.must_change_password is True
+    # The owner's to keep: nothing forces a change on first sign-in.
+    assert owner.must_change_password is False
 
     # There is no route that reads it back; a second call replaces it.
     again = _issue(client, owner)
@@ -673,7 +674,7 @@ def test_credentials_for_an_unknown_account_are_not_found(
     assert missing.status_code == 404
 
 
-# --- Signing in and the forced change --------------------------------------
+# --- Signing in, and changing the password ---------------------------------
 
 
 def _sign_in(client: TestClient, phone: str, password: str) -> dict[str, str]:
@@ -695,7 +696,7 @@ def test_the_owner_signs_in_with_the_phone_number_and_the_issued_password(
     body = client.post(
         "/api/auth/login", json={"identifier": APPLICANT_PHONE, "password": password}
     ).json()
-    assert body["user"]["must_change_password"] is True
+    assert body["user"]["must_change_password"] is False
 
 
 @pytest.mark.parametrize(
@@ -816,27 +817,43 @@ def test_the_role_comes_from_the_account_not_the_form(
     assert owner.status_code == 401
 
 
-def test_every_owner_route_is_shut_until_the_password_is_replaced(
+def test_an_issued_password_opens_the_dashboard_straight_away(
     client: TestClient, db: Session, category: Category, location: Location, admin: User
 ) -> None:
+    """The owners' decision: no forced change. The WhatsApp message the
+    password arrived in is the owner's record of it."""
     _apply(client, _business_payload(category, location))
     owner = _owner(db)
     assert owner is not None
     headers = _sign_in(client, APPLICANT_PHONE, _issue(client, owner))
 
+    listed = client.get("/api/my/businesses", headers=headers)
+    assert listed.status_code == 200, listed.text
+    assert [item["name"] for item in listed.json()] == [ar("business.applicant")]
+
+
+def test_a_flagged_account_is_still_shut_until_the_password_is_replaced(
+    client: TestClient, db: Session, category: Category, location: Location, admin: User
+) -> None:
+    """Nothing sets the flag now, but the check stays in one place."""
+    _apply(client, _business_payload(category, location))
+    owner = _owner(db)
+    assert owner is not None
+    headers = _sign_in(client, APPLICANT_PHONE, _issue(client, owner))
+    owner.must_change_password = True
+    db.commit()
+
     blocked = client.get("/api/my/businesses", headers=headers)
     assert blocked.status_code == 403
     assert blocked.json()["error"]["code"] == "password_change_required"
-
-    # Except the two the client needs to get out of that state.
     assert client.get("/api/me", headers=headers).status_code == 200
 
 
-def test_changing_the_password_unblocks_the_account_and_ends_the_session(
+def test_changing_the_password_ends_the_other_sessions(
     client: TestClient, db: Session, category: Category, location: Location, admin: User
 ) -> None:
-    """The point of the forced change: whoever else read that WhatsApp chat is
-    signed out the moment the owner picks their own password."""
+    """Optional now, but still worth having: whoever else read that WhatsApp
+    chat is signed out the moment the owner picks their own password."""
     _apply(client, _business_payload(category, location))
     owner = _owner(db)
     assert owner is not None
@@ -874,7 +891,7 @@ def test_the_current_password_is_required_to_replace_it(
         json={"current_password": "not-it", "new_password": "OwnerChosen9"},
     )
     assert refused.status_code == 401
-    assert client.get("/api/my/businesses", headers=headers).status_code == 403
+    assert client.get("/api/my/businesses", headers=headers).status_code == 200
 
 
 def test_an_issued_password_ends_any_session_opened_with_the_previous_one(

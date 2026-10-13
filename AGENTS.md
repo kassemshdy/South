@@ -172,7 +172,7 @@ public form (+ Turnstile)  →  User(OWNER, password_hash NULL, identity set,
 administrator audits it    →  approve / reject, in the queue that already existed
 "issue credentials"        →  password generated, shown ONCE, wa.me link opens
                               WhatsApp Web with the message written
-owner signs in (phone+pw)  →  forced password change  →  dashboard
+owner signs in (phone+pw)  →  dashboard (no forced change)
 ```
 
 Five things about it are load-bearing rather than incidental:
@@ -196,12 +196,15 @@ Five things about it are load-bearing rather than incidental:
   by the administrator from their own WhatsApp. This application never sends
   it anywhere. Issuing a second one replaces the first and signs out any
   session opened with it.
-- **`must_change_password` shuts every owner route with a 403** until the
-  password is replaced, enforced once in `get_current_user` rather than per
-  route, so a new owner endpoint is covered by default. The password travelled
-  through a chat message; the forced change is what makes it a way in exactly
-  once instead of a standing credential, and replacing it bumps `token_version`
-  so whoever else read that chat is signed out.
+- **An issued password is the owner's to keep** (the owners' decision,
+  replacing a forced change on first sign-in). The WhatsApp message it
+  arrived in is their record of it; a lost one is replaced by issuing another.
+  The accepted cost: the password stays readable in that chat for as long as
+  the chat exists. An owner can still replace it from their account page,
+  which bumps `token_version` so whoever else read that chat is signed out.
+  `must_change_password` is no longer set, but `get_current_user` still shuts
+  every owner route with a 403 for an account that carries it, so turning the
+  forced change back on is one line in `AuthService.issue_password`.
 - **The applicant's identity is collected on the public form**, and written
   onto the `users` row rather than the listing. The reviewer is deciding
   whether this is a real person from the South, so asking afterwards would put

@@ -12,8 +12,9 @@ code: on a deployment that is not a login, it is a way in for anyone who knows
 a phone number. Deleting it is the fix. The account is still keyed by phone
 number, so a gateway arriving later adds a door onto the same accounts.
 
-A password an administrator issued is a way in exactly once — see
-``must_change_password``.
+A password an administrator issued is the owner's to keep (the owners'
+decision): the WhatsApp message it arrived in is their record of it, and
+they may replace it from their account page whenever they like.
 """
 
 from __future__ import annotations
@@ -211,12 +212,13 @@ class AuthService:
 
         The plaintext is returned to the caller and never stored, logged or
         sent anywhere by this application — an administrator relays it over
-        their own WhatsApp. It is a way in exactly once: `must_change_password`
-        blocks every owner route until it has been replaced.
+        their own WhatsApp. The owner keeps it: nothing forces a change on
+        first sign-in (the owners' decision), so the message is their record.
+        Issuing a new one is how a forgotten password is replaced.
         """
         password = generate_temporary_password()
         user.password_hash = hash_password(password)
-        user.must_change_password = True
+        user.must_change_password = False
         # Any session opened with a previous password stops here.
         user.token_version += 1
         self._db.commit()

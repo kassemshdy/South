@@ -183,25 +183,13 @@ test.describe('Applying for a listing', () => {
     expect(whatsapp).toContain('wa.me/')
     expect(decodeURIComponent(whatsapp ?? '')).toContain(issued)
 
-    // --- 4. The issued password opens exactly one screen --------------------
+    // --- 4. The issued password opens the dashboard -------------------------
+    // No forced change (the owners' decision): the WhatsApp message is the
+    // owner's record of the password.
     await page.goto('/login')
     await page.getByLabel(t('login.identifierLabel')).fill(fixture.loginPhone)
     await page.getByLabel(t('login.passwordLabel')).fill(issued)
     await page.getByRole('button', { name: t('login.signIn'), exact: true }).click()
-    await expect(page).toHaveURL(/\/change-password/)
-
-    // Not around it, either: the dashboard bounces straight back.
-    await page.goto('/dashboard')
-    await expect(page).toHaveURL(/\/change-password/)
-
-    // --- 5. Choosing their own password reaches the dashboard ---------------
-    // By autocomplete rather than by label: the confirmation field's label
-    // contains the new password field's, so a label lookup matches both.
-    await page.getByLabel(t('password.currentLabel')).fill(issued)
-    const chosen = page.locator('input[autocomplete="new-password"]')
-    await chosen.nth(0).fill(fixture.chosenPassword)
-    await chosen.nth(1).fill(fixture.chosenPassword)
-    await page.getByRole('button', { name: t('password.submit') }).click()
 
     await expect(page).toHaveURL(/\/dashboard$/)
     await expect(page.getByText(fixture.businessName)).toBeVisible()
