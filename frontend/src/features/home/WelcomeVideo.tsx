@@ -1,4 +1,5 @@
 import { YouTubePlayer } from '@/components/ui/YouTubePlayer'
+import { useUploadedCover } from '@/hooks/usePageCover'
 import { useSiteSettings } from '@/hooks/useSiteSettings'
 import { useT } from '@/i18n'
 
@@ -24,10 +25,10 @@ import { useT } from '@/i18n'
  */
 
 /** The recording the owners chose (round 3); an administrator can replace it. */
-const VIDEO_ID = 'cxylydvdiNE'
+export const WELCOME_VIDEO_ID = 'cxylydvdiNE'
 
 /** Posters we have, by the recording each was made for. */
-const POSTERS: Record<string, string> = {
+export const WELCOME_POSTERS: Record<string, string> = {
   // Dr Hossam Matar's earlier introduction.
   '3Np8hKhrbB4': '/welcome-hossam-matar.webp',
   // The owners' new introduction is Dr Hossam too, so it takes his poster.
@@ -37,12 +38,14 @@ const POSTERS: Record<string, string> = {
 export function WelcomeVideoPlayer() {
   const t = useT()
   const { settings } = useSiteSettings()
-  const videoId = settings?.home_video ?? VIDEO_ID
+  const videoId = settings?.home_video ?? WELCOME_VIDEO_ID
+  // An administrator's upload wins over the poster we ship for a recording.
+  const uploaded = useUploadedCover('home_video')
 
   return (
     <YouTubePlayer
       videoId={videoId}
-      poster={POSTERS[videoId] ?? null}
+      poster={uploaded ?? WELCOME_POSTERS[videoId] ?? null}
       title={t('home.videoHeading')}
       playLabel={t('home.videoPlayAria')}
     />
