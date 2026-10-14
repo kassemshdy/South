@@ -4,6 +4,9 @@ import { pageCoverApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { PageCoverKey } from '@/types/api'
 
+/** The keys that are a video's preview rather than a page's photograph. */
+export const VIDEO_POSTER_KEYS = ['home_video', 'offer_video'] as const
+
 /** The photograph every page shows until an administrator replaces it. */
 export const DEFAULT_PAGE_COVER = '/south-hills.jpg'
 
@@ -16,11 +19,16 @@ export const DEFAULT_PAGE_COVER = '/south-hills.jpg'
  * particular photograph and would be wrong over any other.
  */
 export function usePageCover(key: PageCoverKey): { src: string; custom: boolean } {
+  const custom = useUploadedCover(key)
+  return custom ? { src: custom, custom: true } : { src: DEFAULT_PAGE_COVER, custom: false }
+}
+
+/** The image an administrator uploaded under `key`, or null: no default. */
+export function useUploadedCover(key: PageCoverKey): string | null {
   const covers = useQuery({
     queryKey: queryKeys.pageCovers,
     queryFn: pageCoverApi.all,
     staleTime: 10 * 60_000,
   })
-  const custom = covers.data?.[key]
-  return custom ? { src: custom, custom: true } : { src: DEFAULT_PAGE_COVER, custom: false }
+  return covers.data?.[key] ?? null
 }
