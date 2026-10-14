@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/Input'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
+import { CoverUpload } from '@/features/admin/CoverUpload'
+import { WELCOME_POSTERS, WELCOME_VIDEO_ID } from '@/features/home/WelcomeVideo'
 import { useT, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { adminApi } from '@/services/api/endpoints'
@@ -165,6 +167,57 @@ export function AdminSiteSettingsPage() {
           </CardBody>
         </Card>
       )}
+
+      <VideoPosters homeVideo={current.data?.home_video ?? null} />
     </div>
+  )
+}
+
+/**
+ * The still each video shows before it is played. Kept with the videos'
+ * links because the two go together: a new recording usually wants a new
+ * picture, and one of somebody else must not keep the old face.
+ */
+function VideoPosters({ homeVideo }: { homeVideo: string | null }) {
+  const t = useT()
+  const covers = useQuery({ queryKey: queryKeys.adminPageCovers, queryFn: adminApi.pageCovers })
+  const cover = (key: 'home_video' | 'offer_video') =>
+    covers.data?.find((item) => item.page_key === key)
+  const home = cover('home_video')
+  const offer = cover('offer_video')
+
+  return (
+    <section className="space-y-4">
+      <div>
+        <h2 className="text-xl font-bold">{t('admin.videoPostersHeading')}</h2>
+        <p className="mt-1 text-sm text-ink-500">{t('admin.videoPostersHint')}</p>
+      </div>
+      {covers.isLoading ? (
+        <Skeleton className="h-40 w-full" />
+      ) : covers.isError ? (
+        <ErrorState error={covers.error} onRetry={() => void covers.refetch()} />
+      ) : (
+        <>
+          {home ? (
+            <CoverUpload
+              cover={home}
+              title={t('admin.pageHomeLabel')}
+              hint={t('admin.videoPosterHint')}
+              fallbackSrc={WELCOME_POSTERS[homeVideo ?? WELCOME_VIDEO_ID] ?? null}
+              resetLabel={t('admin.videoPosterRemove')}
+            />
+          ) : null}
+          {offer ? (
+            <CoverUpload
+              cover={offer}
+              title={t('admin.pageOfferVideoLabel')}
+              hint={t('admin.videoPosterHint')}
+              fallbackSrc={null}
+              resetLabel={t('admin.videoPosterRemove')}
+            />
+          ) : null}
+        </>
+      )}
+    </section>
   )
 }

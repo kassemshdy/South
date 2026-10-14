@@ -106,3 +106,19 @@ def test_only_an_administrator_can_set_or_reset_one(client: TestClient) -> None:
     )
     assert client.delete("/api/admin/page-covers/products", headers=owner).status_code == 403
     assert client.get("/api/admin/page-covers", headers=owner).status_code == 403
+
+
+def test_each_video_takes_its_own_preview_image(client: TestClient, admin: User) -> None:
+    """The homepage and /offer videos' previews are covers under their own
+    keys: set and removed independently, and public like any other cover."""
+    headers = admin_headers(client)
+    home = _upload(client, headers, "home_video")
+    offer = _upload(client, headers, "offer_video")
+    assert client.get("/api/page-covers").json() == {
+        "home_video": home["image_url"],
+        "offer_video": offer["image_url"],
+    }
+
+    removed = client.delete("/api/admin/page-covers/offer_video", headers=headers)
+    assert removed.status_code == 200, removed.text
+    assert client.get("/api/page-covers").json() == {"home_video": home["image_url"]}

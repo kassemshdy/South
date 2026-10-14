@@ -22,6 +22,12 @@ PAGE_COVER_KEYS: tuple[str, ...] = (
     "talent",
     "jobs",
     "contact",
+    # Not page tops: the still each video shows before it is played, set
+    # beside the video's link in the site settings (a 16:9 frame, which is
+    # the cover size). Unset, the homepage falls back to the poster the site
+    # ships for its recording and /offer to the brand panel.
+    "home_video",
+    "offer_video",
 )
 
 

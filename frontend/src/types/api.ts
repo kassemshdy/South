@@ -844,6 +844,8 @@ export interface PageText {
 export type PageTextInput = Omit<PageText, 'key'>
 
 export type PageCoverKey =
+  | 'home_video'
+  | 'offer_video'
   | 'home'
   | 'offer'
   | 'browse'
