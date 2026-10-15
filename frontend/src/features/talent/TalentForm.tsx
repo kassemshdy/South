@@ -30,6 +30,13 @@ interface TalentFormProps {
   serverError?: unknown
   footer?: React.ReactNode
   /**
+   * Called when a submit fails this form's own validation. The registration
+   * pages use it to mark their own fields too and scroll to the topmost error,
+   * which can be above this form; without it the first invalid field here is
+   * focused, as before.
+   */
+  onInvalid?: () => void
+  /**
    * Whether to say that the identity fields live on the account page.
    *
    * True from the dashboard, where they do and this form deliberately omits
@@ -80,6 +87,7 @@ export function TalentForm({
   onSubmit,
   serverError,
   footer,
+  onInvalid,
   identityElsewhere = true,
 }: TalentFormProps) {
   const skills = useTalentSkills()
@@ -97,6 +105,7 @@ export function TalentForm({
     formState: { errors },
   } = useForm<TalentValues>({
     resolver: zodResolver(schema),
+    shouldFocusError: !onInvalid,
     defaultValues: {
       kind: profile?.kind ?? initialKind ?? '',
       display_name: profile?.display_name ?? '',
@@ -208,7 +217,7 @@ export function TalentForm({
         return url ? [{ platform, url }] : []
       }),
     })
-  })
+  }, onInvalid ? () => onInvalid() : undefined)
 
   return (
     <form onSubmit={submit} className="space-y-5" noValidate>

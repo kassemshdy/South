@@ -30,6 +30,13 @@ interface BasicsFormProps {
   serverError?: unknown
   footer?: React.ReactNode
   /**
+   * Called when a submit fails this form's own validation. The registration
+   * pages use it to mark their own fields too and scroll to the topmost error,
+   * which can be above this form; without it the first invalid field here is
+   * focused, as before.
+   */
+  onInvalid?: () => void
+  /**
    * Whether to say that the identity fields live on the account page.
    *
    * True from the dashboard, where they do and this form deliberately omits
@@ -61,6 +68,7 @@ export function BasicsForm({
   onSubmit,
   serverError,
   footer,
+  onInvalid,
   identityElsewhere = true,
   defaultOrigin,
   askLocation = false,
@@ -85,6 +93,7 @@ export function BasicsForm({
     formState: { errors },
   } = useForm<BusinessBasicsValues>({
     resolver: zodResolver(schema),
+    shouldFocusError: !onInvalid,
     defaultValues: {
       goods_origin: business?.goods_origin ?? defaultOrigin ?? 'LOCAL',
       name: business?.name ?? '',
@@ -139,7 +148,7 @@ export function BasicsForm({
           }
         : {}),
     })
-  })
+  }, onInvalid ? () => onInvalid() : undefined)
 
   return (
     <form onSubmit={submit} className="space-y-5" noValidate>
