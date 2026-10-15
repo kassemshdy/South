@@ -51,7 +51,7 @@ export function RegisterTalentPage() {
       subtitleKey="register.talentSubtitle"
       submitted={apply.isSuccess}
     >
-      {({ requireApplicant, captchaToken, captcha }) => (
+      {({ requireApplicant, reportInvalid, resetCaptcha, captchaToken, captcha }) => (
         <TalentForm
           initialKind={initialKind}
           submitLabel={t('register.submit')}
@@ -61,8 +61,12 @@ export function RegisterTalentPage() {
           onSubmit={(payload) => {
             const applicant = requireApplicant()
             if (!applicant) return
-            apply.mutate({ applicant, payload, token: captchaToken })
+            apply.mutate(
+              { applicant, payload, token: captchaToken },
+              { onError: resetCaptcha },
+            )
           }}
+          onInvalid={reportInvalid}
           footer={
             <>
               {captcha}
