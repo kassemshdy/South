@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, CheckCircle2, Clock, PauseCircle, Package, Store, Users, XCircle } from 'lucide-react'
+import { useId } from 'react'
 import { Link } from 'react-router-dom'
 
 import { Button } from '@/components/ui/Button'
@@ -121,6 +122,12 @@ function QueueCard({
   to: string
   action: string
 }) {
+  // Both cards say the same thing on their button (`admin.reviewRequests`),
+  // so each link is named by its card's label as well: two identically named
+  // links to different queues would be indistinguishable to a screen reader.
+  const labelId = useId()
+  const actionId = useId()
+
   return (
     <Card className="border-clay-200 bg-clay-50/40">
       <CardBody>
@@ -130,13 +137,15 @@ function QueueCard({
               <Clock className="h-7 w-7" aria-hidden="true" />
             </span>
             <div>
-              <p className="text-sm font-semibold text-clay-700">{label}</p>
+              <p id={labelId} className="text-sm font-semibold text-clay-700">
+                {label}
+              </p>
               <p className="text-3xl font-bold text-clay-900">{count ?? '—'}</p>
             </div>
           </div>
           <Button asChild size="lg">
-            <Link to={to}>
-              {action}
+            <Link to={to} aria-labelledby={`${labelId} ${actionId}`}>
+              <span id={actionId}>{action}</span>
               <ArrowLeft className="h-5 w-5" aria-hidden="true" />
             </Link>
           </Button>
