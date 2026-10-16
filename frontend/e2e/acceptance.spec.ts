@@ -222,7 +222,14 @@ test.describe('MVP acceptance flow', () => {
     await page.getByRole('button', { name: t('adminLogin.submit') }).click()
 
     await expect(page.getByRole('heading', { name: t('admin.dashboardHeading') })).toBeVisible()
-    await page.getByRole('link', { name: t('admin.reviewRequests') }).click()
+    // The business queue's link, named by its card: the talent queue has a
+    // card and an identical button beside it.
+    await page
+      .getByRole('link', {
+        name: `${t('admin.pendingLabel')} ${t('admin.reviewRequests')}`,
+        exact: true,
+      })
+      .click()
 
     // The queue is oldest-first, so target this listing's row rather than the
     // first one in the list.
