@@ -51,7 +51,7 @@ export function RegisterBusinessPage() {
       subtitleKey="register.businessSubtitle"
       submitted={apply.isSuccess}
     >
-      {({ requireApplicant, captchaToken, captcha }) => (
+      {({ requireApplicant, reportInvalid, resetCaptcha, captchaToken, captcha }) => (
         <BasicsForm
           key={origin ?? 'LOCAL'}
           defaultOrigin={origin}
@@ -63,8 +63,12 @@ export function RegisterBusinessPage() {
           onSubmit={(payload) => {
             const applicant = requireApplicant()
             if (!applicant) return
-            apply.mutate({ applicant, payload, token: captchaToken })
+            apply.mutate(
+              { applicant, payload, token: captchaToken },
+              { onError: resetCaptcha },
+            )
           }}
+          onInvalid={reportInvalid}
           footer={captcha}
         />
       )}
