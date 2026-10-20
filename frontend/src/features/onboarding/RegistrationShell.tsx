@@ -31,7 +31,7 @@
  */
 
 import { AlertTriangle, CheckCircle2, MessageCircle, Phone, ShieldCheck, Upload, UserRound } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
 import { Card, CardBody } from '@/components/ui/Card'
@@ -47,6 +47,8 @@ import type {
   ApplicantIdentity,
 } from '@/services/api/endpoints'
 import { cn } from '@/utils/cn'
+import { revealFirstError } from '@/utils/revealFirstError'
+import { shrinkImage } from '@/utils/shrinkImage'
 import { isLebanesePhone } from '@/utils/validation'
 
 /**
@@ -101,6 +103,27 @@ const DOCUMENT_TYPES = ['application/pdf', 'image/jpeg', 'image/png']
 /** Mirrors MAX_VERIFICATION_DOC_BYTES; the API is still the judge. */
 const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024
 
+/**
+ * A card photographed by a phone, re-encoded small enough to send quickly.
+ *
+ * Straight off the camera each side is 3-4 MB, so an application carried
+ * 7 MB or more, and on the mobile connections most applicants use that took
+ * from half a minute to over two — long enough that people gave up or the
+ * request was dropped. 2000px on the long side is still plenty to read every
+ * line of an identity card. A PDF, or an image the browser cannot decode,
+ * is sent as it is.
+ */
+const DOCUMENT_TARGET_BYTES = 1024 * 1024
+
+async function shrinkDocument(file: File): Promise<File> {
+  if (!file.type.startsWith('image/')) return file
+  try {
+    return await shrinkImage(file, { maxBytes: DOCUMENT_TARGET_BYTES, maxSide: 2000 })
+  } catch {
+    return file
+  }
+}
+
 type DocumentSide = keyof ApplicantDocuments
 
 const DOCUMENT_SIDES: DocumentSide[] = ['front', 'back']
@@ -151,16 +174,17 @@ function DocumentField({
             type="file"
             accept={DOCUMENT_TYPES.join(',')}
             className="sr-only"
-            onChange={(event) => {
+            onChange={async (event) => {
               const picked = event.target.files?.[0] ?? null
+              const file = picked ? await shrinkDocument(picked) : null
               // Checked here as well as at the API, because a phone photo
               // over the cap would otherwise be a long upload that ends in a
               // refusal.
-              if (picked && picked.size > MAX_DOCUMENT_BYTES) {
+              if (file && file.size > MAX_DOCUMENT_BYTES) {
                 onPick(null, t('register.documentTooLarge'))
                 return
               }
-              onPick(picked, null)
+              onPick(file, null)
             }}
           />
           <label
@@ -201,6 +225,19 @@ interface RegistrationShellProps {
      * then refuses for a field the form never marked.
      */
     requireApplicant: () => Applicant | null
+    /**
+     * For the form's own validation failing: marks this frame's missing
+     * fields too, then scrolls to whichever error is highest on the page.
+     * Without it a tap on send could fail on a field three screens up and
+     * appear to do nothing.
+     */
+    reportInvalid: () => void
+    /**
+     * A fresh captcha after a failed send. A Turnstile token is good for one
+     * verification, and the API verifies it before anything else, so a retry
+     * with the same token would be refused whatever was wrong the first time.
+     */
+    resetCaptcha: () => void
     captcha: ReactNode
   }) => ReactNode
   /** Shown instead of the form once the application has been accepted. */
@@ -217,6 +254,16 @@ export function RegistrationShell({
   const [loginPhone, setLoginPhone] = useState('')
   const [phoneError, setPhoneError] = useState<string | null>(null)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [captchaRound, setCaptchaRound] = useState(0)
+  // Bumped on every failed send. The errors it should reveal are state set in
+  // the same handler, so the scroll waits for the render that shows them.
+  const pageRef = useRef<HTMLDivElement>(null)
+  const [revealRequest, setRevealRequest] = useState(0)
+  useEffect(() => {
+    if (revealRequest === 0) return
+    const frame = requestAnimationFrame(() => revealFirstError(pageRef.current))
+    return () => cancelAnimationFrame(frame)
+  }, [revealRequest])
   const [identity, setIdentity] = useState<Record<IdentityField, string>>({
     full_name: '',
     birth_year: '',
@@ -304,7 +351,7 @@ export function RegistrationShell({
     setDocumentErrors((current) => ({ ...current, [side]: error ?? undefined }))
   }
 
-  const requireApplicant = (): Applicant | null => {
+  const checkApplicant = (): Applicant | null => {
     // All of them, always, rather than stopping at the first failure:
     // somebody who has left two fields blank should be told about two fields.
     const phone = requirePhone()
@@ -315,10 +362,26 @@ export function RegistrationShell({
     return { phone, identity: values, documents: scans }
   }
 
+  const requireApplicant = (): Applicant | null => {
+    const applicant = checkApplicant()
+    if (!applicant) setRevealRequest((count) => count + 1)
+    return applicant
+  }
+
+  const reportInvalid = () => {
+    checkApplicant()
+    setRevealRequest((count) => count + 1)
+  }
+
+  const resetCaptcha = () => {
+    setCaptchaToken(null)
+    setCaptchaRound((round) => round + 1)
+  }
+
   if (submitted) return <SubmittedPanel phone={loginPhone} />
 
   return (
-    <div className="container-page max-w-3xl py-10">
+    <div ref={pageRef} className="container-page max-w-3xl py-10">
       <header className="mb-6">
         <h1 className="text-3xl">{t(titleKey)}</h1>
         <p className="mt-2 text-ink-500">{t(subtitleKey)}</p>
@@ -515,7 +578,11 @@ export function RegistrationShell({
             loginPhone,
             captchaToken,
             requireApplicant,
-            captcha: <Turnstile onToken={setCaptchaToken} />,
+            reportInvalid,
+            resetCaptcha,
+            // Remounted rather than reset in place: unmounting removes the
+            // spent widget, and a new one renders with a new challenge.
+            captcha: <Turnstile key={captchaRound} onToken={setCaptchaToken} />,
           })}
         </CardBody>
       </Card>
