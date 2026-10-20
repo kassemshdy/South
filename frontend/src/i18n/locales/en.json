@@ -252,6 +252,7 @@
   "admin.partnersHeading": "Partner requests",
   "admin.partnersSubtitle": "What people offering to support the South have sent, newest first.",
   "admin.pendingLabel": "Awaiting review",
+  "admin.pendingTalentLabel": "Talent awaiting review",
   "admin.portfolioTitle": "Previous work ({count})",
   "admin.queueEmpty": "Nothing is awaiting review",
   "admin.queueEmptyDescription": "Every submission has been handled.",

@@ -133,7 +133,14 @@ test.describe('Products directory', () => {
     await page.getByLabel(t('adminLogin.password')).fill(ADMIN_PASSWORD)
     await page.getByRole('button', { name: t('adminLogin.submit') }).click()
     await expect(page.getByRole('heading', { name: t('admin.dashboardHeading') })).toBeVisible()
-    await page.getByRole('link', { name: t('admin.reviewRequests') }).click()
+    // The business queue's link, named by its card: the talent queue has a
+    // card and an identical button beside it.
+    await page
+      .getByRole('link', {
+        name: `${t('admin.pendingLabel')} ${t('admin.reviewRequests')}`,
+        exact: true,
+      })
+      .click()
     await page
       .getByRole('listitem')
       .filter({ hasText: fixture.businessName })

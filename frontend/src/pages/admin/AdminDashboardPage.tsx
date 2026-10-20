@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, CheckCircle2, Clock, PauseCircle, Package, Store, Users, XCircle } from 'lucide-react'
+import { useId } from 'react'
 import { Link } from 'react-router-dom'
 
 import { Button } from '@/components/ui/Button'
@@ -23,30 +24,24 @@ export function AdminDashboardPage() {
         <p className="mt-2 text-ink-500">{t('admin.dashboardSubtitle')}</p>
       </header>
 
-      {/* The review queue is the primary admin workflow, so it leads the page. */}
-      <Card className="border-clay-200 bg-clay-50/40">
-        <CardBody>
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-clay-500 text-white">
-                <Clock className="h-7 w-7" aria-hidden="true" />
-              </span>
-              <div>
-                <p className="text-sm font-semibold text-clay-700">{t('admin.pendingLabel')}</p>
-                <p className="text-3xl font-bold text-clay-900">
-                  {stats.isLoading ? '—' : (stats.data?.pending_businesses ?? 0)}
-                </p>
-              </div>
-            </div>
-            <Button asChild size="lg">
-              <Link to="/admin/businesses?status=PENDING_REVIEW">
-                {t('admin.reviewRequests')}
-                <ArrowLeft className="h-5 w-5" aria-hidden="true" />
-              </Link>
-            </Button>
-          </div>
-        </CardBody>
-      </Card>
+      {/* The review queues are the primary admin workflow, so they lead the
+          page. Talent has its own queue: a service or job application never
+          appears among the businesses, and without its own count here it was
+          easy to miss that one was waiting. */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <QueueCard
+          label={t('admin.pendingLabel')}
+          count={stats.isLoading ? null : (stats.data?.pending_businesses ?? 0)}
+          to="/admin/businesses?status=PENDING_REVIEW"
+          action={t('admin.reviewRequests')}
+        />
+        <QueueCard
+          label={t('admin.pendingTalentLabel')}
+          count={stats.isLoading ? null : (stats.data?.pending_talents ?? 0)}
+          to="/admin/talent?status=PENDING_REVIEW"
+          action={t('admin.reviewRequests')}
+        />
+      </div>
 
       {stats.isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -112,6 +107,51 @@ export function AdminDashboardPage() {
         )}
       </section>
     </div>
+  )
+}
+
+function QueueCard({
+  label,
+  count,
+  to,
+  action,
+}: {
+  label: string
+  /** Null while loading. */
+  count: number | null
+  to: string
+  action: string
+}) {
+  // Both cards say the same thing on their button (`admin.reviewRequests`),
+  // so each link is named by its card's label as well: two identically named
+  // links to different queues would be indistinguishable to a screen reader.
+  const labelId = useId()
+  const actionId = useId()
+
+  return (
+    <Card className="border-clay-200 bg-clay-50/40">
+      <CardBody>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-clay-500 text-white">
+              <Clock className="h-7 w-7" aria-hidden="true" />
+            </span>
+            <div>
+              <p id={labelId} className="text-sm font-semibold text-clay-700">
+                {label}
+              </p>
+              <p className="text-3xl font-bold text-clay-900">{count ?? '—'}</p>
+            </div>
+          </div>
+          <Button asChild size="lg">
+            <Link to={to} aria-labelledby={`${labelId} ${actionId}`}>
+              <span id={actionId}>{action}</span>
+              <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+            </Link>
+          </Button>
+        </div>
+      </CardBody>
+    </Card>
   )
 }
 

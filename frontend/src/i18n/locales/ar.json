@@ -252,6 +252,7 @@
   "admin.partnersHeading": "طلبات الشراكة",
   "admin.partnersSubtitle": "ما أرسله من يريدون دعم الجنوبيّين، الأحدث أولًا.",
   "admin.pendingLabel": "بانتظار المراجعة",
+  "admin.pendingTalentLabel": "مواهب بانتظار المراجعة",
   "admin.portfolioTitle": "أعمال سابقة ({count})",
   "admin.queueEmpty": "لا توجد طلبات بانتظار المراجعة",
   "admin.queueEmptyDescription": "كل الطلبات تمت معالجتها.",
