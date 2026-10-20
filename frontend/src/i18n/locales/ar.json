@@ -123,6 +123,7 @@
   "admin.createdAgo": "أُنشئ {date}",
   "admin.dashboardHeading": "لوحة التحكم",
   "admin.dashboardSubtitle": "نظرة عامة على المنصة وطلبات المراجعة.",
+  "admin.exportData": "تصدير البيانات",
   "admin.deleteAria": "حذف {name}",
   "admin.deleteBusinessBody": "سيُحذف «{name}» مع كل منتجاته وصوره ومستنداته، ولا يمكن التراجع عن ذلك. يبقى حساب صاحبه.",
   "admin.deleteFailed": "تعذّر الحذف",

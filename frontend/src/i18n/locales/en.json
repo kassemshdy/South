@@ -123,6 +123,7 @@
   "admin.createdAgo": "Created {date}",
   "admin.dashboardHeading": "Dashboard",
   "admin.dashboardSubtitle": "An overview of the platform and the review queue.",
+  "admin.exportData": "Export data",
   "admin.deleteAria": "Delete {name}",
   "admin.deleteBusinessBody": "\"{name}\" will be deleted with all its products, photos and documents. This cannot be undone. The owner's account stays.",
   "admin.deleteFailed": "Could not delete",

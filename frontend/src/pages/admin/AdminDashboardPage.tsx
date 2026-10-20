@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, CheckCircle2, Clock, PauseCircle, Package, Store, Users, XCircle } from 'lucide-react'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { ArrowLeft, CheckCircle2, Clock, Download, PauseCircle, Package, Store, Users, XCircle } from 'lucide-react'
 import { useId } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/States'
+import { useToast } from '@/components/ui/Toast'
 import { useI18n } from '@/i18n'
+import { ApiError } from '@/services/api/client'
 import { adminApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import { formatRelativeDate } from '@/utils/format'
@@ -16,12 +18,43 @@ export function AdminDashboardPage() {
   const { t, locale } = useI18n()
   const stats = useQuery({ queryKey: queryKeys.adminStats, queryFn: adminApi.stats })
   const pending = useQuery({ queryKey: queryKeys.adminBusinesses('PENDING_REVIEW', 1), queryFn: () => adminApi.pending(1) })
+  const toast = useToast()
+  // A copy of every person and listing to keep off the platform, in case it
+  // is ever lost (the database itself is also backed up daily; this is the
+  // copy a person can open). Fetched with the session token like the other
+  // admin downloads, so it is never a plain link anyone could follow.
+  const exportData = useMutation({
+    mutationFn: adminApi.exportData,
+    onSuccess: ({ blob, filename }) => {
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename ?? 'export.xlsx'
+      link.click()
+      URL.revokeObjectURL(url)
+    },
+    onError: (error) =>
+      toast.error(
+        t('api.unexpectedError'),
+        error instanceof ApiError ? error.message : undefined,
+      ),
+  })
 
   return (
     <div className="space-y-8">
-      <header>
-        <h1 className="text-3xl">{t('admin.dashboardHeading')}</h1>
-        <p className="mt-2 text-ink-500">{t('admin.dashboardSubtitle')}</p>
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl">{t('admin.dashboardHeading')}</h1>
+          <p className="mt-2 text-ink-500">{t('admin.dashboardSubtitle')}</p>
+        </div>
+        <Button
+          variant="outline"
+          loading={exportData.isPending}
+          onClick={() => exportData.mutate()}
+        >
+          <Download className="h-5 w-5" aria-hidden="true" />
+          {t('admin.exportData')}
+        </Button>
       </header>
 
       {/* The review queues are the primary admin workflow, so they lead the

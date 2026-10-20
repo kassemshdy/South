@@ -304,6 +304,14 @@ for something that hands out sessions.
   from uvicorn's access line (`DropQueryString` in `app/core/logging.py`)
   so neither a position nor a search term reaches the deployment logs —
   `tests/test_map_pin.py` pins it.
+- **The admin Excel export carries identity, never credentials.** It is the
+  owners' off-platform copy in case Railway is lost (`app/services/data_export.py`,
+  `GET /api/admin/export`): every column of every person, listing and item,
+  except `password_hash` and `token_version`, served `no-store` to
+  administrators only. Text in it was typed by the public, so any cell
+  starting with `=` is stored as text, not a formula.
+  `tests/test_data_export.py` pins all three; widen `EXCLUDED_COLUMNS` rather
+  than exporting a new secret.
 - **Deleting an account deletes its files too.** `AccountDeletionService`
   removes the rows in one transaction and then every file they pointed at,
   private documents included; a new upload type that belongs to an account
