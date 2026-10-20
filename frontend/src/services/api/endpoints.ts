@@ -657,6 +657,8 @@ export const adminApi = {
 
   getVerificationDocument: (userId: string) =>
     apiRequest<VerificationDocument>(`/api/admin/users/${userId}/verification-document`),
+  /** Every person, listing and item as an .xlsx workbook; see `app/services/data_export.py`. */
+  exportData: () => apiDownload('/api/admin/export'),
   downloadVerificationDocument: (userId: string) =>
     apiDownload(`/api/admin/users/${userId}/verification-document/download`),
   downloadVerificationDocumentBack: (userId: string) =>
