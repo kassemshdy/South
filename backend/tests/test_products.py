@@ -16,8 +16,9 @@ from sqlalchemy.orm import Session
 from app.models.business import Business, BusinessItem
 from app.models.enums import BusinessStatus
 from app.models.taxonomy import Category, Location
-from tests.conftest import sign_in
+from tests.conftest import post_item, sign_in
 from tests.samples import ar
+from tests.test_uploads_and_urls import make_image
 
 
 def _item_slug(db: Session, title: str) -> str:
@@ -41,7 +42,8 @@ def draft_business_with_item(client: TestClient, category: Category, location: L
             "longitude": 35.2,
         },
     ).json()
-    client.post(
+    post_item(
+        client,
         f"/api/businesses/{business['id']}/items",
         headers=headers,
         json={"title": ar("item.zaatar_local"), "price": "1.50", "currency": "USD"},
@@ -83,12 +85,14 @@ def approved_business_with_items(
             "whatsapp": "03950002",
         },
     ).json()
-    client.post(
+    post_item(
+        client,
         f"/api/businesses/{business['id']}/items",
         headers=headers,
         json={"title": ar("item.zaatar_local"), "price": "1.50", "currency": "USD"},
     )
-    client.post(
+    post_item(
+        client,
         f"/api/businesses/{business['id']}/items",
         headers=headers,
         json={
@@ -215,12 +219,14 @@ def test_two_items_with_the_same_title_get_distinct_slugs(
         },
     ).json()
 
-    client.post(
+    post_item(
+        client,
         f"/api/businesses/{first_business['id']}/items",
         headers=headers,
         json={"title": ar("item.generic"), "price": "1.00", "currency": "USD"},
     )
-    client.post(
+    post_item(
+        client,
         f"/api/businesses/{second_business['id']}/items",
         headers=headers,
         json={"title": ar("item.generic"), "price": "1.00", "currency": "USD"},
@@ -313,7 +319,8 @@ def priced_catalogue(client: TestClient, db: Session, category: Category, locati
         {"title": ar("item.lira_priced"), "price": "300000.00", "currency": "LBP"},
         {"title": ar("item.unpriced"), "price": "1.00", "currency": "USD"},
     ):
-        created = client.post(
+        created = post_item(
+            client,
             f"/api/businesses/{business['id']}/items", headers=headers, json=payload
         )
         assert created.status_code == 201, created.text
@@ -429,14 +436,16 @@ def test_a_product_needs_a_price_and_cannot_lose_it(
             "location_id": str(location.id),
         },
     ).json()
-    refused = client.post(
+    refused = post_item(
+        client,
         f"/api/businesses/{business['id']}/items",
         headers=headers,
         json={"title": ar("item.generic"), "currency": "USD"},
     )
     assert refused.status_code == 422, refused.text
 
-    created = client.post(
+    created = post_item(
+        client,
         f"/api/businesses/{business['id']}/items",
         headers=headers,
         json={"title": ar("item.generic"), "price": "4.00", "currency": "USD"},
@@ -447,3 +456,53 @@ def test_a_product_needs_a_price_and_cannot_lose_it(
         json={"price": None},
     )
     assert cleared.status_code == 422, cleared.text
+
+
+def test_a_product_without_a_photo_stays_with_its_owner(
+    client: TestClient, db: Session, category: Category, location: Location
+) -> None:
+    """The photo is mandatory (the owners' decision): a product saved without
+    one -- before the rule, or after a failed upload -- is kept from the
+    catalogue, its own page and the shop page until it has one, while its
+    owner still sees it to add the photo."""
+    headers = sign_in(client, "03950009")
+    business = client.post(
+        "/api/businesses",
+        headers=headers,
+        json={
+            "name": ar("business.sweets_shop"),
+            "short_description": ar("business.sweets_short"),
+            "category_id": str(category.id),
+            "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
+        },
+    ).json()
+    bare = client.post(
+        f"/api/businesses/{business['id']}/items",
+        headers=headers,
+        json={"title": ar("item.generic"), "price": "1.00", "currency": "USD"},
+    )
+    assert bare.status_code == 201, bare.text
+    record = db.get(Business, business["id"])
+    assert record is not None
+    record.status = BusinessStatus.APPROVED
+    db.commit()
+
+    assert client.get("/api/items").json()["items"] == []
+    assert client.get(f"/api/items/{_item_slug(db, ar('item.generic'))}").status_code == 404
+    shop = client.get(f"/api/businesses/{business['slug']}").json()
+    assert shop["items"] == []
+    owned = client.get(f"/api/businesses/{business['id']}/items", headers=headers).json()
+    assert [item["title"] for item in owned] == [ar("item.generic")]
+
+    # Adding the photo is all it takes.
+    photo = client.post(
+        f"/api/businesses/{business['id']}/items/{bare.json()['id']}/image",
+        headers=headers,
+        files={"file": ("item.jpg", make_image((400, 300)), "image/jpeg")},
+    )
+    assert photo.status_code == 200, photo.text
+    assert [i["title"] for i in client.get("/api/items").json()["items"]] == [ar("item.generic")]
+    shop = client.get(f"/api/businesses/{business['slug']}").json()
+    assert [i["title"] for i in shop["items"]] == [ar("item.generic")]

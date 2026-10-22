@@ -28,7 +28,7 @@ from app.models.talent import TalentProfile, TalentSkill
 from app.models.taxonomy import Category, Location
 from app.models.user import User
 from app.services.analytics import RECENT_DAYS, WINDOW_DAYS
-from tests.conftest import admin_headers, sign_in
+from tests.conftest import admin_headers, post_item, sign_in
 from tests.samples import ar
 
 OWNER_PHONE = "03960001"
@@ -197,7 +197,8 @@ def test_a_product_view_is_counted(
 ) -> None:
     """Nothing surfaces product views yet; they are recorded because a view
     cannot be backfilled once the day has passed."""
-    created = client.post(
+    created = post_item(
+        client,
         f"/api/businesses/{approved_business.id}/items",
         headers=owner_headers,
         json={"title": ar("item.zaatar"), "price": "3.50", "currency": "USD"},
@@ -245,7 +246,8 @@ def test_a_stale_token_still_serves_a_public_talent_profile_and_product(
     owner_headers: dict[str, str],
 ) -> None:
     """The same header reaches all three public detail routes."""
-    created = client.post(
+    created = post_item(
+        client,
         f"/api/businesses/{approved_business.id}/items",
         headers=owner_headers,
         json={"title": ar("item.generic"), "price": "1.00", "currency": "USD"},
@@ -354,7 +356,8 @@ def test_my_views_does_not_report_products(
     """Deliberate, and asserted so it is a decision rather than a gap: the
     counts exist but no surface reads them, so the endpoint does not carry
     a row per product an owner would have to scroll past."""
-    created = client.post(
+    created = post_item(
+        client,
         f"/api/businesses/{approved_business.id}/items",
         headers=owner_headers,
         json={"title": ar("item.generic"), "price": "1.00", "currency": "USD"},
@@ -396,7 +399,8 @@ def test_deleting_a_product_purges_its_counters(
     approved_business: Business,
     owner_headers: dict[str, str],
 ) -> None:
-    created = client.post(
+    created = post_item(
+        client,
         f"/api/businesses/{approved_business.id}/items",
         headers=owner_headers,
         json={"title": ar("item.generic"), "price": "1.00", "currency": "USD"},
