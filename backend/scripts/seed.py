@@ -313,6 +313,7 @@ def seed_businesses(db, categories, locations, admin) -> int:  # type: ignore[no
             # than silently leaving broken image URLs live.
             if not all(images.exists(image.storage_key) for image in existing.images):
                 _reattach_images(db, images, existing, name, index)
+            _attach_item_photos(images, existing, index)
             _backfill_business_detail(existing, entry)
             continue
 
@@ -376,6 +377,7 @@ def seed_businesses(db, categories, locations, admin) -> int:  # type: ignore[no
             )
 
         db.flush()
+        _attach_item_photos(images, business, index)
         business.search_text = _business_search_text(
             business, category.name_ar, location.name_ar
         )
@@ -603,6 +605,26 @@ def seed_talents(db, skills, locations, admin) -> int:  # type: ignore[no-untype
     db.flush()
     logger.info("Talent profiles seeded", extra={"created_count": created})
     return created
+
+
+def _attach_item_photos(images: ImageService, business: Business, index: int) -> None:
+    """Give every sample product a placeholder photo it lacks.
+
+    A product's photo is mandatory, and one without is kept off the public
+    catalogue -- so sample products without one would leave the directories
+    empty. Also the repair path for a seeded product whose photo row survived
+    a deploy without its bytes, as ``_reattach_images`` is for the shop.
+    """
+    for order, item in enumerate(business.items):
+        if item.image_storage_key and images.exists(item.image_storage_key):
+            continue
+        stored = images.process_and_store(
+            data=_placeholder_image(item.title, index + order, (800, 800)),
+            content_type="image/jpeg",
+            owner_id=business.id,
+            kind=ImageKind.ITEM,
+        )
+        item.image_url, item.image_storage_key = stored.url, stored.key
 
 
 def _reattach_images(  # type: ignore[no-untyped-def]
