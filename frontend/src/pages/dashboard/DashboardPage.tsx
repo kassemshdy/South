@@ -1,5 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, ExternalLink, ListPlus, Pencil, Plus, Send, Store, UserRound } from 'lucide-react'
+import {
+  AlertTriangle,
+  ExternalLink,
+  ListPlus,
+  Pencil,
+  Plus,
+  Send,
+  ShoppingBag,
+  Store,
+  UserRound,
+} from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
@@ -250,6 +260,24 @@ function OwnerBusinessCard({
             <Link to={`/dashboard/businesses/${business.id}/items`}>
               <ListPlus className="h-4 w-4" aria-hidden="true" />
               {t('dashboard.manageItems', { count: business.items.length })}
+            </Link>
+          </Button>
+
+          {/* Orders used to be one tab deep in the edit page, where an owner
+              had to already know to look. The count is of new ones only:
+              what is waiting for a reply. */}
+          <Button asChild variant={business.new_orders > 0 ? 'primary' : 'outline'} size="sm">
+            <Link to={`/dashboard/businesses/${business.id}/edit?tab=orders`}>
+              <ShoppingBag className="h-4 w-4" aria-hidden="true" />
+              {t('wizard.stepOrders')}
+              {business.new_orders > 0 ? (
+                <span
+                  className="ms-1 rounded-full bg-white px-1.5 text-xs font-bold text-brand-800 ltr-nums"
+                  aria-label={t('dashboard.newOrders', { count: business.new_orders })}
+                >
+                  {business.new_orders}
+                </span>
+              ) : null}
             </Link>
           </Button>
 

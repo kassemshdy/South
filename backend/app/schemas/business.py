@@ -143,6 +143,9 @@ class OwnerBusinessOut(BusinessDetailOut):
     # ``owner_relation`` above: a commercial register is evidence for a
     # reviewer, not content for a visitor.
     documents: list[BusinessDocumentOut] = Field(default_factory=list)
+    # Orders not yet dealt with, for the dashboard's orders button. Filled by
+    # the owner's list only; zero everywhere else.
+    new_orders: int = 0
 
 
 class BusinessCreateIn(BaseModel):

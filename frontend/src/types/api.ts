@@ -273,6 +273,8 @@ export interface BusinessDetail extends BusinessSummary {
 
 /** The owner's own view of a listing, including moderation state. */
 export interface OwnerBusiness extends BusinessDetail {
+  /** Orders still marked new; filled on the owner's list of listings only. */
+  new_orders: number
   /** Never on BusinessDetail -- a reviewer's question, not a public one. */
   owner_relation: OwnerRelation | null
   /** Whether visitors see the numbers; the owner always does. */
