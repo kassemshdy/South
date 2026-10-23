@@ -140,7 +140,19 @@ export const adminLoginSchema = (t: Translate) =>
  * free-text requirement can only be wired up once the category list has
  * loaded.
  */
-export const businessBasicsSchema = (t: Translate, otherCategoryId?: string) =>
+/** A point on the map, or none yet; "required" is a refine at the call site. */
+const pinSchema = z.object({ lat: z.number(), lng: z.number() }).nullable()
+
+const requiredPin = (t: Translate) =>
+  pinSchema.refine((pin) => Boolean(pin), t('validation.mapPinRequired'))
+
+export const businessBasicsSchema = (
+  t: Translate,
+  otherCategoryId?: string,
+  // The application form asks for the area up front, because the listing
+  // goes straight to review; the dashboard keeps it on its own step.
+  requireLocation = false,
+) =>
   z
     .object({
       name: z
@@ -193,10 +205,24 @@ export const businessBasicsSchema = (t: Translate, otherCategoryId?: string) =>
 
       phone: optionalPhone(t),
       whatsapp: optionalPhone(t),
+      // Shown to visitors, or kept for the team and the dashboard only.
+      phone_public: z.boolean(),
       email: z.string().trim().email(t('validation.emailInvalid')).optional().or(z.literal('')),
       website: optionalUrl(t),
+      location_id: z.string().optional().or(z.literal('')),
+      pin: pinSchema,
     })
     .superRefine((values, ctx) => {
+      if (requireLocation && !values.location_id) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['location_id'],
+          message: t('validation.locationRequired'),
+        })
+      }
+      if (requireLocation && !values.pin) {
+        ctx.addIssue({ code: 'custom', path: ['pin'], message: t('validation.mapPinRequired') })
+      }
       if (
         otherCategoryId &&
         values.category_id === otherCategoryId &&
@@ -220,6 +246,8 @@ export const businessLocationSchema = (t: Translate) =>
       .optional()
       .or(z.literal('')),
     maps_url: optionalUrl(t),
+    // Every seller, at the owners' request; the town is enough.
+    pin: requiredPin(t),
   })
 
 export const socialLinksSchema = (t: Translate) =>
@@ -244,13 +272,13 @@ export const itemSchema = (t: Translate) =>
       .min(1, t('validation.itemNameRequired'))
       .max(160, t('validation.nameTooLong')),
     description: z.string().trim().max(2000).optional().or(z.literal('')),
+    // Required since the owners made it so.
     price: z
       .string()
       .trim()
-      .optional()
-      .or(z.literal(''))
+      .min(1, t('validation.priceRequired'))
       .refine(
-        (value) => !value || (/^\d+(\.\d{1,2})?$/.test(value) && Number(value) >= 0),
+        (value) => /^\d+(\.\d{1,2})?$/.test(value) && Number(value) >= 0,
         t('validation.priceInvalid'),
       ),
     currency: z.enum(['USD', 'LBP']),
@@ -283,26 +311,32 @@ export const itemSchema = (t: Translate) =>
 export const talentSchema = (t: Translate, otherSkillId?: string) =>
   z
     .object({
+      // Services or a job application: which directory the profile is in.
+      kind: z.string().min(1, t('validation.talentKindRequired')),
       display_name: z
         .string()
         .trim()
         .min(2, t('validation.nameRequired'))
         .max(160, t('validation.nameTooLong')),
       bio: z.string().trim().max(5000, t('validation.descriptionTooLong')).optional().or(z.literal('')),
+      // Required since the owners made it so: the directory sorts by it.
       years_experience: z
         .string()
         .trim()
-        .optional()
-        .or(z.literal(''))
+        .min(1, t('validation.yearsRequired'))
         .refine(
-          (value) => !value || (/^\d{1,2}$/.test(value) && Number(value) <= 70),
+          (value) => /^\d{1,2}$/.test(value) && Number(value) <= 70,
           t('validation.yearsInvalid'),
         ),
       skill_id: z.string().min(1, t('validation.skillRequired')),
       custom_skill_text: z.string().trim().max(120).optional().or(z.literal('')),
       location_id: z.string().min(1, t('validation.locationRequired')),
+      // Every seller, at the owners' request; the town is enough.
+      pin: requiredPin(t),
       phone: optionalPhone(t),
       whatsapp: optionalPhone(t),
+      // Shown to visitors, or kept for the team and the dashboard only.
+      phone_public: z.boolean(),
       email: z.string().trim().email(t('validation.emailInvalid')).optional().or(z.literal('')),
       website: optionalUrl(t),
       // Optional social accounts, one per platform.
@@ -347,6 +381,7 @@ export const talentSchema = (t: Translate, otherSkillId?: string) =>
       hobbies: z.string().trim().max(1000).optional().or(z.literal('')),
       employment_type: z.enum(['FULL_TIME', 'PART_TIME']).optional().or(z.literal('')),
       remote_capable: z.boolean(),
+      work_mode: z.enum(['REMOTE', 'ON_SITE', 'BOTH']).optional().or(z.literal('')),
       languages: z
         .array(
           z.object({
@@ -363,6 +398,15 @@ export const talentSchema = (t: Translate, otherSkillId?: string) =>
           code: 'custom',
           path: ['custom_skill_text'],
           message: t('validation.customSkillRequired'),
+        })
+      }
+      // Compulsory for a service, at the owners' request; a job application
+      // is not asked.
+      if (values.kind === 'SERVICE' && !values.work_mode) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['work_mode'],
+          message: t('validation.workModeRequired'),
         })
       }
     })
@@ -390,6 +434,8 @@ export const accountSchema = (t: Translate) =>
       .or(z.literal('')),
     registration_place: z.string().trim().max(160).optional().or(z.literal('')),
     residence_place: z.string().trim().max(200).optional().or(z.literal('')),
+    is_displaced: z.enum(['yes', 'no']).optional().or(z.literal('')),
+    pre_displacement_place: z.string().trim().max(200).optional().or(z.literal('')),
   })
 
 export const rejectSchema = (t: Translate) =>

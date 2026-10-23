@@ -1,38 +1,112 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { Search, SlidersHorizontal, X } from 'lucide-react'
+import { LocateFixed, Search, SlidersHorizontal, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Navigate, useLocation, useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/Button'
+import { LocationCombobox } from '@/components/ui/LocationCombobox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 import { BusinessCardSkeleton } from '@/components/ui/Skeleton'
 import { ErrorState, NoSearchResults } from '@/components/ui/States'
 import { Pagination } from '@/features/businesses/Pagination'
 import { TalentCard } from '@/features/talent/TalentCard'
+import { WORK_MODE_KEYS } from '@/features/talent/labels'
 import { useLocationGroups, useTalentSkills } from '@/hooks/useTaxonomy'
 import { PageBanner } from '@/components/layout/PageBanner'
 import { BrowseSwitcher } from '@/features/onboarding/BrowseSwitcher'
+import { useNearestSort } from '@/features/directory/useNearestSort'
 import { useT, type TranslationKey } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
 import { publicTalentApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import type { SortOption } from '@/types/api'
+import type { PageCoverKey, TalentKind, TalentQuery, TalentSortOption } from '@/types/api'
 
 const ALL = '__all__'
-const SORT_KEYS: Record<SortOption, TranslationKey> = {
+
+type WorkModeFilter = NonNullable<TalentQuery['work_mode']>
+
+/** What a visitor filters on; a profile that does both matches either. */
+const WORK_MODE_FILTERS: WorkModeFilter[] = ['ON_SITE', 'REMOTE']
+
+function workModeFrom(value: string | null): WorkModeFilter | undefined {
+  return WORK_MODE_FILTERS.find((mode) => mode === value)
+}
+
+const SORT_KEYS: Record<TalentSortOption, TranslationKey> = {
   newest: 'directory.sortNewest',
+  nearest: 'directory.sortNearest',
+  experience: 'talent.sortExperience',
+  // Services only: a job application takes no testimonials.
+  rating: 'directory.sortRating',
   name: 'talent.sortName',
   oldest: 'directory.sortOldest',
 }
 
-export function TalentDirectoryPage() {
+/**
+ * The two halves of what was one talent directory, each its own page: the
+ * same search, filters and cards, narrowed to one kind of profile.
+ */
+const KIND_PAGES: Record<
+  TalentKind,
+  {
+    path: string
+    titleKey: TranslationKey
+    seoTitleKey: TranslationKey
+    seoDescriptionKey: TranslationKey
+    cover: PageCoverKey
+    browseKey: 'services' | 'jobs'
+  }
+> = {
+  SERVICE: {
+    path: '/services',
+    titleKey: 'nav.services',
+    seoTitleKey: 'talent.servicesSeoTitle',
+    seoDescriptionKey: 'talent.seoDescription',
+    cover: 'talent',
+    browseKey: 'services',
+  },
+  JOB_SEEKER: {
+    path: '/jobs',
+    titleKey: 'nav.jobs',
+    seoTitleKey: 'talent.jobsSeoTitle',
+    seoDescriptionKey: 'talent.jobsSeoDescription',
+    cover: 'jobs',
+    browseKey: 'jobs',
+  },
+}
+
+/** `/talent`, from before the split: forwarded to services, filters kept. */
+export function LegacyTalentRedirect() {
+  const { search } = useLocation()
+  return <Navigate to={`/services${search}`} replace />
+}
+
+export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
+  const page_ = KIND_PAGES[kind]
   const [searchParams, setSearchParams] = useSearchParams()
 
   const q = searchParams.get('q') ?? ''
   const skill = searchParams.get('skill') ?? ''
   const location = searchParams.get('location') ?? ''
-  const sort = (searchParams.get('sort') as SortOption | null) ?? 'newest'
+  // Services only: a job application is not asked how it is delivered.
+  const workMode = kind === 'SERVICE' ? workModeFrom(searchParams.get('work_mode')) : undefined
+  const chosenSort = searchParams.get('sort') as TalentSortOption | null
   const page = Number(searchParams.get('page') ?? '1')
+  const setSort = useCallback(
+    (value: TalentSortOption) => {
+      const next = new URLSearchParams(searchParams)
+      next.set('sort', value)
+      next.delete('page')
+      setSearchParams(next)
+    },
+    [searchParams, setSearchParams],
+  )
+  const {
+    sort,
+    choose: chooseSort,
+    locating,
+    near,
+  } = useNearestSort<TalentSortOption>(chosenSort, setSort, 'newest')
 
   // Local mirror so typing feels instant; the URL updates on submit, which
   // keeps searches shareable and back/forward working.
@@ -43,22 +117,36 @@ export function TalentDirectoryPage() {
   useEffect(() => setSearchInput(q), [q])
 
   useSeo({
-    title: q ? t('talent.seoSearchTitle', { query: q }) : t('talent.seoTitle'),
-    description: t('talent.seoDescription'),
-    canonicalPath: '/talent',
+    title: q ? t('talent.seoSearchTitle', { query: q }) : t(page_.seoTitleKey),
+    description: t(page_.seoDescriptionKey),
+    canonicalPath: page_.path,
   })
 
   const skills = useTalentSkills()
   const { groups } = useLocationGroups()
 
   const results = useQuery({
-    queryKey: queryKeys.talents({ q, skill, location, sort, page }),
+    queryKey: queryKeys.talents({
+      q,
+      skill,
+      location,
+      sort,
+      lat: near?.lat,
+      lng: near?.lng,
+      page,
+      kind,
+      work_mode: workMode,
+    }),
     queryFn: () =>
       publicTalentApi.search({
+        kind,
         q: q || undefined,
         skill: skill || undefined,
         location: location || undefined,
+        work_mode: workMode,
         sort,
+        lat: near?.lat,
+        lng: near?.lng,
         page,
         page_size: 12,
       }),
@@ -80,14 +168,14 @@ export function TalentDirectoryPage() {
     [searchParams, setSearchParams],
   )
 
-  const hasFilters = Boolean(q || skill || location) || sort !== 'newest'
+  const hasFilters = Boolean(q || skill || location || workMode) || chosenSort !== null
   const resetFilters = () => setSearchParams(new URLSearchParams())
 
   return (
     <>
       <PageBanner
-        page="talent"
-        title={t('talent.heading')}
+        page={page_.cover}
+        title={t(page_.titleKey)}
         subtitle={
           results.data
             ? t('talent.resultCount', { count: results.data.meta.total })
@@ -98,7 +186,7 @@ export function TalentDirectoryPage() {
         {/* The other two directories, one tap away. Without this each
             directory was an island: a search that came up empty here left
             the browser's back button as the only way across. */}
-        <BrowseSwitcher current="talent" />
+        <BrowseSwitcher current={page_.browseKey} />
 
         <form
           role="search"
@@ -136,7 +224,9 @@ export function TalentDirectoryPage() {
           </Button>
         </form>
 
-        <div className={`mb-6 grid gap-3 sm:grid-cols-3 ${filtersOpen ? 'grid' : 'hidden sm:grid'}`}>
+        <div
+          className={`mb-6 grid gap-3 ${kind === 'SERVICE' ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-3'} ${filtersOpen ? 'grid' : 'hidden sm:grid'}`}
+        >
           <div>
             <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="filter-skill">
               {t('talent.skill')}
@@ -160,60 +250,86 @@ export function TalentDirectoryPage() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="filter-location">
+            <label className="mb-1.5 block text-sm font-semibold text-ink-700" htmlFor="filter-location">
               {t('directory.location')}
             </label>
-            <Select
-              value={location || ALL}
-              onValueChange={(value) => updateParams({ location: value === ALL ? '' : value })}
-            >
-              <SelectTrigger aria-labelledby="filter-location">
-                <SelectValue placeholder={t('directory.allLocations')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>{t('directory.allLocations')}</SelectItem>
-                {groups.map(({ district, towns }) => [
-                  <SelectItem key={district.id} value={district.slug}>
-                    {district.name_ar}
-                  </SelectItem>,
-                  ...towns.map((town) => (
-                    <SelectItem key={town.id} value={town.slug}>
-                      {'  '}
-                      {town.name_ar}
-                    </SelectItem>
-                  )),
-                ])}
-              </SelectContent>
-            </Select>
+            {/* Typed into, like the sellers' own picker, rather than scrolled. */}
+            <LocationCombobox
+              id="filter-location"
+              by="slug"
+              emptyLabel={t('directory.allLocations')}
+              value={location}
+              onChange={(value) => updateParams({ location: value })}
+              groups={groups}
+              placeholder={t('directory.allLocations')}
+            />
           </div>
+
+          {kind === 'SERVICE' ? (
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="filter-work-mode">
+                {t('talent.workModeLabel')}
+              </label>
+              <Select
+                value={workMode ?? ALL}
+                onValueChange={(value) => updateParams({ work_mode: value === ALL ? '' : value })}
+              >
+                <SelectTrigger aria-labelledby="filter-work-mode">
+                  <SelectValue placeholder={t('talent.workModeAll')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL}>{t('talent.workModeAll')}</SelectItem>
+                  {WORK_MODE_FILTERS.map((mode) => (
+                    <SelectItem key={mode} value={mode}>
+                      {t(WORK_MODE_KEYS[mode])}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
 
           <div>
             <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="filter-sort">
               {t('directory.sort')}
             </label>
-            <Select value={sort} onValueChange={(value) => updateParams({ sort: value })}>
+            <Select value={sort} onValueChange={(value) => chooseSort(value as TalentSortOption)}>
               <SelectTrigger aria-labelledby="filter-sort">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {(Object.keys(SORT_KEYS) as SortOption[]).map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {t(SORT_KEYS[option])}
-                  </SelectItem>
-                ))}
+                {(Object.keys(SORT_KEYS) as TalentSortOption[])
+                  .filter((option) => option !== 'rating' || kind === 'SERVICE')
+                  .map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {t(SORT_KEYS[option])}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>
         </div>
 
-        {hasFilters ? (
-          <div className="mb-6">
+        <div className="mb-6 flex flex-wrap items-center gap-2">
+          {/* A button as well as an entry in the sort list, as the owners
+              asked: it is the one order a visitor would not think to look for. */}
+          <Button
+            variant={sort === 'nearest' ? 'primary' : 'outline'}
+            size="sm"
+            aria-pressed={sort === 'nearest'}
+            loading={locating}
+            onClick={() => chooseSort('nearest')}
+          >
+            <LocateFixed className="h-4 w-4" aria-hidden="true" />
+            {t('directory.sortNearest')}
+          </Button>
+          {hasFilters ? (
             <Button variant="ghost" size="sm" onClick={resetFilters}>
               <X className="h-4 w-4" aria-hidden="true" />
               {t('states.clearFilters')}
             </Button>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
 
         <div aria-live="polite" aria-busy={results.isFetching}>
           {results.isLoading ? (

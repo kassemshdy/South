@@ -12,13 +12,15 @@ export function ArticleCard({ article }: { article: Article }) {
   return (
     <article className="group flex flex-col overflow-hidden rounded-2xl border border-ink-100 bg-white shadow-card transition-shadow hover:shadow-lift">
       <Link to={detailUrl} className="block" tabIndex={-1} aria-hidden="true">
-        <div className="relative h-36 overflow-hidden bg-sand-100">
+        <div className="relative aspect-video overflow-hidden bg-sand-100">
           {article.cover_url ? (
+            // Contained rather than cropped: an article's picture is often a
+            // designed graphic with text on it, and cropping cut it off.
             <img
               src={article.cover_url}
               alt=""
               loading="lazy"
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
             />
           ) : (
             <div className="flex h-full items-center justify-center text-sand-500">

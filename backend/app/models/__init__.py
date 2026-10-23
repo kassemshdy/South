@@ -31,7 +31,9 @@ from app.models.enums import (
 )
 from app.models.feedback import FeedbackAttachment, FeedbackComment, FeedbackTicket
 from app.models.order import Order, OrderLine
+from app.models.page import Page
 from app.models.page_cover import PageCover
+from app.models.partner import PartnerRequest
 from app.models.service_request import ServiceRequest
 from app.models.site_setting import SiteSetting
 from app.models.talent import (
@@ -42,6 +44,7 @@ from app.models.talent import (
     TalentSocialLink,
 )
 from app.models.taxonomy import Category, Location
+from app.models.team import TeamMember
 from app.models.testimonial import Testimonial
 from app.models.user import User
 from app.models.verification import OwnerVerificationDocument
@@ -75,7 +78,9 @@ __all__ = [
     "OrderLine",
     "OrderStatus",
     "OwnerVerificationDocument",
+    "Page",
     "PageCover",
+    "PartnerRequest",
     "RateLimitEvent",
     "ServiceRequest",
     "SiteSetting",
@@ -85,6 +90,7 @@ __all__ = [
     "TalentProfile",
     "TalentSkill",
     "TalentSocialLink",
+    "TeamMember",
     "Testimonial",
     "TestimonialStatus",
     "User",

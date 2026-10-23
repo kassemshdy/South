@@ -32,6 +32,8 @@ def business(client: TestClient, category: Category, location: Location) -> tupl
             "name": ar("business.image_shop"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     )
     return response.json()["id"], headers

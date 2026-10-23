@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { openBusinessWizard } from './support/wizard'
 
 import { demoOwnerPhone, signIn } from './support/sign-in'
+import { dropPin } from './support/map'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
@@ -53,12 +54,11 @@ test.describe('Lean onboarding', () => {
 
     await openBusinessWizard(page)
 
-    // The optional fields are present but collapsed: a long description is not
-    // required to be reviewed, so it does not share a column with the fields
-    // that are.
+    // The optional fields sit in their own labelled section, open rather than
+    // collapsed at the owners' request: an owner who never opened it never
+    // knew the fields were there.
     await expect(page.getByLabel(t('form.name'))).toBeVisible()
-    await expect(page.getByLabel(t('form.description'))).toBeHidden()
-    await page.getByText(t('form.optionalSectionTitle')).click()
+    await expect(page.getByText(t('form.optionalSectionTitle'))).toBeVisible()
     await expect(page.getByLabel(t('form.description'))).toBeVisible()
 
     // The steps nothing depends on say so, before they are walked into.
@@ -85,6 +85,8 @@ test.describe('Lean onboarding', () => {
     // --- Area ----------------------------------------------------------------
     await page.getByRole('combobox').first().click()
     await page.getByRole('option').nth(1).click()
+    // Every seller pins themselves on the map; a tap anywhere drops it.
+    await dropPin(page, t('form.mapPinLabel'))
     await page.getByRole('button', { name: t('wizard.saveAndContinue') }).click()
 
     // --- Logo, which completes the required set ------------------------------

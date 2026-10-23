@@ -47,6 +47,7 @@ def _create_profile(
     location: Location,
     *,
     display_name: str | None = None,
+    work_mode: str | None = "BOTH",
 ) -> dict:
     response = client.post(
         "/api/talent",
@@ -56,8 +57,11 @@ def _create_profile(
             "bio": ar("talent.designer_bio"),
             "skill_id": str(skill.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
             "whatsapp": "03950101",
             "years_experience": 7,
+            "work_mode": work_mode,
         },
     )
     assert response.status_code == 201, response.text
@@ -178,6 +182,8 @@ def test_custom_skill_text_is_searchable_for_an_other_profile(
             "skill_id": str(skill_other.id),
             "custom_skill_text": ar("talent.custom_skill_text"),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
             "whatsapp": "03950106",
         },
     ).json()
@@ -203,6 +209,8 @@ def test_one_profile_per_account(
             "display_name": ar("talent.renamed"),
             "skill_id": str(skill.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     )
     assert second.status_code == 409
@@ -267,14 +275,18 @@ def test_submission_lists_what_is_still_missing(
             "display_name": ar("talent.designer"),
             "skill_id": str(skill.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     )
 
     readiness = client.get("/api/my/talent/readiness", headers=headers).json()
     assert set(readiness) == {
         "talent.field.bio",
+        "talent.field.years_experience",
         "talent.field.photo",
         "talent.field.contact",
+        "talent.field.work_mode",
     }
 
     submitted = client.post("/api/my/talent/submit", headers=headers)
@@ -294,6 +306,8 @@ def test_an_other_profile_must_name_its_own_skill(
             "bio": ar("talent.designer_bio"),
             "skill_id": str(skill_other.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
             "whatsapp": "03950112",
         },
     )
@@ -437,6 +451,7 @@ IDENTITY_FIELDS = (
     "marital_status",
     "registration_place",
     "residence_place",
+    "pre_displacement_place",
 )
 
 DETAIL_PAYLOAD = {
@@ -691,3 +706,130 @@ def test_a_platform_named_twice_is_refused(
         },
     )
     assert response.status_code == 409, response.text
+
+
+# --- Services and job applications --------------------------------------
+
+
+def test_a_profile_is_a_service_unless_its_owner_says_otherwise(
+    client: TestClient, skill: TalentSkill, location: Location
+) -> None:
+    """Every profile from before the split was a service, and so is a new one
+    that does not say."""
+    headers = sign_in(client, "03950121")
+    created = _create_profile(client, headers, skill, location)
+    assert created["kind"] == "SERVICE"
+
+    changed = client.put("/api/my/talent", headers=headers, json={"kind": "JOB_SEEKER"})
+    assert changed.status_code == 200, changed.text
+    assert changed.json()["kind"] == "JOB_SEEKER"
+
+
+def test_each_directory_lists_only_its_own_kind(
+    client: TestClient, db: Session, admin: User, skill: TalentSkill, location: Location
+) -> None:
+    service = _create_profile(
+        client, sign_in(client, "03950122"), skill, location, display_name=ar("talent.designer")
+    )
+    seeker_headers = sign_in(client, "03950123")
+    seeker = _create_profile(
+        client, seeker_headers, skill, location, display_name=ar("talent.applicant")
+    )
+    client.put("/api/my/talent", headers=seeker_headers, json={"kind": "JOB_SEEKER"})
+    _approve(client, db, admin, service["id"])
+    _approve(client, db, admin, seeker["id"])
+
+    def slugs(kind: str | None) -> set[str]:
+        params = {"kind": kind} if kind else {}
+        return {row["slug"] for row in client.get("/api/talent", params=params).json()["items"]}
+
+    assert slugs("SERVICE") == {service["slug"]}
+    assert slugs("JOB_SEEKER") == {seeker["slug"]}
+    # No kind: both, as the one directory always listed.
+    assert slugs(None) == {service["slug"], seeker["slug"]}
+
+
+def test_a_service_must_say_how_it_is_delivered_and_a_job_application_need_not(
+    client: TestClient, skill: TalentSkill, location: Location
+) -> None:
+    """The owners made remote / in person / both compulsory for a service."""
+    headers = sign_in(client, "03950124")
+    _create_profile(client, headers, skill, location, work_mode=None)
+    readiness = client.get("/api/my/talent/readiness", headers=headers).json()
+    assert "talent.field.work_mode" in readiness
+
+    client.put("/api/my/talent", headers=headers, json={"kind": "JOB_SEEKER"})
+    readiness = client.get("/api/my/talent/readiness", headers=headers).json()
+    assert "talent.field.work_mode" not in readiness
+
+
+def test_the_old_remote_flag_follows_the_work_mode(
+    client: TestClient, skill: TalentSkill, location: Location
+) -> None:
+    headers = sign_in(client, "03950125")
+    created = _create_profile(client, headers, skill, location, work_mode="REMOTE")
+    assert created["remote_capable"] is True
+
+    changed = client.put("/api/my/talent", headers=headers, json={"work_mode": "ON_SITE"})
+    assert changed.status_code == 200, changed.text
+    assert changed.json()["work_mode"] == "ON_SITE"
+    assert changed.json()["remote_capable"] is False
+
+
+def test_the_work_mode_filter_counts_both_as_either(
+    client: TestClient, db: Session, admin: User, skill: TalentSkill, location: Location
+) -> None:
+    """Someone who works both ways answers a visitor asking for either."""
+    created = {
+        mode: _create_profile(
+            client,
+            sign_in(client, phone),
+            skill,
+            location,
+            display_name=f"{ar('talent.designer')} {mode}",
+            work_mode=mode,
+        )
+        for mode, phone in (("REMOTE", "03950126"), ("ON_SITE", "03950127"), ("BOTH", "03950128"))
+    }
+    for profile in created.values():
+        _approve(client, db, admin, profile["id"])
+
+    def slugs(mode: str | None) -> set[str]:
+        params = {"work_mode": mode} if mode else {}
+        return {row["slug"] for row in client.get("/api/talent", params=params).json()["items"]}
+
+    assert slugs("REMOTE") == {created["REMOTE"]["slug"], created["BOTH"]["slug"]}
+    assert slugs("ON_SITE") == {created["ON_SITE"]["slug"], created["BOTH"]["slug"]}
+    assert slugs(None) == {profile["slug"] for profile in created.values()}
+
+
+def test_the_sitemap_lists_both_directories(client: TestClient) -> None:
+    sitemap = client.get("/sitemap.xml").text
+    assert "/services</loc>" in sitemap
+    assert "/jobs</loc>" in sitemap
+
+
+# --- The owner's choice to keep their numbers private --------------------
+
+
+def test_numbers_kept_private_never_reach_a_visitor(
+    client: TestClient, db: Session, admin: User, skill: TalentSkill, location: Location
+) -> None:
+    """Hidden numbers are off every public payload, and still the owner's to see."""
+    headers = sign_in(client, "03950131")
+    created = _create_profile(client, headers, skill, location)
+    assert created["phone_public"] is True
+
+    hidden = client.put("/api/my/talent", headers=headers, json={"phone_public": False})
+    assert hidden.status_code == 200, hidden.text
+    _approve(client, db, admin, created["id"])
+
+    public = client.get(f"/api/talent/{created['slug']}").json()
+    assert public["whatsapp"] is None
+    assert public["phone"] is None
+    listed = client.get("/api/talent").json()["items"]
+    assert [row["whatsapp"] for row in listed] == [None]
+
+    own = client.get("/api/my/talent", headers=headers).json()
+    assert own["phone_public"] is False
+    assert own["whatsapp"] == "+9613950101"

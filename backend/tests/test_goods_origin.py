@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 from app.models.business import Business
 from app.models.enums import BusinessStatus, GoodsOrigin
 from app.models.taxonomy import Category, Location
-from tests.conftest import sign_in
+from tests.conftest import post_item, sign_in
 from tests.samples import ar
 
 
@@ -43,13 +43,16 @@ def _approved_business(
         "short_description": ar("business.sweets_short"),
         "category_id": str(category.id),
         "location_id": str(location.id),
+        "latitude": 33.27,
+        "longitude": 35.2,
     }
     if origin is not None:
         body["goods_origin"] = origin
     response = client.post("/api/businesses", headers=headers, json=body)
     assert response.status_code == 201, response.text
     business = response.json()
-    client.post(
+    post_item(
+        client,
         f"/api/businesses/{business['id']}/items",
         headers=headers,
         json={"title": ar(item_key), "price": "1.00", "currency": "USD"},
@@ -178,11 +181,14 @@ def test_the_public_application_carries_it(
             "birth_year": 1986,
             "registration_place": ar("identity.registration_place"),
             "residence_place": ar("identity.residence_place"),
+            "is_displaced": False,
         },
         "business": {
             "name": ar("business.applicant"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
             "goods_origin": "IMPORTED",
         },
     }
@@ -214,7 +220,8 @@ def test_a_shop_selling_both_has_each_product_under_its_own_door(
         origin=None,
     )
     headers = sign_in(client, "03980005")
-    imported = client.post(
+    imported = post_item(
+        client,
         f"/api/businesses/{business_id}/items",
         headers=headers,
         json={

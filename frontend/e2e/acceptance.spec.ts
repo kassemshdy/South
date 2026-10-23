@@ -8,6 +8,7 @@ import { openBusinessWizard } from './support/wizard'
 
 import { demoOwnerPhone, signIn } from './support/sign-in'
 import { ADMIN_EMAIL, ADMIN_PASSWORD } from './support/admin'
+import { dropPin } from './support/map'
 
 const here = dirname(fileURLToPath(import.meta.url))
 // Read rather than import: Playwright's ESM loader would require import
@@ -107,9 +108,10 @@ test.describe('MVP acceptance flow', () => {
     // included.
     await page.getByRole('button', { name: t('consent.agree') }).click()
     await expect(page.getByRole('link', { name: t('onboarding.seekGoodsTitle') })).toBeVisible()
-    await page.getByRole('link', { name: t('onboarding.seekServiceTitle') }).click()
-    await expect(page).toHaveURL(/\/talent$/)
-    await expect(page.getByRole('heading', { name: t('talent.heading') })).toBeVisible()
+    // Scoped to the page body: the footer lists the same directory by name.
+    await page.getByRole('main').getByRole('link', { name: t('onboarding.seekServicesTitle') }).click()
+    await expect(page).toHaveURL(/\/services$/)
+    await expect(page.getByRole('heading', { name: t('nav.services'), exact: true })).toBeVisible()
     await page.goBack()
 
     await page.goto('/businesses')
@@ -126,10 +128,10 @@ test.describe('MVP acceptance flow', () => {
     await page.getByLabel(t('form.name')).fill(BUSINESS_NAME)
     await page.getByLabel(t('form.shortDescription')).fill(fixture.shortDescription)
 
-    // The long description is optional at submission, so it now sits behind a
-    // disclosure (#34). This flow still fills it — a real listing wants one —
+    // The long description is optional at submission, in the always-open
+    // optional section. This flow still fills it — a real listing wants one —
     // which also keeps the optional section covered end to end.
-    await page.getByText(t('form.optionalSectionTitle')).click()
+    await expect(page.getByText(t('form.optionalSectionTitle'))).toBeVisible()
     await page.getByLabel(t('form.description')).fill(fixture.description)
 
     await page.getByRole('combobox').first().click()
@@ -142,6 +144,8 @@ test.describe('MVP acceptance flow', () => {
     await expect(page.getByLabel(t('form.area'))).toBeVisible()
     await page.getByRole('combobox').first().click()
     await page.getByRole('option', { name: districtName, exact: true }).click()
+    // Every seller pins themselves on the map; a tap anywhere drops it.
+    await dropPin(page, t('form.mapPinLabel'))
     await page.getByLabel(t('form.address')).fill(fixture.address)
     await page.getByRole('button', { name: t('wizard.saveAndContinue') }).click()
 
@@ -171,6 +175,8 @@ test.describe('MVP acceptance flow', () => {
     // --- 8. Items with prices ------------------------------------------------
     for (const { title, price } of fixture.items) {
       await page.getByRole('button', { name: t('items.addItem') }).first().click()
+      // The photo is mandatory: the form refuses to save a product without one.
+      await page.getByLabel(t('items.photoLabel'), { exact: true }).setInputFiles(jpeg())
       await page.getByLabel(t('items.nameLabel')).fill(title)
       await page.getByLabel(t('items.priceLabel')).fill(price)
 
@@ -218,7 +224,14 @@ test.describe('MVP acceptance flow', () => {
     await page.getByRole('button', { name: t('adminLogin.submit') }).click()
 
     await expect(page.getByRole('heading', { name: t('admin.dashboardHeading') })).toBeVisible()
-    await page.getByRole('link', { name: t('admin.reviewRequests') }).click()
+    // The business queue's link, named by its card: the talent queue has a
+    // card and an identical button beside it.
+    await page
+      .getByRole('link', {
+        name: `${t('admin.pendingLabel')} ${t('admin.reviewRequests')}`,
+        exact: true,
+      })
+      .click()
 
     // The queue is oldest-first, so target this listing's row rather than the
     // first one in the list.

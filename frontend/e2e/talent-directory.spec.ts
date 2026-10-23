@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 
 import { demoOwnerPhone, signIn } from './support/sign-in'
 import { ADMIN_EMAIL, ADMIN_PASSWORD } from './support/admin'
+import { dropPin } from './support/map'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
@@ -86,6 +87,11 @@ test.describe('Talent directory', () => {
       page.getByRole('heading', { name: t('talentDashboard.createHeading') }),
     ).toBeVisible()
 
+    // Which directory it goes in: the owners split services from job
+    // applications and left the choice to the profile's owner.
+    await page.getByRole('radio', { name: t('nav.services') }).check()
+    // Compulsory for a service: remotely, in person, or both.
+    await page.getByRole('radio', { name: t('talent.workModeRemote'), exact: true }).check()
     await page.getByLabel(t('talentForm.displayName')).fill(fixture.displayName)
     await page.getByLabel(t('talentForm.bio')).fill(fixture.bio)
     await page.getByRole('combobox').first().click()
@@ -93,6 +99,8 @@ test.describe('Talent directory', () => {
     await page.getByLabel(t('talentForm.yearsExperience')).fill(fixture.yearsExperience)
     await page.getByRole('combobox').nth(1).click()
     await page.getByRole('option', { name: districtName, exact: true }).click()
+    // Every seller pins themselves on the map; a tap anywhere drops it.
+    await dropPin(page, t('form.mapPinLabel'))
     await page.getByLabel(t('form.whatsapp')).fill(fixture.phone)
     // The job-seeker's own warning, and it must be *above* the button: a
     // caution met after pressing send is a record that somebody was told,
@@ -120,7 +128,7 @@ test.describe('Talent directory', () => {
     await expect(page.getByText(t('images.uploaded'), { exact: true }).first()).toBeVisible()
 
     // --- Not reachable before approval ------------------------------------------
-    await page.goto('/talent')
+    await page.goto('/services')
     await expect(page.getByText(fixture.displayName, { exact: true })).toHaveCount(0)
 
     // --- Submit for review --------------------------------------------------------
@@ -129,7 +137,7 @@ test.describe('Talent directory', () => {
     await expect(page.getByText(t('status.PENDING_REVIEW'), { exact: true }).first()).toBeVisible()
 
     // Still invisible while pending.
-    await page.goto('/talent')
+    await page.goto('/services')
     await expect(page.getByText(fixture.displayName, { exact: true })).toHaveCount(0)
 
     // --- Administrator approves ----------------------------------------------------
@@ -145,21 +153,27 @@ test.describe('Talent directory', () => {
     await expect(page.getByText(t('status.APPROVED'), { exact: true }).first()).toBeVisible()
 
     // --- The profile is now public --------------------------------------------------
-    await page.goto('/talent')
+    await page.goto('/services')
     const card = page.getByRole('article').filter({ hasText: fixture.displayName })
     await expect(card).toHaveCount(1)
     await expect(card.getByText(skillName)).toBeVisible()
 
     // Free-text search reaches it through the Arabic-normalized haystack.
-    await page.goto(`/talent?q=${encodeURIComponent(fixture.searchTerm)}`)
+    await page.goto(`/services?q=${encodeURIComponent(fixture.searchTerm)}`)
     await expect(page.getByRole('article').filter({ hasText: fixture.displayName })).toHaveCount(1)
 
     // Filtering by another skill excludes it.
-    await page.goto('/talent?skill=software')
+    await page.goto('/services?skill=software')
+    await expect(page.getByText(fixture.displayName, { exact: true })).toHaveCount(0)
+
+    // Remote only: found when a visitor asks for remote help, not in person.
+    await page.goto('/services?work_mode=REMOTE')
+    await expect(page.getByRole('article').filter({ hasText: fixture.displayName })).toHaveCount(1)
+    await page.goto('/services?work_mode=ON_SITE')
     await expect(page.getByText(fixture.displayName, { exact: true })).toHaveCount(0)
 
     // --- The public profile page renders, with no moderation state on it ----------
-    await page.goto('/talent')
+    await page.goto('/services')
     await page.getByRole('link', { name: fixture.displayName, exact: true }).click()
     await expect(page.getByRole('heading', { name: fixture.displayName, level: 1 })).toBeVisible()
     await expect(page.getByText(fixture.bio)).toBeVisible()

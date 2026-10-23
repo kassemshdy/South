@@ -131,21 +131,17 @@ class ViewSubject(str, enum.Enum):
 
 
 class TestimonialStatus(str, enum.Enum):
-    """Where a piece of submitted praise is, across two gates.
+    """Where a piece of submitted praise is.
 
-    Submitted text waits on the platform first (``PENDING_REVIEW``), because
-    handing abuse straight to the shop owner it was aimed at is the thing a
-    review gate exists to prevent. Only what an administrator clears reaches
-    the owner (``PENDING_OWNER``); only what the owner then approves is public
-    (``APPROVED``). ``REJECTED`` never reaches the owner at all.
+    Submitted text waits on an administrator (``PENDING_REVIEW``), whose
+    approval publishes it (``APPROVED``); ``REJECTED`` is never shown.
 
-    Both gates are deliberate. The platform gate is about abuse, which is the
-    platform's problem; the owner gate is what keeps this *selected praise*
-    rather than a review system, and removing it would make a business unable
-    to decline praise it knows to be untrue. ``HIDDEN`` is an owner taking a
-    published one down again -- kept rather than deleted so the same text
-    cannot be resubmitted and re-approved by accident, and so an administrator
-    can still see what was once published.
+    ``PENDING_OWNER`` and ``HIDDEN`` belong to the old two-gate design, in
+    which the listing's owner also approved and could hide. The owners
+    removed that step (round 3). Both values stay because Postgres cannot
+    drop an enum value: nothing writes ``PENDING_OWNER`` any more (the
+    migration returned those rows to review), and a row an owner hid before
+    the change stays hidden until an administrator approves it.
     """
 
     PENDING_REVIEW = "PENDING_REVIEW"
@@ -203,6 +199,32 @@ class GoodsOrigin(str, enum.Enum):
 
     LOCAL = "LOCAL"
     IMPORTED = "IMPORTED"
+
+
+class TalentKind(str, enum.Enum):
+    """Which of the two directories a talent profile belongs to.
+
+    The owners split «services and skills» in two: people who offer a
+    service (a mechanic, a travel office, a teacher, a plumber) and people
+    looking for a job. The owner of the profile chooses. Public, because it
+    is which page the profile is listed on.
+    """
+
+    SERVICE = "SERVICE"
+    JOB_SEEKER = "JOB_SEEKER"
+
+
+class WorkMode(str, enum.Enum):
+    """How a service is delivered. Public: visitors filter on it.
+
+    Asked of everyone offering a service at the owners' request. ``BOTH``
+    matches either filter, so a visitor looking for remote help still finds
+    someone who also works in person.
+    """
+
+    REMOTE = "REMOTE"
+    ON_SITE = "ON_SITE"
+    BOTH = "BOTH"
 
 
 class EmploymentType(str, enum.Enum):

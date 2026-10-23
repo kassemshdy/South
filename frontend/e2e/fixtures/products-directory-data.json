@@ -6,6 +6,12 @@
   "categorySlug": "restaurants",
   "locationSlug": "tyre",
   "phone": "03911122",
-  "availableItem": { "title": "طاولة طعام خشبية", "price": "3.00" },
-  "unavailableItem": { "title": "خزانة ملابس مخصصة" }
+  "availableItem": {
+    "title": "طاولة طعام خشبية",
+    "price": "3.00"
+  },
+  "unavailableItem": {
+    "title": "خزانة ملابس مخصصة",
+    "price": "5.00"
+  }
 }

@@ -32,6 +32,11 @@ export interface Cart {
   businessSlug: string
   businessName: string
   whatsapp: string | null
+  /**
+   * The listing's public phone, for the call button after ordering. Optional
+   * because carts saved before it existed are still in people's browsers.
+   */
+  phone?: string | null
   lines: CartLine[]
 }
 

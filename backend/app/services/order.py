@@ -13,8 +13,10 @@ The decisions recorded on the issue, in the order they matter:
   claims otherwise. The order is in the dashboard and the buyer gets the
   WhatsApp handoff; the usual path is the customer messaging the owner
   directly, with the difference that the request is now also recorded.
-- **No administrator view.** An order carries a third party's name and
-  phone. Moderation needs neither, so no admin payload carries an order.
+- **Administrators read, owners act.** An order carries a third party's name
+  and phone. The owners decided the administrators should see every order to
+  follow them up with the shops, so ``/api/admin/orders`` lists them; replying
+  and moving an order along stay with the listing's owner.
 
 Every line is validated against the listing in the path *and* against what
 a visitor is allowed to see, so an order cannot name another shop's product,

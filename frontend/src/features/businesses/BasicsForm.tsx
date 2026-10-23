@@ -1,13 +1,16 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ChevronDown } from 'lucide-react'
 import { useMemo } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 
 import { Button } from '@/components/ui/Button'
 import { Field } from '@/components/ui/Field'
 import { Input, Textarea } from '@/components/ui/Input'
+import { LocationCombobox } from '@/components/ui/LocationCombobox'
+import { PhonePublicToggle } from '@/components/ui/PhonePublicToggle'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
-import { useCategories } from '@/hooks/useTaxonomy'
+import { MapPinField } from '@/features/map/MapPinField'
+import { pinOf } from '@/features/map/types'
+import { useCategories, useLocationGroups } from '@/hooks/useTaxonomy'
 import { useT } from '@/i18n'
 import { useApplyServerFieldErrors } from '@/utils/serverFieldErrors'
 import type { BusinessPayload } from '@/services/api/endpoints'
@@ -27,6 +30,13 @@ interface BasicsFormProps {
   serverError?: unknown
   footer?: React.ReactNode
   /**
+   * Called when a submit fails this form's own validation. The registration
+   * pages use it to mark their own fields too and scroll to the topmost error,
+   * which can be above this form; without it the first invalid field here is
+   * focused, as before.
+   */
+  onInvalid?: () => void
+  /**
    * Whether to say that the identity fields live on the account page.
    *
    * True from the dashboard, where they do and this form deliberately omits
@@ -41,6 +51,13 @@ interface BasicsFormProps {
    * listing's own mark always wins, and anything else starts local.
    */
   defaultOrigin?: GoodsOrigin | undefined
+  /**
+   * Ask for the area here, and require it. The application form does: the
+   * listing goes straight to review, and a reviewer cannot judge "from the
+   * South" without it. The dashboard leaves it to its own step, and never
+   * sends it from here, so saving this tab cannot clear an area set there.
+   */
+  askLocation?: boolean
 }
 
 /** Step 1 of the wizard, and the first tab of the edit screen. */
@@ -51,15 +68,21 @@ export function BasicsForm({
   onSubmit,
   serverError,
   footer,
+  onInvalid,
   identityElsewhere = true,
   defaultOrigin,
+  askLocation = false,
 }: BasicsFormProps) {
   const categories = useCategories()
+  const { groups } = useLocationGroups()
   const t = useT()
   const otherCategoryId = categories.data?.find((category) => category.slug === 'other')?.id
   // Rebuilt when the locale or the "Other" category id changes so validation
   // messages follow the UI and the conditional-required rule stays current.
-  const schema = useMemo(() => businessBasicsSchema(t, otherCategoryId), [t, otherCategoryId])
+  const schema = useMemo(
+    () => businessBasicsSchema(t, otherCategoryId, askLocation),
+    [t, otherCategoryId, askLocation],
+  )
 
   const {
     register,
@@ -70,6 +93,7 @@ export function BasicsForm({
     formState: { errors },
   } = useForm<BusinessBasicsValues>({
     resolver: zodResolver(schema),
+    shouldFocusError: !onInvalid,
     defaultValues: {
       goods_origin: business?.goods_origin ?? defaultOrigin ?? 'LOCAL',
       name: business?.name ?? '',
@@ -84,8 +108,11 @@ export function BasicsForm({
       owner_relation: business?.owner_relation ?? '',
       phone: business?.phone ?? '',
       whatsapp: business?.whatsapp ?? '',
+      phone_public: business?.phone_public ?? true,
       email: business?.email ?? '',
       website: business?.website ?? '',
+      location_id: business?.location?.id ?? '',
+      pin: pinOf(business?.latitude, business?.longitude),
     },
   })
 
@@ -110,10 +137,18 @@ export function BasicsForm({
       owner_relation: (values.owner_relation || null) as BusinessPayload['owner_relation'],
       phone: values.phone || null,
       whatsapp: values.whatsapp || null,
+      phone_public: values.phone_public,
       email: values.email || null,
       website: values.website || null,
+      ...(askLocation
+        ? {
+            location_id: values.location_id || null,
+            latitude: values.pin?.lat ?? null,
+            longitude: values.pin?.lng ?? null,
+          }
+        : {}),
     })
-  })
+  }, onInvalid ? () => onInvalid() : undefined)
 
   return (
     <form onSubmit={submit} className="space-y-5" noValidate>
@@ -198,6 +233,43 @@ export function BasicsForm({
         )}
       </Field>
 
+      {askLocation ? (
+        <Field
+          label={t('form.area')}
+          required
+          error={errors.location_id?.message}
+          hint={t('form.areaHint')}
+        >
+          {(props) => (
+            <Controller
+              control={control}
+              name="location_id"
+              render={({ field }) => (
+                <LocationCombobox
+                  id={props.id}
+                  aria-describedby={props['aria-describedby']}
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  groups={groups}
+                  placeholder={t('form.areaPlaceholder')}
+                  invalid={Boolean(errors.location_id)}
+                />
+              )}
+            />
+          )}
+        </Field>
+      ) : null}
+
+      {askLocation ? (
+        <Controller
+          control={control}
+          name="pin"
+          render={({ field }) => (
+            <MapPinField value={field.value ?? null} onChange={field.onChange} error={errors.pin?.message} />
+          )}
+        />
+      ) : null}
+
       {isOtherCategory ? (
         <Field
           label={t('form.customCategoryLabel')}
@@ -230,27 +302,25 @@ export function BasicsForm({
         </Field>
       </div>
 
+      <PhonePublicToggle registration={register('phone_public')} />
+
       {/* Nothing in here is required to get reviewed.
           The submission rules in `app/services/business.py` ask for six
           things: a name, a short description, a category, an area, a logo and
-          one contact number. Everything else was sitting in the same flat
-          column, which made a six-field form read as a twelve-field one to
-          exactly the person least likely to push through it. Collapsed, and
-          labelled as skippable, because it genuinely is — and a listing can
-          be filled out further from the dashboard once it is live. */}
-      <details className="group rounded-2xl border border-ink-100 bg-sand-50/50 [&_summary::-webkit-details-marker]:hidden">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl p-4 text-start font-semibold text-ink-700 hover:bg-sand-100">
-          <span>
-            {t('form.optionalSectionTitle')}
-            <span className="mt-0.5 block text-sm font-normal text-ink-500">
-              {t('form.optionalSectionHint')}
-            </span>
+          one contact number. Everything else is grouped here and labelled as
+          skippable, because it genuinely is -- and a listing can be filled
+          out further from the dashboard once it is live.
+
+          It used to be collapsed behind a click. The owners asked for it to
+          be open: an owner who never opened it never knew these fields were
+          there, so they were left empty rather than skipped. */}
+      <section className="rounded-2xl border border-ink-100 bg-sand-50/50">
+        <div className="p-4 text-start font-semibold text-ink-700">
+          {t('form.optionalSectionTitle')}
+          <span className="mt-0.5 block text-sm font-normal text-ink-500">
+            {t('form.optionalSectionHint')}
           </span>
-          <ChevronDown
-            className="h-5 w-5 shrink-0 text-ink-500 transition-transform group-open:rotate-180"
-            aria-hidden="true"
-          />
-        </summary>
+        </div>
 
         <div className="space-y-5 border-t border-ink-100 p-4">
           <Field label={t('form.description')} error={errors.description?.message}>
@@ -384,7 +454,7 @@ export function BasicsForm({
             </Field>
           </fieldset>
         </div>
-      </details>
+      </section>
 
       {/* Identity is set on the account, not here: one legal name per
           person, however many businesses they own. Hidden on the public

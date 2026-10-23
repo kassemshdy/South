@@ -14,15 +14,17 @@ import { BlogPage } from '@/pages/BlogPage'
 import { BrowsePage } from '@/pages/BrowsePage'
 import { BusinessProfilePage } from '@/pages/BusinessProfilePage'
 import { ContactPage } from '@/pages/ContactPage'
+import { PartnerPage } from '@/pages/PartnerPage'
 import { DirectoryPage } from '@/pages/DirectoryPage'
 import { HomePage } from '@/pages/HomePage'
+import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { NewsPage } from '@/pages/NewsPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { OfferPage } from '@/pages/OfferPage'
 import { ProductProfilePage } from '@/pages/ProductProfilePage'
 import { ProductsDirectoryPage } from '@/pages/ProductsDirectoryPage'
-import { TalentDirectoryPage } from '@/pages/TalentDirectoryPage'
+import { LegacyTalentRedirect, TalentDirectoryPage } from '@/pages/TalentDirectoryPage'
 import { TalentProfilePage } from '@/pages/TalentProfilePage'
 
 /**
@@ -78,6 +80,12 @@ const AdminPageCoversPage = lazy(() =>
     default: m.AdminPageCoversPage,
   })),
 )
+const AdminPagesPage = lazy(() =>
+  import('@/pages/admin/AdminPagesPage').then((m) => ({ default: m.AdminPagesPage })),
+)
+const AdminPartnersPage = lazy(() =>
+  import('@/pages/admin/AdminPartnersPage').then((m) => ({ default: m.AdminPartnersPage })),
+)
 const AdminSiteSettingsPage = lazy(() =>
   import('@/pages/admin/AdminSiteSettingsPage').then((m) => ({
     default: m.AdminSiteSettingsPage,
@@ -110,6 +118,15 @@ const FavouritesPage = lazy(() =>
 )
 const DashboardPage = lazy(() =>
   import('@/pages/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })),
+)
+const OrderPage = lazy(() =>
+  import('@/pages/dashboard/OrderPage').then((m) => ({ default: m.OrderPage })),
+)
+const AdminExportPage = lazy(() =>
+  import('@/pages/admin/AdminExportPage').then((m) => ({ default: m.AdminExportPage })),
+)
+const AdminOrdersPage = lazy(() =>
+  import('@/pages/admin/AdminOrdersPage').then((m) => ({ default: m.AdminOrdersPage })),
 )
 const EditBusinessPage = lazy(() =>
   import('@/pages/dashboard/EditBusinessPage').then((m) => ({ default: m.EditBusinessPage })),
@@ -160,14 +177,19 @@ export function App() {
           <Route path="cart" element={<CartPage />} />
           <Route path="favourites" element={<FavouritesPage />} />
           <Route path="product/:slug" element={<ProductProfilePage />} />
-          <Route path="talent" element={<TalentDirectoryPage />} />
+          <Route path="services" element={<TalentDirectoryPage kind="SERVICE" />} />
+          <Route path="jobs" element={<TalentDirectoryPage kind="JOB_SEEKER" />} />
+          {/* The one directory before the split: shared links land on services. */}
+          <Route path="talent" element={<LegacyTalentRedirect />} />
           <Route path="talent/:slug" element={<TalentProfilePage />} />
           <Route path="news" element={<NewsPage />} />
           <Route path="blog" element={<BlogPage />} />
           <Route path="articles/:slug" element={<ArticleDetailPage />} />
           <Route path="about" element={<AboutPage />} />
           <Route path="contact" element={<ContactPage />} />
+          <Route path="partner" element={<PartnerPage />} />
           <Route path="login" element={<LoginPage />} />
+          <Route path="forgot-password" element={<ForgotPasswordPage />} />
           <Route path="admin/login" element={<AdminLoginPage />} />
           {/* Applying needs no account — it is how you get one. */}
           <Route path="register/business" element={<RegisterBusinessPage />} />
@@ -221,6 +243,15 @@ export function App() {
               </RequireAuth>
             }
           />
+          {/* The link a customer sends the shop after ordering. */}
+          <Route
+            path="dashboard/orders/:id"
+            element={
+              <RequireAuth>
+                <OrderPage />
+              </RequireAuth>
+            }
+          />
           <Route
             path="dashboard/talent"
             element={
@@ -251,8 +282,12 @@ export function App() {
             <Route path="locations" element={<AdminLocationsPage />} />
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="applications" element={<AdminApplicationsPage />} />
+            <Route path="orders" element={<AdminOrdersPage />} />
+            <Route path="export" element={<AdminExportPage />} />
             <Route path="page-covers" element={<AdminPageCoversPage />} />
+            <Route path="pages" element={<AdminPagesPage />} />
             <Route path="site-settings" element={<AdminSiteSettingsPage />} />
+            <Route path="partners" element={<AdminPartnersPage />} />
             <Route path="users/:id" element={<AdminUserDetailPage />} />
             <Route path="feedback" element={<AdminFeedbackPage />} />
             <Route path="testimonials" element={<AdminTestimonialsPage />} />

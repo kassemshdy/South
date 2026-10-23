@@ -144,3 +144,16 @@ def test_the_volume_is_copied_into_the_bucket_once(bucket: S3Storage, tmp_path: 
     for key, data in files.items():
         assert bucket.read(key) == data
     assert copy(tmp_path, bucket) == (0, 0)
+
+
+def test_the_copy_counts_what_was_already_there(bucket: S3Storage, tmp_path: Path) -> None:
+    """The deploy log's numbers: every file is copied or already present."""
+    from scripts.copy_media_to_bucket import copy_counts
+
+    for name in ("a.jpg", "b.jpg"):
+        path = tmp_path / "businesses" / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"x")
+    bucket.save(key="businesses/a.jpg", data=b"x", content_type="image/jpeg")
+    assert copy_counts(tmp_path, bucket) == (1, 1, 0)
+    assert copy_counts(tmp_path, bucket) == (0, 2, 0)

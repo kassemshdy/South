@@ -30,20 +30,14 @@
  * gets a public URL — see `app/services/verification.py`.
  */
 
-import {
-  CheckCircle2,
-  MessageCircle,
-  Phone,
-  ShieldCheck,
-  Upload,
-  UserRound,
-} from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { AlertTriangle, CheckCircle2, MessageCircle, Phone, ShieldCheck, Upload, UserRound } from 'lucide-react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
 import { Card, CardBody } from '@/components/ui/Card'
 import { Field } from '@/components/ui/Field'
 import { Input } from '@/components/ui/Input'
+import { AssistedListing } from '@/features/onboarding/AssistedListing'
 import { Turnstile } from '@/components/ui/Turnstile'
 import { useT, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
@@ -52,6 +46,9 @@ import type {
   ApplicantDocuments,
   ApplicantIdentity,
 } from '@/services/api/endpoints'
+import { cn } from '@/utils/cn'
+import { revealFirstError } from '@/utils/revealFirstError'
+import { shrinkImage } from '@/utils/shrinkImage'
 import { isLebanesePhone } from '@/utils/validation'
 
 /**
@@ -83,7 +80,8 @@ export function unwrapFieldErrors(error: unknown, prefix: string): unknown {
   )
 }
 
-type IdentityField = keyof ApplicantIdentity
+/** The typed-in fields; the yes/no question beside them is held on its own. */
+type IdentityField = Exclude<keyof ApplicantIdentity, 'is_displaced' | 'pre_displacement_place'>
 
 const IDENTITY_FIELDS: IdentityField[] = [
   'full_name',
@@ -104,6 +102,27 @@ const DOCUMENT_TYPES = ['application/pdf', 'image/jpeg', 'image/png']
 
 /** Mirrors MAX_VERIFICATION_DOC_BYTES; the API is still the judge. */
 const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024
+
+/**
+ * A card photographed by a phone, re-encoded small enough to send quickly.
+ *
+ * Straight off the camera each side is 3-4 MB, so an application carried
+ * 7 MB or more, and on the mobile connections most applicants use that took
+ * from half a minute to over two — long enough that people gave up or the
+ * request was dropped. 2000px on the long side is still plenty to read every
+ * line of an identity card. A PDF, or an image the browser cannot decode,
+ * is sent as it is.
+ */
+const DOCUMENT_TARGET_BYTES = 1024 * 1024
+
+async function shrinkDocument(file: File): Promise<File> {
+  if (!file.type.startsWith('image/')) return file
+  try {
+    return await shrinkImage(file, { maxBytes: DOCUMENT_TARGET_BYTES, maxSide: 2000 })
+  } catch {
+    return file
+  }
+}
 
 type DocumentSide = keyof ApplicantDocuments
 
@@ -155,16 +174,17 @@ function DocumentField({
             type="file"
             accept={DOCUMENT_TYPES.join(',')}
             className="sr-only"
-            onChange={(event) => {
+            onChange={async (event) => {
               const picked = event.target.files?.[0] ?? null
+              const file = picked ? await shrinkDocument(picked) : null
               // Checked here as well as at the API, because a phone photo
               // over the cap would otherwise be a long upload that ends in a
               // refusal.
-              if (picked && picked.size > MAX_DOCUMENT_BYTES) {
+              if (file && file.size > MAX_DOCUMENT_BYTES) {
                 onPick(null, t('register.documentTooLarge'))
                 return
               }
-              onPick(picked, null)
+              onPick(file, null)
             }}
           />
           <label
@@ -205,6 +225,19 @@ interface RegistrationShellProps {
      * then refuses for a field the form never marked.
      */
     requireApplicant: () => Applicant | null
+    /**
+     * For the form's own validation failing: marks this frame's missing
+     * fields too, then scrolls to whichever error is highest on the page.
+     * Without it a tap on send could fail on a field three screens up and
+     * appear to do nothing.
+     */
+    reportInvalid: () => void
+    /**
+     * A fresh captcha after a failed send. A Turnstile token is good for one
+     * verification, and the API verifies it before anything else, so a retry
+     * with the same token would be refused whatever was wrong the first time.
+     */
+    resetCaptcha: () => void
     captcha: ReactNode
   }) => ReactNode
   /** Shown instead of the form once the application has been accepted. */
@@ -221,6 +254,16 @@ export function RegistrationShell({
   const [loginPhone, setLoginPhone] = useState('')
   const [phoneError, setPhoneError] = useState<string | null>(null)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [captchaRound, setCaptchaRound] = useState(0)
+  // Bumped on every failed send. The errors it should reveal are state set in
+  // the same handler, so the scroll waits for the render that shows them.
+  const pageRef = useRef<HTMLDivElement>(null)
+  const [revealRequest, setRevealRequest] = useState(0)
+  useEffect(() => {
+    if (revealRequest === 0) return
+    const frame = requestAnimationFrame(() => revealFirstError(pageRef.current))
+    return () => cancelAnimationFrame(frame)
+  }, [revealRequest])
   const [identity, setIdentity] = useState<Record<IdentityField, string>>({
     full_name: '',
     birth_year: '',
@@ -230,6 +273,14 @@ export function RegistrationShell({
   const [identityErrors, setIdentityErrors] = useState<
     Partial<Record<IdentityField, string>>
   >({})
+  // Asked of every applicant at the owners' request; the answer is for the
+  // team only and is never shown on a listing.
+  const [displaced, setDisplaced] = useState<'' | 'yes' | 'no'>('')
+  const [displacedError, setDisplacedError] = useState<string | null>(null)
+  // Only asked once the answer above is yes: someone who was not displaced
+  // has no "before" to give.
+  const [placeBefore, setPlaceBefore] = useState('')
+  const [placeBeforeError, setPlaceBeforeError] = useState<string | null>(null)
   const [documents, setDocuments] = useState<ApplicantDocuments>({
     front: null,
     back: null,
@@ -237,6 +288,11 @@ export function RegistrationShell({
   const [documentErrors, setDocumentErrors] = useState<
     Partial<Record<DocumentSide, string>>
   >({})
+  // The responsibility notice, on this page now rather than two screens
+  // before it (round 3: one page instead of three). Still asked of everyone,
+  // and still before anything is sent.
+  const [consented, setConsented] = useState(false)
+  const [consentError, setConsentError] = useState<string | null>(null)
 
   const requirePhone = (): string | null => {
     const value = loginPhone.trim()
@@ -265,13 +321,19 @@ export function RegistrationShell({
     }
 
     setIdentityErrors(errors)
-    if (Object.keys(errors).length > 0) return null
+    setDisplacedError(displaced ? null : t('validation.displacedRequired'))
+    const before = placeBefore.trim()
+    const beforeMissing = displaced === 'yes' && !before
+    setPlaceBeforeError(beforeMissing ? t('validation.preDisplacementPlaceRequired') : null)
+    if (Object.keys(errors).length > 0 || !displaced || beforeMissing) return null
 
     return {
       full_name: identity.full_name.trim(),
       birth_year: year,
       registration_place: identity.registration_place.trim(),
       residence_place: identity.residence_place.trim(),
+      is_displaced: displaced === 'yes',
+      pre_displacement_place: displaced === 'yes' ? before : null,
     }
   }
 
@@ -289,20 +351,37 @@ export function RegistrationShell({
     setDocumentErrors((current) => ({ ...current, [side]: error ?? undefined }))
   }
 
-  const requireApplicant = (): Applicant | null => {
+  const checkApplicant = (): Applicant | null => {
     // All of them, always, rather than stopping at the first failure:
     // somebody who has left two fields blank should be told about two fields.
     const phone = requirePhone()
     const values = requireIdentity()
     const scans = requireDocuments()
-    if (!phone || !values || !scans) return null
+    setConsentError(consented ? null : t('validation.consentRequired'))
+    if (!phone || !values || !scans || !consented) return null
     return { phone, identity: values, documents: scans }
+  }
+
+  const requireApplicant = (): Applicant | null => {
+    const applicant = checkApplicant()
+    if (!applicant) setRevealRequest((count) => count + 1)
+    return applicant
+  }
+
+  const reportInvalid = () => {
+    checkApplicant()
+    setRevealRequest((count) => count + 1)
+  }
+
+  const resetCaptcha = () => {
+    setCaptchaToken(null)
+    setCaptchaRound((round) => round + 1)
   }
 
   if (submitted) return <SubmittedPanel phone={loginPhone} />
 
   return (
-    <div className="container-page max-w-3xl py-10">
+    <div ref={pageRef} className="container-page max-w-3xl py-10">
       <header className="mb-6">
         <h1 className="text-3xl">{t(titleKey)}</h1>
         <p className="mt-2 text-ink-500">{t(subtitleKey)}</p>
@@ -386,6 +465,67 @@ export function RegistrationShell({
             ))}
           </div>
 
+          <fieldset aria-describedby={displacedError ? 'displaced-error' : undefined}>
+            <legend className="mb-2 text-sm font-semibold text-ink-700">
+              {t('account.displacedLabel')}
+              <span className="ms-1 text-clay-600" aria-hidden="true">
+                *
+              </span>
+            </legend>
+            <div className="flex gap-3">
+              {(['yes', 'no'] as const).map((answer) => (
+                <label
+                  key={answer}
+                  className={cn(
+                    'flex min-h-12 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 px-4 font-semibold transition-colors sm:flex-none sm:px-8',
+                    displaced === answer
+                      ? 'border-brand-600 bg-brand-50 text-brand-800'
+                      : 'border-ink-100 bg-white text-ink-700 hover:border-ink-300',
+                    displacedError ? 'border-clay-500' : '',
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="is_displaced"
+                    value={answer}
+                    checked={displaced === answer}
+                    onChange={() => {
+                      setDisplaced(answer)
+                      setDisplacedError(null)
+                    }}
+                    className="sr-only"
+                  />
+                  {t(answer === 'yes' ? 'common.yes' : 'common.no')}
+                </label>
+              ))}
+            </div>
+            {displacedError ? (
+              <p id="displaced-error" role="alert" className="mt-1.5 text-sm text-clay-600">
+                {displacedError}
+              </p>
+            ) : null}
+          </fieldset>
+
+          {displaced === 'yes' ? (
+            <Field
+              label={t('account.preDisplacementPlaceLabel')}
+              required
+              error={placeBeforeError ?? undefined}
+            >
+              {(props) => (
+                <Input
+                  {...props}
+                  value={placeBefore}
+                  onChange={(event) => {
+                    setPlaceBefore(event.target.value)
+                    if (placeBeforeError) setPlaceBeforeError(null)
+                  }}
+                  invalid={Boolean(placeBeforeError)}
+                />
+              )}
+            </Field>
+          ) : null}
+
           {/* Both sides: the reviewer checks the name against the front and
               the place of registration against the back. */}
           <div className="grid gap-5 sm:grid-cols-2">
@@ -403,16 +543,53 @@ export function RegistrationShell({
         </CardBody>
       </Card>
 
+      <Card className="mb-6 border-2 border-clay-300">
+        <CardBody className="space-y-4 p-6">
+          <div className="flex items-center gap-2 text-ink-900">
+            <AlertTriangle className="h-5 w-5 text-clay-600" aria-hidden="true" />
+            <h2 className="text-lg">{t('consent.heading')}</h2>
+          </div>
+          <p className="leading-relaxed text-ink-700">{t('consent.body')}</p>
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={consented}
+              onChange={(event) => {
+                setConsented(event.target.checked)
+                if (event.target.checked) setConsentError(null)
+              }}
+              aria-describedby={consentError ? 'consent-error' : undefined}
+              aria-invalid={Boolean(consentError)}
+              className="mt-1 h-5 w-5 shrink-0 accent-brand-700"
+            />
+            <span className="font-semibold text-ink-900">{t('consent.agree')}</span>
+          </label>
+          {consentError ? (
+            <p id="consent-error" role="alert" className="text-sm text-clay-600">
+              {consentError}
+            </p>
+          ) : null}
+        </CardBody>
+      </Card>
+
       <Card>
         <CardBody className="p-6">
           {children({
             loginPhone,
             captchaToken,
             requireApplicant,
-            captcha: <Turnstile onToken={setCaptchaToken} />,
+            reportInvalid,
+            resetCaptcha,
+            // Remounted rather than reset in place: unmounting removes the
+            // spent widget, and a new one renders with a new challenge.
+            captcha: <Turnstile key={captchaRound} onToken={setCaptchaToken} />,
           })}
         </CardBody>
       </Card>
+
+      {/* Moved here with the steps it used to follow: someone who would
+          rather not fill this in can still ask the team to do it. */}
+      <AssistedListing contextKey="assisted.contextHome" />
 
       <p className="mt-6 text-center text-sm text-ink-500">
         {t('register.alreadyHaveAccount')}{' '}
@@ -468,10 +645,10 @@ function SubmittedPanel({ phone }: { phone: string }) {
             </p>
           ) : null}
           <Link
-            to="/"
+            to="/login"
             className="mt-6 inline-block rounded-xl bg-brand-700 px-5 py-2.5 text-white hover:bg-brand-800"
           >
-            {t('register.doneHome')}
+            {t('nav.login')}
           </Link>
         </CardBody>
       </Card>

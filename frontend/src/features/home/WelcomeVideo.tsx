@@ -1,8 +1,10 @@
 import { YouTubePlayer } from '@/components/ui/YouTubePlayer'
+import { useUploadedCover } from '@/hooks/usePageCover'
+import { useSiteSettings } from '@/hooks/useSiteSettings'
 import { useT } from '@/i18n'
 
 /**
- * Dr Hossam Matar's introduction to the project.
+ * The introduction video on the homepage.
  *
  * The framed player and nothing else — no heading, no width, no section. It
  * sits in the homepage hero beside the copy, so the surrounding section owns
@@ -11,27 +13,39 @@ import { useT } from '@/i18n'
  * nothing-loads-until-asked rule live in `YouTubePlayer`, shared now with the
  * introduction video on a business or talent profile.
  *
- * The poster is our own file rather than `i.ytimg.com/vi/<id>/…`: the
+ * A poster is our own file rather than `i.ytimg.com/vi/<id>/…`: the
  * recording lives on someone else's channel, so its YouTube thumbnail carries
- * that channel's watermark and none of our branding. The cost is that the two
- * can drift apart, so `POSTER` is named after the speaker it shows — a new
- * recording by someone else makes the mismatch obvious rather than quiet.
+ * that channel's watermark and none of our branding. Each poster is keyed by
+ * the recording it was made for, so a different recording gets the brand
+ * panel rather than a face that is not in it.
  *
- * The poster keeps its subject on the reading-end side and its type clear of
+ * A poster keeps its subject on the reading-end side and its type clear of
  * the centre, because the play button is drawn on top of the middle of the
- * frame. Replacing the image means honouring that or moving the button.
+ * frame. A new one means honouring that or moving the button.
  */
 
-const VIDEO_ID = '3Np8hKhrbB4'
-const POSTER = '/welcome-hossam-matar.webp'
+/** The recording the owners chose (round 3); an administrator can replace it. */
+export const WELCOME_VIDEO_ID = 'cxylydvdiNE'
+
+/** Posters we have, by the recording each was made for. */
+export const WELCOME_POSTERS: Record<string, string> = {
+  // Dr Hossam Matar's earlier introduction.
+  '3Np8hKhrbB4': '/welcome-hossam-matar.webp',
+  // The owners' new introduction is Dr Hossam too, so it takes his poster.
+  cxylydvdiNE: '/welcome-hossam-matar.webp',
+}
 
 export function WelcomeVideoPlayer() {
   const t = useT()
+  const { settings } = useSiteSettings()
+  const videoId = settings?.home_video ?? WELCOME_VIDEO_ID
+  // An administrator's upload wins over the poster we ship for a recording.
+  const uploaded = useUploadedCover('home_video')
 
   return (
     <YouTubePlayer
-      videoId={VIDEO_ID}
-      poster={POSTER}
+      videoId={videoId}
+      poster={uploaded ?? WELCOME_POSTERS[videoId] ?? null}
       title={t('home.videoHeading')}
       playLabel={t('home.videoPlayAria')}
     />

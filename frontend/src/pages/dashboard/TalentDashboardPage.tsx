@@ -2,7 +2,7 @@ import * as Tabs from '@radix-ui/react-tabs'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, ArrowRight, ExternalLink, Send, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
@@ -11,10 +11,12 @@ import { useToast } from '@/components/ui/Toast'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
 import { LiveSharePanel } from '@/features/insights/LiveSharePanel'
 import { ViewsPanel } from '@/features/insights/ViewsPanel'
+import { kindFromQuery } from '@/features/talent/kind'
 import { OwnerServiceRequests } from '@/features/talent/OwnerServiceRequests'
 import { TalentForm } from '@/features/talent/TalentForm'
 import { TalentImageManager } from '@/features/talent/TalentImageManager'
 import { OfferSwitcher } from '@/features/onboarding/OfferSwitcher'
+import { OwnerTestimonials } from '@/features/testimonials/OwnerTestimonials'
 import { useSeo } from '@/hooks/useSeo'
 import { useT, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
@@ -30,6 +32,8 @@ import { queryKeys } from '@/services/api/queryKeys'
  */
 export function TalentDashboardPage() {
   const t = useT()
+  const [searchParams] = useSearchParams()
+  const initialKind = kindFromQuery(searchParams.get('kind'))
   const toast = useToast()
   const queryClient = useQueryClient()
   // Opens on the photo tab while there is no photo. Submitting for review
@@ -138,11 +142,12 @@ export function TalentDashboardPage() {
             has been written yet, so there is nothing to strand. Only on the
             create form — once a profile exists this is the page for managing
             it, not a fork. */}
-        <OfferSwitcher current="talent" />
+        <OfferSwitcher current={initialKind === 'JOB_SEEKER' ? 'job' : 'service'} />
         <Card>
           <CardBody>
             <TalentForm
-            serverError={create.error ?? save.error}
+              initialKind={initialKind}
+              serverError={create.error ?? save.error}
               submitLabel={t('talentDashboard.createSubmit')}
               pending={create.isPending}
               onSubmit={(payload) => create.mutate(payload)}
@@ -234,6 +239,9 @@ export function TalentDashboardPage() {
             <TabTrigger value="details">{t('talentDashboard.tabDetails')}</TabTrigger>
             <TabTrigger value="images">{t('talentDashboard.tabImages')}</TabTrigger>
             <TabTrigger value="requests">{t('serviceRequests.ownerTab')}</TabTrigger>
+            {data.kind === 'SERVICE' ? (
+              <TabTrigger value="testimonials">{t('wizard.stepTestimonials')}</TabTrigger>
+            ) : null}
           </Tabs.List>
 
           <CardBody>
@@ -267,6 +275,12 @@ export function TalentDashboardPage() {
             <Tabs.Content value="requests">
               <OwnerServiceRequests />
             </Tabs.Content>
+
+            {data.kind === 'SERVICE' ? (
+              <Tabs.Content value="testimonials">
+                <OwnerTestimonials source={{ kind: 'talent' }} />
+              </Tabs.Content>
+            ) : null}
           </CardBody>
         </Tabs.Root>
       </Card>

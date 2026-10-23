@@ -37,6 +37,8 @@ def _create_profile(client: TestClient, headers: dict[str, str], skill: TalentSk
             "bio": ar("talent.designer_bio"),
             "skill_id": str(skill.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
             "highest_degree": ar("talent.degree"),
             "specialization": ar("talent.specialization"),
             "university": ar("talent.university"),
@@ -100,6 +102,8 @@ def test_fields_are_optional(client: TestClient, skill: TalentSkill, location: L
             "display_name": ar("talent.photographer"),
             "skill_id": str(skill.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     )
     assert response.status_code == 201, response.text
@@ -122,6 +126,8 @@ def test_an_unrecognised_employment_type_is_rejected(
             "display_name": ar("talent.photographer"),
             "skill_id": str(skill.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
             "employment_type": "FREELANCE",
         },
     )
@@ -139,6 +145,8 @@ def test_update_can_set_cv_fields_independently(
             "display_name": ar("talent.photographer"),
             "skill_id": str(skill.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     )
 

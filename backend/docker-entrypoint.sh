@@ -12,6 +12,10 @@ chown -R appuser:appuser "$STORAGE_LOCAL_DIR"
 
 exec gosu appuser sh -c '
   set -e
+  # A copy of the database before this deploy changes anything -- or, if the
+  # database came back empty beside existing uploads, a fatal alarm instead.
+  # Never fails the boot. See app/services/db_backup.py.
+  python -m scripts.backup_db --reason boot
   alembic upgrade head
   python -m scripts.seed --ensure
   python -m scripts.copy_media_to_bucket

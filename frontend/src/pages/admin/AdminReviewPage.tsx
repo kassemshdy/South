@@ -3,12 +3,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowRight, Check, Download, ExternalLink, PauseCircle, PlayCircle, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import type { z } from 'zod'
 
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody, CardHeader } from '@/components/ui/Card'
+import { DeleteForeverButton } from '@/features/admin/DeleteForeverButton'
 import { Dialog, DialogClose, DialogContent } from '@/components/ui/Dialog'
 import { Field } from '@/components/ui/Field'
 import { Textarea } from '@/components/ui/Input'
@@ -16,6 +17,7 @@ import { ErrorState, InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
 import { IssueCredentialsCard } from '@/features/admin/IssueCredentialsCard'
 import { OwnerIdentityCard } from '@/features/admin/OwnerIdentityCard'
+import { OwnerWhatsappButton } from '@/features/admin/OwnerWhatsappButton'
 import { OWNER_RELATION_KEYS } from '@/features/businesses/labels'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
 import { useI18n, type TranslationKey } from '@/i18n'
@@ -30,6 +32,7 @@ type ConfirmAction = 'approve' | 'reject' | 'suspend' | 'reactivate' | null
 
 export function AdminReviewPage() {
   const { id = '' } = useParams()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const toast = useToast()
   const { t, locale } = useI18n()
@@ -195,6 +198,14 @@ export function AdminReviewPage() {
             </Button>
           ) : null}
 
+          <div className="ms-auto">
+            <DeleteForeverButton
+              description={t('admin.deleteBusinessBody', { name: data.name })}
+              onDelete={() => adminApi.deleteBusiness(data.id)}
+              onDeleted={() => navigate('/admin/businesses')}
+            />
+          </div>
+
           {data.status === 'DRAFT' || data.status === 'REJECTED' ? (
             <p className="text-ink-500">
               {data.status === 'DRAFT'
@@ -296,9 +307,17 @@ export function AdminReviewPage() {
                           <p className="text-xs text-ink-500">{t('items.unavailable')}</p>
                         ) : null}
                       </div>
-                      <span className="ltr-nums shrink-0 font-bold text-brand-800">
-                        {formatPrice(item.price, item.currency) ?? '—'}
-                      </span>
+                      <div className="flex shrink-0 flex-col items-end gap-2">
+                        <span className="ltr-nums font-bold text-brand-800">
+                          {formatPrice(item.price, item.currency) ?? '—'}
+                        </span>
+                        <DeleteForeverButton
+                          size="sm"
+                          description={t('admin.deleteItemBody', { name: item.title })}
+                          onDelete={() => adminApi.deleteItem(data.id, item.id)}
+                          onDeleted={invalidate}
+                        />
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -316,6 +335,7 @@ export function AdminReviewPage() {
               <Detail labelKey="admin.ownerName" value={data.owner_display_name} />
               <Detail labelKey="admin.ownerAccount" value={data.owner_phone} ltr />
               <Detail labelKey="admin.ownerPersonalPhone" value={data.owner_personal_phone} ltr />
+              <OwnerWhatsappButton phone={data.owner_phone} />
               <p className="text-xs text-ink-300">{t('admin.ownerPrivacyNote')}</p>
               {data.owner_has_verification_document ? (
                 <Button

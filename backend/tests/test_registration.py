@@ -9,9 +9,9 @@ ways that arrangement could quietly betray somebody:
 - an application must not be signable-into **before** anyone has looked at it;
 - the form must not become a way to ask **which numbers already have
   accounts**, nor to hang a listing inside a stranger's dashboard;
-- a password that travelled through a chat message must open the account
-  **once** -- everything else stays shut until it is replaced, and replacing it
-  ends every session opened with it;
+- a password that travelled through a chat message is the owner's to keep
+  (no forced change, the owners' decision), and replacing it, whenever they
+  choose to, ends every session opened with it;
 - the plaintext must exist in that one response and **nowhere else**.
 """
 
@@ -58,6 +58,8 @@ IDENTITY: dict[str, object] = {
     "birth_year": 1986,
     "registration_place": ar("identity.registration_place"),
     "residence_place": ar("identity.residence_place"),
+    "is_displaced": True,
+    "pre_displacement_place": ar("identity.pre_displacement_place"),
 }
 
 
@@ -72,6 +74,8 @@ def _business_payload(
             "description": ar("business.applicant_description"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
             "phone": phone,
         },
     }
@@ -371,7 +375,12 @@ def test_a_talent_applicant_can_attach_one_too(
                 "display_name": ar("talent.applicant"),
                 "skill_id": str(skill.id),
                 "location_id": str(location.id),
+                "latitude": 33.27,
+                "longitude": 35.2,
                 "whatsapp": APPLICANT_PHONE,
+                "years_experience": 3,
+                "kind": "SERVICE",
+                "work_mode": "BOTH",
             },
         },
         document=("id.png", PNG_BYTES, "image/png"),
@@ -400,7 +409,12 @@ def test_a_talent_application_lands_in_the_review_queue(
                 "display_name": ar("talent.applicant"),
                 "skill_id": str(skill.id),
                 "location_id": str(location.id),
+                "latitude": 33.27,
+                "longitude": 35.2,
                 "whatsapp": APPLICANT_PHONE,
+                "years_experience": 3,
+                "kind": "SERVICE",
+                "work_mode": "BOTH",
             },
         },
     )
@@ -453,6 +467,8 @@ def test_a_known_number_is_answered_identically_and_creates_nothing(
                 "name": ar("business.applicant_second"),
                 "category_id": str(category.id),
                 "location_id": str(location.id),
+                "latitude": 33.27,
+                "longitude": 35.2,
             },
         },
     )
@@ -598,7 +614,8 @@ def test_an_issued_password_is_returned_once_and_stored_only_as_a_hash(
     assert owner.password_hash is not None
     assert password not in owner.password_hash
     assert verify_password(password, owner.password_hash)
-    assert owner.must_change_password is True
+    # The owner's to keep: nothing forces a change on first sign-in.
+    assert owner.must_change_password is False
 
     # There is no route that reads it back; a second call replaces it.
     again = _issue(client, owner)
@@ -657,7 +674,7 @@ def test_credentials_for_an_unknown_account_are_not_found(
     assert missing.status_code == 404
 
 
-# --- Signing in and the forced change --------------------------------------
+# --- Signing in, and changing the password ---------------------------------
 
 
 def _sign_in(client: TestClient, phone: str, password: str) -> dict[str, str]:
@@ -679,7 +696,7 @@ def test_the_owner_signs_in_with_the_phone_number_and_the_issued_password(
     body = client.post(
         "/api/auth/login", json={"identifier": APPLICANT_PHONE, "password": password}
     ).json()
-    assert body["user"]["must_change_password"] is True
+    assert body["user"]["must_change_password"] is False
 
 
 @pytest.mark.parametrize(
@@ -800,27 +817,43 @@ def test_the_role_comes_from_the_account_not_the_form(
     assert owner.status_code == 401
 
 
-def test_every_owner_route_is_shut_until_the_password_is_replaced(
+def test_an_issued_password_opens_the_dashboard_straight_away(
     client: TestClient, db: Session, category: Category, location: Location, admin: User
 ) -> None:
+    """The owners' decision: no forced change. The WhatsApp message the
+    password arrived in is the owner's record of it."""
     _apply(client, _business_payload(category, location))
     owner = _owner(db)
     assert owner is not None
     headers = _sign_in(client, APPLICANT_PHONE, _issue(client, owner))
 
+    listed = client.get("/api/my/businesses", headers=headers)
+    assert listed.status_code == 200, listed.text
+    assert [item["name"] for item in listed.json()] == [ar("business.applicant")]
+
+
+def test_a_flagged_account_is_still_shut_until_the_password_is_replaced(
+    client: TestClient, db: Session, category: Category, location: Location, admin: User
+) -> None:
+    """Nothing sets the flag now, but the check stays in one place."""
+    _apply(client, _business_payload(category, location))
+    owner = _owner(db)
+    assert owner is not None
+    headers = _sign_in(client, APPLICANT_PHONE, _issue(client, owner))
+    owner.must_change_password = True
+    db.commit()
+
     blocked = client.get("/api/my/businesses", headers=headers)
     assert blocked.status_code == 403
     assert blocked.json()["error"]["code"] == "password_change_required"
-
-    # Except the two the client needs to get out of that state.
     assert client.get("/api/me", headers=headers).status_code == 200
 
 
-def test_changing_the_password_unblocks_the_account_and_ends_the_session(
+def test_changing_the_password_ends_the_other_sessions(
     client: TestClient, db: Session, category: Category, location: Location, admin: User
 ) -> None:
-    """The point of the forced change: whoever else read that WhatsApp chat is
-    signed out the moment the owner picks their own password."""
+    """Optional now, but still worth having: whoever else read that WhatsApp
+    chat is signed out the moment the owner picks their own password."""
     _apply(client, _business_payload(category, location))
     owner = _owner(db)
     assert owner is not None
@@ -858,7 +891,7 @@ def test_the_current_password_is_required_to_replace_it(
         json={"current_password": "not-it", "new_password": "OwnerChosen9"},
     )
     assert refused.status_code == 401
-    assert client.get("/api/my/businesses", headers=headers).status_code == 403
+    assert client.get("/api/my/businesses", headers=headers).status_code == 200
 
 
 def test_an_issued_password_ends_any_session_opened_with_the_previous_one(
@@ -871,3 +904,184 @@ def test_an_issued_password_ends_any_session_opened_with_the_previous_one(
 
     _issue(client, owner)
     assert client.get("/api/me", headers=headers).status_code == 401
+
+
+def test_a_talent_application_without_years_of_experience_is_refused(
+    client: TestClient,
+    db: Session,
+    skill: TalentSkill,
+    location: Location,
+) -> None:
+    """The owners made the number compulsory; 0 is an answer, absent is not."""
+    response = _register(
+        client,
+        "talent",
+        {
+            "login_phone": APPLICANT_PHONE,
+            "identity": dict(IDENTITY),
+            "talent": {
+                "display_name": ar("talent.applicant"),
+                "skill_id": str(skill.id),
+                "location_id": str(location.id),
+                "latitude": 33.27,
+                "longitude": 35.2,
+                "whatsapp": APPLICANT_PHONE,
+            },
+        },
+    )
+    assert response.status_code == 422, response.text
+    assert db.execute(select(TalentProfile)).first() is None
+
+
+def test_the_displacement_answer_is_required_and_kept_for_the_team(
+    client: TestClient, db: Session, category: Category, location: Location
+) -> None:
+    """Asked of every applicant, stored on the account, published nowhere."""
+    payload = _business_payload(category, location)
+    payload["identity"] = {key: value for key, value in IDENTITY.items() if key != "is_displaced"}
+    refused = _register(client, "business", payload)
+    assert refused.status_code == 422, refused.text
+    assert _owner(db) is None
+
+    accepted = _register(client, "business", _business_payload(category, location))
+    assert accepted.status_code == 202, accepted.text
+    owner = _owner(db)
+    assert owner is not None
+    assert owner.is_displaced is True
+    assert owner.pre_displacement_place == ar("identity.pre_displacement_place")
+
+
+def test_a_displaced_applicant_says_where_they_lived_before(
+    client: TestClient, db: Session, category: Category, location: Location
+) -> None:
+    """Displaced means two places, and the team needs both to judge the application."""
+    payload = _business_payload(category, location)
+    identity = dict(IDENTITY)
+    identity.pop("pre_displacement_place")
+    payload["identity"] = identity
+    refused = _register(client, "business", payload)
+    assert refused.status_code == 422, refused.text
+    assert _owner(db) is None
+
+    # Someone who was not displaced has no "before", whatever the form sent.
+    payload["identity"] = {
+        **IDENTITY,
+        "is_displaced": False,
+        "pre_displacement_place": ar("identity.pre_displacement_place"),
+    }
+    accepted = _register(client, "business", payload)
+    assert accepted.status_code == 202, accepted.text
+    owner = _owner(db)
+    assert owner is not None
+    assert owner.pre_displacement_place is None
+
+
+def test_a_talent_application_must_say_service_or_job(
+    client: TestClient,
+    db: Session,
+    skill: TalentSkill,
+    location: Location,
+) -> None:
+    """The applicant chooses which directory they are listed in."""
+    response = _register(
+        client,
+        "talent",
+        {
+            "login_phone": APPLICANT_PHONE,
+            "identity": dict(IDENTITY),
+            "talent": {
+                "display_name": ar("talent.applicant"),
+                "skill_id": str(skill.id),
+                "location_id": str(location.id),
+                "latitude": 33.27,
+                "longitude": 35.2,
+                "whatsapp": APPLICANT_PHONE,
+                "years_experience": 3,
+            },
+        },
+    )
+    assert response.status_code == 422, response.text
+    assert db.execute(select(TalentProfile)).first() is None
+
+
+def test_a_service_application_must_say_how_it_is_delivered(
+    client: TestClient,
+    db: Session,
+    skill: TalentSkill,
+    location: Location,
+) -> None:
+    """Remotely, in person or both: compulsory for a service, not for a job."""
+
+    def apply(kind: str) -> int:
+        return _register(
+            client,
+            "talent",
+            {
+                "login_phone": APPLICANT_PHONE,
+                "identity": dict(IDENTITY),
+                "talent": {
+                    "display_name": ar("talent.applicant"),
+                    "skill_id": str(skill.id),
+                    "location_id": str(location.id),
+                    "latitude": 33.27,
+                    "longitude": 35.2,
+                    "whatsapp": APPLICANT_PHONE,
+                    "years_experience": 3,
+                    "kind": kind,
+                },
+            },
+        ).status_code
+
+    assert apply("SERVICE") == 422
+    assert db.execute(select(TalentProfile)).first() is None
+    assert apply("JOB_SEEKER") == 202
+
+
+def test_an_application_without_an_area_is_refused(
+    client: TestClient,
+    db: Session,
+    category: Category,
+    skill: TalentSkill,
+    location: Location,
+) -> None:
+    """Optional on a dashboard draft, required on an application: it goes
+    straight to review, and "from the South" cannot be judged without it."""
+    payload = _business_payload(category, location)
+    business = dict(payload["business"])  # type: ignore[call-overload]
+    del business["location_id"]
+    payload["business"] = business
+    refused = _register(client, "business", payload)
+    assert refused.status_code == 422, refused.text
+    assert _owner(db) is None
+
+    refused = _register(
+        client,
+        "talent",
+        {
+            "login_phone": APPLICANT_PHONE,
+            "identity": dict(IDENTITY),
+            "talent": {
+                "display_name": ar("talent.applicant"),
+                "skill_id": str(skill.id),
+                "whatsapp": APPLICANT_PHONE,
+                "years_experience": 3,
+                "kind": "SERVICE",
+                "work_mode": "BOTH",
+            },
+        },
+    )
+    assert refused.status_code == 422, refused.text
+    assert db.execute(select(TalentProfile)).first() is None
+
+
+def test_an_application_without_a_map_pin_is_refused(
+    client: TestClient, db: Session, category: Category, location: Location
+) -> None:
+    """The owners made the pin compulsory for every seller; the town will do."""
+    payload = _business_payload(category, location)
+    business = dict(payload["business"])  # type: ignore[call-overload]
+    del business["latitude"], business["longitude"]
+    payload["business"] = business
+    refused = _register(client, "business", payload)
+    assert refused.status_code == 422, refused.text
+    assert _owner(db) is None

@@ -391,6 +391,8 @@ _PAGES: dict[str, tuple[str, str]] = {
     "products": ("seo.page.products.title", "seo.page.products.description"),
     "businesses": ("seo.page.businesses.title", "seo.page.businesses.description"),
     "talent": ("seo.page.talent.title", "seo.page.talent.description"),
+    "services": ("seo.page.services.title", "seo.page.services.description"),
+    "jobs": ("seo.page.jobs.title", "seo.page.jobs.description"),
 }
 _NAMED_PAGES: dict[str, tuple[str, str]] = {
     "products/local": ("seo.page.products_local.name", "seo.page.products.description"),

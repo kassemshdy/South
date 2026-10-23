@@ -15,13 +15,14 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.core.arabic import normalize_arabic
 from app.core.pagination import Page
-from app.models.enums import BusinessStatus
+from app.models.enums import BusinessStatus, TalentKind, WorkMode
 from app.models.talent import TalentProfile, TalentSkill
 from app.models.taxonomy import Location
 from app.models.user import User
 from app.repositories.base import BaseRepository
+from app.repositories.geo import Point, nearest_first
 
-SortOption = Literal["newest", "name", "oldest"]
+SortOption = Literal["newest", "name", "oldest", "experience", "nearest", "rating"]
 
 
 class TalentSkillRepository(BaseRepository[TalentSkill]):
@@ -103,7 +104,16 @@ class TalentRepository(BaseRepository[TalentProfile]):
         q: str | None,
         skill_slug: str | None,
         location_slug: str | None,
+        kind: TalentKind | None = None,
+        work_mode: WorkMode | None = None,
     ) -> Select[tuple[TalentProfile]]:
+        if kind is not None:
+            stmt = stmt.where(TalentProfile.kind == kind)
+
+        if work_mode is not None:
+            # Someone who works both ways answers either question.
+            stmt = stmt.where(TalentProfile.work_mode.in_({work_mode, WorkMode.BOTH}))
+
         if skill_slug:
             stmt = stmt.join(TalentSkill, TalentProfile.skill_id == TalentSkill.id).where(
                 TalentSkill.slug == skill_slug
@@ -130,12 +140,33 @@ class TalentRepository(BaseRepository[TalentProfile]):
         return stmt
 
     def _apply_sort(
-        self, stmt: Select[tuple[TalentProfile]], sort: SortOption
+        self, stmt: Select[tuple[TalentProfile]], sort: SortOption, near: Point | None = None
     ) -> Select[tuple[TalentProfile]]:
+        # Nearest needs a position; without one it falls back to newest.
+        if sort == "nearest" and near is not None:
+            return stmt.order_by(
+                nearest_first(TalentProfile.latitude, TalentProfile.longitude, near),
+                TalentProfile.created_at.desc(),
+            )
         if sort == "name":
             return stmt.order_by(TalentProfile.display_name.asc())
         if sort == "oldest":
             return stmt.order_by(TalentProfile.created_at.asc())
+        if sort == "rating":
+            # Highest average first, the busier of two equal averages ahead;
+            # a profile nobody has rated comes last rather than as zero.
+            return stmt.order_by(
+                TalentProfile.rating_average.desc().nulls_last(),
+                TalentProfile.rating_count.desc(),
+                TalentProfile.created_at.desc(),
+            )
+        if sort == "experience":
+            # Most years first; a profile that never said comes last rather
+            # than being read as no experience at all.
+            return stmt.order_by(
+                TalentProfile.years_experience.desc().nulls_last(),
+                TalentProfile.created_at.desc(),
+            )
         return stmt.order_by(TalentProfile.created_at.desc())
 
     def search_public(
@@ -144,20 +175,28 @@ class TalentRepository(BaseRepository[TalentProfile]):
         q: str | None = None,
         skill_slug: str | None = None,
         location_slug: str | None = None,
+        kind: TalentKind | None = None,
+        work_mode: WorkMode | None = None,
         sort: SortOption = "newest",
+        near: Point | None = None,
         page: int = 1,
         page_size: int = 12,
     ) -> Page[TalentProfile]:
         """Paginated public search. Never returns a non-APPROVED profile."""
         filtered = self._apply_filters(
-            self.public_query(), q=q, skill_slug=skill_slug, location_slug=location_slug
+            self.public_query(),
+            q=q,
+            skill_slug=skill_slug,
+            location_slug=location_slug,
+            kind=kind,
+            work_mode=work_mode,
         )
 
         total = int(
             self.db.execute(select(func.count()).select_from(filtered.subquery())).scalar_one()
         )
 
-        stmt = self._apply_sort(self._with_relations(filtered), sort)
+        stmt = self._apply_sort(self._with_relations(filtered), sort, near)
         rows = (
             self.db.execute(stmt.limit(page_size).offset((page - 1) * page_size))
             .unique()

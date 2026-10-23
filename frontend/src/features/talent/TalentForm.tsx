@@ -6,16 +6,20 @@ import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { Button } from '@/components/ui/Button'
 import { Field } from '@/components/ui/Field'
 import { Input, Textarea } from '@/components/ui/Input'
+import { LocationCombobox } from '@/components/ui/LocationCombobox'
+import { PhonePublicToggle } from '@/components/ui/PhonePublicToggle'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
+import { MapPinField } from '@/features/map/MapPinField'
+import { pinOf } from '@/features/map/types'
 import { useLocationGroups, useTalentSkills } from '@/hooks/useTaxonomy'
 import { useT } from '@/i18n'
 import { useApplyServerFieldErrors } from '@/utils/serverFieldErrors'
 import type { TalentPayload } from '@/services/api/endpoints'
-import type { ContactChannel, OwnerTalent, SocialPlatform } from '@/types/api'
+import type { ContactChannel, OwnerTalent, SocialPlatform, TalentKind } from '@/types/api'
 import { PLATFORM_KEYS } from '@/utils/format'
 import { talentSchema, type TalentValues } from '@/utils/validation'
 
-import { LANGUAGE_PROFICIENCIES, PROFICIENCY_KEYS } from './labels'
+import { LANGUAGE_PROFICIENCIES, PROFICIENCY_KEYS, WORK_MODE_KEYS, WORK_MODES } from './labels'
 
 interface TalentFormProps {
   profile?: OwnerTalent | undefined
@@ -26,6 +30,13 @@ interface TalentFormProps {
   serverError?: unknown
   footer?: React.ReactNode
   /**
+   * Called when a submit fails this form's own validation. The registration
+   * pages use it to mark their own fields too and scroll to the topmost error,
+   * which can be above this form; without it the first invalid field here is
+   * focused, as before.
+   */
+  onInvalid?: () => void
+  /**
    * Whether to say that the identity fields live on the account page.
    *
    * True from the dashboard, where they do and this form deliberately omits
@@ -34,7 +45,15 @@ interface TalentFormProps {
    * elsewhere while they are typing them in is worse than saying nothing.
    */
   identityElsewhere?: boolean
+  /** The directory the visitor came from, preselected for a new profile. */
+  initialKind?: TalentKind
 }
+
+/** The two directories a profile can be listed in, with their own names. */
+const KINDS: { value: TalentKind; labelKey: 'nav.services' | 'nav.jobs' }[] = [
+  { value: 'SERVICE', labelKey: 'nav.services' },
+  { value: 'JOB_SEEKER', labelKey: 'nav.jobs' },
+]
 
 /** The whole profile on one form — a talent profile is small enough not to
  * need the multi-step wizard a business listing gets. */
@@ -61,12 +80,14 @@ function socialUrl(profile: OwnerTalent | undefined | null, platform: SocialPlat
 }
 
 export function TalentForm({
+  initialKind,
   profile,
   submitLabel,
   pending,
   onSubmit,
   serverError,
   footer,
+  onInvalid,
   identityElsewhere = true,
 }: TalentFormProps) {
   const skills = useTalentSkills()
@@ -84,7 +105,9 @@ export function TalentForm({
     formState: { errors },
   } = useForm<TalentValues>({
     resolver: zodResolver(schema),
+    shouldFocusError: !onInvalid,
     defaultValues: {
+      kind: profile?.kind ?? initialKind ?? '',
       display_name: profile?.display_name ?? '',
       bio: profile?.bio ?? '',
       years_experience:
@@ -96,8 +119,10 @@ export function TalentForm({
       skill_specialty: profile?.skill_specialty ?? '',
       preferred_contact: profile?.preferred_contact ?? '',
       location_id: profile?.location?.id ?? '',
+      pin: pinOf(profile?.latitude, profile?.longitude),
       phone: profile?.phone ?? '',
       whatsapp: profile?.whatsapp ?? '',
+      phone_public: profile?.phone_public ?? true,
       email: profile?.email ?? '',
       website: profile?.website ?? '',
       instagram: socialUrl(profile, 'INSTAGRAM'),
@@ -124,6 +149,7 @@ export function TalentForm({
       hobbies: profile?.hobbies ?? '',
       employment_type: profile?.employment_type ?? '',
       remote_capable: profile?.remote_capable ?? false,
+      work_mode: profile?.work_mode ?? '',
       languages:
         profile?.languages?.map((language) => ({
           name: language.name,
@@ -139,22 +165,27 @@ export function TalentForm({
   } = useFieldArray({ control, name: 'languages' })
 
   const skillId = useWatch({ control, name: 'skill_id' })
+  const kind = useWatch({ control, name: 'kind' })
   const isOtherSkill = Boolean(otherSkillId) && skillId === otherSkillId
 
   useApplyServerFieldErrors(serverError, setError, getValues)
 
   const submit = handleSubmit((values) => {
     onSubmit({
+      kind: values.kind as TalentKind,
       display_name: values.display_name,
       bio: values.bio || null,
-      years_experience: values.years_experience ? Number(values.years_experience) : null,
+      years_experience: values.years_experience !== '' ? Number(values.years_experience) : null,
       skill_id: values.skill_id || null,
       custom_skill_text: values.custom_skill_text || null,
       skill_specialty: values.skill_specialty || null,
       preferred_contact: values.preferred_contact || null,
       location_id: values.location_id || null,
+      latitude: values.pin?.lat ?? null,
+      longitude: values.pin?.lng ?? null,
       phone: values.phone || null,
       whatsapp: values.whatsapp || null,
+      phone_public: values.phone_public,
       email: values.email || null,
       website: values.website || null,
       video_url: values.video_url || null,
@@ -171,6 +202,8 @@ export function TalentForm({
       hobbies: values.hobbies || null,
       employment_type: (values.employment_type || null) as TalentPayload['employment_type'],
       remote_capable: values.remote_capable,
+      // Only a service is asked; a job application keeps the checkbox below.
+      work_mode: values.kind === 'SERVICE' ? values.work_mode || null : null,
       // Always sent, even when empty: an omitted key means "leave as-is",
       // so clearing the last language has to be an explicit empty list.
       languages: (values.languages ?? []).map((language) => ({
@@ -184,10 +217,72 @@ export function TalentForm({
         return url ? [{ platform, url }] : []
       }),
     })
-  })
+  }, onInvalid ? () => onInvalid() : undefined)
 
   return (
     <form onSubmit={submit} className="space-y-5" noValidate>
+      {/* First, because it decides where the profile is listed: services,
+          or job applications. The owners split the one directory in two and
+          left the choice to the profile's owner. */}
+      <fieldset aria-describedby={errors.kind ? 'talent-kind-error' : undefined}>
+        <legend className="mb-2 text-sm font-semibold text-ink-700">
+          {t('talentForm.kindLabel')}
+          <span className="ms-1 text-clay-600" aria-hidden="true">
+            *
+          </span>
+        </legend>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {KINDS.map(({ value, labelKey }) => (
+            <label
+              key={value}
+              className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border-2 border-ink-100 bg-white px-4 font-semibold text-ink-700 transition-colors hover:border-ink-300 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-800"
+            >
+              <input type="radio" value={value} {...register('kind')} className="accent-brand-700" />
+              {t(labelKey)}
+            </label>
+          ))}
+        </div>
+        {errors.kind ? (
+          <p id="talent-kind-error" role="alert" className="mt-1.5 text-sm text-clay-600">
+            {errors.kind.message}
+          </p>
+        ) : null}
+      </fieldset>
+
+      {/* Right after the kind, because only a service is asked, and because
+          it is what visitors to the services directory filter on. */}
+      {kind === 'SERVICE' ? (
+        <fieldset aria-describedby={errors.work_mode ? 'talent-work-mode-error' : undefined}>
+          <legend className="mb-2 text-sm font-semibold text-ink-700">
+            {t('talentForm.workModeLabel')}
+            <span className="ms-1 text-clay-600" aria-hidden="true">
+              *
+            </span>
+          </legend>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {WORK_MODES.map((mode) => (
+              <label
+                key={mode}
+                className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border-2 border-ink-100 bg-white px-4 font-semibold text-ink-700 transition-colors hover:border-ink-300 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-800"
+              >
+                <input
+                  type="radio"
+                  value={mode}
+                  {...register('work_mode')}
+                  className="accent-brand-700"
+                />
+                {t(WORK_MODE_KEYS[mode])}
+              </label>
+            ))}
+          </div>
+          {errors.work_mode ? (
+            <p id="talent-work-mode-error" role="alert" className="mt-1.5 text-sm text-clay-600">
+              {errors.work_mode.message}
+            </p>
+          ) : null}
+        </fieldset>
+      ) : null}
+
       <Field
         label={t('talentForm.displayName')}
         required
@@ -246,6 +341,7 @@ export function TalentForm({
 
         <Field
           label={t('talentForm.yearsExperience')}
+          required
           error={errors.years_experience?.message}
         >
           {(props) => (
@@ -304,32 +400,27 @@ export function TalentForm({
             control={control}
             name="location_id"
             render={({ field }) => (
-              <Select value={field.value || undefined} onValueChange={field.onChange}>
-                <SelectTrigger
-                  id={props.id}
-                  aria-describedby={props['aria-describedby']}
-                  invalid={Boolean(errors.location_id)}
-                >
-                  <SelectValue placeholder={t('talentForm.locationPlaceholder')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {groups.map(({ district, towns }) => [
-                    <SelectItem key={district.id} value={district.id}>
-                      {district.name_ar}
-                    </SelectItem>,
-                    ...towns.map((town) => (
-                      <SelectItem key={town.id} value={town.id}>
-                        {'  '}
-                        {town.name_ar}
-                      </SelectItem>
-                    )),
-                  ])}
-                </SelectContent>
-              </Select>
+              <LocationCombobox
+                id={props.id}
+                aria-describedby={props['aria-describedby']}
+                value={field.value ?? ''}
+                onChange={field.onChange}
+                groups={groups}
+                placeholder={t('talentForm.locationPlaceholder')}
+                invalid={Boolean(errors.location_id)}
+              />
             )}
           />
         )}
       </Field>
+
+      <Controller
+        control={control}
+        name="pin"
+        render={({ field }) => (
+          <MapPinField value={field.value} onChange={field.onChange} error={errors.pin?.message} />
+        )}
+      />
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label={t('form.phone')} error={errors.phone?.message} hint={t('form.phoneHint')}>
@@ -364,6 +455,8 @@ export function TalentForm({
           )}
         </Field>
       </div>
+
+      <PhonePublicToggle registration={register('phone_public')} />
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label={t('form.email')} error={errors.email?.message}>
@@ -584,10 +677,13 @@ export function TalentForm({
             )}
           </Field>
 
-          <label className="flex items-center gap-3 self-end rounded-xl border-2 border-ink-100 p-3.5">
-            <input type="checkbox" {...register('remote_capable')} className="h-5 w-5 accent-brand-600" />
-            <span className="font-medium">{t('talentForm.remoteCapable')}</span>
-          </label>
+          {/* A service answers the remote / in-person question above instead. */}
+          {kind !== 'SERVICE' ? (
+            <label className="flex items-center gap-3 self-end rounded-xl border-2 border-ink-100 p-3.5">
+              <input type="checkbox" {...register('remote_capable')} className="h-5 w-5 accent-brand-600" />
+              <span className="font-medium">{t('talentForm.remoteCapable')}</span>
+            </label>
+          ) : null}
         </div>
 
         <div className="space-y-3">

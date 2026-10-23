@@ -172,7 +172,7 @@ public form (+ Turnstile)  →  User(OWNER, password_hash NULL, identity set,
 administrator audits it    →  approve / reject, in the queue that already existed
 "issue credentials"        →  password generated, shown ONCE, wa.me link opens
                               WhatsApp Web with the message written
-owner signs in (phone+pw)  →  forced password change  →  dashboard
+owner signs in (phone+pw)  →  dashboard (no forced change)
 ```
 
 Five things about it are load-bearing rather than incidental:
@@ -196,12 +196,15 @@ Five things about it are load-bearing rather than incidental:
   by the administrator from their own WhatsApp. This application never sends
   it anywhere. Issuing a second one replaces the first and signs out any
   session opened with it.
-- **`must_change_password` shuts every owner route with a 403** until the
-  password is replaced, enforced once in `get_current_user` rather than per
-  route, so a new owner endpoint is covered by default. The password travelled
-  through a chat message; the forced change is what makes it a way in exactly
-  once instead of a standing credential, and replacing it bumps `token_version`
-  so whoever else read that chat is signed out.
+- **An issued password is the owner's to keep** (the owners' decision,
+  replacing a forced change on first sign-in). The WhatsApp message it
+  arrived in is their record of it; a lost one is replaced by issuing another.
+  The accepted cost: the password stays readable in that chat for as long as
+  the chat exists. An owner can still replace it from their account page,
+  which bumps `token_version` so whoever else read that chat is signed out.
+  `must_change_password` is no longer set, but `get_current_user` still shuts
+  every owner route with a 403 for an account that carries it, so turning the
+  forced change back on is one line in `AuthService.issue_password`.
 - **The applicant's identity is collected on the public form**, and written
   onto the `users` row rather than the listing. The reviewer is deciding
   whether this is a real person from the South, so asking afterwards would put
@@ -294,6 +297,18 @@ for something that hands out sessions.
   *published* phone number is public and deliberately survives — `tests/
   test_observability.py` pins that distinction, so widen `SENSITIVE_KEYS` rather than
   loosening the scrub.
+- **A visitor's position is used for one request and kept nowhere.** The
+  directories' nearest-first order sends `lat`/`lng` rounded to about a
+  kilometre, from session storage, never in the page URL; the browser is
+  asked only when someone chooses «الأقرب إليّ». Query strings are dropped
+  from uvicorn's access line (`DropQueryString` in `app/core/logging.py`)
+  so neither a position nor a search term reaches the deployment logs —
+  `tests/test_map_pin.py` pins it.
+- **Deleting an account deletes its files too.** `AccountDeletionService`
+  removes the rows in one transaction and then every file they pointed at,
+  private documents included; a new upload type that belongs to an account
+  must be added to `_files_of`, or it outlives the person who asked for it
+  to be gone. Administrators cannot delete themselves this way.
 
 ## Error Tracking
 
@@ -392,6 +407,20 @@ mistake, including on the one screen a signed-out visitor types into — the
 public application form, where they enter the phone number that becomes their
 login.
 
+## Maps and Stars
+
+- **Maps are OpenStreetMap through Leaflet** — free, no key, no account,
+  which is what the owners chose over Google's paid maps. Leaflet is its own
+  chunk, fetched only by pages that draw a map (`features/map/MapView.tsx`),
+  and the listing pages link to Google Maps for directions, which is free.
+  Every seller must pin themselves (the town is enough): the pin is part of
+  readiness and of both public applications.
+- **An administrator's approval alone publishes a testimonial**, on a
+  business or a service profile; the listing's owner reads what is
+  published and neither approves nor hides (the owners' decision, round 3).
+  **Stars count every published rating and nothing else**, so the average
+  is the average of what the page shows and a visitor can check it.
+
 ## Deploy Gotchas (learned the hard way)
 
 - **Anything that writes to `/app/var/media` must run in the container that actually has
@@ -406,12 +435,17 @@ login.
   `storage.exists()` per image, not just whether the `Business` row exists, and
   regenerates anything missing. This matters because a business row can survive a bad
   deploy while its files don't.
-- **The `postgres` service currently has no persistent volume.** Any Postgres redeploy
-  (including one triggered by only changing its environment variables) wipes the entire
-  database back to empty — schema and all. Recovery is a redeploy of the `api` service
-  (its start command re-runs migrations + seed), but avoid triggering a Postgres redeploy
-  at all until this is fixed. Before setting *any* variable or config on `postgres`, check
-  whether it forces a redeploy, and confirm with the user first if so.
+- **The production database was lost once, on 2026-10-04,** because the old
+  `postgres` service was a plain container with no disk and was redeployed. It
+  is now Railway's own **`Postgres`** service on a persistent disk. Never
+  redeploy, delete or reconfigure it without a fresh backup and the owner's
+  explicit go-ahead.
+- **The database is copied into the bucket at every API boot (before
+  migrations) and once a day**, under the private `backups/db/` folder
+  (`app/services/db_backup.py`, `scripts/backup_db.py`); `/media` refuses the
+  folder. An API that starts against an empty database while uploads exist
+  raises a fatal Sentry error instead of starting quietly — treat it as an
+  emergency and follow `docs/RESTORE.md`.
 - **Uploads can live in a private bucket instead of the volume.** With
   `STORAGE_BACKEND=s3` and no `S3_PUBLIC_BASE_URL`, files go to the bucket but
   are still served at `/media/<key>` by the API (`_mount_bucket_media`), so the
@@ -424,11 +458,6 @@ login.
   confirm the files serve, and only then detach the volume. A service with a
   volume cannot run two instances, so every deploy of `api` has a minute or two
   of 502s until it is gone.
-- **Point-in-Time Recovery (`WAL_ARCHIVE_*` variables) only works on Railway's own managed
-  Postgres image.** This project's `postgres` service runs plain `postgres:16-alpine` from
-  Docker Hub — pgBackRest isn't installed, so those variables are inert. Real PITR here
-  would require migrating to Railway's managed Postgres template, not just setting vars.
-
 ## Testing Conventions
 
 - Backend tests run against a real Postgres (`tests/conftest.py`), truncating tables
@@ -455,8 +484,9 @@ login.
   diagnosed from its log; the E2E job uploads screenshots, traces and both server logs
   as the run's `e2e-results` artifact on failure. Say which check failed and why before
   pushing a fix, and never merge a red PR to save a cycle.
-- Two branches auto-deploy on push: `master-claude` drives the live services
-  (`api`, `web`) and `develop-claude` drives the staging pair (`api-develop`,
-  `web-develop`). Treat `master-claude` as production: verify locally first, and check
-  Railway deploy status/logs after pushing rather than assuming success. Feature work
-  goes to `develop-claude` first, then to `master-claude`.
+- `master-claude` auto-deploys the live services (`api`, `web`, on the `Postgres`
+  database). The staging services were removed on 2026-10-05, so `develop-claude`
+  no longer deploys anywhere: it is where pull requests are merged after CI, and a
+  release is a pull request from it into `master-claude`. Treat `master-claude` as
+  production: verify locally first, and check Railway deploy status/logs after
+  pushing rather than assuming success.

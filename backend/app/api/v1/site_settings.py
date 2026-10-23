@@ -7,6 +7,7 @@ from fastapi import APIRouter
 from sqlalchemy import select
 
 from app.core.dependencies import AdminUser, DbSession
+from app.core.urls import youtube_video_id
 from app.models.site_setting import SITE_SETTING_KEYS, SiteSetting
 from app.schemas.site_setting import SiteSettingsIn, SiteSettingsOut
 
@@ -34,6 +35,11 @@ def update_site_settings(
     payload: SiteSettingsIn, db: DbSession, admin: AdminUser
 ) -> SiteSettingsOut:
     values = payload.model_dump()
+    # Stored as an id, so the page composes the embed address itself and
+    # renders nothing an administrator typed (see youtube_video_id).
+    for video in ("home_video", "offer_video"):
+        if values.get(video):
+            values[video] = youtube_video_id(values[video])
     for key in SITE_SETTING_KEYS:
         value = values.get(key)
         row = db.get(SiteSetting, key)

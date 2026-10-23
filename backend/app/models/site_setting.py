@@ -17,6 +17,12 @@ SITE_SETTING_KEYS: tuple[str, ...] = (
     "contact_email",
     "social_facebook",
     "social_instagram",
+    # The homepage video, as a YouTube id (round 3). Unset plays the
+    # recording the site shipped with.
+    "home_video",
+    # The "how to register" video on /offer, as a YouTube id. Unset shows no
+    # video there at all: there is no recording to fall back to.
+    "offer_video",
 )
 
 

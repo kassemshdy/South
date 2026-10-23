@@ -16,8 +16,9 @@ from sqlalchemy.orm import Session
 from app.models.business import Business, BusinessItem
 from app.models.enums import BusinessStatus
 from app.models.taxonomy import Category, Location
-from tests.conftest import sign_in
+from tests.conftest import post_item, sign_in
 from tests.samples import ar
+from tests.test_uploads_and_urls import make_image
 
 
 def _item_slug(db: Session, title: str) -> str:
@@ -37,9 +38,12 @@ def draft_business_with_item(client: TestClient, category: Category, location: L
             "short_description": ar("business.manakish_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     ).json()
-    client.post(
+    post_item(
+        client,
         f"/api/businesses/{business['id']}/items",
         headers=headers,
         json={"title": ar("item.zaatar_local"), "price": "1.50", "currency": "USD"},
@@ -76,15 +80,19 @@ def approved_business_with_items(
             "short_description": ar("business.sweets_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
             "whatsapp": "03950002",
         },
     ).json()
-    client.post(
+    post_item(
+        client,
         f"/api/businesses/{business['id']}/items",
         headers=headers,
         json={"title": ar("item.zaatar_local"), "price": "1.50", "currency": "USD"},
     )
-    client.post(
+    post_item(
+        client,
         f"/api/businesses/{business['id']}/items",
         headers=headers,
         json={
@@ -130,6 +138,43 @@ def test_unavailable_item_excluded_from_search_but_visible_on_business_page(
     assert ar("item.generic") in [item["title"] for item in profile["items"]]
 
 
+def test_the_shops_with_products_filter_wants_something_on_sale(
+    client: TestClient,
+    db: Session,
+    approved_business_with_items: str,
+    category: Category,
+    location: Location,
+) -> None:
+    """The products page lists shops (round 3): one with nothing on sale --
+    no items, or only unavailable ones -- is not on it."""
+    headers = sign_in(client, "03950003")
+    empty = client.post(
+        "/api/businesses",
+        headers=headers,
+        json={
+            "name": ar("business.manakish"),
+            "short_description": ar("business.manakish_short"),
+            "category_id": str(category.id),
+            "location_id": str(location.id),
+        },
+    ).json()
+    record = db.get(Business, empty["id"])
+    assert record is not None
+    record.status = BusinessStatus.APPROVED
+    db.commit()
+
+    every = {row["id"] for row in client.get("/api/businesses").json()["items"]}
+    assert every == {approved_business_with_items, empty["id"]}
+    shops = client.get("/api/businesses", params={"with_products": "true"}).json()["items"]
+    assert [row["id"] for row in shops] == [approved_business_with_items]
+
+    for item in db.get(Business, approved_business_with_items).items:  # type: ignore[union-attr]
+        item.is_available = False
+    db.commit()
+    shops = client.get("/api/businesses", params={"with_products": "true"}).json()["items"]
+    assert shops == []
+
+
 def test_category_and_location_filters_join_through_the_business(
     client: TestClient, db: Session, approved_business_with_items: str, category: Category, location: Location
 ) -> None:
@@ -157,6 +202,8 @@ def test_two_items_with_the_same_title_get_distinct_slugs(
             "short_description": ar("business.generic_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     ).json()
     second_business = client.post(
@@ -167,18 +214,22 @@ def test_two_items_with_the_same_title_get_distinct_slugs(
             "short_description": ar("business.generic_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     ).json()
 
-    client.post(
+    post_item(
+        client,
         f"/api/businesses/{first_business['id']}/items",
         headers=headers,
-        json={"title": ar("item.generic"), "currency": "USD"},
+        json={"title": ar("item.generic"), "price": "1.00", "currency": "USD"},
     )
-    client.post(
+    post_item(
+        client,
         f"/api/businesses/{second_business['id']}/items",
         headers=headers,
-        json={"title": ar("item.generic"), "currency": "USD"},
+        json={"title": ar("item.generic"), "price": "1.00", "currency": "USD"},
     )
 
     slugs = {
@@ -257,6 +308,8 @@ def priced_catalogue(client: TestClient, db: Session, category: Category, locati
             "short_description": ar("business.manakish_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     ).json()
 
@@ -264,12 +317,19 @@ def priced_catalogue(client: TestClient, db: Session, category: Category, locati
         {"title": ar("item.cheap"), "price": "2.00", "currency": "USD"},
         {"title": ar("item.dear"), "price": "45.00", "currency": "USD"},
         {"title": ar("item.lira_priced"), "price": "300000.00", "currency": "LBP"},
-        {"title": ar("item.unpriced"), "currency": "USD"},
+        {"title": ar("item.unpriced"), "price": "1.00", "currency": "USD"},
     ):
-        created = client.post(
+        created = post_item(
+            client,
             f"/api/businesses/{business['id']}/items", headers=headers, json=payload
         )
         assert created.status_code == 201, created.text
+        # A price is required now, but products saved before it was carry
+        # none, and the sorts must still put those last.
+        if payload["title"] == ar("item.unpriced"):
+            unpriced = db.get(BusinessItem, created.json()["id"])
+            assert unpriced is not None
+            unpriced.price = None
 
     record = db.get(Business, business["id"])
     assert record is not None
@@ -359,3 +419,90 @@ def test_a_price_sort_still_hides_what_a_visitor_may_not_see(
     db.commit()
 
     assert _titles(client, sort="price_asc") == set()
+
+
+def test_a_product_needs_a_price_and_cannot_lose_it(
+    client: TestClient, category: Category, location: Location
+) -> None:
+    """The owners made the price compulsory: refused without one, and an
+    explicit null on an edit is refused rather than clearing it."""
+    headers = sign_in(client, "03970099")
+    business = client.post(
+        "/api/businesses",
+        headers=headers,
+        json={
+            "name": ar("business.first"),
+            "category_id": str(category.id),
+            "location_id": str(location.id),
+        },
+    ).json()
+    refused = post_item(
+        client,
+        f"/api/businesses/{business['id']}/items",
+        headers=headers,
+        json={"title": ar("item.generic"), "currency": "USD"},
+    )
+    assert refused.status_code == 422, refused.text
+
+    created = post_item(
+        client,
+        f"/api/businesses/{business['id']}/items",
+        headers=headers,
+        json={"title": ar("item.generic"), "price": "4.00", "currency": "USD"},
+    ).json()
+    cleared = client.put(
+        f"/api/businesses/{business['id']}/items/{created['id']}",
+        headers=headers,
+        json={"price": None},
+    )
+    assert cleared.status_code == 422, cleared.text
+
+
+def test_a_product_without_a_photo_stays_with_its_owner(
+    client: TestClient, db: Session, category: Category, location: Location
+) -> None:
+    """The photo is mandatory (the owners' decision): a product saved without
+    one -- before the rule, or after a failed upload -- is kept from the
+    catalogue, its own page and the shop page until it has one, while its
+    owner still sees it to add the photo."""
+    headers = sign_in(client, "03950009")
+    business = client.post(
+        "/api/businesses",
+        headers=headers,
+        json={
+            "name": ar("business.sweets_shop"),
+            "short_description": ar("business.sweets_short"),
+            "category_id": str(category.id),
+            "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
+        },
+    ).json()
+    bare = client.post(
+        f"/api/businesses/{business['id']}/items",
+        headers=headers,
+        json={"title": ar("item.generic"), "price": "1.00", "currency": "USD"},
+    )
+    assert bare.status_code == 201, bare.text
+    record = db.get(Business, business["id"])
+    assert record is not None
+    record.status = BusinessStatus.APPROVED
+    db.commit()
+
+    assert client.get("/api/items").json()["items"] == []
+    assert client.get(f"/api/items/{_item_slug(db, ar('item.generic'))}").status_code == 404
+    shop = client.get(f"/api/businesses/{business['slug']}").json()
+    assert shop["items"] == []
+    owned = client.get(f"/api/businesses/{business['id']}/items", headers=headers).json()
+    assert [item["title"] for item in owned] == [ar("item.generic")]
+
+    # Adding the photo is all it takes.
+    photo = client.post(
+        f"/api/businesses/{business['id']}/items/{bare.json()['id']}/image",
+        headers=headers,
+        files={"file": ("item.jpg", make_image((400, 300)), "image/jpeg")},
+    )
+    assert photo.status_code == 200, photo.text
+    assert [i["title"] for i in client.get("/api/items").json()["items"]] == [ar("item.generic")]
+    shop = client.get(f"/api/businesses/{business['slug']}").json()
+    assert [i["title"] for i in shop["items"]] == [ar("item.generic")]

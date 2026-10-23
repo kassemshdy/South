@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { ArrowRight, ExternalLink } from 'lucide-react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
+import { DeleteForeverButton } from '@/features/admin/DeleteForeverButton'
 import { IssueCredentialsCard } from '@/features/admin/IssueCredentialsCard'
 import { OwnerIdentityCard } from '@/features/admin/OwnerIdentityCard'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
@@ -87,6 +88,7 @@ function TalentRow({ talent }: { talent: AdminTalent }) {
 
 export function AdminUserDetailPage() {
   const { id = '' } = useParams()
+  const navigate = useNavigate()
   const { t, locale } = useI18n()
 
   const user = useQuery({
@@ -127,6 +129,18 @@ export function AdminUserDetailPage() {
           {data.phone_number ?? data.email ?? t('common.dash')} ·{' '}
           {t('admin.userJoined', { date: formatDate(data.created_at, locale) })}
         </p>
+        {/* Never an administrator: the API refuses it, and the button would
+            only offer a way to lock the platform's owners out. */}
+        {data.role !== 'ADMIN' ? (
+          <div className="mt-3">
+            <DeleteForeverButton
+              size="sm"
+              description={t('admin.deleteUserBody')}
+              onDelete={() => adminApi.deleteUser(data.id)}
+              onDeleted={() => navigate('/admin/users')}
+            />
+          </div>
+        ) : null}
       </header>
 
       <section className="space-y-3">

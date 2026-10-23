@@ -13,6 +13,7 @@ from fastapi import APIRouter, Path, Query, status
 
 from app.api.serializers import owner_talent, paginate, talent_detail, talent_summary
 from app.core.dependencies import (
+    AppSettings,
     CurrentUser,
     DbSession,
     ListingOwner,
@@ -22,7 +23,8 @@ from app.core.dependencies import (
 from app.core.errors import NotFoundError
 from app.core.i18n import translate
 from app.core.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
-from app.models.enums import ViewSubject
+from app.models.enums import TalentKind, ViewSubject, WorkMode
+from app.repositories.geo import point_or_none
 from app.repositories.talent import TalentRepository
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.talent import (
@@ -35,6 +37,7 @@ from app.schemas.talent import (
 from app.services.analytics import ViewCounterService
 from app.services.talent import TalentService
 from app.services.talent_moderation import TalentModerationService
+from app.services.testimonial import TestimonialService
 
 public_router = APIRouter(tags=["talent"])
 owner_router = APIRouter(tags=["my-talent"])
@@ -49,7 +52,19 @@ def search_talent(
     q: Annotated[str | None, Query(max_length=120, description="Free-text search query")] = None,
     skill: Annotated[str | None, Query(description="Talent skill slug")] = None,
     location: Annotated[str | None, Query(description="Location slug")] = None,
-    sort: Annotated[Literal["newest", "name", "oldest"], Query()] = "newest",
+    kind: Annotated[
+        TalentKind | None, Query(description="Services or job applications; both when absent")
+    ] = None,
+    work_mode: Annotated[
+        WorkMode | None,
+        Query(description="Remotely or in person; a profile that does both matches either"),
+    ] = None,
+    sort: Annotated[
+        Literal["newest", "name", "oldest", "experience", "nearest", "rating"], Query()
+    ] = "newest",
+    # The visitor's position, for "nearest" only -- see search_businesses.
+    near_lat: Annotated[float | None, Query(ge=-90, le=90, alias="lat")] = None,
+    near_lng: Annotated[float | None, Query(ge=-180, le=180, alias="lng")] = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
 ) -> PaginatedResponse[TalentSummaryOut]:
@@ -58,7 +73,10 @@ def search_talent(
         q=q,
         skill_slug=skill,
         location_slug=location,
+        kind=kind,
+        work_mode=work_mode,
         sort=sort,
+        near=point_or_none(near_lat, near_lng),
         page=page,
         page_size=page_size,
     )
@@ -78,12 +96,15 @@ def latest_talent(
 
 @public_router.get("/talent/{slug}", response_model=TalentDetailOut)
 def get_talent(
-    slug: Annotated[str, Path(max_length=200)], db: DbSession, viewer: Viewer
+    slug: Annotated[str, Path(max_length=200)],
+    db: DbSession,
+    settings: AppSettings,
+    viewer: Viewer,
 ) -> TalentDetailOut:
     profile = TalentRepository(db).get_by_slug(slug, public_only=True)
     if profile is None:
         raise NotFoundError("talent.not_public")
-    payload = talent_detail(profile)
+    payload = talent_detail(profile, TestimonialService(db, settings).public_for(profile))
     ViewCounterService(db).record(
         ViewSubject.TALENT, profile.id, owner_id=profile.owner_id, viewer=viewer
     )

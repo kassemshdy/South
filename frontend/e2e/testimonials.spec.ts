@@ -1,8 +1,10 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
+import { ADMIN_EMAIL, ADMIN_PASSWORD } from './support/admin'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
@@ -13,18 +15,26 @@ const fixture = load<{ author: string; body: string }>('./fixtures/testimonial-d
 
 const t = (key: string): string => ar[key]!
 
+async function signInAsAdmin(page: Page) {
+  await page.goto('/admin/login')
+  await page.getByLabel(t('adminLogin.email')).fill(ADMIN_EMAIL)
+  await page.getByLabel(t('adminLogin.password')).fill(ADMIN_PASSWORD)
+  await page.getByRole('button', { name: t('adminLogin.submit') }).click()
+  await expect(page.getByRole('heading', { name: t('admin.dashboardHeading') })).toBeVisible()
+}
+
 /**
- * Owner-approved testimonials, from the visitor's side.
+ * Testimonials, from the visitor's side and then the administrator's.
  *
- * Two things are asserted in a browser rather than only against the API,
- * because both are properties of the *page* and would break silently:
+ * Asserted in a browser rather than only against the API, because these are
+ * properties of the *page* and would break silently:
  *
- * 1. **Submitted praise does not appear.** The backend suite pins this on the
- *    payload; this pins it on what a person actually sees, which is the claim
- *    the feature makes to the shop owner.
- * 2. **The disclaimer is on screen.** These are owner-selected, so the page
- *    must say they are not independent reviews. Nothing else in the stack can
- *    catch that line being deleted — it is a sentence, not a behaviour.
+ * 1. **Submitted praise does not appear** until an administrator publishes
+ *    it -- and then does, with no step for the listing's owner (the owners'
+ *    decision, round 3).
+ * 2. **The disclaimer is on screen.** The authors are not verified, and the
+ *    page must say so. Nothing else in the stack can catch that line being
+ *    deleted — it is a sentence, not a behaviour.
  *
  * The listing comes from the API rather than from the seed file: the point is
  * "some published listing", and picking one by name meant depending on where
@@ -58,10 +68,20 @@ test.describe('Testimonials', () => {
     // Accepted, and explicitly pending rather than published.
     await expect(page.getByText(t('testimonials.sent')).first()).toBeVisible()
 
-    // The rule: not visible to anyone until the owner approves it. Checked on
-    // a fresh load so nothing is being hidden by client state alone.
+    // The rule: not visible to anyone until an administrator publishes it.
+    // Checked on a fresh load so nothing is being hidden by client state alone.
     await page.reload()
     await expect(page.getByText(fixture.body)).toHaveCount(0)
     await expect(page.getByText(t('testimonials.empty'))).toBeVisible()
+
+    // The administrator publishes it; nobody else is asked.
+    await signInAsAdmin(page)
+    await page.goto('/admin/testimonials')
+    const entry = page.getByRole('listitem').filter({ hasText: fixture.body })
+    await entry.getByRole('button', { name: t('admin.testimonialClear') }).click()
+    await expect(page.getByText(t('admin.testimonialCleared')).first()).toBeVisible()
+
+    await page.goto(`/business/${encodeURIComponent(slug)}`)
+    await expect(page.getByText(fixture.body)).toBeVisible()
   })
 })

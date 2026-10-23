@@ -12,6 +12,7 @@ import {
 import { Link, useParams } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
+import { BackLink } from '@/components/ui/BackLink'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
 import { YouTubePlayer } from '@/components/ui/YouTubePlayer'
@@ -21,9 +22,14 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { useSeo } from '@/hooks/useSeo'
 import { useI18n, useT } from '@/i18n'
-import { EMPLOYMENT_TYPE_KEYS, PROFICIENCY_KEYS } from '@/features/talent/labels'
+import { EMPLOYMENT_TYPE_KEYS, PROFICIENCY_KEYS, WORK_MODE_KEYS } from '@/features/talent/labels'
 import { FollowLinks } from '@/features/social/FollowLinks'
+import { ListingMap } from '@/features/map/ListingMap'
+import { googleMapsHref, pinOf } from '@/features/map/types'
+import { directoryPath } from '@/features/talent/kind'
 import { ServiceRequestForm } from '@/features/talent/ServiceRequestForm'
+import { TestimonialForm } from '@/features/testimonials/TestimonialForm'
+import { TestimonialList } from '@/features/testimonials/TestimonialList'
 import { publicTalentApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { ContactChannel } from '@/types/api'
@@ -70,7 +76,7 @@ export function TalentProfilePage() {
         <ErrorState error={talent.error} onRetry={() => void talent.refetch()} />
         <div className="mt-6 text-center">
           <Button asChild variant="outline">
-            <Link to="/talent">{t('talent.backToDirectory')}</Link>
+            <Link to={directoryPath(data?.kind)}>{t('common.back')}</Link>
           </Button>
         </div>
       </div>
@@ -82,6 +88,7 @@ export function TalentProfilePage() {
     t('talent.whatsappMessage', { name: data.display_name }),
   )
   const phone = telHref(data.phone)
+  const profilePin = pinOf(data.latitude, data.longitude)
   const skillLabel =
     data.skill?.slug === 'other' && data.custom_skill_text
       ? data.custom_skill_text
@@ -128,7 +135,14 @@ export function TalentProfilePage() {
       value: t(EMPLOYMENT_TYPE_KEYS[data.employment_type]),
     })
   }
-  if (data.remote_capable) {
+  if (data.work_mode) {
+    derivedFields.push({
+      key: 'work_mode',
+      label: t('talent.workModeLabel'),
+      value: t(WORK_MODE_KEYS[data.work_mode]),
+    })
+  } else if (data.remote_capable) {
+    // A profile from before the question was asked.
     derivedFields.push({
       key: 'remote_capable',
       label: t('talent.remoteCapableLabel'),
@@ -190,7 +204,8 @@ export function TalentProfilePage() {
   return (
     <article className="pb-16">
       <div className="container-page pt-10">
-        <div className="flex flex-col gap-4 rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:flex-row sm:items-center">
+        <BackLink fallback={directoryPath(data.kind)} />
+        <div className="mt-4 flex flex-col gap-4 rounded-2xl border border-ink-100 bg-white p-6 shadow-card sm:flex-row sm:items-center">
           <div className="h-28 w-28 shrink-0 overflow-hidden rounded-full border-4 border-white bg-sand-100 shadow-card">
             {data.photo_url ? (
               <img
@@ -218,7 +233,7 @@ export function TalentProfilePage() {
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-500">
               {data.skill ? (
                 <Link
-                  to={`/talent?skill=${encodeURIComponent(data.skill.slug)}`}
+                  to={`${directoryPath(data.kind)}?skill=${encodeURIComponent(data.skill.slug)}`}
                   className="font-semibold text-brand-700 hover:underline"
                 >
                   {skillLabel}
@@ -349,6 +364,21 @@ export function TalentProfilePage() {
                 </div>
               </section>
             ) : null}
+
+            {/* A service only, and always rendered there, as on a business
+                page: the form is the point, and the first person who wants
+                to leave one must have somewhere to do it. A job application
+                takes no testimonials. */}
+            {data.kind === 'SERVICE' ? (
+              <>
+                <TestimonialList
+                  testimonials={data.testimonials}
+                  average={data.rating_average}
+                  count={data.rating_count}
+                />
+                <TestimonialForm slug={data.slug} target="talent" />
+              </>
+            ) : null}
           </div>
 
           <aside className="space-y-4">
@@ -375,6 +405,17 @@ export function TalentProfilePage() {
                     </div>
                   )
                 })}
+
+                {/* The pin, and a way to get there from it. */}
+                <ListingMap pin={profilePin} />
+                {profilePin ? (
+                  <Button asChild variant="outline" block>
+                    <a href={googleMapsHref(profilePin)} target="_blank" rel="noopener noreferrer">
+                      <MapPin className="h-4 w-4" aria-hidden="true" />
+                      {t('business.locationCta')}
+                    </a>
+                  </Button>
+                ) : null}
               </CardBody>
             </Card>
 
@@ -383,10 +424,10 @@ export function TalentProfilePage() {
             {/* Beside the WhatsApp button, not instead of it: the message
                 gets a faster answer, the stored request is what survives the
                 answer not coming. */}
-            <ServiceRequestForm slug={slug} />
+            <ServiceRequestForm slug={slug} whatsappLink={whatsapp} callLink={phone} />
 
             <Button asChild variant="outline" block>
-              <Link to="/talent">{t('talent.backToDirectory')}</Link>
+              <Link to={directoryPath(data?.kind)}>{t('common.back')}</Link>
             </Button>
           </aside>
         </div>

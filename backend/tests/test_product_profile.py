@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 from app.models.business import Business
 from app.models.enums import BusinessStatus
 from app.models.taxonomy import Category, Location
-from tests.conftest import sign_in
+from tests.conftest import post_item, sign_in
 from tests.samples import ar
 
 
@@ -43,10 +43,13 @@ def business_with_item(
             "short_description": ar("business.sweets_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
             "whatsapp": "03970001",
         },
     ).json()
-    item = client.post(
+    item = post_item(
+        client,
         f"/api/businesses/{business['id']}/items",
         headers=headers,
         json={
@@ -115,12 +118,15 @@ def test_fields_are_optional(client: TestClient, category: Category, location: L
             "name": ar("business.manakish"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     ).json()
-    response = client.post(
+    response = post_item(
+        client,
         f"/api/businesses/{business['id']}/items",
         headers=headers,
-        json={"title": ar("item.generic")},
+        json={"title": ar("item.generic"), "price": "1.00"},
     )
     assert response.status_code == 201
     item = response.json()

@@ -3,23 +3,26 @@ import { MessageCircle, Package, Phone, Store } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
+import { BackLink } from '@/components/ui/BackLink'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
 import { ShareButton } from '@/components/ui/ShareButton'
+import { SocialShare } from '@/components/ui/SocialShare'
 import { AddToCartButton } from '@/features/cart/AddToCartButton'
 import { FavouriteButton } from '@/features/favourites/FavouriteButton'
+import { hasProductFacts, ProductFacts } from '@/features/items/ProductFacts'
+import { ProductGallery } from '@/features/items/ProductGallery'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { useSeo } from '@/hooks/useSeo'
-import { useI18n, useT } from '@/i18n'
+import { useT } from '@/i18n'
 import { publicItemApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import { formatDate, formatPrice, telHref, whatsappHref } from '@/utils/format'
+import { formatPrice, telHref, whatsappHref } from '@/utils/format'
 
 export function ProductProfilePage() {
   const { slug = '' } = useParams()
   const t = useT()
-  const { locale } = useI18n()
 
   const product = useQuery({
     queryKey: queryKeys.product(slug),
@@ -71,17 +74,21 @@ export function ProductProfilePage() {
 
   return (
     <article className="container-page py-10">
-      <div className="grid gap-8 lg:grid-cols-3">
+      <BackLink fallback="/products" />
+      <div className="mt-4 grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <div className="h-64 overflow-hidden rounded-2xl bg-sand-100 sm:h-80">
-            {data.image_url ? (
-              <img src={data.image_url} alt={data.title} className="h-full w-full object-cover" />
-            ) : (
-              <div className="flex h-full items-center justify-center text-sand-500">
-                <Package className="h-16 w-16" aria-hidden="true" />
-              </div>
-            )}
-          </div>
+          {data.image_url || data.images.length > 0 ? (
+            <ProductGallery
+              title={data.title}
+              imageUrl={data.image_url}
+              images={data.images}
+              className="max-h-[28rem]"
+            />
+          ) : (
+            <div className="flex h-64 items-center justify-center rounded-2xl bg-sand-100 text-sand-500 sm:h-80">
+              <Package className="h-16 w-16" aria-hidden="true" />
+            </div>
+          )}
 
           <div className="mt-6 flex flex-wrap items-start justify-between gap-3">
             {/* Owner-authored text carries its own direction — see BusinessCard. */}
@@ -105,6 +112,7 @@ export function ProductProfilePage() {
                 businessSlug: data.business.slug,
                 businessName: data.business.name,
                 whatsapp: data.business.whatsapp,
+                phone: data.business.phone,
               }}
               line={{
                 itemId: data.id,
@@ -116,6 +124,7 @@ export function ProductProfilePage() {
               }}
             />
             <ShareButton title={data.title} text={shareText} />
+            <SocialShare text={shareText} />
             <FavouriteButton
               subject="PRODUCT"
               slug={data.slug}
@@ -130,86 +139,14 @@ export function ProductProfilePage() {
             </p>
           ) : null}
 
-          {data.images.length > 0 ? (
-            <ul className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {data.images.map((image) => (
-                <li key={image.id} className="overflow-hidden rounded-xl bg-sand-100">
-                  <img src={image.url} alt={image.caption ?? data.title} className="h-24 w-full object-cover sm:h-28" />
-                </li>
-              ))}
-            </ul>
-          ) : null}
-
-          {data.good_type ||
-          data.brand_name ||
-          data.ingredients ||
-          data.manufactured_at ||
-          data.expiry_date ||
-          data.net_weight ||
-          data.external_link ? (
+          {hasProductFacts(data) ? (
             <section aria-labelledby="product-detail-heading" className="mt-6">
               <h2 id="product-detail-heading" className="mb-3 text-xl">
                 {t('products.detailHeading')}
               </h2>
               <Card>
                 <CardBody>
-                  <dl className="grid gap-4 sm:grid-cols-2">
-                    {data.good_type ? (
-                      <div>
-                        <dt className="text-sm font-semibold text-ink-500">{t('products.goodTypeLabel')}</dt>
-                        <dd className="mt-1 text-ink-700">{data.good_type}</dd>
-                      </div>
-                    ) : null}
-                    {data.brand_name ? (
-                      <div>
-                        <dt className="text-sm font-semibold text-ink-500">{t('products.brandNameLabel')}</dt>
-                        <dd className="mt-1 text-ink-700">{data.brand_name}</dd>
-                      </div>
-                    ) : null}
-                    {data.net_weight ? (
-                      <div>
-                        <dt className="text-sm font-semibold text-ink-500">{t('products.netWeightLabel')}</dt>
-                        <dd className="mt-1 text-ink-700">{data.net_weight}</dd>
-                      </div>
-                    ) : null}
-                    {data.manufactured_at ? (
-                      <div>
-                        <dt className="text-sm font-semibold text-ink-500">
-                          {t('products.manufacturedAtLabel')}
-                        </dt>
-                        <dd className="mt-1 text-ink-700">{formatDate(data.manufactured_at, locale)}</dd>
-                      </div>
-                    ) : null}
-                    {data.expiry_date ? (
-                      <div>
-                        <dt className="text-sm font-semibold text-ink-500">{t('products.expiryDateLabel')}</dt>
-                        <dd className="mt-1 text-ink-700">{formatDate(data.expiry_date, locale)}</dd>
-                      </div>
-                    ) : null}
-                    {data.ingredients ? (
-                      <div className="sm:col-span-2">
-                        <dt className="text-sm font-semibold text-ink-500">{t('products.ingredientsLabel')}</dt>
-                        <dd className="mt-1 whitespace-pre-line leading-relaxed text-ink-700" dir="auto">
-                          {data.ingredients}
-                        </dd>
-                      </div>
-                    ) : null}
-                    {data.external_link ? (
-                      <div className="sm:col-span-2">
-                        <dt className="text-sm font-semibold text-ink-500">{t('products.externalLinkLabel')}</dt>
-                        <dd className="mt-1">
-                          <a
-                            href={data.external_link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="break-all text-brand-700 underline"
-                          >
-                            {data.external_link}
-                          </a>
-                        </dd>
-                      </div>
-                    ) : null}
-                  </dl>
+                  <ProductFacts item={data} />
                 </CardBody>
               </Card>
             </section>

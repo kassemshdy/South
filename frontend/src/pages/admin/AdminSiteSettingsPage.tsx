@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/Input'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
+import { CoverUpload } from '@/features/admin/CoverUpload'
+import { WELCOME_POSTERS, WELCOME_VIDEO_ID } from '@/features/home/WelcomeVideo'
 import { useT, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { adminApi } from '@/services/api/endpoints'
@@ -59,7 +61,31 @@ const FIELDS: {
     type: 'text',
     placeholder: 'https://instagram.com/…',
   },
+  {
+    // The homepage video (round 3). Stored as an id; shown as a link.
+    key: 'home_video',
+    labelKey: 'admin.homeVideoLabel',
+    type: 'text',
+    placeholder: 'https://www.youtube.com/watch?v=…',
+  },
+  {
+    // The "how to register" video on /offer. Its heading and text are on the
+    // pages screen.
+    key: 'offer_video',
+    labelKey: 'admin.offerVideoLabel',
+    type: 'text',
+    placeholder: 'https://www.youtube.com/watch?v=…',
+  },
 ]
+
+const asLink = (id: string | null) => (id ? `https://www.youtube.com/watch?v=${id}` : null)
+
+/** The API returns each video as an id; the field holds a link, as pasted. */
+const asForm = (settings: SiteSettings): SiteSettings => ({
+  ...settings,
+  home_video: asLink(settings.home_video),
+  offer_video: asLink(settings.offer_video),
+})
 
 const EMPTY: SiteSettings = {
   contact_phone: null,
@@ -67,6 +93,8 @@ const EMPTY: SiteSettings = {
   contact_email: null,
   social_facebook: null,
   social_instagram: null,
+  home_video: null,
+  offer_video: null,
 }
 
 export function AdminSiteSettingsPage() {
@@ -80,13 +108,13 @@ export function AdminSiteSettingsPage() {
   const [values, setValues] = useState<SiteSettings>(EMPTY)
 
   useEffect(() => {
-    if (current.data) setValues(current.data)
+    if (current.data) setValues(asForm(current.data))
   }, [current.data])
 
   const save = useMutation({
     mutationFn: adminApi.updateSiteSettings,
     onSuccess: (saved) => {
-      setValues(saved)
+      setValues(asForm(saved))
       queryClient.setQueryData(queryKeys.adminSiteSettings, saved)
       // The header and footer read the public copy; refresh it too.
       void queryClient.invalidateQueries({ queryKey: queryKeys.siteSettings })
@@ -139,6 +167,57 @@ export function AdminSiteSettingsPage() {
           </CardBody>
         </Card>
       )}
+
+      <VideoPosters homeVideo={current.data?.home_video ?? null} />
     </div>
+  )
+}
+
+/**
+ * The still each video shows before it is played. Kept with the videos'
+ * links because the two go together: a new recording usually wants a new
+ * picture, and one of somebody else must not keep the old face.
+ */
+function VideoPosters({ homeVideo }: { homeVideo: string | null }) {
+  const t = useT()
+  const covers = useQuery({ queryKey: queryKeys.adminPageCovers, queryFn: adminApi.pageCovers })
+  const cover = (key: 'home_video' | 'offer_video') =>
+    covers.data?.find((item) => item.page_key === key)
+  const home = cover('home_video')
+  const offer = cover('offer_video')
+
+  return (
+    <section className="space-y-4">
+      <div>
+        <h2 className="text-xl font-bold">{t('admin.videoPostersHeading')}</h2>
+        <p className="mt-1 text-sm text-ink-500">{t('admin.videoPostersHint')}</p>
+      </div>
+      {covers.isLoading ? (
+        <Skeleton className="h-40 w-full" />
+      ) : covers.isError ? (
+        <ErrorState error={covers.error} onRetry={() => void covers.refetch()} />
+      ) : (
+        <>
+          {home ? (
+            <CoverUpload
+              cover={home}
+              title={t('admin.pageHomeLabel')}
+              hint={t('admin.videoPosterHint')}
+              fallbackSrc={WELCOME_POSTERS[homeVideo ?? WELCOME_VIDEO_ID] ?? null}
+              resetLabel={t('admin.videoPosterRemove')}
+            />
+          ) : null}
+          {offer ? (
+            <CoverUpload
+              cover={offer}
+              title={t('admin.pageOfferVideoLabel')}
+              hint={t('admin.videoPosterHint')}
+              fallbackSrc={null}
+              resetLabel={t('admin.videoPosterRemove')}
+            />
+          ) : null}
+        </>
+      )}
+    </section>
   )
 }

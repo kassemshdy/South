@@ -48,6 +48,10 @@ export interface OwnerIdentity {
   marital_status: MaritalStatus | null
   registration_place: string | null
   residence_place: string | null
+  /** Currently displaced from the South: asked on the application, for the team only. */
+  is_displaced: boolean | null
+  /** Where a displaced account holder lived before; null for anyone else. */
+  pre_displacement_place: string | null
   /**
    * The account holder's own photo — a face, not a logo, and admin-only for
    * the same reason as every field beside it. It is in this block rather than
@@ -228,6 +232,12 @@ export interface BusinessSummary {
   /** The owner's own words, shown instead of the literal "Other" category name. */
   custom_category_text: string | null
   location: LocationNode | null
+  /**
+   * The stars on the published testimonials -- an average of what the page
+   * shows, owner-selected like the text. Null until one is rated.
+   */
+  rating_average: number | null
+  rating_count: number
   goods_origin: GoodsOrigin
   created_at: string
 }
@@ -265,6 +275,8 @@ export interface BusinessDetail extends BusinessSummary {
 export interface OwnerBusiness extends BusinessDetail {
   /** Never on BusinessDetail -- a reviewer's question, not a public one. */
   owner_relation: OwnerRelation | null
+  /** Whether visitors see the numbers; the owner always does. */
+  phone_public: boolean
   status: BusinessStatus
   rejection_reason: string | null
   submitted_at: string | null
@@ -350,10 +362,19 @@ export interface TalentImage {
   height: number | null
 }
 
+/**
+ * Which of the two directories a talent profile is listed in: services, or
+ * job applications. Chosen by the profile's owner.
+ */
+export type TalentKind = 'SERVICE' | 'JOB_SEEKER'
+/** How a service is delivered. `BOTH` matches either filter. */
+export type WorkMode = 'REMOTE' | 'ON_SITE' | 'BOTH'
+
 export interface TalentSummary {
   id: string
   display_name: string
   slug: string
+  kind: TalentKind
   photo_url: string | null
   /** The card-sized copy, when there is one; fall back to the full image. */
   photo_thumb_url?: string | null
@@ -365,6 +386,11 @@ export interface TalentSummary {
   custom_skill_text: string | null
   /** The trade in their own words, one level below the taxonomy skill. */
   skill_specialty: string | null
+  /** Remotely, in person or both; null on a profile from before it was asked. */
+  work_mode: WorkMode | null
+  /** The stars on the published testimonials; null until one is rated. */
+  rating_average: number | null
+  rating_count: number
   location: LocationNode | null
   created_at: string
 }
@@ -383,6 +409,11 @@ export type ContactChannel = 'PHONE' | 'WHATSAPP' | 'EMAIL' | 'WEBSITE'
 
 export interface TalentDetail extends TalentSummary {
   bio: string | null
+  /** Published ones only; a job application never has any. */
+  testimonials: Testimonial[]
+  /** The owner's own pin on the map, as a business has. */
+  latitude: number | null
+  longitude: number | null
   /** Which contact detail the page leads with. Never narrows what is shown. */
   preferred_contact: ContactChannel | null
   email: string | null
@@ -418,6 +449,8 @@ export interface TalentDetail extends TalentSummary {
 
 /** The person's own view of their profile, including moderation state. */
 export interface OwnerTalent extends TalentDetail {
+  /** Whether visitors see the numbers; the owner always does. */
+  phone_public: boolean
   status: BusinessStatus
   rejection_reason: string | null
   submitted_at: string | null
@@ -532,7 +565,18 @@ export interface ApiErrorPayload {
   }
 }
 
-export type SortOption = 'newest' | 'name' | 'oldest'
+/**
+ * `nearest` orders by distance from the visitor, and needs `lat`/`lng` sent
+ * alongside it; without them the server falls back to newest.
+ */
+export type SortOption = 'newest' | 'name' | 'oldest' | 'nearest'
+
+/** Businesses and products can also sort by their stars, rated first. */
+export type BusinessSortOption = SortOption | 'rating'
+
+/** The talent directory can also sort by years of experience, most first,
+ * and services by their stars, rated first. */
+export type TalentSortOption = SortOption | 'experience' | 'rating'
 
 /**
  * The products directory sorts by price as well, which the other two cannot:
@@ -544,14 +588,19 @@ export type SortOption = 'newest' | 'name' | 'oldest'
  * owner named no price. An ordering asks neither question: nothing is
  * removed, and an unpriced product sorts last in both directions.
  */
-export type ProductSortOption = SortOption | 'price_asc' | 'price_desc'
+export type ProductSortOption = BusinessSortOption | 'price_asc' | 'price_desc'
 
 export interface BusinessQuery {
   q?: string
   category?: string
   location?: string
   origin?: GoodsOrigin
-  sort?: SortOption
+  /** Only shops with at least one product on sale -- the products page. */
+  with_products?: boolean
+  sort?: BusinessSortOption
+  /** The visitor's position, for `nearest` only. Never put in the page URL. */
+  lat?: number
+  lng?: number
   page?: number
   page_size?: number
 }
@@ -565,7 +614,13 @@ export interface TalentQuery {
   q?: string
   skill?: string
   location?: string
-  sort?: SortOption
+  kind?: TalentKind
+  /** Remotely or in person; a profile that does both matches either. */
+  work_mode?: Exclude<WorkMode, 'BOTH'>
+  sort?: TalentSortOption
+  /** The visitor's position, for `nearest` only. Never put in the page URL. */
+  lat?: number
+  lng?: number
   page?: number
   page_size?: number
 }
@@ -637,13 +692,15 @@ export type TestimonialStatus =
   | 'REJECTED'
 
 /**
- * Owner-selected praise, never a review — the owner decides what appears, so
- * a testimonial is not independent evidence and no surface may imply it is.
+ * A visitor's praise, published once an administrator has read it. The
+ * author is not verified, so no surface may present it as a verified review.
  */
 export interface Testimonial {
   id: string
   author_name: string
   body: string
+  /** One to five stars, when the visitor gave any. */
+  rating: number | null
   created_at: string
 }
 
@@ -653,14 +710,29 @@ export interface OwnerTestimonial extends Testimonial {
 }
 
 /**
- * The platform's view: the owner's moderation fields plus which listing the
- * testimonial is on, so an admin can survey every submission in one place.
- * Carries only the business's public identity, never the owner's.
+ * The platform's view: the moderation state plus which listing the
+ * testimonial is on -- a business or a service profile, exactly one -- so an
+ * admin can survey every submission in one place. Carries only the
+ * listing's public identity, never the owner's.
  */
 export interface AdminTestimonial extends OwnerTestimonial {
-  business_id: string
-  business_name: string
-  business_slug: string
+  business_id: string | null
+  business_name: string | null
+  business_slug: string | null
+  talent_id: string | null
+  talent_name: string | null
+  talent_slug: string | null
+}
+
+/** A partner-form submission; administrators only. */
+export interface AdminPartnerRequest {
+  id: string
+  name: string
+  phone: string
+  occupation: string
+  residence: string
+  offer: string
+  created_at: string
 }
 
 export type ArticleSection = 'BLOG' | 'NEWS'
@@ -712,6 +784,14 @@ export interface Order {
   updated_at: string
 }
 
+/** An order read without its listing in the URL: the link a customer sends
+ *  the shop, and the administrators' list of every order. */
+export interface OrderWithBusiness extends Order {
+  business_id: string
+  business_name: string
+  business_slug: string
+}
+
 /**
  * A request for a piece of work, sent to a talent profile.
  *
@@ -746,9 +826,34 @@ export interface SiteSettings {
   contact_email: string | null
   social_facebook: string | null
   social_instagram: string | null
+  /** The homepage video, as a YouTube id; null plays the one the site shipped with. */
+  home_video: string | null
+  offer_video: string | null
 }
 
+/** The site's static pages; see `PageText`. `home` is the homepage's
+ * photograph section and the line under its video. */
+export type PageKey = 'about' | 'offer_eligibility' | 'home' | 'offer_video'
+
+/**
+ * A static page's administrator-written text. A null field means the page
+ * shows its built-in text from the locale catalog in its place.
+ */
+export interface PageText {
+  key: PageKey
+  title_ar: string | null
+  title_en: string | null
+  summary_ar: string | null
+  summary_en: string | null
+  body_ar: string | null
+  body_en: string | null
+}
+
+export type PageTextInput = Omit<PageText, 'key'>
+
 export type PageCoverKey =
+  | 'home_video'
+  | 'offer_video'
   | 'home'
   | 'offer'
   | 'browse'
@@ -756,7 +861,22 @@ export type PageCoverKey =
   | 'products_local'
   | 'products_imported'
   | 'talent'
+  | 'jobs'
   | 'contact'
+
+/** One of the six places in the about page's team section. */
+export interface TeamMember {
+  slot: number
+  photo_url: string | null
+  caption_ar: string | null
+  caption_en: string | null
+  updated_at: string | null
+}
+
+export interface TeamCaptionInput {
+  caption_ar: string | null
+  caption_en: string | null
+}
 
 export interface PageCover {
   page_key: PageCoverKey

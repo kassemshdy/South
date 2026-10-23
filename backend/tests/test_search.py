@@ -37,6 +37,8 @@ def published(client: TestClient, db: Session, category: Category, location: Loc
             "short_description": ar("business.manakish_short_long"),
             "category_id": str(category.id),
             "location_id": str(town.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     ).json()
     client.post(
@@ -53,6 +55,8 @@ def published(client: TestClient, db: Session, category: Category, location: Loc
             "short_description": ar("business.sweets_short"),
             "category_id": str(other_category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
         },
     ).json()
 
@@ -105,6 +109,8 @@ def published_other_category(
             "short_description": ar("business.generic_short"),
             "category_id": str(category_other.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
             "custom_category_text": ar("business.custom_category_text"),
             "whatsapp": "03900009",
         },

@@ -20,6 +20,7 @@ from app.core.i18n import translate
 from app.core.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from app.models.enums import GoodsOrigin, ViewSubject
 from app.repositories.business import BusinessRepository
+from app.repositories.geo import point_or_none
 from app.repositories.item import ItemRepository
 from app.repositories.talent import TalentRepository
 from app.schemas.business import (
@@ -51,7 +52,14 @@ def search_businesses(
     origin: Annotated[
         GoodsOrigin | None, Query(description="Made in the South, or imported")
     ] = None,
-    sort: Annotated[Literal["newest", "name", "oldest"], Query()] = "newest",
+    with_products: Annotated[
+        bool, Query(description="Only shops with at least one product on sale")
+    ] = False,
+    sort: Annotated[Literal["newest", "name", "oldest", "nearest", "rating"], Query()] = "newest",
+    # The visitor's position, for "nearest" only: from their browser, used
+    # for this one ordering, and never stored (access logs drop the query).
+    near_lat: Annotated[float | None, Query(ge=-90, le=90, alias="lat")] = None,
+    near_lng: Annotated[float | None, Query(ge=-180, le=180, alias="lng")] = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
 ) -> PaginatedResponse[BusinessSummaryOut]:
@@ -61,7 +69,9 @@ def search_businesses(
         category_slug=category,
         location_slug=location,
         origin=origin,
+        with_products=with_products,
         sort=sort,
+        near=point_or_none(near_lat, near_lng),
         page=page,
         page_size=page_size,
     )
@@ -104,6 +114,10 @@ def get_business(
     # Approved only, and fetched through the service rather than read off the
     # relationship -- see business_detail's docstring.
     payload = business_detail(business, TestimonialService(db, settings).public_for(business))
+    # A product with no photo stays with its owner until it has one (the
+    # photo is mandatory) -- the same rule ItemRepository.public_query keeps
+    # for the catalogue. The owner's and the admin's views list every item.
+    payload.items = [item for item in payload.items if item.image_url]
     ViewCounterService(db).record(
         ViewSubject.BUSINESS,
         business.id,

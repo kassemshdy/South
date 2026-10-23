@@ -85,7 +85,7 @@ export function BrowsePage() {
     <ChoicePageShell page="browse" title={t('browsePage.title')} subtitle={t('browsePage.subtitle')}>
       <div className="mx-auto max-w-3xl">
         <h2 className="text-lg font-bold text-ink-900">{t('browsePage.doorsTitle')}</h2>
-        <ul className="mt-5 grid gap-4 sm:grid-cols-3">
+        <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {SEEK_DOORS.map((door) => (
             <li key={door.key}>
               <Link to={door.href} className={doorCard('browse')}>

@@ -42,6 +42,8 @@ class UserOut(ORMModel):
     marital_status: MaritalStatus | None = None
     registration_place: str | None = None
     residence_place: str | None = None
+    is_displaced: bool | None = None
+    pre_displacement_place: str | None = None
     # The account holder's own photo, on the same footing as the fields above:
     # returned to the account itself and to an administrator, and to nobody
     # else.
@@ -76,6 +78,13 @@ class ChangePasswordIn(BaseModel):
 
     current_password: str = Field(min_length=1, max_length=200)
     new_password: str = Field(min_length=8, max_length=200)
+
+
+class DeleteAccountIn(BaseModel):
+    """Deleting one's own account: the password again, for the reason
+    ChangePasswordIn asks for it -- an unlocked phone is not consent."""
+
+    password: str = Field(min_length=1, max_length=200)
 
 
 class IssuedPasswordOut(BaseModel):

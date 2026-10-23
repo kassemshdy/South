@@ -9,6 +9,13 @@ import { apiDownload, apiRequest } from '@/services/api/client'
 import type {
   PageCover,
   PageCoverKey,
+  TeamCaptionInput,
+  TeamMember,
+  PageKey,
+  PageText,
+  PageTextInput,
+  TalentKind,
+  WorkMode,
   SiteSettings,
   DiscardedApplication,
   GoodsOrigin,
@@ -17,6 +24,7 @@ import type {
   AdminBusiness,
   AdminTalent,
   AdminTestimonial,
+  AdminPartnerRequest,
   AdminUser,
   AdminUserDetail,
   Article,
@@ -41,6 +49,7 @@ import type {
   OwnerTalent,
   Order,
   OrderStatus,
+  OrderWithBusiness,
   OwnerTestimonial,
   OwnerViews,
   Paginated,
@@ -82,6 +91,7 @@ export interface BusinessPayload {
   location_id?: string | null
   phone?: string | null
   whatsapp?: string | null
+  phone_public?: boolean
   email?: string | null
   website?: string | null
   /** A link; the server stores the video id it resolves to. */
@@ -112,6 +122,7 @@ export interface ItemPayload {
 
 export interface TalentPayload {
   display_name: string
+  kind?: TalentKind
   bio?: string | null
   years_experience?: number | null
   skill_id?: string | null
@@ -119,8 +130,11 @@ export interface TalentPayload {
   skill_specialty?: string | null
   preferred_contact?: ContactChannel | null
   location_id?: string | null
+  latitude?: number | null
+  longitude?: number | null
   phone?: string | null
   whatsapp?: string | null
+  phone_public?: boolean
   email?: string | null
   website?: string | null
   /** A link; the server stores the video id it resolves to. */
@@ -140,6 +154,8 @@ export interface TalentPayload {
   hobbies?: string | null
   employment_type?: EmploymentType | null
   remote_capable?: boolean
+  /** Required of a service; the API derives `remote_capable` from it. */
+  work_mode?: WorkMode | null
   languages?: { name: string; proficiency: LanguageProficiency }[]
   social_links?: { platform: SocialPlatform; url: string }[]
 }
@@ -158,6 +174,8 @@ export interface IdentityPayload {
   marital_status?: MaritalStatus | null
   registration_place?: string | null
   residence_place?: string | null
+  is_displaced?: boolean | null
+  pre_displacement_place?: string | null
 }
 
 /**
@@ -173,6 +191,9 @@ export interface ApplicantIdentity {
   birth_year: number
   registration_place: string
   residence_place: string
+  is_displaced: boolean
+  /** Required when `is_displaced`; the API refuses the application without it. */
+  pre_displacement_place: string | null
 }
 
 /** Both sides of the applicant's ID card. */
@@ -221,6 +242,9 @@ export const authApi = {
       method: 'POST',
       body: { current_password, new_password },
     }),
+  /** Deletes the account and everything it published. Not undoable. */
+  deleteAccount: (password: string) =>
+    apiRequest<{ message: string }>('/api/me/delete', { method: 'POST', body: { password } }),
   me: () => apiRequest<User>('/api/me'),
   updateProfile: (
     payload: IdentityPayload & {
@@ -293,8 +317,34 @@ export const publicItemApi = {
     apiRequest<ProductDetail>(`/api/items/${encodeURIComponent(slug)}`),
 }
 
+/** The partner form (round 3). */
+export interface PartnerPayload {
+  name: string
+  phone: string
+  occupation: string
+  residence: string
+  offer: string
+}
+
+export const partnerApi = {
+  send: (payload: PartnerPayload, captchaToken: string | null) =>
+    apiRequest<{ message: string }>('/api/partners', {
+      method: 'POST',
+      body: { ...payload, captcha_token: captchaToken },
+    }),
+}
+
 export const siteSettingsApi = {
   get: () => apiRequest<SiteSettings>('/api/site-settings'),
+}
+
+export const pageApi = {
+  get: (key: PageKey) => apiRequest<PageText>(`/api/pages/${key}`),
+}
+
+export const teamApi = {
+  /** The filled slots of the about page's team section, in order. */
+  list: () => apiRequest<TeamMember[]>('/api/team'),
 }
 
 export const pageCoverApi = {
@@ -358,30 +408,26 @@ export const insightsApi = {
 export interface TestimonialPayload {
   author_name: string
   body: string
+  rating?: number | null
 }
+
+/** Which kind of listing a testimonial is about. */
+export type TestimonialTarget = 'business' | 'talent'
 
 /**
  * Submitting is anonymous and rate limited; reading a testimonial publicly
- * happens through the business profile, which carries approved ones only.
+ * happens through the listing's own page, which carries approved ones only.
+ * An owner only reads: an administrator's approval publishes one.
  */
 export const testimonialApi = {
-  submit: (slug: string, payload: TestimonialPayload) =>
+  submit: (slug: string, payload: TestimonialPayload, target: TestimonialTarget = 'business') =>
     apiRequest<{ message: string }>(
-      `/api/businesses/${encodeURIComponent(slug)}/testimonials`,
+      `/api/${target === 'talent' ? 'talent' : 'businesses'}/${encodeURIComponent(slug)}/testimonials`,
       { method: 'POST', body: payload },
     ),
   listMine: (businessId: string) =>
     apiRequest<OwnerTestimonial[]>(`/api/businesses/${businessId}/testimonials`),
-  approve: (businessId: string, id: string) =>
-    apiRequest<OwnerTestimonial>(
-      `/api/businesses/${businessId}/testimonials/${id}/approve`,
-      { method: 'POST' },
-    ),
-  hide: (businessId: string, id: string) =>
-    apiRequest<OwnerTestimonial>(
-      `/api/businesses/${businessId}/testimonials/${id}/hide`,
-      { method: 'POST' },
-    ),
+  listMyTalent: () => apiRequest<OwnerTestimonial[]>('/api/my/talent/testimonials'),
 }
 
 export interface OrderPayload {
@@ -392,17 +438,19 @@ export interface OrderPayload {
 }
 
 /**
- * Placing an order needs no account; reading one is the owner's alone.
- * Nothing here can fetch an order publicly, which is the point.
+ * Placing an order needs no account; reading one is the owner's (and the
+ * administrators'). Nothing here can fetch an order publicly, which is the
+ * point: the id `place` returns opens the order only for its shop's owner.
  */
 export const orderApi = {
   place: (slug: string, payload: OrderPayload) =>
-    apiRequest<{ message: string }>(`/api/businesses/${encodeURIComponent(slug)}/orders`, {
+    apiRequest<{ message: string; order_id: string }>(`/api/businesses/${encodeURIComponent(slug)}/orders`, {
       method: 'POST',
       body: payload,
     }),
   listMine: (businessId: string) =>
     apiRequest<Order[]>(`/api/businesses/${businessId}/orders`),
+  getMine: (orderId: string) => apiRequest<OrderWithBusiness>(`/api/my/orders/${orderId}`),
   setStatus: (businessId: string, orderId: string, status: OrderStatus) =>
     apiRequest<Order>(`/api/businesses/${businessId}/orders/${orderId}/status`, {
       method: 'POST',
@@ -525,8 +573,13 @@ export const ownerApi = {
     }),
 }
 
+export type ExportDataset = 'businesses' | 'products' | 'users' | 'talent' | 'orders'
+
 export const adminApi = {
   stats: () => apiRequest<PlatformStats>('/api/admin/stats'),
+  exportCsv: (dataset: ExportDataset) => apiDownload(`/api/admin/export/${dataset}.csv`),
+  orders: (status: OrderStatus | undefined) =>
+    apiRequest<OrderWithBusiness[]>('/api/admin/orders', { query: { status } }),
   discardedApplications: (includeDismissed: boolean) =>
     apiRequest<DiscardedApplication[]>('/api/admin/discarded-applications', {
       query: { include_dismissed: includeDismissed },
@@ -542,6 +595,22 @@ export const adminApi = {
   },
   resetPageCover: (key: PageCoverKey) =>
     apiRequest<PageCover>(`/api/admin/page-covers/${key}`, { method: 'DELETE' }),
+  team: () => apiRequest<TeamMember[]>('/api/admin/team'),
+  setTeamCaption: (slot: number, values: TeamCaptionInput) =>
+    apiRequest<TeamMember>(`/api/admin/team/${slot}`, { method: 'PUT', body: values }),
+  setTeamPhoto: (slot: number, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return apiRequest<TeamMember>(`/api/admin/team/${slot}/photo`, {
+      method: 'POST',
+      formData: form,
+    })
+  },
+  removeTeamPhoto: (slot: number) =>
+    apiRequest<TeamMember>(`/api/admin/team/${slot}/photo`, { method: 'DELETE' }),
+  pages: () => apiRequest<PageText[]>('/api/admin/pages'),
+  updatePage: (key: PageKey, values: PageTextInput) =>
+    apiRequest<PageText>(`/api/admin/pages/${key}`, { method: 'PUT', body: values }),
   siteSettings: () => apiRequest<SiteSettings>('/api/admin/site-settings'),
   updateSiteSettings: (values: SiteSettings) =>
     apiRequest<SiteSettings>('/api/admin/site-settings', { method: 'PUT', body: values }),
@@ -554,6 +623,20 @@ export const adminApi = {
   pending: (page = 1) =>
     apiRequest<Paginated<AdminBusiness>>('/api/admin/businesses/pending', { query: { page } }),
   get: (id: string) => apiRequest<AdminBusiness>(`/api/admin/businesses/${id}`),
+  // Permanent: the rows and every file they pointed at. See DeleteForeverButton.
+  deleteBusiness: (id: string) =>
+    apiRequest<{ message: string }>(`/api/admin/businesses/${id}`, { method: 'DELETE' }),
+  deleteItem: (businessId: string, itemId: string) =>
+    apiRequest<{ message: string }>(`/api/admin/businesses/${businessId}/items/${itemId}`, {
+      method: 'DELETE',
+    }),
+  deleteTalent: (id: string) =>
+    apiRequest<{ message: string }>(`/api/admin/talent/${id}`, { method: 'DELETE' }),
+  deleteUser: (id: string) =>
+    apiRequest<{ message: string }>(`/api/admin/users/${id}`, { method: 'DELETE' }),
+  partners: () => apiRequest<AdminPartnerRequest[]>('/api/admin/partners'),
+  deletePartner: (id: string) =>
+    apiRequest<{ message: string }>(`/api/admin/partners/${id}`, { method: 'DELETE' }),
   approve: (id: string) =>
     apiRequest<AdminBusiness>(`/api/admin/businesses/${id}/approve`, { method: 'POST' }),
   reject: (id: string, reason: string) =>
@@ -646,8 +729,8 @@ export const adminApi = {
   removeTestimonial: (id: string) =>
     apiRequest<{ message: string }>(`/api/admin/testimonials/${id}`, { method: 'DELETE' }),
   /** Pass the platform gate. Not a publish — the owner still decides. */
-  clearTestimonial: (id: string) =>
-    apiRequest<AdminTestimonial>(`/api/admin/testimonials/${id}/clear`, { method: 'POST' }),
+  approveTestimonial: (id: string) =>
+    apiRequest<AdminTestimonial>(`/api/admin/testimonials/${id}/approve`, { method: 'POST' }),
   rejectTestimonial: (id: string) =>
     apiRequest<AdminTestimonial>(`/api/admin/testimonials/${id}/reject`, { method: 'POST' }),
 

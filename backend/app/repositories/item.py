@@ -20,8 +20,11 @@ from app.models.business import Business, BusinessItem
 from app.models.enums import BusinessStatus, GoodsOrigin
 from app.models.taxonomy import Category, Location
 from app.repositories.base import BaseRepository
+from app.repositories.geo import Point, nearest_first
 
-SortOption = Literal["newest", "name", "oldest", "price_asc", "price_desc"]
+SortOption = Literal[
+    "newest", "name", "oldest", "price_asc", "price_desc", "nearest", "rating"
+]
 
 
 class ItemRepository(BaseRepository[BusinessItem]):
@@ -46,11 +49,21 @@ class ItemRepository(BaseRepository[BusinessItem]):
     # --- Querying ----------------------------------------------------------
 
     def public_query(self) -> Select[tuple[BusinessItem]]:
-        """Base statement for everything a visitor is allowed to see."""
+        """Base statement for everything a visitor is allowed to see.
+
+        A product with no photo is not one of them (the owners' decision: the
+        photo is mandatory). The form refuses to save one, but a product saved
+        before that rule, or one whose upload failed, stays with its owner
+        until it has a photo rather than reaching the catalogue without one.
+        """
         return (
             select(BusinessItem)
             .join(Business, BusinessItem.business_id == Business.id)
-            .where(Business.status == BusinessStatus.APPROVED, BusinessItem.is_available.is_(True))
+            .where(
+                Business.status == BusinessStatus.APPROVED,
+                BusinessItem.is_available.is_(True),
+                BusinessItem.image_url.is_not(None),
+            )
         )
 
     def get_by_slug(self, slug: str) -> BusinessItem | None:
@@ -147,7 +160,7 @@ class ItemRepository(BaseRepository[BusinessItem]):
         return stmt
 
     def _apply_sort(
-        self, stmt: Select[tuple[BusinessItem]], sort: SortOption
+        self, stmt: Select[tuple[BusinessItem]], sort: SortOption, near: Point | None = None
     ) -> Select[tuple[BusinessItem]]:
         """Order the results, including the two price orders.
 
@@ -166,6 +179,20 @@ class ItemRepository(BaseRepository[BusinessItem]):
         that day comes is to convert at read time from a rate someone
         maintains -- not to leave this comparing two different units.
         """
+        # A product is as near as the business selling it; without a
+        # position, nearest falls back to newest.
+        if sort == "nearest" and near is not None:
+            return stmt.order_by(
+                nearest_first(Business.latitude, Business.longitude, near),
+                BusinessItem.created_at.desc(),
+            )
+        # A product is rated as its business is; unrated sellers last.
+        if sort == "rating":
+            return stmt.order_by(
+                nullslast(Business.rating_average.desc()),
+                Business.rating_count.desc(),
+                BusinessItem.created_at.desc(),
+            )
         if sort == "name":
             return stmt.order_by(BusinessItem.title.asc())
         if sort == "oldest":
@@ -184,6 +211,7 @@ class ItemRepository(BaseRepository[BusinessItem]):
         location_slug: str | None = None,
         origin: GoodsOrigin | None = None,
         sort: SortOption = "newest",
+        near: Point | None = None,
         page: int = 1,
         page_size: int = 12,
     ) -> Page[BusinessItem]:
@@ -200,7 +228,7 @@ class ItemRepository(BaseRepository[BusinessItem]):
             self.db.execute(select(func.count()).select_from(filtered.subquery())).scalar_one()
         )
 
-        stmt = self._apply_sort(self._with_relations(filtered), sort)
+        stmt = self._apply_sort(self._with_relations(filtered), sort, near)
         rows = (
             self.db.execute(stmt.limit(page_size).offset((page - 1) * page_size))
             .unique()

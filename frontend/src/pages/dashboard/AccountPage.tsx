@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/Select'
 import { InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
+import { DeleteAccountCard } from '@/features/account/DeleteAccountCard'
 import { useAuth } from '@/features/auth/AuthContext'
 import {
   GENDERS,
@@ -98,6 +99,9 @@ export function AccountPage() {
           upload={authApi.uploadCvDocument}
         />
         <PasswordCard />
+        {/* Not for an administrator: the server refuses, since losing the
+            last one would lock the owners out of moderation. */}
+        {user.role === 'ADMIN' ? null : <DeleteAccountCard />}
       </div>
     </div>
   )
@@ -114,6 +118,7 @@ function ProfileCard({ user, onSaved }: { user: User; onSaved: () => Promise<voi
     control,
     setError,
     getValues,
+    watch,
     formState: { errors },
   } = useForm<AccountValues>({
     resolver: zodResolver(schema),
@@ -126,6 +131,8 @@ function ProfileCard({ user, onSaved }: { user: User; onSaved: () => Promise<voi
       marital_status: user.marital_status ?? '',
       registration_place: user.registration_place ?? '',
       residence_place: user.residence_place ?? '',
+      is_displaced: user.is_displaced === null ? '' : user.is_displaced ? 'yes' : 'no',
+      pre_displacement_place: user.pre_displacement_place ?? '',
     },
   })
 
@@ -140,6 +147,11 @@ function ProfileCard({ user, onSaved }: { user: User; onSaved: () => Promise<voi
         marital_status: values.marital_status || null,
         registration_place: values.registration_place || null,
         residence_place: values.residence_place || null,
+        is_displaced: values.is_displaced === '' ? null : values.is_displaced === 'yes',
+        // Cleared rather than kept when the answer is no longer yes, so the
+        // team never reads a "before" for someone who was not displaced.
+        pre_displacement_place:
+          values.is_displaced === 'yes' ? values.pre_displacement_place || null : null,
       }),
     onSuccess: async () => {
       await onSaved()
@@ -295,6 +307,35 @@ function ProfileCard({ user, onSaved }: { user: User; onSaved: () => Promise<voi
                 {(props) => <Input {...props} {...register('residence_place')} />}
               </Field>
             </div>
+
+            <Field label={t('account.displacedLabel')}>
+              {(props) => (
+                <Controller
+                  control={control}
+                  name="is_displaced"
+                  render={({ field }) => (
+                    <Select value={field.value || ''} onValueChange={field.onChange}>
+                      <SelectTrigger id={props.id}>
+                        <SelectValue placeholder={t('account.notSpecified')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="yes">{t('common.yes')}</SelectItem>
+                        <SelectItem value="no">{t('common.no')}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              )}
+            </Field>
+
+            {watch('is_displaced') === 'yes' ? (
+              <Field
+                label={t('account.preDisplacementPlaceLabel')}
+                error={errors.pre_displacement_place?.message}
+              >
+                {(props) => <Input {...props} {...register('pre_displacement_place')} />}
+              </Field>
+            ) : null}
           </fieldset>
 
           <Button type="submit" loading={save.isPending}>

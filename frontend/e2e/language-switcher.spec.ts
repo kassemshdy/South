@@ -126,6 +126,11 @@ async function orderTheFirstProduct(
   const response = await placed
   expect(response.status(), await response.text()).toBe(201)
 
+  // Every seeded listing has a public number, so the contact dialog opens and
+  // hides the page behind it from role queries until it is closed.
+  await expect(page.getByRole('dialog', { name: ui('contactSeller.title') })).toBeVisible()
+  await page.keyboard.press('Escape')
+
   return ((await response.json()) as { message: string }).message
 }
 

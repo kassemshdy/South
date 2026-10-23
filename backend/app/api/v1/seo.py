@@ -57,10 +57,14 @@ def sitemap(db: DbSession, settings: AppSettings) -> Response:
     for slug, updated_at in ItemRepository(db).public_slugs():
         add(f"/product/{slug}", changefreq="weekly", priority="0.7", lastmod=updated_at)
 
-    add("/talent", changefreq="daily", priority="0.9")
+    # Services and job applications, the two halves of what used to be one
+    # talent directory. `/talent` itself now forwards to services, so it is
+    # not listed; the profiles keep their `/talent/<slug>` address.
+    add("/services", changefreq="daily", priority="0.9")
+    add("/jobs", changefreq="daily", priority="0.8")
 
     for skill in TalentSkillRepository(db).list_all():
-        add(f"/talent?skill={skill.slug}", changefreq="weekly", priority="0.7")
+        add(f"/services?skill={skill.slug}", changefreq="weekly", priority="0.7")
 
     for slug, updated_at in TalentRepository(db).approved_slugs():
         add(f"/talent/{slug}", changefreq="weekly", priority="0.8", lastmod=updated_at)

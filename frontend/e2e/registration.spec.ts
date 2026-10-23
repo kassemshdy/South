@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ADMIN_EMAIL, ADMIN_PASSWORD } from './support/admin'
+import { dropPin } from './support/map'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
@@ -72,6 +73,11 @@ test.describe('Applying for a listing', () => {
     await page.getByLabel(t('account.birthYearLabel')).fill(fixture.birthYear)
     await page.getByLabel(t('account.registrationPlaceLabel')).fill(fixture.registrationPlace)
     await page.getByLabel(t('account.residencePlaceLabel')).fill(fixture.residencePlace)
+    // Required, and for the team only: whether they are displaced right now.
+    await page
+      .getByRole('group', { name: t('account.displacedLabel') })
+      .getByText(t('common.no'), { exact: true })
+      .click()
 
     // Both sides of the ID travel with the application: there is no account
     // to upload them to yet, and the reviewer is about to decide whether the
@@ -92,6 +98,18 @@ test.describe('Applying for a listing', () => {
     await page.getByLabel(t('form.shortDescription')).fill(fixture.shortDescription)
     await page.locator('button[role="combobox"]').first().click()
     await page.locator('[role="option"]').first().click()
+    // The area is asked for here now, and required.
+    await page.getByLabel(t('form.area')).click()
+    await page.getByRole('option').nth(1).click()
+    // Every seller pins themselves on the map; a tap anywhere drops it.
+    await dropPin(page, t('form.mapPinLabel'))
+
+    // The responsibility notice is on this page now (round 3), and nothing
+    // is sent until it is agreed to.
+    await page.getByRole('button', { name: t('register.submit') }).click()
+    await expect(page.getByText(t('validation.consentRequired'))).toBeVisible()
+    await expect(page.getByRole('heading', { name: t('register.doneTitle') })).toHaveCount(0)
+    await page.getByRole('checkbox', { name: t('consent.agree') }).check()
     await page.getByRole('button', { name: t('register.submit') }).click()
 
     await expect(page.getByRole('heading', { name: t('register.doneTitle') })).toBeVisible()
@@ -165,25 +183,13 @@ test.describe('Applying for a listing', () => {
     expect(whatsapp).toContain('wa.me/')
     expect(decodeURIComponent(whatsapp ?? '')).toContain(issued)
 
-    // --- 4. The issued password opens exactly one screen --------------------
+    // --- 4. The issued password opens the dashboard -------------------------
+    // No forced change (the owners' decision): the WhatsApp message is the
+    // owner's record of the password.
     await page.goto('/login')
     await page.getByLabel(t('login.identifierLabel')).fill(fixture.loginPhone)
     await page.getByLabel(t('login.passwordLabel')).fill(issued)
     await page.getByRole('button', { name: t('login.signIn'), exact: true }).click()
-    await expect(page).toHaveURL(/\/change-password/)
-
-    // Not around it, either: the dashboard bounces straight back.
-    await page.goto('/dashboard')
-    await expect(page).toHaveURL(/\/change-password/)
-
-    // --- 5. Choosing their own password reaches the dashboard ---------------
-    // By autocomplete rather than by label: the confirmation field's label
-    // contains the new password field's, so a label lookup matches both.
-    await page.getByLabel(t('password.currentLabel')).fill(issued)
-    const chosen = page.locator('input[autocomplete="new-password"]')
-    await chosen.nth(0).fill(fixture.chosenPassword)
-    await chosen.nth(1).fill(fixture.chosenPassword)
-    await page.getByRole('button', { name: t('password.submit') }).click()
 
     await expect(page).toHaveURL(/\/dashboard$/)
     await expect(page.getByText(fixture.businessName)).toBeVisible()

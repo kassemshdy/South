@@ -9,18 +9,24 @@ import {
   MessageCircle,
   Music2,
   Phone,
+  Search,
   Store,
   Youtube,
 } from 'lucide-react'
+import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
+import { BackLink } from '@/components/ui/BackLink'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
 import { YouTubePlayer } from '@/components/ui/YouTubePlayer'
 import { ShareButton } from '@/components/ui/ShareButton'
 import { AddToCartButton } from '@/features/cart/AddToCartButton'
 import { FavouriteButton } from '@/features/favourites/FavouriteButton'
+import { ProductQuickView } from '@/features/items/ProductQuickView'
+import { ListingMap } from '@/features/map/ListingMap'
+import { pinOf } from '@/features/map/types'
 import { TestimonialForm } from '@/features/testimonials/TestimonialForm'
 import { TestimonialList } from '@/features/testimonials/TestimonialList'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -31,6 +37,7 @@ import { useSeo } from '@/hooks/useSeo'
 import { useI18n, useT } from '@/i18n'
 import type { SocialPlatform } from '@/types/api'
 import { formatDate, formatPrice, PLATFORM_KEYS, telHref, whatsappHref } from '@/utils/format'
+import { matchesSearch } from '@/utils/search'
 import { CardImage } from '@/components/ui/CardImage'
 
 const PLATFORM_ICONS: Record<SocialPlatform, typeof Instagram> = {
@@ -46,6 +53,9 @@ export function BusinessProfilePage() {
   const { slug = '' } = useParams()
   const t = useT()
   const { locale } = useI18n()
+  const [itemQuery, setItemQuery] = useState('')
+  // Which product's quick view is open, if any.
+  const [openItemId, setOpenItemId] = useState<string | null>(null)
 
   const business = useQuery({
     queryKey: queryKeys.business(slug),
@@ -94,6 +104,9 @@ export function BusinessProfilePage() {
     t('business.whatsappMessage', { name: data.name }),
   )
   const phone = telHref(data.phone)
+  const visibleItems = data.items.filter((item) =>
+    matchesSearch(itemQuery, item.title, item.description),
+  )
   const mapsUrl =
     data.maps_url ??
     (data.latitude !== null && data.longitude !== null
@@ -102,6 +115,9 @@ export function BusinessProfilePage() {
 
   return (
     <article className="pb-16">
+      <div className="container-page py-3">
+        <BackLink fallback="/products" />
+      </div>
       <div className="relative h-52 bg-sand-200 sm:h-72">
         {data.cover_url ? (
           <img
@@ -277,51 +293,108 @@ export function BusinessProfilePage() {
                 <h2 id="items-heading" className="mb-3 text-xl">
                   {t('business.itemsHeading')}
                 </h2>
+                {/* Searching inside the shop, at the owners' request (round
+                    3): the products page lists shops, so this is where a
+                    visitor looks for one product. Every item is already on
+                    the page, so it filters here rather than asking again. */}
+                <div className="relative mb-4">
+                  <label htmlFor="items-search" className="sr-only">
+                    {t('business.itemsSearchLabel')}
+                  </label>
+                  <Search
+                    className="pointer-events-none absolute inset-y-0 start-4 my-auto h-5 w-5 text-ink-300"
+                    aria-hidden="true"
+                  />
+                  <input
+                    id="items-search"
+                    type="search"
+                    value={itemQuery}
+                    onChange={(event) => setItemQuery(event.target.value)}
+                    placeholder={t('business.itemsSearchLabel')}
+                    className="h-12 w-full rounded-xl border-2 border-ink-100 bg-white ps-12 pe-4 text-[15px] placeholder:text-ink-300 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                  />
+                </div>
+                {visibleItems.length === 0 ? (
+                  <p className="rounded-xl bg-sand-50 p-4 text-sm text-ink-500">
+                    {t('business.itemsNoMatch')}
+                  </p>
+                ) : null}
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {data.items.map((item) => (
-                    <Card key={item.id} className={item.is_available ? '' : 'opacity-60'}>
-                      {item.image_url ? (
-                        <CardImage src={item.image_url} thumbSrc={item.image_thumb_url} alt={item.title} loading="lazy" className="h-40 w-full rounded-t-2xl object-cover" />
-                      ) : null}
-                      <CardBody className="p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <h3 className="font-bold text-ink-900">{item.title}</h3>
+                  {visibleItems.map((item) => {
+                    const cart = item.is_available ? (
+                      <AddToCartButton
+                        block
+                        target={{
+                          businessSlug: data.slug,
+                          businessName: data.name,
+                          whatsapp: data.whatsapp,
+                          phone: data.phone,
+                        }}
+                        line={{
+                          itemId: item.id,
+                          title: item.title,
+                          price: item.price,
+                          currency: item.currency,
+                          imageUrl: item.image_url,
+                          quantity: 1,
+                        }}
+                      />
+                    ) : null
+                    return (
+                      <Card key={item.id} className={item.is_available ? '' : 'opacity-60'}>
+                        {/* The photo and the name open the quick view. As on the
+                            directory's cards, the photo is a mouse target only
+                            and the heading's button is the one control a
+                            keyboard or screen reader meets; the cart button
+                            stays its own control rather than sitting inside it. */}
+                        {item.image_url ? (
+                          <button
+                            type="button"
+                            tabIndex={-1}
+                            aria-hidden="true"
+                            onClick={() => setOpenItemId(item.id)}
+                            className="block w-full"
+                          >
+                            <CardImage src={item.image_url} thumbSrc={item.image_thumb_url} alt="" loading="lazy" className="h-40 w-full rounded-t-2xl object-cover" />
+                          </button>
+                        ) : null}
+                        <div className="flex items-start justify-between gap-3 px-4 pt-4">
+                          <h3 className="font-bold text-ink-900">
+                            <button
+                              type="button"
+                              onClick={() => setOpenItemId(item.id)}
+                              className="text-start hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+                            >
+                              {item.title}
+                            </button>
+                          </h3>
                           {formatPrice(item.price, item.currency) ? (
                             <span className="ltr-nums shrink-0 rounded-lg bg-sand-100 px-2.5 py-1 text-sm font-bold text-brand-800">
                               {formatPrice(item.price, item.currency)}
                             </span>
                           ) : null}
                         </div>
-                        {item.description ? (
-                          <p className="mt-1.5 text-sm leading-relaxed text-ink-500">{item.description}</p>
-                        ) : null}
-                        {item.is_available ? (
-                          <div className="mt-3">
-                            <AddToCartButton
-                              block
-                              target={{
-                                businessSlug: data.slug,
-                                businessName: data.name,
-                                whatsapp: data.whatsapp,
-                              }}
-                              line={{
-                                itemId: item.id,
-                                title: item.title,
-                                price: item.price,
-                                currency: item.currency,
-                                imageUrl: item.image_url,
-                                quantity: 1,
-                              }}
-                            />
-                          </div>
-                        ) : (
-                          <Badge className="mt-3 bg-ink-100 text-ink-700">
-                            {t('business.itemUnavailable')}
-                          </Badge>
-                        )}
-                      </CardBody>
-                    </Card>
-                  ))}
+                        <CardBody className="p-4 pt-0">
+                          {item.description ? (
+                            <p className="mt-1.5 line-clamp-3 text-sm leading-relaxed text-ink-500">{item.description}</p>
+                          ) : null}
+                          {cart ? (
+                            <div className="mt-3">{cart}</div>
+                          ) : (
+                            <Badge className="mt-3 bg-ink-100 text-ink-700">
+                              {t('business.itemUnavailable')}
+                            </Badge>
+                          )}
+                        </CardBody>
+                        <ProductQuickView
+                          item={item}
+                          open={openItemId === item.id}
+                          onOpenChange={(open) => setOpenItemId(open ? item.id : null)}
+                          action={cart}
+                        />
+                      </Card>
+                    )
+                  })}
                 </div>
               </section>
             ) : null}
@@ -356,7 +429,11 @@ export function BusinessProfilePage() {
                 the form is the point, and hiding the whole block when a
                 listing has no testimonials yet would mean the first person
                 who wanted to leave one had nowhere to do it. */}
-            <TestimonialList testimonials={data.testimonials} />
+            <TestimonialList
+              testimonials={data.testimonials}
+              average={data.rating_average}
+              count={data.rating_count}
+            />
             <TestimonialForm slug={data.slug} />
           </div>
 
@@ -392,6 +469,8 @@ export function BusinessProfilePage() {
                     {data.address_text}
                   </p>
                 ) : null}
+
+                <ListingMap pin={pinOf(data.latitude, data.longitude)} />
 
                 {mapsUrl ? (
                   <Button asChild variant="outline" block>

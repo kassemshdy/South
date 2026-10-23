@@ -67,7 +67,7 @@ export function ArticleDetailPage() {
         <img
           src={article.cover_url}
           alt=""
-          className="mb-6 h-64 w-full rounded-2xl object-cover sm:h-80"
+          className="mb-6 max-h-[32rem] w-full rounded-2xl bg-sand-50 object-contain"
         />
       ) : null}
 

@@ -1,29 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { MessageCircle, PhoneCall } from 'lucide-react'
 
-import { Badge } from '@/components/ui/Badge'
-import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
-import { useI18n, type TranslationKey } from '@/i18n'
+import { OrderCard } from '@/features/cart/OrderCard'
+import { useT } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { orderApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import { formatDate, formatPrice, telHref, whatsappHref } from '@/utils/format'
-import type { Currency, Order, OrderStatus } from '@/types/api'
-
-const STATUS_LABEL: Record<OrderStatus, TranslationKey> = {
-  NEW: 'orders.statusNEW',
-  CONTACTED: 'orders.statusCONTACTED',
-  DONE: 'orders.statusDONE',
-}
-
-const STATUS_TONE: Record<OrderStatus, string> = {
-  NEW: 'bg-wheat-100 text-wheat-700',
-  CONTACTED: 'bg-brand-100 text-brand-800',
-  DONE: 'bg-ink-100 text-ink-600',
-}
+import type { Order, OrderStatus } from '@/types/api'
 
 /**
  * Orders as the owner sees them.
@@ -41,7 +26,7 @@ export function OwnerOrders({
   businessId: string
   businessName: string
 }) {
-  const { t, locale } = useI18n()
+  const t = useT()
   const toast = useToast()
   const queryClient = useQueryClient()
 
@@ -80,88 +65,16 @@ export function OwnerOrders({
         </p>
       ) : (
         <ul className="mt-4 space-y-3">
-          {rows.map((order) => {
-            const reply = whatsappHref(
-              order.customer_phone,
-              t('orders.replyMessage', {
-                name: order.customer_name,
-                business: businessName,
-              }),
-            )
-            return (
-              <li key={order.id} className="rounded-xl border border-ink-100 p-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-semibold">{order.customer_name}</span>
-                  <Badge className={STATUS_TONE[order.status]}>
-                    {t(STATUS_LABEL[order.status])}
-                  </Badge>
-                  <span className="text-xs text-ink-300">
-                    {formatDate(order.created_at, locale)}
-                  </span>
-                </div>
-
-                <ul className="mt-2 space-y-0.5 text-sm text-ink-700">
-                  {order.lines.map((line, index) => (
-                    <li key={index} className="flex justify-between gap-3">
-                      <span>
-                        {line.title}
-                        <span className="ms-1.5 text-ink-400 ltr-nums">× {line.quantity}</span>
-                      </span>
-                      {line.price ? (
-                        <span className="ltr-nums text-ink-500">
-                          {formatPrice(line.price, line.currency as Currency)}
-                        </span>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-
-                {order.note ? (
-                  <p className="mt-2 rounded-lg bg-sand-50 p-2.5 text-sm text-ink-600">
-                    {order.note}
-                  </p>
-                ) : null}
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {reply ? (
-                    <Button asChild size="sm">
-                      <a href={reply} target="_blank" rel="noreferrer noopener">
-                        <MessageCircle className="h-4 w-4" aria-hidden="true" />
-                        {t('orders.reply')}
-                      </a>
-                    </Button>
-                  ) : null}
-                  <Button asChild size="sm" variant="outline">
-                    <a href={telHref(order.customer_phone) ?? '#'} className="ltr-nums">
-                      <PhoneCall className="h-4 w-4" aria-hidden="true" />
-                      {order.customer_phone}
-                    </a>
-                  </Button>
-
-                  {order.status === 'NEW' ? (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      loading={move.isPending}
-                      onClick={() => move.mutate({ id: order.id, status: 'CONTACTED' })}
-                    >
-                      {t('orders.markContacted')}
-                    </Button>
-                  ) : null}
-                  {order.status !== 'DONE' ? (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      loading={move.isPending}
-                      onClick={() => move.mutate({ id: order.id, status: 'DONE' })}
-                    >
-                      {t('orders.markDone')}
-                    </Button>
-                  ) : null}
-                </div>
-              </li>
-            )
-          })}
+          {rows.map((order) => (
+            <li key={order.id} id={`order-${order.id}`}>
+              <OrderCard
+                order={order}
+                businessName={businessName}
+                moving={move.isPending}
+                onMove={(status) => move.mutate({ id: order.id, status })}
+              />
+            </li>
+          ))}
         </ul>
       )}
     </div>

@@ -14,10 +14,13 @@ from app.models.enums import (
     EmploymentType,
     ImageKind,
     LanguageProficiency,
+    TalentKind,
+    WorkMode,
 )
 from app.schemas.business import SocialLinkIn, SocialLinkOut
 from app.schemas.common import ORMModel
 from app.schemas.taxonomy import LocationOut
+from app.schemas.testimonial import TestimonialOut
 from app.services.images import thumbnail_url
 
 OptionalPhone = Annotated[str | None, Field(default=None, max_length=25)]
@@ -72,6 +75,8 @@ class TalentSummaryOut(ORMModel):
     id: uuid.UUID
     display_name: str
     slug: str
+    # Which directory it is listed in: services, or job applications.
+    kind: TalentKind = TalentKind.SERVICE
     photo_url: str | None = None
     phone: str | None = None
     whatsapp: str | None = None
@@ -82,6 +87,11 @@ class TalentSummaryOut(ORMModel):
     # One level below the skill and in their own words, which is what makes a
     # card worth reading: the trade narrowed to what this person actually does.
     skill_specialty: str | None = None
+    # Remotely, in person or both: on the card because it is filtered on.
+    work_mode: WorkMode | None = None
+    # The stars on the published testimonials, as a business card shows them.
+    rating_average: float | None = None
+    rating_count: int = 0
     location: LocationOut | None = None
     created_at: datetime
 
@@ -109,8 +119,13 @@ class TalentDetailOut(TalentSummaryOut):
     # URL so the client composes the embed itself and never renders a string
     # the profile's owner typed — see app.core.urls.youtube_video_id.
     youtube_video_id: str | None = None
+    # The owner's own pin, published on the profile page's map.
+    latitude: float | None = None
+    longitude: float | None = None
     images: list[TalentImageOut] = Field(default_factory=list)
     approved_at: datetime | None = None
+    # Published ones only -- see talent_detail.
+    testimonials: list[TestimonialOut] = Field(default_factory=list)
 
     # Professional detail: what the person can do, which is the whole point
     # of publishing a profile.
@@ -139,6 +154,9 @@ class OwnerTalentOut(TalentDetailOut):
     to the account, not the profile, and is read through ``UserOut``.
     """
 
+    # The owner's own numbers are always above, whatever this says; it is
+    # whether visitors see them.
+    phone_public: bool = True
     status: BusinessStatus
     rejection_reason: str | None = None
     submitted_at: datetime | None = None
@@ -181,7 +199,9 @@ class TalentProfileFieldsIn(BaseModel):
     services_offered: str | None = Field(default=None, max_length=2000)
     hobbies: str | None = Field(default=None, max_length=1000)
     employment_type: EmploymentType | None = None
+    # Superseded by work_mode, which sets it; still accepted from older clients.
     remote_capable: bool = False
+    work_mode: WorkMode | None = None
 
     languages: list[TalentLanguageIn] | None = Field(default=None, max_length=20)
     # Optional; omitted leaves them as they are, an empty list clears them.
@@ -195,6 +215,10 @@ class TalentProfileFieldsIn(BaseModel):
 
 class TalentCreateIn(TalentProfileFieldsIn):
     display_name: str = Field(min_length=2, max_length=160)
+    # Optional here, defaulting to a service, so a dashboard draft and every
+    # client written before the split keep working; the public application
+    # requires an answer (see TalentRegistrationIn).
+    kind: TalentKind | None = None
     bio: str | None = Field(default=None, max_length=5000)
     years_experience: int | None = Field(default=None, ge=0, le=70)
     skill_id: uuid.UUID | None = None
@@ -202,10 +226,16 @@ class TalentCreateIn(TalentProfileFieldsIn):
     location_id: uuid.UUID | None = None
     phone: OptionalPhone = None
     whatsapp: OptionalPhone = None
+    # Show the numbers to visitors; absent keeps the current choice (shown).
+    phone_public: bool | None = None
     email: EmailStr | None = None
     website: str | None = Field(default=None, max_length=500)
     # A link, because that is what the person has; stored as an id.
     video_url: str | None = Field(default=None, max_length=500)
+    # Where they are on the map, as a business's pin is: public, and enough
+    # at the level of the town.
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
 
     @field_validator("display_name")
     @classmethod
@@ -230,6 +260,7 @@ class TalentUpdateIn(TalentProfileFieldsIn):
     """Every field optional: the profile editor saves one section at a time."""
 
     display_name: str | None = Field(default=None, min_length=2, max_length=160)
+    kind: TalentKind | None = None
     bio: str | None = Field(default=None, max_length=5000)
     years_experience: int | None = Field(default=None, ge=0, le=70)
     skill_id: uuid.UUID | None = None
@@ -237,10 +268,16 @@ class TalentUpdateIn(TalentProfileFieldsIn):
     location_id: uuid.UUID | None = None
     phone: OptionalPhone = None
     whatsapp: OptionalPhone = None
+    # Show the numbers to visitors; absent keeps the current choice (shown).
+    phone_public: bool | None = None
     email: EmailStr | None = None
     website: str | None = Field(default=None, max_length=500)
     # A link, because that is what the person has; stored as an id.
     video_url: str | None = Field(default=None, max_length=500)
+    # Where they are on the map, as a business's pin is: public, and enough
+    # at the level of the town.
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
 
     @field_validator("phone", "whatsapp")
     @classmethod

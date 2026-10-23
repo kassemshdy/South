@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import type { z } from 'zod'
 
 import { Badge } from '@/components/ui/Badge'
@@ -23,10 +23,12 @@ import { Field } from '@/components/ui/Field'
 import { Textarea } from '@/components/ui/Input'
 import { ErrorState, InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
+import { DeleteForeverButton } from '@/features/admin/DeleteForeverButton'
 import { IssueCredentialsCard } from '@/features/admin/IssueCredentialsCard'
 import { OwnerIdentityCard } from '@/features/admin/OwnerIdentityCard'
+import { OwnerWhatsappButton } from '@/features/admin/OwnerWhatsappButton'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
-import { EMPLOYMENT_TYPE_KEYS, PROFICIENCY_KEYS } from '@/features/talent/labels'
+import { EMPLOYMENT_TYPE_KEYS, PROFICIENCY_KEYS, WORK_MODE_KEYS } from '@/features/talent/labels'
 import { useI18n, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { adminApi } from '@/services/api/endpoints'
@@ -39,6 +41,7 @@ type ConfirmAction = 'approve' | 'reject' | 'suspend' | 'reactivate' | null
 
 export function AdminTalentReviewPage() {
   const { id = '' } = useParams()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const toast = useToast()
   const { t, locale } = useI18n()
@@ -157,6 +160,10 @@ export function AdminTalentReviewPage() {
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl">{data.display_name}</h1>
               <StatusBadge status={data.status} />
+              {/* Which directory approval publishes it in. */}
+              <span className="rounded-full bg-sand-100 px-3 py-1 text-sm font-semibold text-ink-700">
+                {t(data.kind === 'JOB_SEEKER' ? 'nav.jobs' : 'nav.services')}
+              </span>
             </div>
             <p className="mt-1 text-sm text-ink-500">
               {t('admin.submittedAt', { date: formatDate(data.submitted_at, locale) })}
@@ -210,6 +217,14 @@ export function AdminTalentReviewPage() {
               {t('admin.reactivate')}
             </Button>
           ) : null}
+
+          <div className="ms-auto">
+            <DeleteForeverButton
+              description={t('admin.deleteTalentBody', { name: data.display_name })}
+              onDelete={() => adminApi.deleteTalent(data.id)}
+              onDeleted={() => navigate('/admin/talent')}
+            />
+          </div>
 
           {data.status === 'DRAFT' || data.status === 'REJECTED' ? (
             <p className="text-ink-500">
@@ -273,6 +288,10 @@ export function AdminTalentReviewPage() {
                 value={data.employment_type ? t(EMPLOYMENT_TYPE_KEYS[data.employment_type]) : null}
               />
               <Detail
+                labelKey="talent.workModeLabel"
+                value={data.work_mode ? t(WORK_MODE_KEYS[data.work_mode]) : null}
+              />
+              <Detail
                 labelKey="talent.remoteCapableLabel"
                 value={data.remote_capable ? t('talent.remoteCapableValue') : null}
               />
@@ -309,6 +328,7 @@ export function AdminTalentReviewPage() {
               <Detail labelKey="admin.ownerName" value={data.owner_display_name} />
               <Detail labelKey="admin.ownerAccount" value={data.owner_phone} ltr />
               <Detail labelKey="admin.ownerPersonalPhone" value={data.owner_personal_phone} ltr />
+              <OwnerWhatsappButton phone={data.owner_phone} />
               <p className="text-xs text-ink-300">{t('admin.ownerPrivacyNote')}</p>
               {data.owner_has_verification_document ? (
                 <Button

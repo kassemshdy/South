@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, ArrowRight, ImagePlus, Package, Pencil, Plus, Trash2 } from 'lucide-react'
+import { AlertCircle, ArrowLeft, ArrowRight, ImagePlus, Package, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { useSearchParams } from 'react-router-dom'
@@ -290,6 +290,9 @@ function ItemForm({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(item?.image_url ?? null)
+  // The photo is mandatory (the owners' decision): the catalogue shows no
+  // product without one, so the form refuses to save one either.
+  const [photoError, setPhotoError] = useState<string | null>(null)
 
   const {
     register,
@@ -319,9 +322,14 @@ function ItemForm({
 
   const goodsOrigin = useWatch({ control, name: 'goods_origin' })
 
+  // A new item's gallery, held until the item exists and has an id to
+  // attach the files to; uploaded right after the main photo.
+  const [extraFiles, setExtraFiles] = useState<File[]>([])
+
   const pickFile = (file: File) => {
     setSelectedFile(file)
     setPreviewUrl(URL.createObjectURL(file))
+    setPhotoError(null)
   }
 
   // One save covers both: the fields and, if a photo was picked, the image —
@@ -349,10 +357,31 @@ function ItemForm({
       const saved = isEdit
         ? await ownerApi.updateItem(businessId, item.id, payload)
         : await ownerApi.createItem(businessId, payload)
-      if (selectedFile) {
-        return ownerApi.uploadItemImage(businessId, saved.id, selectedFile)
+      if (!selectedFile) return saved
+      let withPhoto: BusinessItem
+      try {
+        withPhoto = await ownerApi.uploadItemImage(businessId, saved.id, selectedFile)
+      } catch (error) {
+        // A new product whose photo did not upload would be a product with
+        // no photo, which the catalogue would hide: undo the create so the
+        // owner retries the whole thing rather than finding it half-saved.
+        if (!isEdit) await ownerApi.deleteItem(businessId, saved.id).catch(() => undefined)
+        throw error
       }
-      return saved
+      // The extra photos are not worth undoing the product for: it is
+      // complete without them, and the owner can add any that failed by
+      // editing it.
+      try {
+        for (const file of extraFiles) {
+          await ownerApi.uploadItemGalleryImage(businessId, saved.id, file)
+        }
+      } catch (error) {
+        toast.error(
+          t('items.imageUploadFailed'),
+          error instanceof ApiError ? error.message : undefined,
+        )
+      }
+      return withPhoto
     },
     onSuccess: () => {
       toast.success(isEdit ? t('items.updated') : t('items.created'))
@@ -380,12 +409,22 @@ function ItemForm({
         </h3>
       </div>
 
-      <form onSubmit={handleSubmit((values) => save.mutate(values))} className="space-y-4" noValidate>
+      <form
+        onSubmit={handleSubmit((values) => {
+          if (!previewUrl) {
+            setPhotoError(t('validation.itemPhotoRequired'))
+            return
+          }
+          save.mutate(values)
+        })}
+        className="space-y-4"
+        noValidate
+      >
         <div className="flex items-center gap-4">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border-2 border-dashed border-ink-100 bg-sand-50"
+            className={`h-20 w-20 shrink-0 overflow-hidden rounded-xl border-2 border-dashed bg-sand-50 ${photoError ? 'border-clay-400' : 'border-ink-100'}`}
           >
             {previewUrl ? (
               <img src={previewUrl} alt="" className="h-full w-full object-cover" />
@@ -400,6 +439,7 @@ function ItemForm({
             type="file"
             accept="image/jpeg,image/png,image/webp"
             className="sr-only"
+            aria-label={t('items.photoLabel')}
             onChange={(event) => {
               const file = event.target.files?.[0]
               if (file) pickFile(file)
@@ -407,10 +447,21 @@ function ItemForm({
             }}
           />
           <div>
-            <p className="text-sm font-semibold">{t('items.photoLabel')}</p>
+            <p className="text-sm font-semibold">
+              {t('items.photoLabel')}
+              <span className="ms-1 text-clay-500" aria-hidden="true">
+                *
+              </span>
+            </p>
             <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
               {previewUrl ? t('items.photoChange') : t('items.photoChoose')}
             </Button>
+            {photoError ? (
+              <p role="alert" className="mt-1.5 flex items-center gap-1.5 text-sm text-clay-600">
+                <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+                {photoError}
+              </p>
+            ) : null}
           </div>
         </div>
 
@@ -456,7 +507,7 @@ function ItemForm({
         </Field>
 
         <div className="grid grid-cols-2 gap-4">
-          <Field label={t('items.priceLabel')} error={errors.price?.message}>
+          <Field label={t('items.priceLabel')} required error={errors.price?.message}>
             {(props) => (
               <Input
                 {...props}
@@ -557,19 +608,14 @@ function ItemForm({
           </Field>
         </fieldset>
 
-        {/* An item can carry a gallery beyond the thumbnail above, but only
-            once it exists: there is no id to attach files to until it is
-            saved. That is a reasonable constraint and an unreasonable thing to
-            leave unsaid — with nothing here, a new item looks like it takes
-            one photo and no more, so the gallery goes unfound. Saying so is
-            cheaper than uploading to a temporary place and moving the files
-            afterwards. */}
+        {/* A gallery beyond the main photo. A new item has no id to attach
+            files to yet, so its photos wait in the form and go up with the
+            save -- it used to say "add more after saving", and the gallery
+            went unfound. */}
         {isEdit ? (
           <ItemGalleryManager businessId={businessId} item={item} />
         ) : (
-          <p className="rounded-xl bg-sand-100 p-3.5 text-sm text-clay-800">
-            {t('items.galleryAfterSave')}
-          </p>
+          <PendingGallery files={extraFiles} onChange={setExtraFiles} />
         )}
 
         {/* Both controls at the end of the form, in the flow, where a long
@@ -593,18 +639,19 @@ function ItemGalleryManager({ businessId, item }: { businessId: string; item: Bu
   const toast = useToast()
   const t = useT()
   const inputRef = useRef<HTMLInputElement>(null)
-  const [uploading, setUploading] = useState(false)
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.myBusinessItems(businessId) })
   }
 
   const upload = useMutation({
-    mutationFn: (file: File) => ownerApi.uploadItemGalleryImage(businessId, item.id, file),
-    onSuccess: invalidate,
+    // One at a time, so the server's gallery limit is checked against each.
+    mutationFn: async (files: File[]) => {
+      for (const file of files) await ownerApi.uploadItemGalleryImage(businessId, item.id, file)
+    },
+    onSettled: invalidate,
     onError: (error) =>
       toast.error(t('items.imageUploadFailed'), error instanceof ApiError ? error.message : undefined),
-    onSettled: () => setUploading(false),
   })
 
   const remove = useMutation({
@@ -636,13 +683,11 @@ function ItemGalleryManager({ businessId, item }: { businessId: string; item: Bu
           ref={inputRef}
           type="file"
           accept="image/jpeg,image/png,image/webp"
+          multiple
           className="sr-only"
           onChange={(event) => {
-            const file = event.target.files?.[0]
-            if (file) {
-              setUploading(true)
-              upload.mutate(file)
-            }
+            const files = Array.from(event.target.files ?? [])
+            if (files.length > 0) upload.mutate(files)
             event.target.value = ''
           }}
         />
@@ -650,7 +695,7 @@ function ItemGalleryManager({ businessId, item }: { businessId: string; item: Bu
           type="button"
           variant="outline"
           size="sm"
-          disabled={uploading}
+          loading={upload.isPending}
           onClick={() => inputRef.current?.click()}
         >
           <ImagePlus className="h-4 w-4" aria-hidden="true" />
@@ -697,6 +742,77 @@ function ItemGalleryManager({ businessId, item }: { businessId: string; item: Bu
                   <Trash2 className="h-3 w-3" aria-hidden="true" />
                 </button>
               </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+/** At most this many extra photos; the server's own limit, by default. */
+const MAX_GALLERY = 10
+
+/**
+ * The gallery of an item that is not saved yet: photos chosen now and
+ * uploaded with the save, so a new product takes all its photos in one go.
+ */
+function PendingGallery({
+  files,
+  onChange,
+}: {
+  files: File[]
+  onChange: (files: File[]) => void
+}) {
+  const t = useT()
+  const inputRef = useRef<HTMLInputElement>(null)
+  const previews = useMemo(() => files.map((file) => URL.createObjectURL(file)), [files])
+  useEffect(() => () => previews.forEach((url) => URL.revokeObjectURL(url)), [previews])
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <p className="text-sm font-semibold">{t('items.galleryHeading')}</p>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          multiple
+          className="sr-only"
+          onChange={(event) => {
+            const picked = Array.from(event.target.files ?? [])
+            onChange([...files, ...picked].slice(0, MAX_GALLERY))
+            event.target.value = ''
+          }}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={files.length >= MAX_GALLERY}
+          onClick={() => inputRef.current?.click()}
+        >
+          <ImagePlus className="h-4 w-4" aria-hidden="true" />
+          {t('items.galleryAdd')}
+        </Button>
+      </div>
+      {files.length === 0 ? (
+        <p className="rounded-xl border-2 border-dashed border-ink-100 p-4 text-center text-sm text-ink-500">
+          {t('items.galleryEmpty')}
+        </p>
+      ) : (
+        <ul className="grid grid-cols-3 gap-2">
+          {previews.map((url, index) => (
+            <li key={url} className="relative overflow-hidden rounded-xl border border-ink-100 bg-sand-100">
+              <img src={url} alt="" className="h-20 w-full object-cover" />
+              <button
+                type="button"
+                onClick={() => onChange(files.filter((_, i) => i !== index))}
+                className="absolute bottom-1 end-1 rounded bg-clay-600 p-1 text-white"
+                aria-label={t('images.deleteImage')}
+              >
+                <Trash2 className="h-3 w-3" aria-hidden="true" />
+              </button>
             </li>
           ))}
         </ul>

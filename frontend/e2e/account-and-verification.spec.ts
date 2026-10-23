@@ -92,9 +92,8 @@ test.describe('Private owner verification', () => {
     await page.getByRole('combobox').first().click()
     await page.getByRole('option', { name: categoryName }).click()
     await page.getByLabel(t('form.whatsapp')).fill(OWNER_PHONE)
-    // Producer detail and the long description are optional at submission, so
-    // they sit behind a disclosure (#34); open it before filling them.
-    await page.getByText(t('form.optionalSectionTitle')).click()
+    // Producer detail and the long description are optional at submission,
+    // in the section the owners asked to be always open.
     await page.getByLabel(t('form.institutionName')).fill(fixture.institutionName)
     await page.getByLabel(t('form.foundingDate')).fill('2004-03-15')
     await page.getByLabel(t('form.productionNature')).fill(fixture.productionNature)

@@ -48,7 +48,20 @@ ENV PYTHONUNBUFFERED=1 \
 # drop root privileges at *runtime* rather than at build time (needed below).
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
-      libpq5 libjpeg62-turbo libwebp7 zlib1g curl gosu \
+      libpq5 libjpeg62-turbo libwebp7 zlib1g curl gosu ca-certificates gnupg \
+ && rm -rf /var/lib/apt/lists/*
+
+# pg_dump, for the database backups taken at every boot and daily
+# (scripts/backup_db.py). From the PostgreSQL project's own repository so
+# its major version matches the production server (18): a pg_dump older
+# than the server refuses to run, and Debian's own package lags behind.
+RUN install -d /usr/share/postgresql-common/pgdg \
+ && curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+      https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+ && echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(. /etc/os-release && echo "$VERSION_CODENAME")-pgdg main" \
+      > /etc/apt/sources.list.d/pgdg.list \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends postgresql-client-18 \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

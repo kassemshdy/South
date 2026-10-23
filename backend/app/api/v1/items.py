@@ -17,6 +17,7 @@ from app.core.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from app.core.uploads import read_at_most
 from app.models.business import BusinessItemImage
 from app.models.enums import GoodsOrigin, ImageKind, ViewSubject
+from app.repositories.geo import point_or_none
 from app.repositories.item import ItemRepository
 from app.schemas.business import ImageReorderIn
 from app.schemas.common import MessageResponse, PaginatedResponse
@@ -49,8 +50,12 @@ def search_products(
         GoodsOrigin | None, Query(description="Made in the South, or imported")
     ] = None,
     sort: Annotated[
-        Literal["newest", "name", "oldest", "price_asc", "price_desc"], Query()
+        Literal["newest", "name", "oldest", "price_asc", "price_desc", "nearest", "rating"],
+        Query(),
     ] = "newest",
+    # The visitor's position, for "nearest" only -- see search_businesses.
+    near_lat: Annotated[float | None, Query(ge=-90, le=90, alias="lat")] = None,
+    near_lng: Annotated[float | None, Query(ge=-180, le=180, alias="lng")] = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
 ) -> PaginatedResponse[ProductSummaryOut]:
@@ -75,6 +80,7 @@ def search_products(
         location_slug=location,
         origin=origin,
         sort=sort,
+        near=point_or_none(near_lat, near_lng),
         page=page,
         page_size=page_size,
     )

@@ -37,6 +37,8 @@ class OwnerIdentityOut(ORMModel):
     marital_status: MaritalStatus | None = None
     registration_place: str | None = None
     residence_place: str | None = None
+    is_displaced: bool | None = None
+    pre_displacement_place: str | None = None
     # Part of the same block for the same reason: a reviewer checking that an
     # application is a real person from the South needs the face alongside the
     # name, and nobody else needs either.
@@ -56,8 +58,11 @@ class IdentityFieldsIn(BaseModel):
     marital_status: MaritalStatus | None = None
     registration_place: str | None = Field(default=None, max_length=160)
     residence_place: str | None = Field(default=None, max_length=200)
+    is_displaced: bool | None = None
+    # Where a displaced holder lived before displacement.
+    pre_displacement_place: str | None = Field(default=None, max_length=200)
 
-    @field_validator("full_name", "registration_place", "residence_place")
+    @field_validator("full_name", "registration_place", "residence_place", "pre_displacement_place")
     @classmethod
     def _strip_short_text(cls, value: str | None) -> str | None:
         return _strip_or_none(value)

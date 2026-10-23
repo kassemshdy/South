@@ -28,20 +28,23 @@ password of your own: a deployed API refuses to start without one, or with the
 default this repository once published (`Settings.enforce_production_safety`).
 
 
-Six services in one project — a live trio and a staging trio, all in the single
-`production` Railway environment, separated by which branch each tracks rather
-than by environment. Build configuration lives on each service rather than in a
-repository-level `railway.json`, because a single config file cannot describe two
-different Dockerfiles.
+The live services in the single `production` Railway environment. The staging
+trio (`postgres-develop`, `api-develop`, `web-develop`) was removed on
+2026-10-05; `develop-claude` no longer deploys anywhere. Build configuration
+lives on each service rather than in a repository-level `railway.json`.
 
-| Service | Tracks | Dockerfile | Healthcheck | Public |
+| Service | Tracks | Source | Healthcheck | Public |
 |---|---|---|---|---|
-| `postgres` | — | `postgres:16-alpine` image | — | no |
+| `Postgres` | — | Railway's PostgreSQL template (`postgres-ssl:18`), **persistent disk** at `/var/lib/postgresql/data` | — | no |
 | `api` | `master-claude` | `backend/Dockerfile` | `/api/health` | optional (for `/api/docs`) |
 | `web` | `master-claude` | `frontend/Dockerfile` | `/healthz` | **yes** — this is the site |
-| `postgres-develop` | — | `postgres:16-alpine` image | — | no |
-| `api-develop` | `develop-claude` | `backend/Dockerfile` | `/api/health` | no |
-| `web-develop` | `develop-claude` | `frontend/Dockerfile` | `/healthz` | yes (staging) |
+| `mcp` | — | `mcp-server/` | — | for agents |
+
+The database used to be a plain `postgres:16-alpine` service with no disk. It
+was redeployed on 2026-10-04 and everything in it was lost; see
+`docs/RESTORE.md` for what changed and how to restore from the bucket copies.
+`api`'s `DATABASE_URL` is built from the new service's variables:
+`postgresql+psycopg://${{Postgres.PGUSER}}:${{Postgres.PGPASSWORD}}@${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}`.
 
 ## Why the web service is the public entry point
 
@@ -72,7 +75,7 @@ Set per service (Settings → Build / Deploy, or via the MCP `update-service`):
 |---|---|
 | `APP_ENV` | `staging` (see the environments table in DEPLOYMENT.md) |
 | `SECRET_KEY` | a generated 48-byte random string |
-| `DATABASE_URL` | `postgresql+psycopg://south:<password>@${{postgres.RAILWAY_PRIVATE_DOMAIN}}:5432/south` — note the `+psycopg` driver |
+| `DATABASE_URL` | `postgresql+psycopg://${{Postgres.PGUSER}}:${{Postgres.PGPASSWORD}}@${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}` — note the `+psycopg` driver |
 | `PUBLIC_BASE_URL` / `CORS_ORIGINS` | the **web** service's public domain |
 | `SEED_OWNER_PASSWORD` | the demo accounts' password, so a deployed build can be signed into. Refused in production |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | the seeded administrator |

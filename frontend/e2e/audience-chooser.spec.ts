@@ -109,21 +109,18 @@ test.describe('Audience chooser', () => {
 
   test('explains before signing in, and ends at the application form', async ({ page }) => {
     await page.goto('/offer')
-    await page.getByRole('button', { name: t('onboarding.ownerTitle') }).click()
+    // One page instead of three (round 3): the door goes straight to the
+    // public application form -- never the login page, since somebody here
+    // has no account and no way to get one except by applying.
+    await page.getByRole('link', { name: t('onboarding.ownerTitle') }).click()
+    await expect(page).toHaveURL(/\/register\/business/)
 
-    // The notice first, and it is the screen rather than a line on it.
+    // The notice and the steps are on that page, above the submit button.
     await expect(page.getByRole('heading', { name: t('consent.heading') })).toBeVisible()
     await expect(page.getByText(t('consent.body'))).toBeVisible()
-    await page.getByRole('button', { name: t('consent.agree') }).click()
-
-    await expect(page.getByText(t('onboarding.step1'))).toBeVisible()
-    await expect(page.getByText(t('onboarding.step3'))).toBeVisible()
-
-    // And only then does it offer the way in — the public application form,
-    // not the login page. Somebody at this point has no account and no way to
-    // get one except by applying, so /login was a door onto nothing.
-    await page.getByRole('link', { name: t('onboarding.start') }).click()
-    await expect(page).toHaveURL(/\/register\/business/)
+    await expect(page.getByRole('checkbox', { name: t('consent.agree') })).not.toBeChecked()
+    await expect(page.getByText(t('register.stepReview'))).toBeVisible()
+    await expect(page.getByText(t('register.stepCredentials'))).toBeVisible()
 
     // Still there on the way back — permanent navigation, not a prompt that
     // spends itself on first use.
@@ -143,10 +140,9 @@ test.describe('Audience chooser', () => {
     // value at build time, so it would need a second build -- but the
     // failure that actually costs someone a listing is this one.
     await page.goto('/offer')
-    await page.getByRole('button', { name: t('onboarding.ownerTitle') }).click()
-    await page.getByRole('button', { name: t('consent.agree') }).click()
+    await page.getByRole('link', { name: t('onboarding.ownerTitle') }).click()
 
-    await expect(page.getByText(t('onboarding.step1'))).toBeVisible()
+    await expect(page.getByText(t('register.stepReview'))).toBeVisible()
     await expect(page.getByText(t('assisted.title'))).toHaveCount(0)
     await expect(page.getByRole('link', { name: t('assisted.cta') })).toHaveCount(0)
   })
@@ -206,8 +202,14 @@ test.describe('Audience chooser', () => {
 
     // Past the notice the doors are real links, with nothing further between
     // them and the directory they name.
-    for (const key of ['onboarding.seekGoodsTitle', 'onboarding.seekServiceTitle']) {
-      await expect(page.getByRole('link', { name: t(key) })).toBeVisible()
+    // Scoped to the page body: the footer lists the directories by name too.
+    const main = page.getByRole('main')
+    for (const key of [
+      'onboarding.seekGoodsTitle',
+      'onboarding.seekServicesTitle',
+      'onboarding.seekJobsTitle',
+    ] as const) {
+      await expect(main.getByRole('link', { name: t(key) })).toBeVisible()
     }
     await expect(
       page.getByRole('link', { name: t('browse.businessesTitle') }),
@@ -223,8 +225,8 @@ test.describe('Audience chooser', () => {
     // only of goods and products and of services and skills.
     const strip = page.getByRole('navigation', { name: t('browse.switcherLabel') })
     await expect(strip.getByRole('link', { name: t('browse.businessesShort') })).toHaveCount(0)
-    await strip.getByRole('link', { name: t('browse.talentShort') }).click()
-    await expect(page).toHaveURL(/\/talent/)
+    await strip.getByRole('link', { name: t('browse.servicesShort') }).click()
+    await expect(page).toHaveURL(/\/services/)
   })
 
   test('goods made in the South and imported goods are separate doors, on both halves', async ({
@@ -241,10 +243,8 @@ test.describe('Audience chooser', () => {
       new RegExp(`^${t(key).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`)
 
     await page.goto('/offer')
-    await expect(page.getByRole('button', { name: startsWith('onboarding.ownerTitle') })).toBeVisible()
-    await page.getByRole('button', { name: startsWith('onboarding.importedTitle') }).click()
-    await page.getByRole('button', { name: t('consent.agree') }).click()
-    await page.getByRole('link', { name: t('onboarding.start') }).click()
+    await expect(page.getByRole('link', { name: startsWith('onboarding.ownerTitle') })).toBeVisible()
+    await page.getByRole('link', { name: startsWith('onboarding.importedTitle') }).click()
 
     // The application form opens on the door chosen, and says so.
     await expect(page).toHaveURL(/\/register\/business\?origin=IMPORTED/)
@@ -279,19 +279,16 @@ test.describe('Audience chooser', () => {
     // short, which left the notice's own heading 458px above the viewport:
     // the visitor pressed a card and, as far as they could see, nothing
     // happened.
+    // The offering half has no in-page steps any more (round 3): a door is a
+    // link, and a route change is ScrollToTop's own job.
     await page.goto('/offer')
-    const door = page.getByRole('button', { name: t('onboarding.ownerTitle') })
+    const door = page.getByRole('link', { name: t('onboarding.ownerTitle') })
     await door.scrollIntoViewIfNeeded()
     expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
-
     await door.click()
-    await expect(page.getByRole('heading', { name: t('consent.heading') })).toBeVisible()
-    expect(await page.evaluate(() => window.scrollY)).toBe(0)
-
-    // And again on the next step, which is a second state change.
-    await page.getByRole('button', { name: t('consent.agree') }).click()
-    await expect(page.getByText(t('onboarding.step1'))).toBeVisible()
-    expect(await page.evaluate(() => window.scrollY)).toBe(0)
+    await expect(page).toHaveURL(/\/register\/business/)
+    // Polled: the new page renders a beat after the URL changes.
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0)
 
     // The browsing half has one such step, and it behaves the same.
     await page.goto('/browse')
@@ -301,28 +298,19 @@ test.describe('Audience chooser', () => {
     expect(await page.evaluate(() => window.scrollY)).toBe(0)
   })
 
-  test('the notice is the only way through an offering door', async ({ page }) => {
-    // The assertion that matters is the negative one: choosing a door must
-    // not navigate. A door that regresses to a plain link still looks and
-    // behaves correctly to anyone clicking through it — the notice simply
-    // never appears — so "we are still on /offer" is the line that catches it.
+  test('the notice stands on the application page, unticked', async ({ page }) => {
+    // One page instead of three (round 3): the notice moved from a screen of
+    // its own onto the application, where it must be agreed to before
+    // anything is sent -- registration.spec.ts submits without it first.
     await page.goto('/offer')
-    await page.getByRole('button', { name: t('onboarding.talentTitle') }).click()
-
-    await expect(page.getByRole('heading', { name: t('consent.heading') })).toBeVisible()
-    expect(new URL(page.url()).pathname).toBe('/offer')
-
-    // Backing out of the notice returns to the two doors and navigates
-    // nowhere: declining is a real answer, not a dead end.
-    await page.getByRole('button', { name: t('onboarding.back') }).click()
-    await expect(page.getByRole('button', { name: t('onboarding.ownerTitle') })).toBeVisible()
-    expect(new URL(page.url()).pathname).toBe('/offer')
-
-    // And agreeing carries on to the steps panel — anonymous, so there is no
-    // direct link to the wizard yet.
-    await page.getByRole('button', { name: t('onboarding.talentTitle') }).click()
-    await page.getByRole('button', { name: t('consent.agree') }).click()
-    await expect(page.getByText(t('onboarding.step1'))).toBeVisible()
+    // By address: the header's own services link shares the door's name.
+    await page.locator('main a[href="/register/talent?kind=SERVICE"]').click()
+    await expect(page).toHaveURL(/\/register\/talent\?kind=SERVICE/)
+    await expect(page.getByText(t('consent.body'))).toBeVisible()
+    const agree = page.getByRole('checkbox', { name: t('consent.agree') })
+    await expect(agree).not.toBeChecked()
+    await agree.check()
+    await expect(agree).toBeChecked()
   })
 
   test('choosing to browse goes straight through, with no notice in the way', async ({
@@ -334,11 +322,14 @@ test.describe('Audience chooser', () => {
     // ever rendered.
     await page.goto('/browse')
     await page.getByRole('button', { name: t('consent.agree') }).click()
-    await page.getByRole('link', { name: t('onboarding.seekServiceTitle') }).click()
+    await page
+      .getByRole('main')
+      .getByRole('link', { name: t('onboarding.seekServicesTitle') })
+      .click()
 
     // Answered once, the notice does not reappear between the door and the
     // directory: the gate is the page, not every link on it.
-    await expect(page).toHaveURL(/\/talent/)
+    await expect(page).toHaveURL(/\/services/)
     await expect(page.getByRole('heading', { name: t('consent.heading') })).toHaveCount(0)
   })
 

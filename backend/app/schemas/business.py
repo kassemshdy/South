@@ -69,6 +69,10 @@ class BusinessSummaryOut(ORMModel):
     # owner's personal contact info, which never appears on a business tier).
     custom_category_text: str | None = None
     location: LocationOut | None = None
+    # The stars on the published testimonials: an average of what the page
+    # shows. None until one is rated.
+    rating_average: float | None = None
+    rating_count: int = 0
     # Made in the South or imported: public, because it is one of the doors
     # a visitor chooses between. See ``GoodsOrigin``.
     goods_origin: GoodsOrigin = GoodsOrigin.LOCAL
@@ -127,6 +131,9 @@ class OwnerBusinessOut(BusinessDetailOut):
     """
 
     owner_relation: OwnerRelation | None = None
+    # The owner's own numbers are always above, whatever this says; it is
+    # whether visitors see them.
+    phone_public: bool = True
     status: BusinessStatus
     rejection_reason: str | None = None
     submitted_at: datetime | None = None
@@ -155,6 +162,8 @@ class BusinessCreateIn(BaseModel):
     location_id: uuid.UUID | None = None
     phone: OptionalPhone = None
     whatsapp: OptionalPhone = None
+    # Show the numbers to visitors; absent keeps the current choice (shown).
+    phone_public: bool | None = None
     email: EmailStr | None = None
     website: str | None = Field(default=None, max_length=500)
     # A link, because that is what an owner has; stored as an id.
@@ -204,6 +213,8 @@ class BusinessUpdateIn(BaseModel):
     location_id: uuid.UUID | None = None
     phone: OptionalPhone = None
     whatsapp: OptionalPhone = None
+    # Show the numbers to visitors; absent keeps the current choice (shown).
+    phone_public: bool | None = None
     email: EmailStr | None = None
     website: str | None = Field(default=None, max_length=500)
     # A link, because that is what an owner has; stored as an id.

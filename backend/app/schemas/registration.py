@@ -13,10 +13,11 @@ they are.
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.core.i18n import translate
 from app.core.phone import normalize_phone
+from app.models.enums import TalentKind
 from app.schemas.business import BusinessCreateIn
 from app.schemas.identity import IdentityFieldsIn
 from app.schemas.talent import TalentCreateIn
@@ -45,6 +46,9 @@ class RegistrationIdentityIn(IdentityFieldsIn):
     birth_year: int = Field(ge=1900, le=2100)
     registration_place: str = Field(min_length=2, max_length=160)
     residence_place: str = Field(min_length=2, max_length=200)
+    # Yes or no, and an answer is required: the owners asked every applicant
+    # whether they are currently displaced from the South. For the team only.
+    is_displaced: bool
 
     @field_validator("full_name", "registration_place", "residence_place")
     @classmethod
@@ -60,6 +64,16 @@ class RegistrationIdentityIn(IdentityFieldsIn):
         if value is None or len(value) < 2:
             raise ValueError(translate("registration.identity_required"))
         return value
+
+    @model_validator(mode="after")
+    def _where_before(self) -> RegistrationIdentityIn:
+        # The owners asked a displaced applicant where they lived before as
+        # well as now; residence_place above is the "now".
+        if self.is_displaced and not self.pre_displacement_place:
+            raise ValueError(translate("registration.pre_displacement_required"))
+        if not self.is_displaced:
+            self.pre_displacement_place = None
+        return self
 
 
 class RegistrationBase(BaseModel):
@@ -87,9 +101,41 @@ class RegistrationBase(BaseModel):
 class BusinessRegistrationIn(RegistrationBase):
     business: BusinessCreateIn
 
+    @model_validator(mode="after")
+    def _place(self) -> BusinessRegistrationIn:
+        # Optional on a dashboard draft, where it has a step of its own, but
+        # an application goes straight to review and "from the South" cannot
+        # be judged without it.
+        if self.business.location_id is None:
+            raise ValueError(translate("registration.location_required"))
+        if self.business.latitude is None or self.business.longitude is None:
+            raise ValueError(translate("registration.map_pin_required"))
+        return self
+
 
 class TalentRegistrationIn(RegistrationBase):
     talent: TalentCreateIn
+
+    @model_validator(mode="after")
+    def _years_of_experience(self) -> TalentRegistrationIn:
+        # Optional on a dashboard draft, which can be saved half-done, but an
+        # application goes straight to review -- and the owners made the
+        # number compulsory, since the directory can be sorted by it.
+        if self.talent.years_experience is None:
+            raise ValueError(translate("registration.years_experience_required"))
+        # Services or a job application: the applicant's own choice, and
+        # which directory the profile is listed in once approved.
+        if self.talent.kind is None:
+            raise ValueError(translate("registration.talent_kind_required"))
+        # Remotely, in person or both: compulsory for a service, which is
+        # what visitors filter on; a job application is not asked.
+        if self.talent.kind == TalentKind.SERVICE and self.talent.work_mode is None:
+            raise ValueError(translate("registration.work_mode_required"))
+        if self.talent.location_id is None:
+            raise ValueError(translate("registration.location_required"))
+        if self.talent.latitude is None or self.talent.longitude is None:
+            raise ValueError(translate("registration.map_pin_required"))
+        return self
 
 
 class RegistrationOut(BaseModel):

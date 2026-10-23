@@ -8,34 +8,41 @@ import { Input, Textarea } from '@/components/ui/Input'
 import { useToast } from '@/components/ui/Toast'
 import { useT } from '@/i18n'
 import { ApiError } from '@/services/api/client'
-import { testimonialApi } from '@/services/api/endpoints'
+import { testimonialApi, type TestimonialTarget } from '@/services/api/endpoints'
+import { StarInput } from '@/features/testimonials/Stars'
 
 /**
  * Leaving praise on a listing, with no account.
  *
  * Anonymous on purpose: requiring sign-in kills submissions from the audience
- * this project exists for, and verifying a phone number would imply an
- * independence owner-approved praise does not have. The server rate limits
- * per address and per listing, which is the half that cannot be bypassed.
+ * this project exists for. The server rate limits per address and per
+ * listing, which is the half that cannot be bypassed.
  *
  * The success state stays on screen instead of resetting the form, because
- * "your testimonial will appear once the owner approves it" is the whole
+ * "your testimonial will appear once it has been reviewed" is the whole
  * answer to *why has nothing changed on this page* — a form that simply
  * emptied itself would read as a failure.
  */
-export function TestimonialForm({ slug }: { slug: string }) {
+export function TestimonialForm({
+  slug,
+  target = 'business',
+}: {
+  slug: string
+  target?: TestimonialTarget
+}) {
   const t = useT()
   const toast = useToast()
   const [author, setAuthor] = useState('')
   const [body, setBody] = useState('')
+  const [rating, setRating] = useState<number | null>(null)
   const [sent, setSent] = useState(false)
 
   const submit = useMutation({
-    mutationFn: () => testimonialApi.submit(slug, { author_name: author, body }),
+    mutationFn: () => testimonialApi.submit(slug, { author_name: author, body, rating }, target),
     onSuccess: (result) => {
       setSent(true)
       // The API's own sentence, in the reader's locale, rather than a
-      // generic "thanks": it says the owner decides next.
+      // generic "thanks": it says a review comes next.
       toast.success(t('testimonials.sent'), result.message)
     },
     onError: (error) =>
@@ -95,6 +102,8 @@ export function TestimonialForm({ slug }: { slug: string }) {
           />
         )}
       </Field>
+
+      <StarInput value={rating} onChange={setRating} label={t('testimonials.ratingLabel')} />
 
       <Button type="submit" loading={submit.isPending}>
         <Send className="h-4 w-4" aria-hidden="true" />

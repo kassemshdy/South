@@ -30,6 +30,8 @@ def test_admin_sees_a_users_businesses_including_the_website_link(
             "short_description": ar("business.seo_short"),
             "category_id": str(category.id),
             "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
             "website": "https://example.com",
         },
     ).json()
@@ -58,6 +60,8 @@ def test_admin_sees_a_users_talent_profile(
     payload = {
         "display_name": ar("talent.designer"),
         "location_id": str(location.id),
+        "latitude": 33.27,
+        "longitude": 35.2,
     }
     if skill_id:
         payload["skill_id"] = skill_id

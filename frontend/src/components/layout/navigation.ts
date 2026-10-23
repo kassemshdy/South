@@ -28,7 +28,9 @@ export const SITE_SECTIONS: SiteSection[] = [
   // for visitors who do not know the logo is one.
   { href: '/', labelKey: 'nav.home' },
   { href: '/products', labelKey: 'nav.products' },
-  { href: '/talent', labelKey: 'nav.talent' },
+  // Services and job applications: one directory until the owners split it.
+  { href: '/services', labelKey: 'nav.services' },
+  { href: '/jobs', labelKey: 'nav.jobs' },
   // The blog before the news, in the CEO's order.
   { href: '/blog', labelKey: 'nav.blog' },
   { href: '/news', labelKey: 'nav.news' },

@@ -30,13 +30,20 @@ logger = logging.getLogger("scripts.copy_media_to_bucket")
 
 def copy(root: Path, storage: S3Storage) -> tuple[int, int]:
     """(copied, failed) for every file under ``root`` the bucket lacks."""
+    copied, _already, failed = copy_counts(root, storage)
+    return copied, failed
+
+
+def copy_counts(root: Path, storage: S3Storage) -> tuple[int, int, int]:
+    """(copied, already in the bucket, failed) over every file under ``root``."""
     present = storage.keys()
-    copied = failed = 0
+    copied = already = failed = 0
     for path in sorted(root.rglob("*")):
         if not path.is_file():
             continue
         key = path.relative_to(root).as_posix()
         if key in present:
+            already += 1
             continue
         try:
             content_type = mimetypes.guess_type(key)[0] or "application/octet-stream"
@@ -45,7 +52,7 @@ def copy(root: Path, storage: S3Storage) -> tuple[int, int]:
         except Exception:  # one bad file must not stop the rest
             failed += 1
             logger.exception("Could not copy a file to the bucket", extra={"storage_key": key})
-    return copied, failed
+    return copied, already, failed
 
 
 def main() -> int:
@@ -57,8 +64,17 @@ def main() -> int:
     storage = get_storage()
     if not isinstance(storage, S3Storage):
         return 0
-    copied, failed = copy(root, storage)
-    logger.info("Media copied to the bucket", extra={"copied": copied, "failed": failed})
+    copied, already, failed = copy_counts(root, storage)
+    # In the message itself, not only as extras: the deploy log prints the
+    # message, and these three numbers are how the move is verified -- every
+    # file on the volume is either copied or already there, and none failed.
+    logger.info(
+        "Media copied to the bucket: %d copied, %d already there, %d failed, %d on the volume",
+        copied,
+        already,
+        failed,
+        copied + already + failed,
+    )
     return 0
 
 

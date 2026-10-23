@@ -10,7 +10,7 @@ from __future__ import annotations
 import uuid
 from typing import Literal
 
-from sqlalchemy import Select, exists, func, or_, select
+from sqlalchemy import Select, exists, func, nullslast, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.core.arabic import normalize_arabic
@@ -20,8 +20,9 @@ from app.models.enums import BusinessStatus, GoodsOrigin
 from app.models.taxonomy import Category, Location
 from app.models.user import User
 from app.repositories.base import BaseRepository
+from app.repositories.geo import Point, nearest_first
 
-SortOption = Literal["newest", "name", "oldest"]
+SortOption = Literal["newest", "name", "oldest", "nearest", "rating"]
 
 
 class BusinessRepository(BaseRepository[Business]):
@@ -84,7 +85,18 @@ class BusinessRepository(BaseRepository[Business]):
         category_slug: str | None,
         location_slug: str | None,
         origin: GoodsOrigin | None = None,
+        with_products: bool = False,
     ) -> Select[tuple[Business]]:
+        if with_products:
+            # The products page lists shops (round 3): a shop belongs there
+            # once it has something a visitor can buy.
+            stmt = stmt.where(
+                exists().where(
+                    BusinessItem.business_id == Business.id,
+                    BusinessItem.is_available.is_(True),
+                )
+            )
+
         if origin is not None:
             # A shop belongs under a door if it came through it, or if any
             # of its goods carry that mark -- a shop selling both is found
@@ -130,8 +142,22 @@ class BusinessRepository(BaseRepository[Business]):
         return stmt
 
     def _apply_sort(
-        self, stmt: Select[tuple[Business]], sort: SortOption
+        self, stmt: Select[tuple[Business]], sort: SortOption, near: Point | None = None
     ) -> Select[tuple[Business]]:
+        # Nearest needs a position; without one it falls back to newest
+        # rather than failing, since the browser may have refused to share it.
+        if sort == "nearest" and near is not None:
+            return stmt.order_by(
+                nearest_first(Business.latitude, Business.longitude, near),
+                Business.created_at.desc(),
+            )
+        # Rated listings first, best first; then the unrated, newest first.
+        if sort == "rating":
+            return stmt.order_by(
+                nullslast(Business.rating_average.desc()),
+                Business.rating_count.desc(),
+                Business.created_at.desc(),
+            )
         if sort == "name":
             return stmt.order_by(Business.name.asc())
         if sort == "oldest":
@@ -145,14 +171,16 @@ class BusinessRepository(BaseRepository[Business]):
         category_slug: str | None = None,
         location_slug: str | None = None,
         origin: GoodsOrigin | None = None,
+        with_products: bool = False,
         sort: SortOption = "newest",
+        near: Point | None = None,
         page: int = 1,
         page_size: int = 12,
     ) -> Page[Business]:
         """Paginated public search. Never returns a non-APPROVED business."""
         filtered = self._apply_filters(
             self.public_query(), q=q, category_slug=category_slug, location_slug=location_slug,
-            origin=origin,
+            origin=origin, with_products=with_products,
         )
 
         total = int(
@@ -161,7 +189,7 @@ class BusinessRepository(BaseRepository[Business]):
             ).scalar_one()
         )
 
-        stmt = self._apply_sort(self._with_relations(filtered), sort)
+        stmt = self._apply_sort(self._with_relations(filtered), sort, near)
         rows = (
             self.db.execute(stmt.limit(page_size).offset((page - 1) * page_size))
             .unique()

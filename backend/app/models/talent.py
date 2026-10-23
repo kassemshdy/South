@@ -22,6 +22,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    Numeric,
     String,
     Text,
     UniqueConstraint,
@@ -38,11 +39,14 @@ from app.models.enums import (
     LanguageProficiency,
     ModerationActionType,
     SocialPlatform,
+    TalentKind,
+    WorkMode,
 )
 
 if TYPE_CHECKING:
     from app.models.service_request import ServiceRequest
     from app.models.taxonomy import Location
+    from app.models.testimonial import Testimonial
     from app.models.user import User
 
 
@@ -97,6 +101,11 @@ class TalentProfile(Base, TimestampMixin):
     location_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("locations.id", ondelete="SET NULL"), nullable=True, index=True
     )
+    # Where the owner pinned themselves on the map -- public, shown on the
+    # profile page and used for nearest-first, as a business's pin is. A pin
+    # on the town is enough.
+    latitude: Mapped[float | None] = mapped_column(Numeric(9, 6), nullable=True)
+    longitude: Mapped[float | None] = mapped_column(Numeric(9, 6), nullable=True)
 
     # The name shown publicly, which need not be the account's display_name:
     # someone may work under a professional name.
@@ -109,6 +118,13 @@ class TalentProfile(Base, TimestampMixin):
     # phone, which is never published.
     phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
     whatsapp: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    # Whether the numbers above are shown to visitors. The owners asked that
+    # everyone listing give a number, and choose whether the public sees it:
+    # hidden, it still reaches the team and the dashboard, and a visitor
+    # contacts the owner through a message on the site instead.
+    phone_public: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     website: Mapped[str | None] = mapped_column(String(500), nullable=True)
     # Which of the above the page leads with. See ContactChannel: it orders
@@ -145,12 +161,36 @@ class TalentProfile(Base, TimestampMixin):
     employment_type: Mapped[EmploymentType | None] = mapped_column(
         pg_enum(EmploymentType, "employment_type"), nullable=True
     )
+    # Derived from work_mode whenever that is set (see TalentService), and
+    # kept so nothing that reads it changes.
     remote_capable: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Remotely, in person or both. Required of a service at review; a job
+    # application is not asked.
+    work_mode: Mapped[WorkMode | None] = mapped_column(
+        pg_enum(WorkMode, "work_mode"), nullable=True
+    )
+    # The stars on this profile's published testimonials, as a business
+    # carries them. Written only by TestimonialService.
+    rating_average: Mapped[float | None] = mapped_column(Numeric(3, 2), nullable=True)
+    rating_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
 
     # Identity — legal name, birth year, gender, marital status and the two
     # civil-record places — lives on :class:`~app.models.user.User`, not
     # here: it describes the person behind the account, who may own
     # businesses too, so one account holds exactly one copy of it.
+
+    # Services or job applications: the directory this profile is listed in,
+    # chosen by its owner. Every profile from before the split is a service,
+    # which is what the single directory offered.
+    kind: Mapped[TalentKind] = mapped_column(
+        pg_enum(TalentKind, "talent_kind"),
+        nullable=False,
+        default=TalentKind.SERVICE,
+        server_default=TalentKind.SERVICE.value,
+        index=True,
+    )
 
     status: Mapped[BusinessStatus] = mapped_column(
         pg_enum(BusinessStatus, "business_status"),
@@ -200,6 +240,11 @@ class TalentProfile(Base, TimestampMixin):
         back_populates="profile",
         cascade="all, delete-orphan",
         order_by="ServiceRequest.created_at.desc()",
+    )
+    testimonials: Mapped[list[Testimonial]] = relationship(
+        back_populates="talent_profile",
+        cascade="all, delete-orphan",
+        order_by="Testimonial.created_at.desc()",
     )
 
     @property
