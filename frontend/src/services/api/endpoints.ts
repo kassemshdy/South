@@ -573,8 +573,11 @@ export const ownerApi = {
     }),
 }
 
+export type ExportDataset = 'businesses' | 'products' | 'users' | 'talent' | 'orders'
+
 export const adminApi = {
   stats: () => apiRequest<PlatformStats>('/api/admin/stats'),
+  exportCsv: (dataset: ExportDataset) => apiDownload(`/api/admin/export/${dataset}.csv`),
   orders: (status: OrderStatus | undefined) =>
     apiRequest<OrderWithBusiness[]>('/api/admin/orders', { query: { status } }),
   discardedApplications: (includeDismissed: boolean) =>

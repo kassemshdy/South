@@ -1,6 +1,7 @@
 import {
   BarChart3,
   Bug,
+  Download,
   FileText,
   FolderTree,
   Handshake,
@@ -44,6 +45,7 @@ const NAV: { to: string; labelKey: TranslationKey; icon: typeof BarChart3; end: 
   { to: '/admin/page-covers', labelKey: 'admin.navPageCovers', icon: ImageIcon, end: false },
   { to: '/admin/site-settings', labelKey: 'nav.contact', icon: PhoneCall, end: false },
   { to: '/admin/feedback', labelKey: 'admin.navFeedback', icon: Bug, end: false },
+  { to: '/admin/export', labelKey: 'admin.navExport', icon: Download, end: false },
 ]
 
 export function AdminLayout() {
