@@ -537,6 +537,7 @@
   "dashboard.manageItems": "Manage products ({count})",
   "dashboard.myTalentProfile": "Talent profile",
   "dashboard.needsChanges": "Needs changes",
+  "dashboard.newOrders": "{count} new orders",
   "dashboard.noCategory": "No category",
   "dashboard.pendingNotice": "Your business is being reviewed by our team. It will appear in the directory once approved.",
   "dashboard.publicPage": "Public page",

@@ -341,6 +341,29 @@ def test_the_order_link_opens_the_order_for_its_owner_only(
     assert client.get(f"/api/my/orders/{uuid.uuid4()}", headers=owner_headers).status_code == 404
 
 
+def test_the_dashboard_counts_new_orders_per_listing(
+    client: TestClient, shop: Business, owner_headers: dict[str, str]
+) -> None:
+    """The dashboard's orders button shows how many are still new; moving
+    one along takes it off the count."""
+    item_id = _add_item(client, shop, owner_headers, title=ar("item.generic"))
+    for _ in range(2):
+        _place(client, shop.slug, [{"item_id": item_id, "quantity": 1}])
+
+    def count() -> int:
+        listing = client.get("/api/my/businesses", headers=owner_headers).json()
+        return int(next(row for row in listing if row["id"] == str(shop.id))["new_orders"])
+
+    assert count() == 2
+    order_id = client.get(f"/api/businesses/{shop.id}/orders", headers=owner_headers).json()[0]["id"]
+    client.post(
+        f"/api/businesses/{shop.id}/orders/{order_id}/status",
+        headers=owner_headers,
+        json={"status": "CONTACTED"},
+    )
+    assert count() == 1
+
+
 def test_administrators_see_every_order(
     client: TestClient,
     db: Session,

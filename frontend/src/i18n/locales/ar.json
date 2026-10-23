@@ -537,6 +537,7 @@
   "dashboard.manageItems": "إدارة المنتجات ({count})",
   "dashboard.myTalentProfile": "ملف المواهب",
   "dashboard.needsChanges": "يحتاج إلى تعديل",
+  "dashboard.newOrders": "{count} طلبات جديدة",
   "dashboard.noCategory": "بدون تصنيف",
   "dashboard.pendingNotice": "نشاطك قيد المراجعة من فريق الإدارة. سيظهر في الدليل فور الموافقة عليه.",
   "dashboard.publicPage": "الصفحة العامة",
