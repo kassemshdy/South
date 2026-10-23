@@ -784,6 +784,14 @@ export interface Order {
   updated_at: string
 }
 
+/** An order read without its listing in the URL: the link a customer sends
+ *  the shop, and the administrators' list of every order. */
+export interface OrderWithBusiness extends Order {
+  business_id: string
+  business_name: string
+  business_slug: string
+}
+
 /**
  * A request for a piece of work, sent to a talent profile.
  *

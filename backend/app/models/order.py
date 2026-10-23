@@ -20,9 +20,9 @@ Three design points, because each is easy to get wrong later:
 - **An order belongs to exactly one business**, because one owner has to
   fulfil it.
 - **The customer's name and phone belong to a person who never signed up for
-  anything.** They exist so the owner can reply, and they are deliberately
-  absent from every administrator payload: nothing in moderation needs to
-  know who bought what.
+  anything.** They exist so the owner can reply. They are on no public
+  payload; the administrators read them on their orders list, which the
+  owners asked for so orders can be followed up with the shops.
 """
 
 from __future__ import annotations
