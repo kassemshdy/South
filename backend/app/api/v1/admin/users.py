@@ -17,6 +17,7 @@ from app.api.serializers import admin_user_detail
 from app.core.dependencies import AdminUser, AppSettings, DbSession
 from app.core.errors import NotFoundError, PermissionDeniedError, ValidationError
 from app.core.i18n import translate
+from app.core.uploads import content_disposition
 from app.models.enums import UserRole, VerificationDocumentKind
 from app.repositories.business import BusinessRepository
 from app.repositories.talent import TalentRepository
@@ -51,7 +52,7 @@ def _download(document, settings: AppSettings) -> Response:
     return Response(
         content=data,
         media_type=document.content_type,
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": content_disposition(filename)},
     )
 
 

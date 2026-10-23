@@ -19,6 +19,7 @@ from app.api.serializers import admin_article_out
 from app.core.dependencies import AdminUser, AppSettings, DbSession
 from app.core.errors import ConflictError, NotFoundError
 from app.core.i18n import translate
+from app.core.uploads import read_at_most
 from app.models.article import Article
 from app.models.enums import ArticleSection, ImageKind
 from app.repositories.article import ArticleRepository
@@ -127,7 +128,7 @@ def upload_cover(
     service = ImageService(get_storage(), settings)
     service.delete(article.cover_storage_key)
 
-    data = file.file.read()
+    data = read_at_most(file.file, settings.max_upload_bytes)
     stored = service.process_and_store(
         data=data,
         content_type=file.content_type,

@@ -27,11 +27,28 @@ DbSession = Annotated[Session, Depends(get_db)]
 AppSettings = Annotated[Settings, Depends(get_settings)]
 
 
-def get_client_ip(request: Request) -> str | None:
-    """Client IP, honouring the proxy header set by Railway/Caddy."""
+def get_client_ip(request: Request, settings: AppSettings) -> str | None:
+    """The caller's address, read from the *right* of ``X-Forwarded-For``.
+
+    ``X-Forwarded-For`` is a chain: each proxy appends the address it saw, so
+    the entries at the right are the ones our own infrastructure added and the
+    entries at the left are whatever the original client sent -- which anyone
+    can forge. Reading the left-most entry (the previous implementation) let a
+    caller set ``X-Forwarded-For: 1.2.3.4`` and be rate-limited as ``1.2.3.4``,
+    a fresh identity per request and so no limit at all on the anonymous write
+    endpoints (registration, testimonials, orders, service requests).
+
+    ``TRUSTED_PROXY_HOPS`` says how many entries at the right our proxies own;
+    the real client is that many places from the end, and nothing to its left
+    is ever trusted. With no header, or fewer entries than expected, we fall
+    back to the socket peer -- correct for a direct connection in development.
+    """
+    hops = settings.trusted_proxy_hops
     forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
+    if forwarded and hops > 0:
+        parts = [p.strip() for p in forwarded.split(",") if p.strip()]
+        if len(parts) >= hops:
+            return parts[-hops]
     return request.client.host if request.client else None
 
 

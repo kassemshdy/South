@@ -16,6 +16,7 @@ from app.api.serializers import feedback_ticket_detail, feedback_ticket_summary,
 from app.core.dependencies import AdminUser, AppSettings, DbSession
 from app.core.errors import NotFoundError, PayloadTooLargeError
 from app.core.i18n import translate
+from app.core.uploads import content_disposition, read_at_most
 from app.models.enums import FeedbackAttachmentKind, UserRole
 from app.models.feedback import FeedbackTicket
 from app.repositories.feedback import FeedbackTicketRepository
@@ -125,7 +126,7 @@ def upload_attachment(
     kind: Annotated[FeedbackAttachmentKind, Form()] = FeedbackAttachmentKind.PHOTO,
 ) -> FeedbackTicketDetailOut:
     ticket = _load(db, ticket_id)
-    data = file.file.read()
+    data = read_at_most(file.file, settings.max_feedback_attachment_bytes)
     if len(data) > settings.max_feedback_attachment_bytes:
         raise PayloadTooLargeError()
 
@@ -176,5 +177,5 @@ def download_attachment(
     return Response(
         content=data,
         media_type=attachment.content_type,
-        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+        headers={"Content-Disposition": content_disposition(filename, inline=True)},
     )

@@ -65,9 +65,12 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Baseline hardening headers for both the API and the served SPA."""
 
-    def __init__(self, app, *, enable_hsts: bool = False) -> None:  # type: ignore[no-untyped-def]
+    def __init__(  # type: ignore[no-untyped-def]
+        self, app, *, enable_hsts: bool = False, content_security_policy: str | None = None
+    ) -> None:
         super().__init__(app)
         self._enable_hsts = enable_hsts
+        self._csp = content_security_policy
 
     async def dispatch(self, request: Request, call_next: Handler) -> Response:
         response = await call_next(request)
@@ -78,6 +81,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         headers.setdefault(
             "Permissions-Policy", "geolocation=(), microphone=(), camera=(), payment=()"
         )
+        if self._csp:
+            headers.setdefault("Content-Security-Policy", self._csp)
         if self._enable_hsts:
             headers.setdefault(
                 "Strict-Transport-Security", "max-age=31536000; includeSubDomains"

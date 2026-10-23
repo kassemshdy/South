@@ -12,6 +12,7 @@ from app.api.serializers import owner_business
 from app.core.dependencies import AppSettings, DbSession, OwnedBusiness
 from app.core.errors import NotFoundError, PayloadTooLargeError, ValidationError
 from app.core.i18n import translate
+from app.core.uploads import read_at_most
 from app.models.business import BusinessImage
 from app.models.enums import ImageKind
 from app.schemas.business import ImageReorderIn, OwnerBusinessOut
@@ -45,7 +46,7 @@ def upload_image(
             "image.invalid_kind", code="invalid_image_kind"
         )
 
-    data = file.file.read()
+    data = read_at_most(file.file, settings.max_upload_bytes)
     if len(data) > settings.max_upload_bytes:
         raise PayloadTooLargeError()
 

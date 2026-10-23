@@ -14,6 +14,7 @@ from sqlalchemy import select
 
 from app.core.dependencies import AdminUser, AppSettings, DbSession
 from app.core.errors import NotFoundError
+from app.core.uploads import read_at_most
 from app.models.enums import ImageKind
 from app.models.team import TEAM_SLOTS, TeamMember
 from app.schemas.team import TeamCaptionIn, TeamMemberOut
@@ -96,7 +97,7 @@ def set_photo(
     _known(slot)
     service = ImageService(get_storage(), settings)
     stored = service.process_and_store(
-        data=file.file.read(),
+        data=read_at_most(file.file, settings.max_upload_bytes),
         content_type=file.content_type,
         owner_id=admin.id,
         kind=ImageKind.LOGO,
