@@ -26,7 +26,7 @@ from app.models.enums import BusinessStatus, OrderStatus
 from app.models.order import Order
 from app.models.taxonomy import Category, Location
 from app.models.user import User
-from tests.conftest import sign_in
+from tests.conftest import post_item, sign_in
 from tests.samples import ar
 
 OWNER_PHONE = "03990001"
@@ -73,7 +73,8 @@ def _add_item(
     price: str = "5.00",
     available: bool = True,
 ) -> str:
-    created = client.post(
+    created = post_item(
+        client,
         f"/api/businesses/{business.id}/items",
         headers=headers,
         json={

@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, ArrowRight, ImagePlus, Package, Pencil, Plus, Trash2 } from 'lucide-react'
+import { AlertCircle, ArrowLeft, ArrowRight, ImagePlus, Package, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { useSearchParams } from 'react-router-dom'
@@ -290,6 +290,9 @@ function ItemForm({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(item?.image_url ?? null)
+  // The photo is mandatory (the owners' decision): the catalogue shows no
+  // product without one, so the form refuses to save one either.
+  const [photoError, setPhotoError] = useState<string | null>(null)
 
   const {
     register,
@@ -322,6 +325,7 @@ function ItemForm({
   const pickFile = (file: File) => {
     setSelectedFile(file)
     setPreviewUrl(URL.createObjectURL(file))
+    setPhotoError(null)
   }
 
   // One save covers both: the fields and, if a photo was picked, the image —
@@ -349,10 +353,16 @@ function ItemForm({
       const saved = isEdit
         ? await ownerApi.updateItem(businessId, item.id, payload)
         : await ownerApi.createItem(businessId, payload)
-      if (selectedFile) {
-        return ownerApi.uploadItemImage(businessId, saved.id, selectedFile)
+      if (!selectedFile) return saved
+      try {
+        return await ownerApi.uploadItemImage(businessId, saved.id, selectedFile)
+      } catch (error) {
+        // A new product whose photo did not upload would be a product with
+        // no photo, which the catalogue would hide: undo the create so the
+        // owner retries the whole thing rather than finding it half-saved.
+        if (!isEdit) await ownerApi.deleteItem(businessId, saved.id).catch(() => undefined)
+        throw error
       }
-      return saved
     },
     onSuccess: () => {
       toast.success(isEdit ? t('items.updated') : t('items.created'))
@@ -380,12 +390,22 @@ function ItemForm({
         </h3>
       </div>
 
-      <form onSubmit={handleSubmit((values) => save.mutate(values))} className="space-y-4" noValidate>
+      <form
+        onSubmit={handleSubmit((values) => {
+          if (!previewUrl) {
+            setPhotoError(t('validation.itemPhotoRequired'))
+            return
+          }
+          save.mutate(values)
+        })}
+        className="space-y-4"
+        noValidate
+      >
         <div className="flex items-center gap-4">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border-2 border-dashed border-ink-100 bg-sand-50"
+            className={`h-20 w-20 shrink-0 overflow-hidden rounded-xl border-2 border-dashed bg-sand-50 ${photoError ? 'border-clay-400' : 'border-ink-100'}`}
           >
             {previewUrl ? (
               <img src={previewUrl} alt="" className="h-full w-full object-cover" />
@@ -400,6 +420,7 @@ function ItemForm({
             type="file"
             accept="image/jpeg,image/png,image/webp"
             className="sr-only"
+            aria-label={t('items.photoLabel')}
             onChange={(event) => {
               const file = event.target.files?.[0]
               if (file) pickFile(file)
@@ -407,10 +428,21 @@ function ItemForm({
             }}
           />
           <div>
-            <p className="text-sm font-semibold">{t('items.photoLabel')}</p>
+            <p className="text-sm font-semibold">
+              {t('items.photoLabel')}
+              <span className="ms-1 text-clay-500" aria-hidden="true">
+                *
+              </span>
+            </p>
             <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
               {previewUrl ? t('items.photoChange') : t('items.photoChoose')}
             </Button>
+            {photoError ? (
+              <p role="alert" className="mt-1.5 flex items-center gap-1.5 text-sm text-clay-600">
+                <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+                {photoError}
+              </p>
+            ) : null}
           </div>
         </div>
 

@@ -1188,6 +1188,7 @@
   "validation.identifierInvalid": "أدخل رقماً لبنانياً صحيحاً أو بريداً إلكترونياً صحيحاً",
   "validation.identifierRequired": "أدخل رقم هاتفك أو بريدك الإلكتروني",
   "validation.itemNameRequired": "اسم العنصر مطلوب",
+  "validation.itemPhotoRequired": "صورة المنتج مطلوبة",
   "validation.languageNameRequired": "اسم اللغة مطلوب.",
   "validation.locationRequired": "اختر الموقع",
   "validation.mapPinRequired": "حدّد موقعك على الخريطة",

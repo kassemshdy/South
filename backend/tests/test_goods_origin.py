@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 from app.models.business import Business
 from app.models.enums import BusinessStatus, GoodsOrigin
 from app.models.taxonomy import Category, Location
-from tests.conftest import sign_in
+from tests.conftest import post_item, sign_in
 from tests.samples import ar
 
 
@@ -51,7 +51,8 @@ def _approved_business(
     response = client.post("/api/businesses", headers=headers, json=body)
     assert response.status_code == 201, response.text
     business = response.json()
-    client.post(
+    post_item(
+        client,
         f"/api/businesses/{business['id']}/items",
         headers=headers,
         json={"title": ar(item_key), "price": "1.00", "currency": "USD"},
@@ -219,7 +220,8 @@ def test_a_shop_selling_both_has_each_product_under_its_own_door(
         origin=None,
     )
     headers = sign_in(client, "03980005")
-    imported = client.post(
+    imported = post_item(
+        client,
         f"/api/businesses/{business_id}/items",
         headers=headers,
         json={

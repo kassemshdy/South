@@ -18,7 +18,7 @@ from app.models.enums import BusinessStatus
 from app.models.talent import TalentProfile, TalentSkill
 from app.models.taxonomy import Category, Location
 from app.models.user import User
-from tests.conftest import admin_headers, sign_in
+from tests.conftest import admin_headers, post_item, sign_in
 from tests.samples import ar
 
 DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
@@ -336,7 +336,8 @@ def test_a_page_is_never_cached_like_a_file(spa_client: TestClient) -> None:
 def product_slug(client: TestClient, db: Session, approved_slug: str) -> str:
     business = db.query(Business).filter(Business.slug == approved_slug).one()
     headers = sign_in(client, "03910001")
-    created = client.post(
+    created = post_item(
+        client,
         f"/api/businesses/{business.id}/items",
         headers=headers,
         json={"title": ar("item.zaatar_local"), "price": "12.50", "currency": "USD"},

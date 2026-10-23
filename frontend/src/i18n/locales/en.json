@@ -1188,6 +1188,7 @@
   "validation.identifierInvalid": "Enter a valid Lebanese number or a valid email address",
   "validation.identifierRequired": "Enter your phone number or email address",
   "validation.itemNameRequired": "An item name is required",
+  "validation.itemPhotoRequired": "A product photo is required",
   "validation.languageNameRequired": "The language name is required.",
   "validation.locationRequired": "Choose a location",
   "validation.mapPinRequired": "Mark your location on the map",

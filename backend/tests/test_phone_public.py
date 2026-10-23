@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from app.models.business import Business
 from app.models.enums import BusinessStatus
 from app.models.taxonomy import Category, Location
-from tests.conftest import sign_in
+from tests.conftest import post_item, sign_in
 from tests.samples import ar
 
 NUMBER = "+9613960201"
@@ -45,7 +45,8 @@ def test_a_business_with_private_numbers_publishes_none_of_them(
     # The owner's own view keeps the numbers, so the form can show them.
     assert business["whatsapp"] == NUMBER
 
-    client.post(
+    post_item(
+        client,
         f"/api/businesses/{business['id']}/items",
         headers=headers,
         json={"title": ar("item.generic"), "price": "1.00", "currency": "USD"},
