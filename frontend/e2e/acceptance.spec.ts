@@ -175,6 +175,8 @@ test.describe('MVP acceptance flow', () => {
     // --- 8. Items with prices ------------------------------------------------
     for (const { title, price } of fixture.items) {
       await page.getByRole('button', { name: t('items.addItem') }).first().click()
+      // The photo is mandatory: the form refuses to save a product without one.
+      await page.getByLabel(t('items.photoLabel'), { exact: true }).setInputFiles(jpeg())
       await page.getByLabel(t('items.nameLabel')).fill(title)
       await page.getByLabel(t('items.priceLabel')).fill(price)
 

@@ -24,6 +24,7 @@ import { YouTubePlayer } from '@/components/ui/YouTubePlayer'
 import { ShareButton } from '@/components/ui/ShareButton'
 import { AddToCartButton } from '@/features/cart/AddToCartButton'
 import { FavouriteButton } from '@/features/favourites/FavouriteButton'
+import { ProductQuickView } from '@/features/items/ProductQuickView'
 import { ListingMap } from '@/features/map/ListingMap'
 import { pinOf } from '@/features/map/types'
 import { TestimonialForm } from '@/features/testimonials/TestimonialForm'
@@ -53,6 +54,8 @@ export function BusinessProfilePage() {
   const t = useT()
   const { locale } = useI18n()
   const [itemQuery, setItemQuery] = useState('')
+  // Which product's quick view is open, if any.
+  const [openItemId, setOpenItemId] = useState<string | null>(null)
 
   const business = useQuery({
     queryKey: queryKeys.business(slug),
@@ -317,51 +320,81 @@ export function BusinessProfilePage() {
                   </p>
                 ) : null}
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {visibleItems.map((item) => (
-                    <Card key={item.id} className={item.is_available ? '' : 'opacity-60'}>
-                      {item.image_url ? (
-                        <CardImage src={item.image_url} thumbSrc={item.image_thumb_url} alt={item.title} loading="lazy" className="h-40 w-full rounded-t-2xl object-cover" />
-                      ) : null}
-                      <CardBody className="p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <h3 className="font-bold text-ink-900">{item.title}</h3>
+                  {visibleItems.map((item) => {
+                    const cart = item.is_available ? (
+                      <AddToCartButton
+                        block
+                        target={{
+                          businessSlug: data.slug,
+                          businessName: data.name,
+                          whatsapp: data.whatsapp,
+                          phone: data.phone,
+                        }}
+                        line={{
+                          itemId: item.id,
+                          title: item.title,
+                          price: item.price,
+                          currency: item.currency,
+                          imageUrl: item.image_url,
+                          quantity: 1,
+                        }}
+                      />
+                    ) : null
+                    return (
+                      <Card key={item.id} className={item.is_available ? '' : 'opacity-60'}>
+                        {/* The photo and the name open the quick view. As on the
+                            directory's cards, the photo is a mouse target only
+                            and the heading's button is the one control a
+                            keyboard or screen reader meets; the cart button
+                            stays its own control rather than sitting inside it. */}
+                        {item.image_url ? (
+                          <button
+                            type="button"
+                            tabIndex={-1}
+                            aria-hidden="true"
+                            onClick={() => setOpenItemId(item.id)}
+                            className="block w-full"
+                          >
+                            <CardImage src={item.image_url} thumbSrc={item.image_thumb_url} alt="" loading="lazy" className="h-40 w-full rounded-t-2xl object-cover" />
+                          </button>
+                        ) : null}
+                        <div className="flex items-start justify-between gap-3 px-4 pt-4">
+                          <h3 className="font-bold text-ink-900">
+                            <button
+                              type="button"
+                              onClick={() => setOpenItemId(item.id)}
+                              className="text-start hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+                            >
+                              {item.title}
+                            </button>
+                          </h3>
                           {formatPrice(item.price, item.currency) ? (
                             <span className="ltr-nums shrink-0 rounded-lg bg-sand-100 px-2.5 py-1 text-sm font-bold text-brand-800">
                               {formatPrice(item.price, item.currency)}
                             </span>
                           ) : null}
                         </div>
-                        {item.description ? (
-                          <p className="mt-1.5 text-sm leading-relaxed text-ink-500">{item.description}</p>
-                        ) : null}
-                        {item.is_available ? (
-                          <div className="mt-3">
-                            <AddToCartButton
-                              block
-                              target={{
-                                businessSlug: data.slug,
-                                businessName: data.name,
-                                whatsapp: data.whatsapp,
-                                phone: data.phone,
-                              }}
-                              line={{
-                                itemId: item.id,
-                                title: item.title,
-                                price: item.price,
-                                currency: item.currency,
-                                imageUrl: item.image_url,
-                                quantity: 1,
-                              }}
-                            />
-                          </div>
-                        ) : (
-                          <Badge className="mt-3 bg-ink-100 text-ink-700">
-                            {t('business.itemUnavailable')}
-                          </Badge>
-                        )}
-                      </CardBody>
-                    </Card>
-                  ))}
+                        <CardBody className="p-4 pt-0">
+                          {item.description ? (
+                            <p className="mt-1.5 line-clamp-3 text-sm leading-relaxed text-ink-500">{item.description}</p>
+                          ) : null}
+                          {cart ? (
+                            <div className="mt-3">{cart}</div>
+                          ) : (
+                            <Badge className="mt-3 bg-ink-100 text-ink-700">
+                              {t('business.itemUnavailable')}
+                            </Badge>
+                          )}
+                        </CardBody>
+                        <ProductQuickView
+                          item={item}
+                          open={openItemId === item.id}
+                          onOpenChange={(open) => setOpenItemId(open ? item.id : null)}
+                          action={cart}
+                        />
+                      </Card>
+                    )
+                  })}
                 </div>
               </section>
             ) : null}

@@ -114,6 +114,10 @@ def get_business(
     # Approved only, and fetched through the service rather than read off the
     # relationship -- see business_detail's docstring.
     payload = business_detail(business, TestimonialService(db, settings).public_for(business))
+    # A product with no photo stays with its owner until it has one (the
+    # photo is mandatory) -- the same rule ItemRepository.public_query keeps
+    # for the catalogue. The owner's and the admin's views list every item.
+    payload.items = [item for item in payload.items if item.image_url]
     ViewCounterService(db).record(
         ViewSubject.BUSINESS,
         business.id,

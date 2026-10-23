@@ -49,11 +49,21 @@ class ItemRepository(BaseRepository[BusinessItem]):
     # --- Querying ----------------------------------------------------------
 
     def public_query(self) -> Select[tuple[BusinessItem]]:
-        """Base statement for everything a visitor is allowed to see."""
+        """Base statement for everything a visitor is allowed to see.
+
+        A product with no photo is not one of them (the owners' decision: the
+        photo is mandatory). The form refuses to save one, but a product saved
+        before that rule, or one whose upload failed, stays with its owner
+        until it has a photo rather than reaching the catalogue without one.
+        """
         return (
             select(BusinessItem)
             .join(Business, BusinessItem.business_id == Business.id)
-            .where(Business.status == BusinessStatus.APPROVED, BusinessItem.is_available.is_(True))
+            .where(
+                Business.status == BusinessStatus.APPROVED,
+                BusinessItem.is_available.is_(True),
+                BusinessItem.image_url.is_not(None),
+            )
         )
 
     def get_by_slug(self, slug: str) -> BusinessItem | None:

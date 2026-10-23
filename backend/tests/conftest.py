@@ -20,6 +20,7 @@ os.environ.setdefault(
 os.environ.setdefault("SECRET_KEY", "test-secret-key")
 os.environ.setdefault("STORAGE_LOCAL_DIR", "var/test-media")
 
+import httpx
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -180,3 +181,27 @@ def admin_headers(client: TestClient, email: str = "admin@example.com") -> dict[
     )
     assert response.status_code == 200, response.text
     return {"Authorization": f"Bearer {response.json()['access_token']}"}
+
+
+def post_item(
+    client: TestClient, url: str, *, headers: dict[str, str], json: dict[str, object]
+) -> httpx.Response:
+    """Create a product the way the owner's form does: the fields, then a photo.
+
+    A product without a photo never reaches the public catalogue (the photo
+    is mandatory), so a test that expects to find one publicly creates it
+    here. Returns the create response, so ``.status_code`` and ``.json()``
+    read exactly as from ``client.post``; the photo is only attached when the
+    create succeeded.
+    """
+    from tests.test_uploads_and_urls import make_image
+
+    created = client.post(url, headers=headers, json=json)
+    if created.status_code == 201:
+        uploaded = client.post(
+            f"{url}/{created.json()['id']}/image",
+            headers=headers,
+            files={"file": ("item.jpg", make_image((400, 300)), "image/jpeg")},
+        )
+        assert uploaded.status_code == 200, uploaded.text
+    return created

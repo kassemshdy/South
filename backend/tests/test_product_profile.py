@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 from app.models.business import Business
 from app.models.enums import BusinessStatus
 from app.models.taxonomy import Category, Location
-from tests.conftest import sign_in
+from tests.conftest import post_item, sign_in
 from tests.samples import ar
 
 
@@ -48,7 +48,8 @@ def business_with_item(
             "whatsapp": "03970001",
         },
     ).json()
-    item = client.post(
+    item = post_item(
+        client,
         f"/api/businesses/{business['id']}/items",
         headers=headers,
         json={
@@ -121,7 +122,8 @@ def test_fields_are_optional(client: TestClient, category: Category, location: L
             "longitude": 35.2,
         },
     ).json()
-    response = client.post(
+    response = post_item(
+        client,
         f"/api/businesses/{business['id']}/items",
         headers=headers,
         json={"title": ar("item.generic"), "price": "1.00"},
