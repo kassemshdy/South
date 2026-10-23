@@ -1,7 +1,8 @@
-import { useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 
 import { Badge } from '@/components/ui/Badge'
 import { Dialog, DialogContent } from '@/components/ui/Dialog'
+import { ProductGallery } from '@/features/items/ProductGallery'
 import { hasProductFacts, ProductFacts } from '@/features/items/ProductFacts'
 import { useT } from '@/i18n'
 import type { BusinessItem } from '@/types/api'
@@ -25,50 +26,12 @@ interface ProductQuickViewProps {
  */
 export function ProductQuickView({ item, open, onOpenChange, action }: ProductQuickViewProps) {
   const t = useT()
-  const photos = [
-    ...(item.image_url ? [{ id: 'main', url: item.image_url, caption: null }] : []),
-    ...item.images,
-  ]
-  const [shown, setShown] = useState(0)
-  const current = photos[Math.min(shown, photos.length - 1)]
   const price = formatPrice(item.price, item.currency)
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(next) => {
-        if (!next) setShown(0)
-        onOpenChange(next)
-      }}
-    >
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent title={item.title} className="max-w-2xl">
-        {current ? (
-          <img
-            src={current.url}
-            alt={current.caption ?? item.title}
-            className="max-h-[60dvh] w-full rounded-xl bg-sand-100 object-contain"
-          />
-        ) : null}
-
-        {photos.length > 1 ? (
-          <ul className="mt-3 flex gap-2 overflow-x-auto">
-            {photos.map((photo, index) => (
-              <li key={photo.id} className="shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setShown(index)}
-                  aria-label={photo.caption ?? item.title}
-                  aria-current={index === shown ? 'true' : undefined}
-                  className={`block h-16 w-16 overflow-hidden rounded-lg border-2 ${
-                    index === shown ? 'border-brand-600' : 'border-transparent'
-                  }`}
-                >
-                  <img src={photo.url} alt="" className="h-full w-full object-cover" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
+        <ProductGallery title={item.title} imageUrl={item.image_url} images={item.images} />
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {price ? (

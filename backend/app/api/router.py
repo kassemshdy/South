@@ -29,6 +29,7 @@ from app.api.v1 import (
 from app.api.v1.admin import applications as admin_applications
 from app.api.v1.admin import articles as admin_articles
 from app.api.v1.admin import businesses as admin_businesses
+from app.api.v1.admin import export as admin_export
 from app.api.v1.admin import feedback as admin_feedback
 from app.api.v1.admin import stats as admin_stats
 from app.api.v1.admin import talent as admin_talent
@@ -45,11 +46,13 @@ api_router.include_router(taxonomy.router)
 api_router.include_router(admin_applications.router)
 api_router.include_router(admin_articles.router)
 api_router.include_router(admin_businesses.router)
+api_router.include_router(admin_export.router)
 api_router.include_router(admin_feedback.router)
 api_router.include_router(admin_talent.router)
 api_router.include_router(admin_taxonomy.router)
 api_router.include_router(admin_stats.router)
 api_router.include_router(admin_users.router)
+api_router.include_router(orders.admin_router)
 api_router.include_router(page_covers.admin_router)
 api_router.include_router(team.admin_router)
 api_router.include_router(pages.admin_router)
