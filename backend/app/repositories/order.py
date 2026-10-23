@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import Select, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.orm import joinedload, selectinload
 
 from app.models.business import Business
@@ -60,3 +60,14 @@ class OrderRepository(BaseRepository[Order]):
             stmt = stmt.where(Order.status == status)
         stmt = self._with_lines(stmt.order_by(Order.created_at.desc()).limit(limit))
         return list(self.db.execute(stmt).unique().scalars().all())
+
+    def new_counts(self, business_ids: list[uuid.UUID]) -> dict[uuid.UUID, int]:
+        """Orders still marked new, per listing, in one query."""
+        if not business_ids:
+            return {}
+        rows = self.db.execute(
+            select(Order.business_id, func.count())
+            .where(Order.business_id.in_(business_ids), Order.status == OrderStatus.NEW)
+            .group_by(Order.business_id)
+        ).all()
+        return {business_id: int(count) for business_id, count in rows}
