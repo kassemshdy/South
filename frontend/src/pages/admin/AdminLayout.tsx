@@ -10,6 +10,7 @@ import {
   Image as ImageIcon,
   Newspaper,
   PhoneCall,
+  ShoppingBag,
   Sparkles,
   Store,
   UserRound,
@@ -29,6 +30,7 @@ const NAV: { to: string; labelKey: TranslationKey; icon: typeof BarChart3; end: 
   { to: '/admin/talent-skills', labelKey: 'admin.navTalentSkills', icon: Sparkles, end: false },
   { to: '/admin/locations', labelKey: 'admin.navLocations', icon: MapPin, end: false },
   { to: '/admin/users', labelKey: 'admin.navUsers', icon: Users, end: false },
+  { to: '/admin/orders', labelKey: 'admin.navOrders', icon: ShoppingBag, end: false },
   { to: '/admin/applications', labelKey: 'admin.navApplications', icon: Inbox, end: false },
   { to: '/admin/partners', labelKey: 'admin.navPartners', icon: Handshake, end: false },
   {

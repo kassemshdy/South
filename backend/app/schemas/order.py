@@ -45,9 +45,9 @@ class OrderLineOut(ORMModel):
 
 
 class OrderOut(ORMModel):
-    """The owner's view. There is no public or admin counterpart on purpose:
-    an order carries a third party's name and phone number, and the only
-    person with a reason to see it is the owner who has to reply."""
+    """The owner's view. There is no public counterpart: an order carries a
+    third party's name and phone number. An administrator reads it through
+    ``OrderWithBusinessOut``, which says whose order it is."""
 
     id: uuid.UUID
     customer_name: str
@@ -57,6 +57,24 @@ class OrderOut(ORMModel):
     lines: list[OrderLineOut] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
+
+
+class OrderWithBusinessOut(OrderOut):
+    """An order read without its listing in the URL: from the link a customer
+    sends the shop, or from the administrators' list of every order."""
+
+    business_id: uuid.UUID
+    business_name: str
+    business_slug: str
+
+
+class OrderPlacedOut(BaseModel):
+    """What a visitor gets back. The id goes into the link they send the shop;
+    it opens the order only for that shop's signed-in owner (or an
+    administrator), so knowing it reveals nothing."""
+
+    message: str
+    order_id: uuid.UUID
 
 
 class OrderStatusIn(BaseModel):

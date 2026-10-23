@@ -8,8 +8,9 @@ betray somebody:
   visitor cannot see;
 - the line items must be **snapshots**, so a later price change or a deleted
   product cannot rewrite what a customer asked for;
-- the customer's name and phone must reach **the owner and nobody else** --
-  no public read, no administrator read.
+- the customer's name and phone must reach **the owner and the
+  administrators, and nobody else** -- no public read, and the link a
+  customer sends the shop opens the order for its owner only.
 """
 
 from __future__ import annotations
@@ -26,7 +27,7 @@ from app.models.enums import BusinessStatus, OrderStatus
 from app.models.order import Order
 from app.models.taxonomy import Category, Location
 from app.models.user import User
-from tests.conftest import post_item, sign_in
+from tests.conftest import admin_headers, post_item, sign_in
 from tests.samples import ar
 
 OWNER_PHONE = "03990001"
@@ -316,20 +317,67 @@ def test_another_owner_cannot_read_or_move_an_order(
     )
 
 
-def test_no_admin_route_exposes_an_order(client: TestClient, admin: User) -> None:
-    """Decided on the issue: moderation needs neither a customer's name nor
-    their phone number, so no administrator payload carries an order. This
-    asserts the absence, so adding such a route is a deliberate act.
-    """
-    from app.main import create_app
+def test_the_order_link_opens_the_order_for_its_owner_only(
+    client: TestClient, shop: Business, owner_headers: dict[str, str]
+) -> None:
+    """The customer sends the shop a link carrying the order's id. Whoever
+    else reads that chat must learn nothing from it: 401 without a session,
+    404 (not 403) for any account but the listing's owner."""
+    item_id = _add_item(client, shop, owner_headers, title=ar("item.generic"))
+    placed = _place(client, shop.slug, [{"item_id": item_id, "quantity": 3}])
+    assert placed.status_code == 201, placed.text
+    order_id = placed.json()["order_id"]
+    assert set(placed.json()) == {"message", "order_id"}
 
-    paths = [
-        route.path  # type: ignore[attr-defined]
-        for route in create_app().routes
-        if "/admin" in getattr(route, "path", "")
-    ]
+    mine = client.get(f"/api/my/orders/{order_id}", headers=owner_headers)
+    assert mine.status_code == 200, mine.text
+    assert mine.json()["business_id"] == str(shop.id)
+    assert mine.json()["business_slug"] == shop.slug
+    assert mine.json()["lines"][0]["quantity"] == 3
 
-    assert not [path for path in paths if "order" in path]
+    assert client.get(f"/api/my/orders/{order_id}").status_code == 401
+    stranger = sign_in(client, OTHER_PHONE)
+    assert client.get(f"/api/my/orders/{order_id}", headers=stranger).status_code == 404
+    assert client.get(f"/api/my/orders/{uuid.uuid4()}", headers=owner_headers).status_code == 404
+
+
+def test_administrators_see_every_order(
+    client: TestClient,
+    db: Session,
+    shop: Business,
+    owner_headers: dict[str, str],
+    admin: User,
+    category: Category,
+    location: Location,
+) -> None:
+    """The owners' decision: administrators read every order, across
+    listings, to follow them up with the shops. Owners still cannot."""
+    other_headers = sign_in(client, OTHER_PHONE)
+    other_shop = _make_business(
+        client, db, other_headers, category, location, name=ar("business.other_shop")
+    )
+    first = _add_item(client, shop, owner_headers, title=ar("item.generic"))
+    second = _add_item(client, other_shop, other_headers, title=ar("item.zaatar"))
+    _place(client, shop.slug, [{"item_id": first, "quantity": 1}])
+    _place(client, other_shop.slug, [{"item_id": second, "quantity": 1}])
+
+    headers = admin_headers(client)
+    listed = client.get("/api/admin/orders", headers=headers)
+    assert listed.status_code == 200, listed.text
+    assert {row["business_slug"] for row in listed.json()} == {shop.slug, other_shop.slug}
+    assert listed.json()[0]["customer_phone"]
+
+    order_id = next(r["id"] for r in listed.json() if r["business_slug"] == shop.slug)
+    client.post(
+        f"/api/businesses/{shop.id}/orders/{order_id}/status",
+        headers=owner_headers,
+        json={"status": "DONE"},
+    )
+    done = client.get("/api/admin/orders?status=DONE", headers=headers).json()
+    assert [row["id"] for row in done] == [order_id]
+
+    assert client.get("/api/admin/orders", headers=owner_headers).status_code == 403
+    assert client.get("/api/admin/orders").status_code == 401
 
 
 # --- Rate limiting ---------------------------------------------------------

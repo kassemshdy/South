@@ -34,6 +34,8 @@ export const queryKeys = {
   myTestimonials: (id: string) => ['my-business', id, 'testimonials'] as const,
   myTalentTestimonials: ['my-talent', 'testimonials'] as const,
   myOrders: (id: string) => ['my-business', id, 'orders'] as const,
+  myOrder: (id: string) => ['my-order', id] as const,
+  adminOrders: (status: string | undefined) => ['admin', 'orders', status ?? 'all'] as const,
   myTalent: ['my-talent'] as const,
   myTalentReadiness: ['my-talent', 'readiness'] as const,
   myServiceRequests: ['my-talent', 'requests'] as const,

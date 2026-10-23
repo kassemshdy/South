@@ -1,9 +1,10 @@
 """Order requests: a visitor places one, the owner works through it.
 
-Two routers, and the split is the privacy boundary. The public route only
-ever *writes*; there is no public and no administrator read, because an
-order carries a third party's name and phone number and the only person
-with a reason to see it is the owner who has to reply.
+Three routers, and the split is the privacy boundary. The public route only
+ever *writes*; there is no public read, because an order carries a third
+party's name and phone number. The owner reads their listing's orders, and
+the administrators read every order (the owners' decision, so they can follow
+orders up with the shops).
 """
 
 from __future__ import annotations
@@ -11,19 +12,48 @@ from __future__ import annotations
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Path, status
+from fastapi import APIRouter, Path, Query, status
 
-from app.core.dependencies import AppSettings, ClientIp, DbSession, OwnedBusiness
+from app.core.dependencies import (
+    AdminUser,
+    AppSettings,
+    ClientIp,
+    CurrentUser,
+    DbSession,
+    OwnedBusiness,
+)
 from app.core.errors import NotFoundError
 from app.core.i18n import translate
+from app.models.enums import OrderStatus
+from app.models.order import Order
 from app.repositories.business import BusinessRepository
 from app.repositories.order import OrderRepository
-from app.schemas.common import MessageResponse
-from app.schemas.order import OrderCreateIn, OrderOut, OrderStatusIn
+from app.schemas.order import (
+    OrderCreateIn,
+    OrderOut,
+    OrderPlacedOut,
+    OrderStatusIn,
+    OrderWithBusinessOut,
+)
 from app.services.order import OrderService
 
 public_router = APIRouter(tags=["orders"])
 owner_router = APIRouter(tags=["my-orders"])
+admin_router = APIRouter(prefix="/admin", tags=["admin-orders"])
+
+# Enough to work through by hand; the status filter narrows it.
+ADMIN_LIST_LIMIT = 200
+
+
+def _with_business(order: Order) -> OrderWithBusinessOut:
+    return OrderWithBusinessOut.model_validate(
+        {
+            **OrderOut.model_validate(order).model_dump(),
+            "business_id": order.business.id,
+            "business_name": order.business.name,
+            "business_slug": order.business.slug,
+        }
+    )
 
 
 # --- Public ----------------------------------------------------------------
@@ -31,7 +61,7 @@ owner_router = APIRouter(tags=["my-orders"])
 
 @public_router.post(
     "/businesses/{slug}/orders",
-    response_model=MessageResponse,
+    response_model=OrderPlacedOut,
     status_code=status.HTTP_201_CREATED,
 )
 def place_order(
@@ -40,19 +70,19 @@ def place_order(
     db: DbSession,
     settings: AppSettings,
     client_ip: ClientIp,
-) -> MessageResponse:
+) -> OrderPlacedOut:
     """Ask an approved listing's owner to get in touch about some items.
 
-    Answers with a message rather than the stored order: there is nothing a
-    visitor can do with an id, and echoing one back would be the only way
-    this endpoint could report anything about the owner's dashboard.
+    Answers with a message and the order's id, never the stored order. The
+    id goes into the link the visitor sends the shop on WhatsApp, and opens
+    the order only for that shop's owner.
     """
     business = BusinessRepository(db).get_by_slug(slug, public_only=True)
     if business is None:
         raise NotFoundError("business.not_public")
 
-    OrderService(db, settings).place(business, payload, client_ip=client_ip)
-    return MessageResponse(message=translate("order.received"))
+    order = OrderService(db, settings).place(business, payload, client_ip=client_ip)
+    return OrderPlacedOut(message=translate("order.received"), order_id=order.id)
 
 
 # --- Owner -----------------------------------------------------------------
@@ -67,6 +97,17 @@ def list_my_orders(
         OrderOut.model_validate(order)
         for order in OrderService(db, settings).for_business(business)
     ]
+
+
+@owner_router.get("/my/orders/{order_id}", response_model=OrderWithBusinessOut)
+def get_my_order(order_id: uuid.UUID, user: CurrentUser, db: DbSession) -> OrderWithBusinessOut:
+    """One order, from the link a customer sent. 404 for anyone but the
+    owner of its listing, so the link confirms nothing to whoever else
+    sees the chat."""
+    order = OrderRepository(db).owned_by_user(order_id, user.id)
+    if order is None:
+        raise NotFoundError("order.not_found")
+    return _with_business(order)
 
 
 @owner_router.post(
@@ -88,3 +129,20 @@ def set_order_status(
     return OrderOut.model_validate(
         OrderService(db, settings).set_status(order, payload.status)
     )
+
+
+# --- Administrator -----------------------------------------------------------
+
+
+@admin_router.get("/orders", response_model=list[OrderWithBusinessOut])
+def list_all_orders(
+    db: DbSession,
+    admin: AdminUser,
+    order_status: Annotated[OrderStatus | None, Query(alias="status")] = None,
+) -> list[OrderWithBusinessOut]:
+    """Every listing's orders, newest first. Read-only: the shop replies to
+    its customer and moves the order along, not the administrators."""
+    return [
+        _with_business(order)
+        for order in OrderRepository(db).recent(status=order_status, limit=ADMIN_LIST_LIMIT)
+    ]

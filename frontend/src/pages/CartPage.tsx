@@ -61,7 +61,10 @@ export function CartPage() {
       const summary = (cart?.lines ?? [])
         .map((line) => `• ${line.title} × ${line.quantity}`)
         .join('\n')
-      const message = t('cart.whatsappMessage', { lines: summary })
+      // The link opens the stored order for the shop's owner, so the
+      // message and the dashboard point at the same thing.
+      const link = `${window.location.origin}/dashboard/orders/${result.order_id}`
+      const message = `${t('cart.whatsappMessage', { lines: summary })}\n\n${t('cart.whatsappOrderLink', { url: link })}`
       setSent({
         whatsapp: whatsappHref(cart?.whatsapp ?? null, message),
         phone: telHref(cart?.phone ?? null),

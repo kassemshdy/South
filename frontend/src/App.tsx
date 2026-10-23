@@ -119,6 +119,12 @@ const FavouritesPage = lazy(() =>
 const DashboardPage = lazy(() =>
   import('@/pages/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })),
 )
+const OrderPage = lazy(() =>
+  import('@/pages/dashboard/OrderPage').then((m) => ({ default: m.OrderPage })),
+)
+const AdminOrdersPage = lazy(() =>
+  import('@/pages/admin/AdminOrdersPage').then((m) => ({ default: m.AdminOrdersPage })),
+)
 const EditBusinessPage = lazy(() =>
   import('@/pages/dashboard/EditBusinessPage').then((m) => ({ default: m.EditBusinessPage })),
 )
@@ -234,6 +240,15 @@ export function App() {
               </RequireAuth>
             }
           />
+          {/* The link a customer sends the shop after ordering. */}
+          <Route
+            path="dashboard/orders/:id"
+            element={
+              <RequireAuth>
+                <OrderPage />
+              </RequireAuth>
+            }
+          />
           <Route
             path="dashboard/talent"
             element={
@@ -264,6 +279,7 @@ export function App() {
             <Route path="locations" element={<AdminLocationsPage />} />
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="applications" element={<AdminApplicationsPage />} />
+            <Route path="orders" element={<AdminOrdersPage />} />
             <Route path="page-covers" element={<AdminPageCoversPage />} />
             <Route path="pages" element={<AdminPagesPage />} />
             <Route path="site-settings" element={<AdminSiteSettingsPage />} />

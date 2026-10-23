@@ -2,7 +2,7 @@ import * as Tabs from '@radix-ui/react-tabs'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, ArrowRight, Send, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
@@ -39,7 +39,9 @@ export function EditBusinessPage() {
   const queryClient = useQueryClient()
   const toast = useToast()
   const navigate = useNavigate()
-  const [tab, setTab] = useState('basics')
+  // `?tab=orders` from the order page's link back to every order.
+  const [searchParams] = useSearchParams()
+  const [tab, setTab] = useState(searchParams.get('tab') ?? 'basics')
   const t = useT()
 
   useSeo({ title: t('edit.seoTitle'), noIndex: true })

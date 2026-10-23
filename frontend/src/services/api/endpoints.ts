@@ -49,6 +49,7 @@ import type {
   OwnerTalent,
   Order,
   OrderStatus,
+  OrderWithBusiness,
   OwnerTestimonial,
   OwnerViews,
   Paginated,
@@ -437,17 +438,19 @@ export interface OrderPayload {
 }
 
 /**
- * Placing an order needs no account; reading one is the owner's alone.
- * Nothing here can fetch an order publicly, which is the point.
+ * Placing an order needs no account; reading one is the owner's (and the
+ * administrators'). Nothing here can fetch an order publicly, which is the
+ * point: the id `place` returns opens the order only for its shop's owner.
  */
 export const orderApi = {
   place: (slug: string, payload: OrderPayload) =>
-    apiRequest<{ message: string }>(`/api/businesses/${encodeURIComponent(slug)}/orders`, {
+    apiRequest<{ message: string; order_id: string }>(`/api/businesses/${encodeURIComponent(slug)}/orders`, {
       method: 'POST',
       body: payload,
     }),
   listMine: (businessId: string) =>
     apiRequest<Order[]>(`/api/businesses/${businessId}/orders`),
+  getMine: (orderId: string) => apiRequest<OrderWithBusiness>(`/api/my/orders/${orderId}`),
   setStatus: (businessId: string, orderId: string, status: OrderStatus) =>
     apiRequest<Order>(`/api/businesses/${businessId}/orders/${orderId}/status`, {
       method: 'POST',
@@ -572,6 +575,8 @@ export const ownerApi = {
 
 export const adminApi = {
   stats: () => apiRequest<PlatformStats>('/api/admin/stats'),
+  orders: (status: OrderStatus | undefined) =>
+    apiRequest<OrderWithBusiness[]>('/api/admin/orders', { query: { status } }),
   discardedApplications: (includeDismissed: boolean) =>
     apiRequest<DiscardedApplication[]>('/api/admin/discarded-applications', {
       query: { include_dismissed: includeDismissed },

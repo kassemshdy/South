@@ -7,9 +7,11 @@ import { BackLink } from '@/components/ui/BackLink'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
 import { ShareButton } from '@/components/ui/ShareButton'
+import { SocialShare } from '@/components/ui/SocialShare'
 import { AddToCartButton } from '@/features/cart/AddToCartButton'
 import { FavouriteButton } from '@/features/favourites/FavouriteButton'
 import { hasProductFacts, ProductFacts } from '@/features/items/ProductFacts'
+import { ProductGallery } from '@/features/items/ProductGallery'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { useSeo } from '@/hooks/useSeo'
@@ -75,15 +77,18 @@ export function ProductProfilePage() {
       <BackLink fallback="/products" />
       <div className="mt-4 grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <div className="h-64 overflow-hidden rounded-2xl bg-sand-100 sm:h-80">
-            {data.image_url ? (
-              <img src={data.image_url} alt={data.title} className="h-full w-full object-cover" />
-            ) : (
-              <div className="flex h-full items-center justify-center text-sand-500">
-                <Package className="h-16 w-16" aria-hidden="true" />
-              </div>
-            )}
-          </div>
+          {data.image_url || data.images.length > 0 ? (
+            <ProductGallery
+              title={data.title}
+              imageUrl={data.image_url}
+              images={data.images}
+              className="max-h-[28rem]"
+            />
+          ) : (
+            <div className="flex h-64 items-center justify-center rounded-2xl bg-sand-100 text-sand-500 sm:h-80">
+              <Package className="h-16 w-16" aria-hidden="true" />
+            </div>
+          )}
 
           <div className="mt-6 flex flex-wrap items-start justify-between gap-3">
             {/* Owner-authored text carries its own direction — see BusinessCard. */}
@@ -119,6 +124,7 @@ export function ProductProfilePage() {
               }}
             />
             <ShareButton title={data.title} text={shareText} />
+            <SocialShare text={shareText} />
             <FavouriteButton
               subject="PRODUCT"
               slug={data.slug}
@@ -131,16 +137,6 @@ export function ProductProfilePage() {
             <p className="mt-4 whitespace-pre-line leading-loose text-ink-700" dir="auto">
               {data.description}
             </p>
-          ) : null}
-
-          {data.images.length > 0 ? (
-            <ul className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {data.images.map((image) => (
-                <li key={image.id} className="overflow-hidden rounded-xl bg-sand-100">
-                  <img src={image.url} alt={image.caption ?? data.title} className="h-24 w-full object-cover sm:h-28" />
-                </li>
-              ))}
-            </ul>
           ) : null}
 
           {hasProductFacts(data) ? (
