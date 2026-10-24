@@ -14,6 +14,7 @@ from collections.abc import Iterator
 import httpx
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
@@ -21,7 +22,7 @@ from app.database.session import SessionLocal
 from app.models.taxonomy import Category, Location
 from app.models.user import User
 from app.services import telegram_archive
-from app.services.telegram_archive import TelegramArchive
+from app.services.telegram_archive import Batch, TelegramArchive
 from tests.conftest import admin_headers, post_item, sign_in
 from tests.samples import ar
 from tests.test_registration import PNG_BYTES, _business_payload, _register
@@ -55,6 +56,7 @@ def telegram() -> Iterator[tuple[FakeTelegram, TelegramArchive]]:
         client=httpx.Client(transport=httpx.MockTransport(fake.handler)),
         interval=0,
         autostart=False,
+        send_files=True,
     )
     telegram_archive.install_hooks(SessionLocal)
     telegram_archive.set_archive(archive)
@@ -71,7 +73,42 @@ def test_unconfigured_it_sends_nothing() -> None:
     assert telegram_archive._archive is None
 
 
-def test_an_application_is_posted_with_its_id_scan(
+def test_by_default_only_text_is_sent(
+    client: TestClient,
+    category: Category,
+    location: Location,
+) -> None:
+    """The owners started with details alone: an ID scan is counted in the
+    message, never attached, until TELEGRAM_SEND_FILES is turned on."""
+    fake = FakeTelegram()
+    archive = TelegramArchive(
+        token=TOKEN,
+        chat_id="-100",
+        read_file=lambda key: b"FILE",
+        client=httpx.Client(transport=httpx.MockTransport(fake.handler)),
+        interval=0,
+        autostart=False,
+    )
+    telegram_archive.install_hooks(SessionLocal)
+    telegram_archive.set_archive(archive)
+    try:
+        response = _register(
+            client,
+            "business",
+            _business_payload(category, location),
+            document=("id.png", PNG_BYTES, "image/png"),
+        )
+        assert response.status_code == 202, response.text
+        archive.drain()
+    finally:
+        telegram_archive.set_archive(None)
+
+    assert "owner_verification_documents created" in "\n".join(fake.messages)
+    assert "📎 1" in "\n".join(fake.messages)
+    assert fake.documents == []
+
+
+def test_with_files_on_an_application_is_posted_with_its_id_scan(
     client: TestClient,
     category: Category,
     location: Location,
@@ -197,3 +234,48 @@ def test_the_bot_token_never_reaches_the_logs(
     assert fake.messages
     assert TOKEN not in caplog.text
     assert "secret-bot-token" not in json.dumps([r.getMessage() for r in caplog.records])
+
+
+def test_the_backfill_sends_a_business_with_its_owner_and_id_scan_once(
+    client: TestClient,
+    db: Session,
+    category: Category,
+    location: Location,
+    telegram: tuple[FakeTelegram, TelegramArchive],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Past data: one business, sent with the owner's identity, ID scan and
+    products, and recorded so a second run sends nothing."""
+    from app.models.business import Business
+    from scripts import telegram_backfill
+
+    fake, archive = telegram
+    response = _register(
+        client,
+        "business",
+        _business_payload(category, location),
+        document=("id.png", PNG_BYTES, "image/png"),
+    )
+    assert response.status_code == 202, response.text
+    telegram_archive.set_archive(None)  # only the backfill speaks from here
+
+    business = db.execute(select(Business)).scalar_one()
+    batch = telegram_backfill.business_batch(db, business)
+    archive.send(batch)
+    text = "\n".join(fake.messages)
+    assert "users created" in text and ar("identity.full_name") in text
+    assert "businesses created" in text and ar("business.applicant") in text
+    assert "password_hash" not in text
+    assert len(fake.documents) == 1, "the ID scan is attached"
+
+    sent: list[Batch] = []
+    monkeypatch.setenv("TELEGRAM_BACKFILL", "1")
+    monkeypatch.setattr(
+        telegram_backfill,
+        "get_settings",
+        lambda: Settings(telegram_bot_token=TOKEN, telegram_chat_id="-100"),
+    )
+    monkeypatch.setattr(TelegramArchive, "send", lambda self, batch: sent.append(batch))
+    telegram_backfill.main()
+    telegram_backfill.main()
+    assert len(sent) == 1, "a business is sent once, however often the job runs"

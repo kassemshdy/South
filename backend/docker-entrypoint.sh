@@ -20,5 +20,9 @@ exec gosu appuser sh -c '
   python -m scripts.seed --ensure
   python -m scripts.copy_media_to_bucket
   python -m scripts.backfill_thumbnails
+  # Past data to the Telegram archive, only while TELEGRAM_BACKFILL is set.
+  # In the background: Telegram allows ~20 messages a minute, and the site
+  # must not wait on that to start serving.
+  if [ -n "$TELEGRAM_BACKFILL" ]; then python -m scripts.telegram_backfill & fi
   exec uvicorn app.main:app --host 0.0.0.0 --port "$PORT" --workers "${WEB_CONCURRENCY:-2}" --proxy-headers --forwarded-allow-ips="*"
 '

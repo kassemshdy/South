@@ -157,7 +157,7 @@ def _format(value: Any) -> str | None:
     return text if len(text) <= MAX_VALUE else text[:MAX_VALUE] + "…"
 
 
-def _capture(obj: Any, action: str) -> Change | None:
+def capture(obj: Any, action: str) -> Change | None:
     table = getattr(obj, "__tablename__", None)
     if table not in ARCHIVED_TABLES:
         return None
@@ -207,7 +207,7 @@ def _after_flush(session: Session, _context: Any) -> None:
         (session.deleted, "deleted"),
     ):
         for obj in objects:
-            change = _capture(obj, action)
+            change = capture(obj, action)
             if change is not None:
                 pending.append(change)
 
@@ -240,10 +240,14 @@ class TelegramArchive:
         client: httpx.Client | None = None,
         interval: float = SEND_INTERVAL_SECONDS,
         autostart: bool = True,
+        send_files: bool = False,
     ) -> None:
         self._base = f"https://api.telegram.org/bot{token}"
         self._chat_id = chat_id
         self._read_file = read_file
+        # Text only unless TELEGRAM_SEND_FILES is on: the owners started with
+        # details alone and may add the photos and ID scans later.
+        self._send_files = send_files
         self._lookup = lookup
         self._client = client or httpx.Client(timeout=60)
         self._interval = interval
@@ -290,6 +294,8 @@ class TelegramArchive:
             if self._lookup is not None:
                 lines.extend(self._lookup(change))
             lines.extend(f"{name}: {value}" for name, value in change.fields.items())
+            if change.files and not self._send_files:
+                lines.append(f"📎 {len(change.files)}")
         return "\n".join(lines)
 
     def send(self, batch: Batch) -> None:
@@ -297,6 +303,8 @@ class TelegramArchive:
         for start in range(0, len(text), MAX_MESSAGE):
             chunk = text[start : start + MAX_MESSAGE]
             self._post("sendMessage", data={"chat_id": self._chat_id, "text": chunk})
+        if not self._send_files:
+            return
         for change in batch.changes:
             for key in change.files:
                 try:
@@ -409,5 +417,6 @@ def configure(settings: Settings, session_factory: sessionmaker[Session]) -> Non
             chat_id=settings.telegram_chat_id,
             read_file=lambda key: get_storage().read(key),
             lookup=context_lookup(session_factory),
+            send_files=settings.telegram_send_files,
         )
     )

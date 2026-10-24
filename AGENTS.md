@@ -308,8 +308,12 @@ for something that hands out sessions.
   The owners' decision (24 Oct 2026), made knowing the cost:
   `app/services/telegram_archive.py` posts each commit a non-administrator
   makes -- applications with identity fields and ID scans, orders with the
-  customer's phone, products, listings, reviews -- with any stored file
-  attached. Copies live on Telegram's servers and every group member's
+  customer's phone, products, listings, reviews -- and, only with
+  `TELEGRAM_SEND_FILES` on (off by default; the owners started with text
+  alone), every stored file attached. `scripts/telegram_backfill.py` sends
+  the history, one business at a time, while `TELEGRAM_BACKFILL` is set
+  (`1`, a slug or `all`), recording each as a `tgb:` row in `site_settings`
+  so nothing goes twice. Copies live on Telegram's servers and every group member's
   device, and **account deletion does not reach them**; who is in the group is
   the access control. Inert without both `TELEGRAM_BOT_TOKEN` and
   `TELEGRAM_CHAT_ID`. Password hashes and session counters are never sent
