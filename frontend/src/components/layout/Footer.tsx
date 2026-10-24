@@ -48,42 +48,34 @@ export function Footer() {
           </ul>
         </nav>
 
-        <nav aria-label={t('footer.quickLinksAria')}>
-          <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-700">
-            {t('footer.quickLinks')}
-          </h2>
-          <ul className="space-y-2 text-ink-500">
-            <li>
-              <Link to="/dashboard/businesses/new" className="hover:text-brand-700">
-                {t('nav.addBusiness')}
-              </Link>
-            </li>
-            <li>
-              {isAuthenticated ? (
-                <Link to="/dashboard" className="hover:text-brand-700">
-                  {t('nav.myBusinesses')}
-                </Link>
-              ) : (
-                <Link to="/login" className="hover:text-brand-700">
-                  {t('nav.login')}
-                </Link>
-              )}
-            </li>
-          </ul>
-        </nav>
-
         <div className="space-y-8">
-          <div>
+          <nav aria-label={t('footer.quickLinksAria')}>
             <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-700">
-              {t('footer.about')}
+              {t('footer.quickLinks')}
             </h2>
-            <p className="whitespace-pre-line leading-relaxed text-ink-500">
-              {about.summary ?? t('footer.aboutBody')}
-            </p>
-          </div>
+            <ul className="space-y-2 text-ink-500">
+              <li>
+                <Link to="/dashboard/businesses/new" className="hover:text-brand-700">
+                  {t('nav.addBusiness')}
+                </Link>
+              </li>
+              <li>
+                {isAuthenticated ? (
+                  <Link to="/dashboard" className="hover:text-brand-700">
+                    {t('nav.myBusinesses')}
+                  </Link>
+                ) : (
+                  <Link to="/login" className="hover:text-brand-700">
+                    {t('nav.login')}
+                  </Link>
+                )}
+              </li>
+            </ul>
+          </nav>
 
           {/* How to reach the team, and its social accounts -- whatever an
-              administrator has filled in, and nothing at all until then. */}
+              administrator has filled in, and nothing at all until then.
+              Under the quick links, at the owners' request. */}
           {hasContact ? (
             <div id="contact">
               <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-700">
@@ -97,6 +89,18 @@ export function Footer() {
               </div>
             </div>
           ) : null}
+        </div>
+
+        <div className="space-y-8">
+          <div>
+            <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink-700">
+              {t('footer.about')}
+            </h2>
+            <p className="whitespace-pre-line leading-relaxed text-ink-500">
+              {about.summary ?? t('footer.aboutBody')}
+            </p>
+          </div>
+
         </div>
       </div>
 

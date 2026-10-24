@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import uuid
 from datetime import date, datetime
-from typing import Annotated
+from typing import Annotated, Self
 
-from pydantic import BaseModel, EmailStr, Field, computed_field, field_validator
+from pydantic import BaseModel, EmailStr, Field, computed_field, field_validator, model_validator
 
 from app.core.i18n import translate
 from app.core.phone import normalize_optional_phone
+from app.core.pins import check_pin
 from app.models.enums import (
     BusinessStatus,
     GoodsOrigin,
@@ -195,6 +196,11 @@ class BusinessCreateIn(BaseModel):
     def _strip_custom_category(cls, value: str | None) -> str | None:
         return _strip_or_none(value)
 
+    @model_validator(mode="after")
+    def _pin_in_lebanon(self) -> Self:
+        check_pin(self.latitude, self.longitude)
+        return self
+
 
 class BusinessUpdateIn(BaseModel):
     """Every field optional: the wizard saves one step at a time."""
@@ -244,6 +250,11 @@ class BusinessUpdateIn(BaseModel):
     @classmethod
     def _strip_custom_category(cls, value: str | None) -> str | None:
         return _strip_or_none(value)
+
+    @model_validator(mode="after")
+    def _pin_in_lebanon(self) -> Self:
+        check_pin(self.latitude, self.longitude)
+        return self
 
 
 class ImageReorderIn(BaseModel):

@@ -9,17 +9,18 @@ from __future__ import annotations
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Query, Response
+from fastapi import APIRouter, File, Form, Query, Response, UploadFile
 
 from app.api.serializers import admin_business, paginate
+from app.api.v1.images import store_business_image
 from app.core.dependencies import AdminUser, AppSettings, DbSession
-from app.core.errors import NotFoundError
+from app.core.errors import NotFoundError, PayloadTooLargeError, ValidationError
 from app.core.i18n import translate
 from app.models.business import BusinessItem
-from app.models.enums import BusinessStatus
+from app.models.enums import BusinessStatus, ImageKind
 from app.repositories.business import BusinessRepository
 from app.schemas.common import MessageResponse, PaginatedResponse
-from app.schemas.moderation import AdminBusinessOut, RejectIn, SuspendIn
+from app.schemas.moderation import AdminBusinessOut, GoodsOriginIn, RejectIn, SuspendIn
 from app.services.account import AccountDeletionService
 from app.services.business import BusinessService
 from app.services.business_documents import BusinessDocumentService
@@ -154,3 +155,52 @@ def delete_item(
     BusinessService(db).refresh_search_text(business)
     db.commit()
     return MessageResponse(message=translate("item.deleted"))
+
+
+# --- Corrections an administrator makes on an owner's behalf ----------------
+
+
+@router.post("/businesses/{business_id}/goods-origin", response_model=AdminBusinessOut)
+def set_goods_origin(
+    business_id: uuid.UUID, payload: GoodsOriginIn, db: DbSession, admin: AdminUser
+) -> AdminBusinessOut:
+    """Move a listing between the local and imported doors.
+
+    An owner chooses by the door they came through, and some came through
+    the wrong one. Every product moves with the listing: a product's own mark
+    is what the directory filters on, so leaving them behind would keep the
+    shop under the door it was just taken out of. An owner who sells both can
+    still mark a product differently afterwards.
+    """
+    business = _load(db, business_id)
+    business.goods_origin = payload.goods_origin
+    for item in business.items:
+        item.goods_origin = payload.goods_origin
+    db.commit()
+    return admin_business(_load(db, business_id))
+
+
+@router.post("/businesses/{business_id}/images", response_model=AdminBusinessOut)
+def upload_brand_image(
+    business_id: uuid.UUID,
+    db: DbSession,
+    settings: AppSettings,
+    admin: AdminUser,
+    file: Annotated[UploadFile, File(description="Image file")],
+    kind: Annotated[ImageKind, Form()] = ImageKind.LOGO,
+) -> AdminBusinessOut:
+    """A logo or cover for a listing that went live without one -- the owners
+    asked how a listing could be given a logo when its owner had not added
+    one. Logo and cover only: the gallery and products stay the owner's."""
+    if kind not in (ImageKind.LOGO, ImageKind.COVER):
+        raise ValidationError("image.invalid_kind", code="invalid_image_kind")
+    data = file.file.read()
+    if len(data) > settings.max_upload_bytes:
+        raise PayloadTooLargeError()
+    business = _load(db, business_id)
+    store_business_image(
+        db, settings, business, kind=kind, data=data, content_type=file.content_type
+    )
+    db.commit()
+    return admin_business(_load(db, business_id))
+
