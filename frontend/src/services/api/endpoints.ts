@@ -630,6 +630,20 @@ export const adminApi = {
     apiRequest<{ message: string }>(`/api/admin/businesses/${businessId}/items/${itemId}`, {
       method: 'DELETE',
     }),
+  setGoodsOrigin: (businessId: string, goods_origin: GoodsOrigin) =>
+    apiRequest<AdminBusiness>(`/api/admin/businesses/${businessId}/goods-origin`, {
+      method: 'POST',
+      body: { goods_origin },
+    }),
+  uploadBrandImage: (businessId: string, file: File, kind: 'LOGO' | 'COVER') => {
+    const form = new FormData()
+    form.append('file', file)
+    form.append('kind', kind)
+    return apiRequest<AdminBusiness>(`/api/admin/businesses/${businessId}/images`, {
+      method: 'POST',
+      formData: form,
+    })
+  },
   deleteTalent: (id: string) =>
     apiRequest<{ message: string }>(`/api/admin/talent/${id}`, { method: 'DELETE' }),
   deleteUser: (id: string) =>

@@ -22,6 +22,8 @@ from tests.samples import ar
 
 TYRE = (33.27, 35.2)
 SAIDA = (33.56, 35.37)
+#: Where one live listing's pin was found: the sea off Haifa.
+OFF_HAIFA = (32.86444, 34.48551)
 
 
 def _business(
@@ -62,6 +64,31 @@ def test_a_listing_without_a_pin_is_not_ready_for_review(
     )
     readiness = client.get(f"/api/businesses/{business['id']}/readiness", headers=headers)
     assert "business.field.map_pin" not in readiness.json()
+
+
+def test_a_pin_outside_lebanon_is_refused(
+    client: TestClient, category: Category, location: Location
+) -> None:
+    """A slip on a zoomed-out map once put a listing in the sea off Haifa;
+    a pin outside the country is refused on create and on edit."""
+    headers = sign_in(client, "03960220")
+    payload = {
+        "name": ar("business.first"),
+        "category_id": str(category.id),
+        "location_id": str(location.id),
+        "latitude": OFF_HAIFA[0],
+        "longitude": OFF_HAIFA[1],
+    }
+    refused = client.post("/api/businesses", headers=headers, json=payload)
+    assert refused.status_code == 422, refused.text
+
+    business = _business(client, headers, category, location, ar("business.first"), TYRE)
+    moved = client.put(
+        f"/api/businesses/{business['id']}",
+        headers=headers,
+        json={"latitude": OFF_HAIFA[0], "longitude": OFF_HAIFA[1]},
+    )
+    assert moved.status_code == 422, moved.text
 
 
 def test_the_pin_is_published_on_the_listing(

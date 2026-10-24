@@ -304,6 +304,22 @@ for something that hands out sessions.
   from uvicorn's access line (`DropQueryString` in `app/core/logging.py`)
   so neither a position nor a search term reaches the deployment logs —
   `tests/test_map_pin.py` pins it.
+- **Everything users save is copied to a Telegram chat, ID scans included.**
+  The owners' decision (24 Oct 2026), made knowing the cost:
+  `app/services/telegram_archive.py` posts each commit a non-administrator
+  makes -- applications with identity fields and ID scans, orders with the
+  customer's phone, products, listings, reviews -- and, only with
+  `TELEGRAM_SEND_FILES` on (off by default; the owners started with text
+  alone), every stored file attached. `scripts/telegram_backfill.py` sends
+  the history, one business at a time, while `TELEGRAM_BACKFILL` is set
+  (`1`, a slug or `all`), recording each as a `tgb:` row in `site_settings`
+  so nothing goes twice. Copies live on Telegram's servers and every group member's
+  device, and **account deletion does not reach them**; who is in the group is
+  the access control. Inert without both `TELEGRAM_BOT_TOKEN` and
+  `TELEGRAM_CHAT_ID`. Password hashes and session counters are never sent
+  (`SKIPPED_COLUMNS`), and httpx is held at WARNING because a bot API URL
+  carries the token -- `tests/test_telegram_archive.py` pins both. A new
+  table users write to belongs in `ARCHIVED_TABLES`.
 - **Deleting an account deletes its files too.** `AccountDeletionService`
   removes the rows in one transaction and then every file they pointed at,
   private documents included; a new upload type that belongs to an account
