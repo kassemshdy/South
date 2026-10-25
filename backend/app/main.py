@@ -49,7 +49,13 @@ from app.models.site_setting import SiteSetting
 from app.repositories.business import BusinessRepository
 from app.repositories.item import ItemRepository
 from app.repositories.talent import TalentRepository
-from app.services import business_documents, db_backup, feedback_attachments, verification
+from app.services import (
+    business_documents,
+    db_backup,
+    feedback_attachments,
+    telegram_archive,
+    verification,
+)
 from app.storage import factory as storage_factory
 
 logger = logging.getLogger(__name__)
@@ -183,6 +189,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     configure_logging(settings.log_level, json_output=not settings.is_development)
     # Before the app is built, so a failure during startup is still reported.
     configure_error_tracking(settings)
+    telegram_archive.configure(settings, SessionLocal)
 
     app = FastAPI(
         title="South Lebanon Business Directory API",
