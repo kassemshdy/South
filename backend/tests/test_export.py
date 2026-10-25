@@ -60,3 +60,25 @@ def test_only_administrators_can_export(client: TestClient, admin: User) -> None
         client.get("/api/admin/export/secrets.csv", headers=admin_headers(client)).status_code
         == 422
     )
+
+
+@pytest.mark.parametrize(
+    "typed", ['=HYPERLINK("https://evil.example","x")', "+cmd", "-2+3", "@SUM(A1)", "\tx"]
+)
+def test_text_that_a_spreadsheet_would_run_is_exported_as_text(typed: str) -> None:
+    """Every text column was typed by someone outside: a shop name starting
+    with = must not become a formula on the administrator's machine."""
+    from app.api.v1.admin.export import _cell
+
+    assert _cell(typed) == f"'{typed}"
+
+
+def test_ordinary_values_are_exported_unchanged() -> None:
+    from decimal import Decimal
+
+    from app.api.v1.admin.export import _cell
+
+    assert _cell("Abu Ali Sweets") == "Abu Ali Sweets"
+    # A number is never a formula; a negative one must stay a number.
+    assert _cell(-35.2) == "-35.2"
+    assert _cell(Decimal("1.50")) == "1.50"
