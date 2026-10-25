@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -71,3 +72,18 @@ class PublicStatsOut(BaseModel):
     total_businesses: int
     total_products: int = 0
     total_talents: int = 0
+
+
+class GrowthSeries(BaseModel):
+    """Running totals at the end of each day, oldest first."""
+
+    businesses: list[int]
+    talents: list[int]
+    products: list[int]
+    orders: list[int]
+
+
+class GrowthResponse(BaseModel):
+    days: list[date] = Field(description="UTC days, oldest first, today last")
+    totals: GrowthSeries
+

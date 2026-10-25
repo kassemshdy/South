@@ -6,6 +6,7 @@
  */
 
 import { activeLocale, translate } from '@/i18n'
+import { shrinkImagesIn } from '@/utils/shrinkImage'
 import type { ApiErrorPayload } from '@/types/api'
 
 const TOKEN_STORAGE_KEY = 'south.auth.token'
@@ -112,13 +113,15 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   const headers = baseHeaders()
   if (body !== undefined) headers['Content-Type'] = 'application/json'
+  // Every upload passes here, so this is the one place photos are shrunk.
+  const form = formData ? await shrinkImagesIn(formData) : undefined
 
   let response: Response
   try {
     response = await fetch(buildUrl(path, query), {
       method,
       headers,
-      body: formData ?? (body !== undefined ? JSON.stringify(body) : undefined),
+      body: form ?? (body !== undefined ? JSON.stringify(body) : undefined),
       signal,
     })
   } catch (cause) {
@@ -173,7 +176,22 @@ export async function apiDownload(path: string): Promise<{ blob: Blob; filename:
     throw error
   }
 
-  const disposition = response.headers.get('content-disposition')
-  const match = disposition?.match(/filename="?([^"]+)"?/)
-  return { blob: await response.blob(), filename: match?.[1] ?? null }
+  return { blob: await response.blob(), filename: filenameFrom(response.headers) }
+}
+
+/**
+ * The real name from `filename*` (RFC 6266), which is how the API sends a
+ * name in Arabic, falling back to the ASCII `filename` beside it.
+ */
+function filenameFrom(headers: Headers): string | null {
+  const disposition = headers.get('content-disposition') ?? ''
+  const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1]
+  if (encoded) {
+    try {
+      return decodeURIComponent(encoded)
+    } catch {
+      /* a malformed name: the plain one below will do */
+    }
+  }
+  return disposition.match(/filename="?([^";]+)"?/)?.[1] ?? null
 }
