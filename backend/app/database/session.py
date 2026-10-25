@@ -15,6 +15,9 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import get_settings
 
+# The key the Telegram archive looks for (app/services/telegram_archive.py).
+ARCHIVE_SESSION_FLAG = "telegram_archive"
+
 _settings = get_settings()
 
 engine = create_engine(
@@ -36,6 +39,9 @@ def get_db() -> Iterator[Session]:
     responsibility of the service layer so a request stays one unit of work.
     """
     db = SessionLocal()
+    # A request's session is the only one the Telegram archive reads; the
+    # seeder, migrations and backups use their own and are never posted.
+    db.info[ARCHIVE_SESSION_FLAG] = True
     try:
         yield db
     except Exception:

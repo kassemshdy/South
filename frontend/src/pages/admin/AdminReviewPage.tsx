@@ -9,6 +9,7 @@ import type { z } from 'zod'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody, CardHeader } from '@/components/ui/Card'
+import { AdminCorrectionsCard } from '@/features/admin/AdminCorrectionsCard'
 import { DeleteForeverButton } from '@/features/admin/DeleteForeverButton'
 import { Dialog, DialogClose, DialogContent } from '@/components/ui/Dialog'
 import { Field } from '@/components/ui/Field'
@@ -215,6 +216,8 @@ export function AdminReviewPage() {
           ) : null}
         </CardBody>
       </Card>
+
+      <AdminCorrectionsCard business={data} />
 
       {data.rejection_reason ? (
         <Card className="border-clay-200">

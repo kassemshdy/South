@@ -170,6 +170,16 @@ class Settings(BaseSettings):
     # Unset locally: without a DSN the SDK is never initialised at all, so a
     # developer's tracebacks stay on their own machine.
     sentry_dsn: str | None = None
+
+    # --- Telegram archive --------------------------------------------------
+    # Every save a user makes, posted to a Telegram chat with any files
+    # attached (app/services/telegram_archive.py). Both unset means nothing
+    # is sent; the token is a secret, set as a Railway variable only.
+    telegram_bot_token: str | None = None
+    telegram_chat_id: str | None = None
+    # Off: messages carry the details and say how many files there are.
+    # On: photos, ID scans, CVs and papers are attached as well.
+    telegram_send_files: bool = False
     # Fraction of requests traced. Performance data is far higher volume than
     # errors, so this stays low by default and is tuned per environment.
     sentry_traces_sample_rate: float = 0.0

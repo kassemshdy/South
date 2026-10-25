@@ -6,7 +6,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field, field_validator
 
 from app.core.i18n import translate
-from app.models.enums import BusinessStatus, ModerationActionType, UserRole
+from app.models.enums import BusinessStatus, GoodsOrigin, ModerationActionType, UserRole
 from app.schemas.business import OwnerBusinessOut
 from app.schemas.common import ORMModel
 from app.schemas.identity import OwnerIdentityOut
@@ -88,3 +88,8 @@ class AdminUserDetailOut(AdminUserOut):
 
     businesses: list[AdminBusinessOut] = Field(default_factory=list)
     talent_profile: AdminTalentOut | None = None
+
+
+class GoodsOriginIn(BaseModel):
+    goods_origin: GoodsOrigin
+
