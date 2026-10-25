@@ -173,7 +173,22 @@ export async function apiDownload(path: string): Promise<{ blob: Blob; filename:
     throw error
   }
 
-  const disposition = response.headers.get('content-disposition')
-  const match = disposition?.match(/filename="?([^"]+)"?/)
-  return { blob: await response.blob(), filename: match?.[1] ?? null }
+  return { blob: await response.blob(), filename: filenameFrom(response.headers) }
+}
+
+/**
+ * The real name from `filename*` (RFC 6266), which is how the API sends a
+ * name in Arabic, falling back to the ASCII `filename` beside it.
+ */
+function filenameFrom(headers: Headers): string | null {
+  const disposition = headers.get('content-disposition') ?? ''
+  const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1]
+  if (encoded) {
+    try {
+      return decodeURIComponent(encoded)
+    } catch {
+      /* a malformed name: the plain one below will do */
+    }
+  }
+  return disposition.match(/filename="?([^";]+)"?/)?.[1] ?? null
 }
