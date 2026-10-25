@@ -6,6 +6,7 @@
  */
 
 import { activeLocale, translate } from '@/i18n'
+import { shrinkImagesIn } from '@/utils/shrinkImage'
 import type { ApiErrorPayload } from '@/types/api'
 
 const TOKEN_STORAGE_KEY = 'south.auth.token'
@@ -112,13 +113,15 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   const headers = baseHeaders()
   if (body !== undefined) headers['Content-Type'] = 'application/json'
+  // Every upload passes here, so this is the one place photos are shrunk.
+  const form = formData ? await shrinkImagesIn(formData) : undefined
 
   let response: Response
   try {
     response = await fetch(buildUrl(path, query), {
       method,
       headers,
-      body: formData ?? (body !== undefined ? JSON.stringify(body) : undefined),
+      body: form ?? (body !== undefined ? JSON.stringify(body) : undefined),
       signal,
     })
   } catch (cause) {
