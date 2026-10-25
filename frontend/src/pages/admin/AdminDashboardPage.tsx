@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/States'
+import { GrowthPanel } from '@/features/admin/GrowthPanel'
 import { useI18n } from '@/i18n'
 import { adminApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
@@ -63,6 +64,8 @@ export function AdminDashboardPage() {
           <StatCard label={t('admin.statItems')} value={stats.data.total_items} icon={Package} />
         </div>
       ) : null}
+
+      <GrowthPanel />
 
       <section>
         <h2 className="mb-4 text-xl">{t('admin.latestRequests')}</h2>

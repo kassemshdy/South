@@ -14,9 +14,10 @@ from fastapi import APIRouter, File, Form, Response, UploadFile
 
 from app.api.serializers import feedback_ticket_detail, feedback_ticket_summary, feedback_user_out
 from app.core.dependencies import AdminUser, AppSettings, DbSession
+from app.core.downloads import content_disposition
 from app.core.errors import NotFoundError, PayloadTooLargeError
 from app.core.i18n import translate
-from app.core.uploads import content_disposition, read_at_most
+from app.core.uploads import read_at_most
 from app.models.enums import FeedbackAttachmentKind, UserRole
 from app.models.feedback import FeedbackTicket
 from app.repositories.feedback import FeedbackTicketRepository
@@ -177,5 +178,5 @@ def download_attachment(
     return Response(
         content=data,
         media_type=attachment.content_type,
-        headers={"Content-Disposition": content_disposition(filename, inline=True)},
+        headers={"Content-Disposition": content_disposition(filename, disposition="inline")},
     )

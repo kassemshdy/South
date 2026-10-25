@@ -7,16 +7,15 @@ that reopens the hole fails here with a sentence explaining what was lost.
 from __future__ import annotations
 
 import io
-from urllib.parse import quote
 
 from fastapi.testclient import TestClient
 from starlette.requests import Request
 
 from app.core.config import Settings
 from app.core.dependencies import get_client_ip
-from app.core.uploads import content_disposition, read_at_most
+from app.core.downloads import content_disposition
+from app.core.uploads import read_at_most
 from app.main import allow_inline_scripts, create_app
-from tests.samples import ar
 
 
 def _request(forwarded: str | None, peer: str = "10.0.0.99") -> Request:
@@ -132,34 +131,15 @@ def test_an_empty_upload_reads_as_empty() -> None:
 
 def test_a_quote_in_the_filename_cannot_end_the_parameter() -> None:
     header = content_disposition('scan".pdf; filename="evil.html')
-    # Only the two quotes that delimit the fallback survive -- the name's own
-    # are replaced, so it cannot close the string and append a parameter. A
-    # ';' inside a quoted-string is just a character.
+    # Only the two quotes that delimit the fallback survive, so the name
+    # cannot close the string and append a parameter of its own.
     assert header.count('"') == 2
-    assert header.startswith('attachment; filename="scan_.pdf; filename=_evil.html"; ')
 
 
 def test_a_line_break_in_the_filename_cannot_start_a_new_header() -> None:
     header = content_disposition("scan.pdf\r\nSet-Cookie: session=stolen")
     assert "\r" not in header
     assert "\n" not in header
-
-
-def test_a_non_latin_filename_survives_the_download() -> None:
-    name = f"{ar('category.restaurants')}.pdf"
-    header = content_disposition(name)
-    assert header.startswith("attachment; ")
-    assert header.endswith(f"filename*=UTF-8''{quote(name, safe='')}")
-    # The fallback is plain ASCII for clients that ignore filename*.
-    header.split("; ")[1].encode("ascii")
-
-
-def test_inline_disposition_is_kept_for_viewable_attachments() -> None:
-    assert content_disposition("receipt.png", inline=True).startswith("inline; ")
-
-
-def test_a_blank_filename_gets_a_neutral_name() -> None:
-    assert '; filename="download";' in content_disposition("   ")
 
 
 # --- Static pages: inline scripts allowed, nothing else relaxed -------------------

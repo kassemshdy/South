@@ -14,9 +14,10 @@ from fastapi import APIRouter, File, Form, Query, Response, UploadFile
 from app.api.serializers import admin_business, paginate
 from app.api.v1.images import store_business_image
 from app.core.dependencies import AdminUser, AppSettings, DbSession
+from app.core.downloads import content_disposition
 from app.core.errors import NotFoundError, PayloadTooLargeError, ValidationError
 from app.core.i18n import translate
-from app.core.uploads import content_disposition, read_at_most
+from app.core.uploads import read_at_most
 from app.models.business import BusinessItem
 from app.models.enums import BusinessStatus, ImageKind
 from app.repositories.business import BusinessRepository

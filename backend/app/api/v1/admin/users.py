@@ -15,9 +15,9 @@ from fastapi import APIRouter, Response
 
 from app.api.serializers import admin_user_detail
 from app.core.dependencies import AdminUser, AppSettings, DbSession
+from app.core.downloads import content_disposition
 from app.core.errors import NotFoundError, PermissionDeniedError, ValidationError
 from app.core.i18n import translate
-from app.core.uploads import content_disposition
 from app.models.enums import UserRole, VerificationDocumentKind
 from app.repositories.business import BusinessRepository
 from app.repositories.talent import TalentRepository

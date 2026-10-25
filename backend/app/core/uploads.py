@@ -1,14 +1,12 @@
-"""Reading uploads and serving stored files over HTTP, safely.
+"""Reading uploads with a bound.
 
-Two small helpers that every upload and download route used to reimplement,
-each with the same gap.
+The Content-Disposition half of this module moved to ``app.core.downloads``,
+which develop-claude added independently for the same bug.
 """
 
 from __future__ import annotations
 
-import re
 from typing import BinaryIO
-from urllib.parse import quote
 
 #: Read granularity, so the bound below is reached in steps rather than by one
 #: read that could itself be enormous.
@@ -36,23 +34,3 @@ def read_at_most(fileobj: BinaryIO, limit: int) -> bytes:
         budget -= len(chunk)
     return b"".join(chunks)
 
-
-# Printable ASCII with the two characters that would end or escape a quoted
-# string removed. Everything else becomes an underscore in the fallback.
-_UNSAFE_ASCII = re.compile(r'[^\x20-\x7e]|["\\]')
-
-
-def content_disposition(filename: str, *, inline: bool = False) -> str:
-    """A ``Content-Disposition`` value that cannot be broken by its filename.
-
-    The filename is applicant-supplied. Interpolated raw into
-    ``filename="..."`` a double quote ended the parameter early and left the
-    rest as header syntax. RFC 6266 answers both halves of the problem: a
-    plain-ASCII ``filename`` with anything unsafe replaced, for old clients,
-    and ``filename*`` carrying the real name percent-encoded as UTF-8 -- which
-    is also what makes an Arabic filename survive the download at all.
-    """
-    disposition = "inline" if inline else "attachment"
-    fallback = _UNSAFE_ASCII.sub("_", filename).strip() or "download"
-    encoded = quote(filename, safe="")
-    return f"{disposition}; filename=\"{fallback}\"; filename*=UTF-8''{encoded}"

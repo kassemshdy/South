@@ -472,6 +472,19 @@ export interface AdminTalent extends OwnerTalent {
   moderation_actions: ModerationAction[]
 }
 
+/** Running totals per UTC day, oldest first (`/api/admin/stats/growth`). */
+export interface GrowthTotals {
+  businesses: number[]
+  talents: number[]
+  products: number[]
+  orders: number[]
+}
+
+export interface PlatformGrowth {
+  days: string[]
+  totals: GrowthTotals
+}
+
 export interface PlatformStats {
   total_businesses: number
   pending_businesses: number

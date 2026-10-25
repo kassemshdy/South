@@ -3,22 +3,33 @@
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Query
-from sqlalchemy import func, select
+from sqlalchemy import Date, cast, func, select
 
 from app.api.serializers import admin_user
 from app.core.dependencies import AdminUser, DbSession
 from app.models.business import Business, BusinessItem
 from app.models.enums import BusinessStatus, UserRole
+from app.models.order import Order
+from app.models.talent import TalentProfile
 from app.repositories.business import BusinessRepository
 from app.repositories.talent import TalentRepository
 from app.repositories.user import UserRepository
-from app.schemas.common import PageMeta, PaginatedResponse, StatsResponse
+from app.schemas.common import (
+    GrowthResponse,
+    GrowthSeries,
+    PageMeta,
+    PaginatedResponse,
+    StatsResponse,
+)
 from app.schemas.moderation import AdminUserOut
 
 router = APIRouter(prefix="/admin", tags=["admin-stats"])
+
+Counted = type[Business] | type[TalentProfile] | type[BusinessItem] | type[Order]
 
 
 @router.get("/stats", response_model=StatsResponse)
@@ -43,6 +54,52 @@ def platform_stats(db: DbSession, admin: AdminUser) -> StatsResponse:
         total_talents=sum(talent_counts.values()),
         pending_talents=talent_counts.get(BusinessStatus.PENDING_REVIEW, 0),
         approved_talents=talent_counts.get(BusinessStatus.APPROVED, 0),
+    )
+
+
+@router.get("/stats/growth", response_model=GrowthResponse)
+def platform_growth(
+    db: DbSession,
+    admin: AdminUser,
+    days: Annotated[int, Query(ge=7, le=180)] = 30,
+) -> GrowthResponse:
+    """Running totals per day, for the dashboard's growth chart.
+
+    Every row whatever its status -- pending and rejected applications are
+    part of how the platform grew -- counted by the day it was created, in
+    UTC. Anything older than the window is the first day's starting total.
+    """
+    today = datetime.now(UTC).date()
+    window = [today - timedelta(days=offset) for offset in range(days - 1, -1, -1)]
+    start = datetime.combine(window[0], time.min, tzinfo=UTC)
+
+    def running(model: Counted) -> list[int]:
+        before = int(
+            db.execute(
+                select(func.count()).select_from(model).where(model.created_at < start)
+            ).scalar_one()
+        )
+        day = cast(model.created_at, Date)
+        per_day: dict[date, int] = {
+            created: int(count)
+            for created, count in db.execute(
+                select(day, func.count()).where(model.created_at >= start).group_by(day)
+            ).all()
+        }
+        totals: list[int] = []
+        for current in window:
+            before += int(per_day.get(current, 0))
+            totals.append(before)
+        return totals
+
+    return GrowthResponse(
+        days=window,
+        totals=GrowthSeries(
+            businesses=running(Business),
+            talents=running(TalentProfile),
+            products=running(BusinessItem),
+            orders=running(Order),
+        ),
     )
 
 
