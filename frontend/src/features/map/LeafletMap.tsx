@@ -9,6 +9,13 @@ import type { Pin } from '@/features/map/types'
 const SOUTH: L.LatLngExpression = [33.3, 35.4]
 
 /**
+ * Lebanon with a little to spare -- the same box the API checks a pin against
+ * (app/core/pins.py). An editable map cannot be panned out of it, so a tap
+ * cannot land a pin in the sea off Haifa, which is where one was found.
+ */
+const LEBANON = L.latLngBounds([33.0, 35.05], [34.75, 36.7])
+
+/**
  * A pin drawn in SVG rather than Leaflet's default marker images, whose
  * paths break once the bundler renames them -- and it takes the brand colour.
  */
@@ -57,6 +64,7 @@ export default function LeafletMap({ value, onChange, label, className }: Leafle
       center: value ? [value.lat, value.lng] : SOUTH,
       zoom: value ? 14 : 9,
       scrollWheelZoom: false,
+      ...(editable ? { maxBounds: LEBANON, maxBoundsViscosity: 1, minZoom: 8 } : {}),
     })
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
@@ -64,6 +72,7 @@ export default function LeafletMap({ value, onChange, label, className }: Leafle
     }).addTo(instance)
     if (editable) {
       instance.on('click', (event: L.LeafletMouseEvent) => {
+        if (!LEBANON.contains(event.latlng)) return
         changeRef.current?.({ lat: event.latlng.lat, lng: event.latlng.lng })
       })
     }
@@ -94,6 +103,11 @@ export default function LeafletMap({ value, onChange, label, className }: Leafle
       if (editable) {
         created.on('dragend', () => {
           const moved = created.getLatLng()
+          if (!LEBANON.contains(moved)) {
+            // Back to where it was: a drag cannot take a pin out of Lebanon.
+            created.setLatLng(at)
+            return
+          }
           changeRef.current?.({ lat: moved.lat, lng: moved.lng })
         })
       }

@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import uuid
 from datetime import date, datetime
-from typing import Annotated
+from typing import Annotated, Self
 
-from pydantic import BaseModel, EmailStr, Field, computed_field, field_validator
+from pydantic import BaseModel, EmailStr, Field, computed_field, field_validator, model_validator
 
 from app.core.i18n import translate
 from app.core.phone import normalize_optional_phone
+from app.core.pins import check_pin
 from app.models.enums import (
     BusinessStatus,
     GoodsOrigin,
@@ -143,6 +144,9 @@ class OwnerBusinessOut(BusinessDetailOut):
     # ``owner_relation`` above: a commercial register is evidence for a
     # reviewer, not content for a visitor.
     documents: list[BusinessDocumentOut] = Field(default_factory=list)
+    # Orders not yet dealt with, for the dashboard's orders button. Filled by
+    # the owner's list only; zero everywhere else.
+    new_orders: int = 0
 
 
 class BusinessCreateIn(BaseModel):
@@ -191,6 +195,11 @@ class BusinessCreateIn(BaseModel):
     @classmethod
     def _strip_custom_category(cls, value: str | None) -> str | None:
         return _strip_or_none(value)
+
+    @model_validator(mode="after")
+    def _pin_in_lebanon(self) -> Self:
+        check_pin(self.latitude, self.longitude)
+        return self
 
 
 class BusinessUpdateIn(BaseModel):
@@ -241,6 +250,11 @@ class BusinessUpdateIn(BaseModel):
     @classmethod
     def _strip_custom_category(cls, value: str | None) -> str | None:
         return _strip_or_none(value)
+
+    @model_validator(mode="after")
+    def _pin_in_lebanon(self) -> Self:
+        check_pin(self.latitude, self.longitude)
+        return self
 
 
 class ImageReorderIn(BaseModel):

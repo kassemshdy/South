@@ -22,6 +22,7 @@ from app.models.enums import GoodsOrigin, ViewSubject
 from app.repositories.business import BusinessRepository
 from app.repositories.geo import point_or_none
 from app.repositories.item import ItemRepository
+from app.repositories.order import OrderRepository
 from app.repositories.talent import TalentRepository
 from app.schemas.business import (
     BusinessCreateIn,
@@ -132,10 +133,15 @@ def get_business(
 
 @owner_router.get("/my/businesses", response_model=list[OwnerBusinessOut])
 def list_my_businesses(user: CurrentUser, db: DbSession) -> list[OwnerBusinessOut]:
-    """Every listing owned by the caller, in any status."""
+    """Every listing owned by the caller, in any status, with how many of
+    its orders are still new."""
+    businesses = BusinessRepository(db).list_for_owner(user.id)
+    new_orders = OrderRepository(db).new_counts([business.id for business in businesses])
     return [
-        owner_business(business)
-        for business in BusinessRepository(db).list_for_owner(user.id)
+        owner_business(business).model_copy(
+            update={"new_orders": new_orders.get(business.id, 0)}
+        )
+        for business in businesses
     ]
 
 
