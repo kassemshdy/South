@@ -51,3 +51,27 @@ export async function shrinkImage(
     URL.revokeObjectURL(url)
   }
 }
+
+const SHRINKABLE = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp'])
+/** Under the API's 5 MB image limit, with room for the multipart envelope. */
+const UPLOAD_TARGET_BYTES = 4.5 * 1024 * 1024
+
+/**
+ * The same form with every photo in it brought under the limit, for the one
+ * place every upload passes (`apiRequest`). Product photos went straight to
+ * the API at whatever size the phone produced, and owners were refused for
+ * photos over 5 MB -- three times in one morning. A PDF, or a photo the
+ * browser cannot decode, is sent exactly as chosen and the server decides.
+ */
+export async function shrinkImagesIn(form: FormData): Promise<FormData> {
+  const shrunk = new FormData()
+  for (const [key, value] of form.entries()) {
+    if (value instanceof File && SHRINKABLE.has(value.type.toLowerCase())) {
+      const file = await shrinkImage(value, { maxBytes: UPLOAD_TARGET_BYTES }).catch(() => value)
+      shrunk.append(key, file, file.name)
+    } else {
+      shrunk.append(key, value)
+    }
+  }
+  return shrunk
+}

@@ -15,6 +15,7 @@ from fastapi import APIRouter, Response
 
 from app.api.serializers import admin_user_detail
 from app.core.dependencies import AdminUser, AppSettings, DbSession
+from app.core.downloads import content_disposition
 from app.core.errors import NotFoundError, PermissionDeniedError, ValidationError
 from app.core.i18n import translate
 from app.models.enums import UserRole, VerificationDocumentKind
@@ -51,7 +52,7 @@ def _download(document, settings: AppSettings) -> Response:
     return Response(
         content=data,
         media_type=document.content_type,
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": content_disposition(filename)},
     )
 
 

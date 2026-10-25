@@ -53,6 +53,7 @@ import type {
   OwnerTestimonial,
   OwnerViews,
   Paginated,
+  PlatformGrowth,
   PlatformStats,
   ProductDetail,
   ProductQuery,
@@ -577,6 +578,8 @@ export type ExportDataset = 'businesses' | 'products' | 'users' | 'talent' | 'or
 
 export const adminApi = {
   stats: () => apiRequest<PlatformStats>('/api/admin/stats'),
+  growth: (days: number) =>
+    apiRequest<PlatformGrowth>('/api/admin/stats/growth', { query: { days } }),
   exportCsv: (dataset: ExportDataset) => apiDownload(`/api/admin/export/${dataset}.csv`),
   orders: (status: OrderStatus | undefined) =>
     apiRequest<OrderWithBusiness[]>('/api/admin/orders', { query: { status } }),
