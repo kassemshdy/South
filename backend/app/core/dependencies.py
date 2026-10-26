@@ -24,7 +24,7 @@ from app.repositories.business import BusinessRepository
 from app.repositories.talent import TalentRepository
 from app.repositories.user import UserRepository
 from app.services.telegram_archive import SESSION_ACTOR as ARCHIVE_ACTOR
-from app.services.telegram_archive import describe_actor
+from app.services.telegram_archive import person as archive_person
 
 DbSession = Annotated[Session, Depends(get_db)]
 AppSettings = Annotated[Settings, Depends(get_settings)]
@@ -88,7 +88,7 @@ def get_current_user_optional(request: Request, db: DbSession) -> User | None:
     if int(payload.get("tv", -1)) != user.token_version:
         raise AuthenticationError("auth.session.expired", code="token_revoked")
     # Who is saving, for the Telegram archive, which skips administrators.
-    db.info[ARCHIVE_ACTOR] = (user.role.value, describe_actor(user))
+    db.info[ARCHIVE_ACTOR] = (user.role.value, *archive_person(user))
     return user
 
 
