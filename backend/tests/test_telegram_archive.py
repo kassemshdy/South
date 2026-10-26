@@ -36,12 +36,15 @@ class FakeTelegram:
     def __init__(self) -> None:
         self.messages: list[str] = []
         self.documents: list[bytes] = []
+        self.photos: list[bytes] = []
 
     def handler(self, request: httpx.Request) -> httpx.Response:
         assert request.url.path.startswith(f"/bot{TOKEN}/")
         if request.url.path.endswith("/sendMessage"):
             form = dict(httpx.QueryParams(request.content.decode()))
             self.messages.append(form["text"])
+        elif request.url.path.endswith("/sendPhoto"):
+            self.photos.append(request.content)
         else:
             self.documents.append(request.content)
         return httpx.Response(200, json={"ok": True})
@@ -109,6 +112,7 @@ def test_by_default_only_text_is_sent(
     (message,) = fake.messages
     lines = message.splitlines()
     assert len(lines) == 3
+    assert lines[0].startswith("🆕🏪 "), "new, and about a shop"
     assert ar("identity.full_name") in lines[0]
     assert lines[1] == f"📞 {APPLICANT_E164}"
     assert lines[2].startswith("🔗 /admin/businesses/")
@@ -198,6 +202,7 @@ def test_an_order_is_posted(
     archive.drain()
 
     (message,) = fake.messages
+    assert message.startswith("🆕🛒 ")
     assert ar("order.customer") in message
     assert "+9613990600" in message
     assert message.endswith(f"🔗 {SITE}/admin/orders")
@@ -278,7 +283,7 @@ def test_the_backfill_sends_a_business_with_its_owner_and_id_scan_once(
     batch = telegram_backfill.business_batch(db, business)
     archive.send(batch)
     text = "\n".join(fake.messages)
-    assert text.startswith("↩️ ") and ar("identity.full_name") in text
+    assert text.startswith("↩️🆕🏪 ") and ar("identity.full_name") in text
     assert APPLICANT_E164 in text
     assert f"{SITE}/admin/businesses/{business.id}" in text
     assert ar("business.applicant") not in text
@@ -295,3 +300,43 @@ def test_the_backfill_sends_a_business_with_its_owner_and_id_scan_once(
     telegram_backfill.main()
     telegram_backfill.main()
     assert len(sent) == 1, "a business is sent once, however often the job runs"
+
+
+def test_a_business_is_posted_with_its_logo_and_social_pages() -> None:
+    """The logo is the photo, the Instagram and Facebook pages follow the
+    link in its caption; with no logo the same lines go as text."""
+    fake = FakeTelegram()
+    shops = {
+        "b1": telegram_archive.Shop(
+            logo_key="logos/b1.png",
+            links=["📷 https://instagram.com/shop", "📘 https://facebook.com/shop"],
+        ),
+        "b2": telegram_archive.Shop(links=["📷 https://instagram.com/other"]),
+    }
+    archive = TelegramArchive(
+        token=TOKEN,
+        chat_id="-100",
+        read_file=lambda key: b"LOGO:" + key.encode(),
+        shop=shops.get,
+        base_url=SITE,
+        client=httpx.Client(transport=httpx.MockTransport(fake.handler)),
+        interval=0,
+        autostart=False,
+    )
+    for business_id in shops:
+        archive.send(
+            Batch(
+                name="n",
+                phone="+9613000000",
+                changes=[telegram_archive.Change("updated", "businesses", business_id)],
+            )
+        )
+
+    (photo,) = fake.photos
+    assert b"LOGO:logos/b1.png" in photo
+    caption = photo.decode("utf-8", errors="ignore")
+    assert f"{SITE}/admin/businesses/b1" in caption
+    assert "https://instagram.com/shop" in caption
+    assert "https://facebook.com/shop" in caption
+    (message,) = fake.messages
+    assert message.endswith(f"{SITE}/admin/businesses/b2\n📷 https://instagram.com/other")

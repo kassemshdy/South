@@ -321,10 +321,11 @@ for something that hands out sessions.
 - **Everything users save is copied to a Telegram chat, ID scans included.**
   The owners' decision (24 Oct 2026), made knowing the cost:
   `app/services/telegram_archive.py` posts each commit a non-administrator
-  makes -- applications, orders, products, listings, reviews -- as three
-  lines: who saved it, their phone, and a link to the admin screen that
-  reviews it (the owners cut it to that on 26 Oct 2026; no other field is
-  sent as text) -- and, only with
+  makes -- applications, orders, products, listings, reviews -- as an
+  action/kind icon, who saved it, their phone, and a link to the admin
+  screen that reviews it, plus a shop's logo and Instagram/Facebook pages
+  (the owners cut it to that on 26 Oct 2026; no other field is sent as
+  text) -- and, only with
   `TELEGRAM_SEND_FILES` on (off by default; the owners started with text
   alone), every stored file attached. `scripts/telegram_backfill.py` sends
   the history, one business at a time, while `TELEGRAM_BACKFILL` is set
