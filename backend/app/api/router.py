@@ -31,6 +31,7 @@ from app.api.v1.admin import articles as admin_articles
 from app.api.v1.admin import businesses as admin_businesses
 from app.api.v1.admin import export as admin_export
 from app.api.v1.admin import feedback as admin_feedback
+from app.api.v1.admin import staff as admin_staff
 from app.api.v1.admin import stats as admin_stats
 from app.api.v1.admin import talent as admin_talent
 from app.api.v1.admin import taxonomy as admin_taxonomy
@@ -50,6 +51,7 @@ api_router.include_router(admin_export.router)
 api_router.include_router(admin_feedback.router)
 api_router.include_router(admin_talent.router)
 api_router.include_router(admin_taxonomy.router)
+api_router.include_router(admin_staff.router)
 api_router.include_router(admin_stats.router)
 api_router.include_router(admin_users.router)
 api_router.include_router(orders.admin_router)

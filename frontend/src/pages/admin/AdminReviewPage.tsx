@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardBody, CardHeader } from '@/components/ui/Card'
 import { AdminCorrectionsCard } from '@/features/admin/AdminCorrectionsCard'
 import { DeleteForeverButton } from '@/features/admin/DeleteForeverButton'
+import { useStaffCan } from '@/features/admin/staffAccess'
 import { Dialog, DialogClose, DialogContent } from '@/components/ui/Dialog'
 import { Field } from '@/components/ui/Field'
 import { Textarea } from '@/components/ui/Input'
@@ -33,6 +34,8 @@ type ConfirmAction = 'approve' | 'reject' | 'suspend' | 'reactivate' | null
 
 export function AdminReviewPage() {
   const { id = '' } = useParams()
+  const canModerate = useStaffCan('moderate')
+  const canDocuments = useStaffCan('documents')
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const toast = useToast()
@@ -165,7 +168,7 @@ export function AdminReviewPage() {
       {/* Decision bar, pinned near the top: the admin's job on this page. */}
       <Card className="border-clay-200 bg-clay-50/40">
         <CardBody className="flex flex-wrap gap-3">
-          {data.status === 'PENDING_REVIEW' ? (
+          {canModerate && data.status === 'PENDING_REVIEW' ? (
             <>
               <Button size="lg" onClick={() => setConfirming('approve')}>
                 <Check className="h-5 w-5" aria-hidden="true" />
@@ -185,14 +188,14 @@ export function AdminReviewPage() {
             </>
           ) : null}
 
-          {data.status === 'APPROVED' ? (
+          {canModerate && data.status === 'APPROVED' ? (
             <Button size="lg" variant="outline" onClick={() => setConfirming('suspend')}>
               <PauseCircle className="h-5 w-5" aria-hidden="true" />
               {t('admin.suspend')}
             </Button>
           ) : null}
 
-          {data.status === 'SUSPENDED' ? (
+          {canModerate && data.status === 'SUSPENDED' ? (
             <Button size="lg" onClick={() => setConfirming('reactivate')}>
               <PlayCircle className="h-5 w-5" aria-hidden="true" />
               {t('admin.reactivate')}
@@ -217,7 +220,7 @@ export function AdminReviewPage() {
         </CardBody>
       </Card>
 
-      <AdminCorrectionsCard business={data} />
+      {canModerate ? <AdminCorrectionsCard business={data} /> : null}
 
       {data.rejection_reason ? (
         <Card className="border-clay-200">
@@ -316,6 +319,7 @@ export function AdminReviewPage() {
                         </span>
                         <DeleteForeverButton
                           size="sm"
+                          needs="moderate"
                           description={t('admin.deleteItemBody', { name: item.title })}
                           onDelete={() => adminApi.deleteItem(data.id, item.id)}
                           onDeleted={invalidate}
@@ -340,7 +344,7 @@ export function AdminReviewPage() {
               <Detail labelKey="admin.ownerPersonalPhone" value={data.owner_personal_phone} ltr />
               <OwnerWhatsappButton phone={data.owner_phone} />
               <p className="text-xs text-ink-300">{t('admin.ownerPrivacyNote')}</p>
-              {data.owner_has_verification_document ? (
+              {canDocuments && data.owner_has_verification_document ? (
                 <Button
                   type="button"
                   variant="outline"
@@ -359,7 +363,7 @@ export function AdminReviewPage() {
                   of the fields above it. Offered separately because it is a
                   separate file, and a reviewer checking a name against a card
                   needs the side that has it. */}
-              {data.owner_has_verification_document_back ? (
+              {canDocuments && data.owner_has_verification_document_back ? (
                 <Button
                   type="button"
                   variant="outline"
@@ -374,7 +378,7 @@ export function AdminReviewPage() {
                 <p className="text-sm text-ink-500">{t('admin.noDocumentBack')}</p>
               )}
 
-              {data.owner_has_cv_document ? (
+              {canDocuments && data.owner_has_cv_document ? (
                 <Button
                   type="button"
                   variant="outline"

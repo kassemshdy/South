@@ -6,7 +6,7 @@ from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.core.phone import normalize_optional_phone
-from app.models.enums import Gender, MaritalStatus, UserRole
+from app.models.enums import Gender, MaritalStatus, StaffRole, UserRole
 from app.schemas.common import ORMModel
 from app.schemas.identity import IdentityFieldsIn
 
@@ -29,6 +29,9 @@ class UserOut(ORMModel):
     email: str | None
     display_name: str | None
     role: UserRole
+    # An administrator's staff role, for the admin area to show only what it
+    # may use; the API enforces it regardless (app/core/permissions.py).
+    staff_role: StaffRole | None = None
     # True while an administrator-issued password has not been replaced. The
     # client routes on this; the server enforces it regardless.
     must_change_password: bool = False

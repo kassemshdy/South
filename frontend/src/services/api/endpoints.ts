@@ -54,6 +54,9 @@ import type {
   OwnerViews,
   Paginated,
   PlatformGrowth,
+  StaffMember,
+  StaffPassword,
+  StaffRole,
   PlatformStats,
   ProductDetail,
   ProductQuery,
@@ -581,6 +584,17 @@ export const adminApi = {
   growth: (days: number) =>
     apiRequest<PlatformGrowth>('/api/admin/stats/growth', { query: { days } }),
   exportCsv: (dataset: ExportDataset) => apiDownload(`/api/admin/export/${dataset}.csv`),
+  staff: () => apiRequest<StaffMember[]>('/api/admin/staff'),
+  inviteStaff: (payload: {
+    email: string
+    display_name: string
+    staff_role: StaffRole
+    phone?: string | undefined
+  }) => apiRequest<StaffPassword>('/api/admin/staff', { method: 'POST', body: payload }),
+  updateStaff: (id: string, payload: { staff_role?: StaffRole; is_active?: boolean }) =>
+    apiRequest<StaffMember>(`/api/admin/staff/${id}`, { method: 'PATCH', body: payload }),
+  reissueStaffPassword: (id: string) =>
+    apiRequest<StaffPassword>(`/api/admin/staff/${id}/password`, { method: 'POST' }),
   orders: (status: OrderStatus | undefined) =>
     apiRequest<OrderWithBusiness[]>('/api/admin/orders', { query: { status } }),
   discardedApplications: (includeDismissed: boolean) =>

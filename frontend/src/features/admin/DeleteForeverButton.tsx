@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Dialog, DialogClose, DialogContent } from '@/components/ui/Dialog'
 import { useToast } from '@/components/ui/Toast'
+import { useStaffCan, type StaffAction } from '@/features/admin/staffAccess'
 import { useT } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 
@@ -20,12 +21,15 @@ export function DeleteForeverButton({
   onDelete,
   onDeleted,
   size = 'lg',
+  needs = 'manage',
 }: {
   /** What is about to go, already translated. */
   description: string
   onDelete: () => Promise<unknown>
   onDeleted?: () => void
   size?: 'sm' | 'lg'
+  /** Who may see it: permanent deletes are the manager's; a product's, a reviewer's too. */
+  needs?: StaffAction
 }) {
   const t = useT()
   const toast = useToast()
@@ -43,6 +47,8 @@ export function DeleteForeverButton({
     onError: (error) =>
       toast.error(t('admin.deleteFailed'), error instanceof ApiError ? error.message : undefined),
   })
+  const allowed = useStaffCan(needs)
+  if (!allowed) return null
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

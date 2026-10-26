@@ -59,6 +59,7 @@ from app.models.enums import (
     LocationType,
     ModerationActionType,
     SocialPlatform,
+    StaffRole,
     UserRole,
 )
 from app.models.talent import (
@@ -235,6 +236,8 @@ def seed_admin(db) -> User | None:  # type: ignore[no-untyped-def]
             display_name=settings.admin_display_name
             or translate("admin.default_display_name"),
             role=UserRole.ADMIN,
+            # The account the deployment bootstraps runs the staff.
+            staff_role=StaffRole.MANAGER,
         )
         db.add(admin)
         db.flush()
@@ -243,6 +246,7 @@ def seed_admin(db) -> User | None:  # type: ignore[no-untyped-def]
         # Keep the seeded admin usable if the configured password changed.
         admin.password_hash = hash_password(settings.admin_password)
         admin.role = UserRole.ADMIN
+        admin.staff_role = admin.staff_role or StaffRole.MANAGER
         admin.is_active = True
         logger.info("Administrator updated", extra={"email": email})
     return admin

@@ -15,6 +15,9 @@ export type BusinessStatus =
 
 export type UserRole = 'OWNER' | 'ADMIN'
 
+/** An administrator's staff role; see `features/admin/staffAccess.ts`. */
+export type StaffRole = 'MANAGER' | 'REVIEWER' | 'SUPPORT' | 'EDITOR' | 'VIEWER'
+
 export type Gender = 'MALE' | 'FEMALE'
 export type MaritalStatus = 'SINGLE' | 'MARRIED' | 'DIVORCED' | 'WIDOWED'
 
@@ -89,6 +92,8 @@ export interface User extends OwnerIdentity {
   /** A second, private contact number used only for identity verification. */
   personal_phone_number: string | null
   role: UserRole
+  /** Administrators only: what they may do in the admin area. */
+  staff_role?: StaffRole | null
   /**
    * Set when an administrator issued the password this session was opened
    * with. While it is true the API answers 403 `password_change_required` on
@@ -308,6 +313,23 @@ export interface AdminBusiness extends OwnerBusiness {
   owner_has_cv_document: boolean
   owner_display_name: string | null
   moderation_actions: ModerationAction[]
+}
+
+/** A member of staff, as the manager's staff page lists them. */
+export interface StaffMember {
+  id: string
+  email: string | null
+  display_name: string | null
+  staff_role: StaffRole | null
+  is_active: boolean
+  personal_phone_number: string | null
+  created_at: string
+}
+
+/** A staff password, shown exactly once. */
+export interface StaffPassword {
+  staff: StaffMember
+  password: string
 }
 
 export interface AdminUser {
