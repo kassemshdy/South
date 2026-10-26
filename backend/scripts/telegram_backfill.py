@@ -112,6 +112,7 @@ def main() -> int:
         chat_id=settings.telegram_chat_id,
         read_file=lambda key: get_storage().read(key),
         lookup=telegram_archive.context_lookup(SessionLocal),
+        shop=telegram_archive.shop_lookup(SessionLocal),
         base_url=settings.public_base_url,
         autostart=False,
         send_files=settings.telegram_send_files,
