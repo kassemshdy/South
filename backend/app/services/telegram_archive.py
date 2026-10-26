@@ -4,7 +4,8 @@ The owners asked for it: a message for every application, order, product,
 listing edit, review and request, in a Telegram chat they control. Each
 message is three lines -- who saved it, their phone, and a link to the admin
 screen where it is reviewed (the owners' decision, 26 Oct 2026, after the
-full field dump proved too much to read). Inert without both
+full field dump proved too much to read) -- plus, for a business, its logo
+as the photo and its Instagram and Facebook pages. Inert without both
 ``TELEGRAM_BOT_TOKEN`` and ``TELEGRAM_CHAT_ID``, like every other optional
 integration here, so local development and the test suite never send.
 
@@ -154,7 +155,7 @@ class Batch:
     name: str | None
     phone: str | None
     changes: list[Change]
-    icon: str = "🆕"
+    icon: str | None = None  # the backfill marks its messages ↩️
 
 
 def _format(value: Any) -> str | None:
@@ -267,6 +268,41 @@ _PATH_RANK = (
 )
 
 
+# What the message is about, most specific first: a new product's photo is a
+# product, an application's account is a shop.
+_KIND_ICONS = (
+    (("orders", "order_lines"), "🛒"),
+    (("testimonials",), "⭐"),
+    (("business_items", "business_item_images"), "📦"),
+    (("businesses", "business_images", "business_documents", "business_social_links"), "🏪"),
+    (("service_requests",), "📩"),
+    (
+        (
+            "talent_profiles",
+            "talent_languages",
+            "talent_skills",
+            "talent_social_links",
+            "talent_images",
+        ),
+        "🧑‍🔧",
+    ),
+    (("partner_requests",), "🤝"),
+    (("feedback_tickets", "feedback_comments", "feedback_attachments"), "🎫"),
+    (("discarded_applications",), "📥"),
+    (("users", "owner_verification_documents"), "👤"),
+)
+_ACTION_ICONS = {"created": "🆕", "updated": "✏️", "deleted": "🗑"}
+
+
+def _icons(changes: list[Change]) -> str:
+    """What happened (new, edited, deleted) and what it is about."""
+    actions = {change.action for change in changes}
+    action = next((a for a in ("created", "deleted", "updated") if a in actions), "updated")
+    tables = {change.table for change in changes}
+    kind = next((icon for group, icon in _KIND_ICONS if tables.intersection(group)), "")
+    return _ACTION_ICONS[action] + kind
+
+
 def _rank(path: str) -> int:
     return next(i for i, prefix in enumerate(_PATH_RANK) if path.startswith(prefix))
 
@@ -311,6 +347,27 @@ def _after_rollback(session: Session) -> None:
 Lookup = Callable[[str], str | None]
 
 
+@dataclass
+class Shop:
+    """What the message shows of a business besides the link: its logo,
+    sent as the photo, and its Instagram and Facebook pages."""
+
+    logo_key: str | None = None
+    links: list[str] = field(default_factory=list)
+
+
+ShopLookup = Callable[[str], Shop | None]
+
+MAX_PHOTO_BYTES = 10 * 1024 * 1024  # sendPhoto's limit.
+SHOP_PREFIX = "/admin/businesses/"
+
+
+@dataclass
+class Message:
+    text: str
+    logo_key: str | None = None
+
+
 class TelegramArchive:
     def __init__(
         self,
@@ -319,6 +376,7 @@ class TelegramArchive:
         chat_id: str,
         read_file: Callable[[str], bytes],
         lookup: Lookup | None = None,
+        shop: ShopLookup | None = None,
         base_url: str = "",
         client: httpx.Client | None = None,
         interval: float = SEND_INTERVAL_SECONDS,
@@ -332,6 +390,7 @@ class TelegramArchive:
         # details alone and may add the photos and ID scans later.
         self._send_files = send_files
         self._lookup = lookup
+        self._shop = shop
         self._base_url = base_url.rstrip("/")
         self._client = client or httpx.Client(timeout=60)
         self._interval = interval
@@ -369,9 +428,10 @@ class TelegramArchive:
             except Exception:  # never let one bad batch stop the archive
                 logger.exception("telegram archive batch failed")
 
-    def render(self, batch: Batch) -> str | None:
-        """Name, phone and a review link -- nothing else. The owners found
-        the full field dump too much to read; the details are on the site,
+    def render(self, batch: Batch) -> Message | None:
+        """Name, phone and a review link; for a business, also its logo and
+        its Instagram and Facebook pages. Nothing else: the owners found the
+        full field dump too much to read, and the details are on the site,
         behind the administrator's sign-in.
 
         None for a commit that names nobody: an application is saved in
@@ -383,17 +443,24 @@ class TelegramArchive:
             return None
         lookup = self._lookup or (lambda _item_id: None)
         paths = [p for p in (admin_path(c, lookup) for c in batch.changes) if p]
-        lines = [f"{batch.icon} {name or '-'}"]
+        path = min(paths, key=_rank) if paths else None
+        icon = (batch.icon or "") + _icons(batch.changes)
+        lines = [f"{icon} {name or '-'}"]
         if phone:
             lines.append(f"📞 {phone}")
-        if paths:
-            lines.append(f"🔗 {self._base_url}{min(paths, key=_rank)}")
-        return "\n".join(lines)
+        if path:
+            lines.append(f"🔗 {self._base_url}{path}")
+        shop = None
+        if path and path.startswith(SHOP_PREFIX) and self._shop is not None:
+            shop = self._shop(path.removeprefix(SHOP_PREFIX))
+        if shop is not None:
+            lines.extend(shop.links)
+        return Message("\n".join(lines), shop.logo_key if shop else None)
 
     def send(self, batch: Batch) -> None:
-        text = self.render(batch)
-        if text is not None:
-            self._post("sendMessage", data={"chat_id": self._chat_id, "text": text})
+        message = self.render(batch)
+        if message is not None:
+            self._send_message(message)
         if not self._send_files:
             return
         for change in batch.changes:
@@ -413,6 +480,25 @@ class TelegramArchive:
                     },
                     files={"document": (key.rsplit("/", 1)[-1], data)},
                 )
+
+    def _send_message(self, message: Message) -> None:
+        """With the shop's logo as the photo when it has one; text alone if
+        the logo cannot be read or is too large for a photo."""
+        key = message.logo_key
+        logo = None
+        if key:
+            try:
+                logo = self._read_file(key)
+            except Exception:
+                logger.warning("telegram archive could not read %s", key)
+        if key and logo is not None and len(logo) <= MAX_PHOTO_BYTES:
+            self._post(
+                "sendPhoto",
+                data={"chat_id": self._chat_id, "caption": message.text},
+                files={"photo": (key.rsplit("/", 1)[-1], logo)},
+            )
+            return
+        self._post("sendMessage", data={"chat_id": self._chat_id, "text": message.text})
 
     def _post(
         self, method: str, *, data: dict[str, str], files: dict[str, Any] | None = None
@@ -443,6 +529,38 @@ def context_lookup(session_factory: sessionmaker[Session]) -> Lookup:
                 return str(item.business_id) if item is not None else None
         except Exception:
             logger.warning("telegram archive context lookup failed", exc_info=True)
+            return None
+
+    return lookup
+
+
+def shop_lookup(session_factory: sessionmaker[Session]) -> ShopLookup:
+    """A business's logo and its Instagram and Facebook pages."""
+    from sqlalchemy import select
+
+    from app.models.business import Business, BusinessSocialLink
+    from app.models.enums import SocialPlatform
+
+    icons = {SocialPlatform.INSTAGRAM: "📷", SocialPlatform.FACEBOOK: "📘"}
+
+    def lookup(business_id: str) -> Shop | None:
+        try:
+            with session_factory() as db:
+                business = db.get(Business, uuid.UUID(business_id))
+                if business is None:
+                    return None
+                links = db.execute(
+                    select(BusinessSocialLink)
+                    .where(BusinessSocialLink.business_id == business.id)
+                    .where(BusinessSocialLink.platform.in_(list(icons)))
+                    .order_by(BusinessSocialLink.platform)
+                ).scalars()
+                return Shop(
+                    logo_key=business.logo_storage_key,
+                    links=[f"{icons[link.platform]} {link.url}" for link in links],
+                )
+        except Exception:
+            logger.warning("telegram archive shop lookup failed", exc_info=True)
             return None
 
     return lookup
@@ -480,6 +598,7 @@ def configure(settings: Settings, session_factory: sessionmaker[Session]) -> Non
             chat_id=settings.telegram_chat_id,
             read_file=lambda key: get_storage().read(key),
             lookup=context_lookup(session_factory),
+            shop=shop_lookup(session_factory),
             base_url=settings.public_base_url,
             send_files=settings.telegram_send_files,
         )
