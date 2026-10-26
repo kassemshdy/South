@@ -38,7 +38,7 @@ from app.models.talent import TalentProfile
 from app.models.testimonial import Testimonial
 from app.models.verification import OwnerVerificationDocument
 from app.services import telegram_archive
-from app.services.telegram_archive import Batch, Change, TelegramArchive, describe_actor
+from app.services.telegram_archive import Batch, Change, TelegramArchive, person
 from app.storage.factory import get_storage
 
 logger = logging.getLogger("telegram_backfill")
@@ -75,7 +75,8 @@ def business_batch(db: Session, business: Business) -> Batch:
     if talent is not None:
         objects.append(talent)
         objects += talent.images
-    return Batch(actor=f"↩️ {describe_actor(owner)}", changes=_changes(objects))
+    name, phone = person(owner)
+    return Batch(name=name, phone=phone, changes=_changes(objects), icon="↩️")
 
 
 def _targets(db: Session, wanted: str) -> list[Business]:
@@ -111,6 +112,7 @@ def main() -> int:
         chat_id=settings.telegram_chat_id,
         read_file=lambda key: get_storage().read(key),
         lookup=telegram_archive.context_lookup(SessionLocal),
+        base_url=settings.public_base_url,
         autostart=False,
         send_files=settings.telegram_send_files,
     )
