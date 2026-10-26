@@ -24,6 +24,7 @@ import { Textarea } from '@/components/ui/Input'
 import { ErrorState, InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
 import { DeleteForeverButton } from '@/features/admin/DeleteForeverButton'
+import { useStaffCan } from '@/features/admin/staffAccess'
 import { IssueCredentialsCard } from '@/features/admin/IssueCredentialsCard'
 import { OwnerIdentityCard } from '@/features/admin/OwnerIdentityCard'
 import { OwnerWhatsappButton } from '@/features/admin/OwnerWhatsappButton'
@@ -41,6 +42,8 @@ type ConfirmAction = 'approve' | 'reject' | 'suspend' | 'reactivate' | null
 
 export function AdminTalentReviewPage() {
   const { id = '' } = useParams()
+  const canModerate = useStaffCan('moderate')
+  const canDocuments = useStaffCan('documents')
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const toast = useToast()
@@ -184,7 +187,7 @@ export function AdminTalentReviewPage() {
       {/* Decision bar, pinned near the top: the admin's job on this page. */}
       <Card className="border-clay-200 bg-clay-50/40">
         <CardBody className="flex flex-wrap gap-3">
-          {data.status === 'PENDING_REVIEW' ? (
+          {canModerate && data.status === 'PENDING_REVIEW' ? (
             <>
               <Button size="lg" onClick={() => setConfirming('approve')}>
                 <Check className="h-5 w-5" aria-hidden="true" />
@@ -204,14 +207,14 @@ export function AdminTalentReviewPage() {
             </>
           ) : null}
 
-          {data.status === 'APPROVED' ? (
+          {canModerate && data.status === 'APPROVED' ? (
             <Button size="lg" variant="outline" onClick={() => setConfirming('suspend')}>
               <PauseCircle className="h-5 w-5" aria-hidden="true" />
               {t('admin.suspend')}
             </Button>
           ) : null}
 
-          {data.status === 'SUSPENDED' ? (
+          {canModerate && data.status === 'SUSPENDED' ? (
             <Button size="lg" onClick={() => setConfirming('reactivate')}>
               <PlayCircle className="h-5 w-5" aria-hidden="true" />
               {t('admin.reactivate')}
@@ -330,7 +333,7 @@ export function AdminTalentReviewPage() {
               <Detail labelKey="admin.ownerPersonalPhone" value={data.owner_personal_phone} ltr />
               <OwnerWhatsappButton phone={data.owner_phone} />
               <p className="text-xs text-ink-300">{t('admin.ownerPrivacyNote')}</p>
-              {data.owner_has_verification_document ? (
+              {canDocuments && data.owner_has_verification_document ? (
                 <Button
                   type="button"
                   variant="outline"
@@ -349,7 +352,7 @@ export function AdminTalentReviewPage() {
                   of the fields above it. Offered separately because it is a
                   separate file, and a reviewer checking a name against a card
                   needs the side that has it. */}
-              {data.owner_has_verification_document_back ? (
+              {canDocuments && data.owner_has_verification_document_back ? (
                 <Button
                   type="button"
                   variant="outline"
@@ -364,7 +367,7 @@ export function AdminTalentReviewPage() {
                 <p className="text-sm text-ink-500">{t('admin.noDocumentBack')}</p>
               )}
 
-              {data.owner_has_cv_document ? (
+              {canDocuments && data.owner_has_cv_document ? (
                 <Button
                   type="button"
                   variant="outline"

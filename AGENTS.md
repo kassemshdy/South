@@ -224,6 +224,20 @@ Five things about it are load-bearing rather than incidental:
   exists to make the "refused before anything is created" half possible, and
   `tests/test_registration.py` pins every clause of this paragraph.
 
+**Staff have roles, and one table decides what each may do.** Every
+`ADMIN` account carries a `StaffRole` -- manager, reviewer, support, content
+editor or viewer (the owners' decision, 26 Oct 2026). `require_admin` looks
+each admin route up in `app/core/permissions.py` by method and path: every
+role reads, documents/export/staff reads are restricted, and every write
+must be listed in `WRITES` or it is the manager's alone.
+`tests/test_permissions.py` fails when an admin write has no explicit entry,
+so a new admin route is a decision rather than an accident. Staff are
+invited by a manager at `/admin/staff` with a password shown once and sent
+on WhatsApp, like an owner's; a manager cannot change their own account,
+and the last active manager cannot be demoted or disabled. The frontend
+mirrors the table in `features/admin/staffAccess.ts` only to hide what a
+role cannot use -- the API is the guard.
+
 **Sign-in is one form for everybody.** `POST /api/auth/login` takes an
 `identifier` — a phone number for an owner, an email address for an
 administrator — and a password, and the account's role decides what the token

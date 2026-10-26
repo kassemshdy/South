@@ -13,10 +13,11 @@ from sqlalchemy.orm import Session
 
 from app.core.config import Settings, get_settings
 from app.core.errors import AuthenticationError, NotFoundError, PermissionDeniedError
+from app.core.permissions import allowed_roles
 from app.core.security import decode_access_token
 from app.database.session import get_db
 from app.models.business import Business
-from app.models.enums import UserRole
+from app.models.enums import StaffRole, UserRole
 from app.models.talent import TalentProfile
 from app.models.user import User
 from app.repositories.business import BusinessRepository
@@ -172,9 +173,23 @@ def get_viewer(request: Request, db: DbSession) -> User | None:
 Viewer = Annotated[User | None, Depends(get_viewer)]
 
 
-def require_admin(user: CurrentUser) -> User:
+def require_admin(request: Request, user: CurrentUser) -> User:
+    """An administrator whose staff role may use this route.
+
+    The route is looked up in ``app/core/permissions.py`` by its method and
+    path template, so this one check enforces the whole staff policy. An
+    administrator with no role recorded is treated as a viewer: the
+    migration that introduced roles made every existing one a manager, so
+    only an account created some other way lands here, and it gets the
+    least.
+    """
     if user.role is not UserRole.ADMIN:
         raise PermissionDeniedError("auth.admin_only")
+    route = request.scope.get("route")
+    path = getattr(route, "path", request.url.path)
+    role = user.staff_role or StaffRole.VIEWER
+    if role not in allowed_roles(request.method, path):
+        raise PermissionDeniedError("auth.staff_role_forbidden", code="staff_role_forbidden")
     return user
 
 

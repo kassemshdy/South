@@ -12,6 +12,7 @@ import {
   Newspaper,
   PhoneCall,
   ShoppingBag,
+  ShieldCheck,
   Sparkles,
   Store,
   UserRound,
@@ -19,11 +20,20 @@ import {
 } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
 
+import { staffCan, type StaffAction } from '@/features/admin/staffAccess'
+import { useAuth } from '@/features/auth/AuthContext'
 import { useSeo } from '@/hooks/useSeo'
 import { useT, type TranslationKey } from '@/i18n'
 import { cn } from '@/utils/cn'
 
-const NAV: { to: string; labelKey: TranslationKey; icon: typeof BarChart3; end: boolean }[] = [
+const NAV: {
+  to: string
+  labelKey: TranslationKey
+  icon: typeof BarChart3
+  end: boolean
+  /** Shown only to staff who may use it; the API refuses the rest anyway. */
+  needs?: StaffAction
+}[] = [
   { to: '/admin', labelKey: 'admin.navDashboard', icon: BarChart3, end: true },
   { to: '/admin/businesses', labelKey: 'admin.navBusinesses', icon: Store, end: false },
   { to: '/admin/talent', labelKey: 'admin.navTalent', icon: UserRound, end: false },
@@ -43,13 +53,15 @@ const NAV: { to: string; labelKey: TranslationKey; icon: typeof BarChart3; end: 
   { to: '/admin/articles', labelKey: 'admin.navArticles', icon: Newspaper, end: false },
   { to: '/admin/pages', labelKey: 'admin.navPages', icon: FileText, end: false },
   { to: '/admin/page-covers', labelKey: 'admin.navPageCovers', icon: ImageIcon, end: false },
-  { to: '/admin/site-settings', labelKey: 'nav.contact', icon: PhoneCall, end: false },
+  { to: '/admin/site-settings', labelKey: 'nav.contact', icon: PhoneCall, end: false, needs: 'manage' },
   { to: '/admin/feedback', labelKey: 'admin.navFeedback', icon: Bug, end: false },
-  { to: '/admin/export', labelKey: 'admin.navExport', icon: Download, end: false },
+  { to: '/admin/export', labelKey: 'admin.navExport', icon: Download, end: false, needs: 'manage' },
+  { to: '/admin/staff', labelKey: 'admin.navStaff', icon: ShieldCheck, end: false, needs: 'manage' },
 ]
 
 export function AdminLayout() {
   const t = useT()
+  const { user } = useAuth()
   useSeo({ title: t('admin.seoTitle'), noIndex: true })
 
   return (
@@ -62,7 +74,7 @@ export function AdminLayout() {
         className="-mx-4 mb-6 flex gap-1.5 overflow-x-auto px-4 pb-2 lg:sticky lg:top-24 lg:mx-0 lg:mb-0 lg:flex-col lg:gap-1 lg:overflow-visible lg:rounded-2xl lg:bg-white lg:p-3 lg:shadow-sm lg:ring-1 lg:ring-ink-100"
         aria-label={t('admin.navAria')}
       >
-        {NAV.map(({ to, labelKey, icon: Icon, end }) => (
+        {NAV.filter((item) => !item.needs || staffCan(user?.staff_role, item.needs)).map(({ to, labelKey, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}

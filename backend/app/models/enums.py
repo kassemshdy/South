@@ -10,6 +10,21 @@ class UserRole(str, enum.Enum):
     ADMIN = "ADMIN"
 
 
+class StaffRole(str, enum.Enum):
+    """What an administrator account may do; see ``app/core/permissions.py``.
+
+    Every ``ADMIN`` account carries one. A manager invites the rest and is
+    the only one who can touch staff, exports, permanent deletes and the
+    site's settings (the owners' decision, 26 Oct 2026).
+    """
+
+    MANAGER = "MANAGER"
+    REVIEWER = "REVIEWER"
+    SUPPORT = "SUPPORT"
+    EDITOR = "EDITOR"
+    VIEWER = "VIEWER"
+
+
 class BusinessStatus(str, enum.Enum):
     DRAFT = "DRAFT"
     PENDING_REVIEW = "PENDING_REVIEW"
