@@ -9,6 +9,7 @@ import {
   Phone,
   UserRound,
 } from 'lucide-react'
+import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
@@ -16,6 +17,7 @@ import { BackLink } from '@/components/ui/BackLink'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
 import { YouTubePlayer } from '@/components/ui/YouTubePlayer'
+import { GalleryLightbox } from '@/components/ui/GalleryLightbox'
 import { ShareButton } from '@/components/ui/ShareButton'
 import { FavouriteButton } from '@/features/favourites/FavouriteButton'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -42,6 +44,8 @@ export function TalentProfilePage() {
   const { slug = '' } = useParams()
   const t = useT()
   const { locale } = useI18n()
+  // The gallery photo open in the lightbox, if any.
+  const [galleryIndex, setGalleryIndex] = useState<number | null>(null)
 
   const talent = useQuery({
     queryKey: queryKeys.talent(slug),
@@ -342,13 +346,12 @@ export function TalentProfilePage() {
                   {t('talent.portfolioHeading')}
                 </h2>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {data.images.map((image) => (
-                    <a
+                  {data.images.map((image, index) => (
+                    <button
                       key={image.id}
-                      href={image.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group overflow-hidden rounded-xl border border-ink-100 bg-sand-100"
+                      type="button"
+                      onClick={() => setGalleryIndex(index)}
+                      className="group overflow-hidden rounded-xl border border-ink-100 bg-sand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
                     >
                       <img
                         src={image.url}
@@ -359,9 +362,15 @@ export function TalentProfilePage() {
                         loading="lazy"
                         className="h-32 w-full object-cover transition-transform duration-300 group-hover:scale-105 sm:h-40"
                       />
-                    </a>
+                    </button>
                   ))}
                 </div>
+                <GalleryLightbox
+                  title={t('talent.portfolioHeading')}
+                  images={data.images}
+                  index={galleryIndex}
+                  onIndexChange={setGalleryIndex}
+                />
               </section>
             ) : null}
 
