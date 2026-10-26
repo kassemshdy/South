@@ -31,7 +31,7 @@ from app.core.security import hash_password
 from app.database.base import Base
 from app.database.session import SessionLocal, engine
 from app.main import create_app
-from app.models.enums import LocationType, UserRole
+from app.models.enums import LocationType, StaffRole, UserRole
 from app.models.taxonomy import Category, Location
 from app.models.user import User
 from tests.samples import ar
@@ -112,6 +112,7 @@ def admin(db: Session) -> User:
         password_hash=hash_password("AdminPass!123"),
         display_name=ar("user.admin_name"),
         role=UserRole.ADMIN,
+        staff_role=StaffRole.MANAGER,
     )
     db.add(entity)
     db.commit()

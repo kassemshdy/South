@@ -63,7 +63,14 @@ def normalize_url(raw: str, *, field: LazyText | None = None) -> str:
         raise ValidationError(
             "url.invalid_scheme", code="invalid_url_scheme", params={"field": field}
         )
-    if not parsed.netloc or "." not in parsed.netloc:
+    # The host itself must look like one: "javascript:alert(a.b)" given no
+    # scheme becomes https://javascript:alert(a.b), whose netloc has a dot
+    # but whose host is "javascript" and whose "port" is not a number.
+    try:
+        host, _port = parsed.hostname, parsed.port
+    except ValueError:
+        host = None
+    if not host or "." not in host:
         raise ValidationError("url.invalid", code="invalid_url", params={"field": field})
 
     # Drop any credentials embedded in the URL.

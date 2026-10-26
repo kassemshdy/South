@@ -39,6 +39,13 @@ Dataset = Literal["businesses", "products", "users", "talent", "orders"]
 _SKIPPED = frozenset({"password_hash", "token_version", "search_vector"})
 
 
+#: A cell starting with one of these is a formula to Excel and Sheets. Every
+#: text column here was typed by someone outside -- a listing's name, an
+#: applicant's, a customer's note -- so ``=HYPERLINK(...)`` in a shop name
+#: would run on the administrator's machine when the export is opened.
+_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
+
+
 def _cell(value: Any) -> str:
     if value is None:
         return ""
@@ -46,6 +53,10 @@ def _cell(value: Any) -> str:
         return str(value.value)
     if isinstance(value, dt.date):  # datetime is a date too
         return value.isoformat()
+    if isinstance(value, str):
+        # A leading apostrophe makes the spreadsheet show the text as typed.
+        # Only text: a number is never a formula, and "-3.5" must stay a number.
+        return f"'{value}" if value.startswith(_FORMULA_PREFIXES) else value
     return str(value)
 
 

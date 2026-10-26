@@ -8,7 +8,13 @@ from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base, TimestampMixin, pg_enum, uuid_pk
-from app.models.enums import Gender, MaritalStatus, UserRole, VerificationDocumentKind
+from app.models.enums import (
+    Gender,
+    MaritalStatus,
+    StaffRole,
+    UserRole,
+    VerificationDocumentKind,
+)
 
 if TYPE_CHECKING:
     from app.models.business import Business
@@ -79,6 +85,11 @@ class User(Base, TimestampMixin):
         default=UserRole.OWNER,
         nullable=False,
         index=True,
+    )
+    # Set on administrator accounts only: which part of the admin area they
+    # may act in. Null for an owner.
+    staff_role: Mapped[StaffRole | None] = mapped_column(
+        pg_enum(StaffRole, "staff_role"), nullable=True
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     # The account holder's own photo — a face, not a logo, and therefore part

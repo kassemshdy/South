@@ -216,3 +216,50 @@ def test_a_stranger_cannot_reach_another_owners_item_gallery(
         files={"file": ("a.jpg", make_image(), "image/jpeg")},
     )
     assert response.status_code == 404
+
+
+@pytest.mark.parametrize(
+    "link",
+    [
+        "javascript:alert(document.cookie)",
+        "JavaScript://example.com/%0aalert(1)",
+        "data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==",
+    ],
+)
+def test_a_link_that_would_run_script_is_refused(
+    client: TestClient, business_with_item: tuple[str, str, dict[str, str]], link: str
+) -> None:
+    """The link becomes an href on the public product page: only http(s) may."""
+    business_id, item_id, headers = business_with_item
+
+    created = post_item(
+        client,
+        f"/api/businesses/{business_id}/items",
+        headers=headers,
+        json={"title": ar("item.generic"), "price": "1.00", "external_link": link},
+    )
+    assert created.status_code == 422, created.text
+
+    edited = client.put(
+        f"/api/businesses/{business_id}/items/{item_id}",
+        headers=headers,
+        json={"external_link": link},
+    )
+    assert edited.status_code == 422, edited.text
+    listed = client.get(f"/api/businesses/{business_id}/items", headers=headers).json()
+    assert next(i for i in listed if i["id"] == item_id)["external_link"] == (
+        "https://example.com/zaatar"
+    )
+
+
+def test_a_bare_domain_link_is_saved_as_https_and_an_empty_one_clears_it(
+    client: TestClient, business_with_item: tuple[str, str, dict[str, str]]
+) -> None:
+    business_id, item_id, headers = business_with_item
+    path = f"/api/businesses/{business_id}/items/{item_id}"
+
+    saved = client.put(path, headers=headers, json={"external_link": "example.com/zaatar"})
+    assert saved.json()["external_link"] == "https://example.com/zaatar"
+
+    cleared = client.put(path, headers=headers, json={"external_link": ""})
+    assert cleared.json()["external_link"] is None

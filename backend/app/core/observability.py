@@ -33,6 +33,9 @@ SENSITIVE_KEYS = frozenset(
         "code",
         "cookie",
         "current_password",
+        # The database URL carries its password; the backup code holds it in
+        # a local, and an error report includes a frame's locals.
+        "database_url",
         # What somebody typed into the one sign-in box: an owner's login phone
         # number or an administrator's email address. The same reason
         # `phone_number` is here, under the name the login route receives it.
@@ -45,6 +48,7 @@ SENSITIVE_KEYS = frozenset(
         "otp_code",
         "password",
         "personal_phone_number",
+        "pgpassword",
         "phone_number",
         "secret_key",
         "set-cookie",

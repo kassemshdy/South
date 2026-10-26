@@ -25,6 +25,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
 import { useToast } from '@/components/ui/Toast'
+import { useStaffCan } from '@/features/admin/staffAccess'
 import { useT } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { adminApi } from '@/services/api/endpoints'
@@ -62,7 +63,8 @@ export function IssueCredentialsCard({
       ),
   })
 
-  if (isAdmin) return null
+  const allowed = useStaffCan('credentials')
+  if (isAdmin || !allowed) return null
 
   const message = issued
     ? t('credentials.whatsappMessage', {

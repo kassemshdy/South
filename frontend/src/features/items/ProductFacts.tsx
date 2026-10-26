@@ -12,6 +12,15 @@ export interface ProductFactFields {
   external_link: string | null
 }
 
+/**
+ * Only http(s) becomes a link. The server refuses anything else now, but a
+ * link saved before that rule could still be ``javascript:``, and an
+ * ``href`` is where it would run.
+ */
+function isWebLink(value: string): boolean {
+  return /^https?:\/\//i.test(value.trim())
+}
+
 export function hasProductFacts(item: ProductFactFields): boolean {
   return Boolean(
     item.good_type ||
@@ -75,14 +84,18 @@ export function ProductFacts({ item }: { item: ProductFactFields }) {
         <div className="sm:col-span-2">
           <dt className="text-sm font-semibold text-ink-500">{t('products.externalLinkLabel')}</dt>
           <dd className="mt-1">
-            <a
-              href={item.external_link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="break-all text-brand-700 underline"
-            >
-              {item.external_link}
-            </a>
+            {isWebLink(item.external_link) ? (
+              <a
+                href={item.external_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="break-all text-brand-700 underline"
+              >
+                {item.external_link}
+              </a>
+            ) : (
+              <span className="break-all text-ink-700">{item.external_link}</span>
+            )}
           </dd>
         </div>
       ) : null}

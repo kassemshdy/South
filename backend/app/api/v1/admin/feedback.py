@@ -17,6 +17,7 @@ from app.core.dependencies import AdminUser, AppSettings, DbSession
 from app.core.downloads import content_disposition
 from app.core.errors import NotFoundError, PayloadTooLargeError
 from app.core.i18n import translate
+from app.core.uploads import read_at_most
 from app.models.enums import FeedbackAttachmentKind, UserRole
 from app.models.feedback import FeedbackTicket
 from app.repositories.feedback import FeedbackTicketRepository
@@ -126,7 +127,7 @@ def upload_attachment(
     kind: Annotated[FeedbackAttachmentKind, Form()] = FeedbackAttachmentKind.PHOTO,
 ) -> FeedbackTicketDetailOut:
     ticket = _load(db, ticket_id)
-    data = file.file.read()
+    data = read_at_most(file.file, settings.max_feedback_attachment_bytes)
     if len(data) > settings.max_feedback_attachment_bytes:
         raise PayloadTooLargeError()
 

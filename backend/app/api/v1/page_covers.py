@@ -14,6 +14,7 @@ from sqlalchemy import select
 
 from app.core.dependencies import AdminUser, AppSettings, DbSession
 from app.core.errors import NotFoundError
+from app.core.uploads import read_at_most
 from app.models.enums import ImageKind
 from app.models.page_cover import PAGE_COVER_KEYS, PageCover
 from app.schemas.page_cover import PageCoverOut
@@ -67,7 +68,7 @@ def set_page_cover(
     # Stored first and the old file removed after, so a rejected upload
     # leaves the page's current cover exactly as it was.
     stored = service.process_and_store(
-        data=file.file.read(),
+        data=read_at_most(file.file, settings.max_upload_bytes),
         content_type=file.content_type,
         owner_id=admin.id,
         kind=ImageKind.COVER,
