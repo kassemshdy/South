@@ -1,8 +1,9 @@
 """The Telegram archive of what users save.
 
-Asserted: it is inert without both variables; a user's save is posted with
-its fields and files; an administrator's is not; a rollback posts nothing;
-a password hash never leaves; the bot token never reaches the logs.
+Asserted: it is inert without both variables; a user's save is posted as
+their name, their phone and a link to the admin screen that reviews it, and
+nothing else; files only when turned on; an administrator's save is not
+posted; a rollback posts nothing; the bot token never reaches the logs.
 """
 
 from __future__ import annotations
@@ -25,9 +26,10 @@ from app.services import telegram_archive
 from app.services.telegram_archive import Batch, TelegramArchive
 from tests.conftest import admin_headers, post_item, sign_in
 from tests.samples import ar
-from tests.test_registration import PNG_BYTES, _business_payload, _register
+from tests.test_registration import APPLICANT_E164, PNG_BYTES, _business_payload, _register
 
 TOKEN = "123456:secret-bot-token"
+SITE = "https://site.test"
 
 
 class FakeTelegram:
@@ -53,6 +55,7 @@ def telegram() -> Iterator[tuple[FakeTelegram, TelegramArchive]]:
         chat_id="-100",
         read_file=lambda key: b"FILE:" + key.encode(),
         lookup=telegram_archive.context_lookup(SessionLocal),
+        base_url=SITE,
         client=httpx.Client(transport=httpx.MockTransport(fake.handler)),
         interval=0,
         autostart=False,
@@ -78,8 +81,8 @@ def test_by_default_only_text_is_sent(
     category: Category,
     location: Location,
 ) -> None:
-    """The owners started with details alone: an ID scan is counted in the
-    message, never attached, until TELEGRAM_SEND_FILES is turned on."""
+    """Name, phone and review link only: no other field of the application,
+    and no ID scan until TELEGRAM_SEND_FILES is turned on."""
     fake = FakeTelegram()
     archive = TelegramArchive(
         token=TOKEN,
@@ -103,8 +106,14 @@ def test_by_default_only_text_is_sent(
     finally:
         telegram_archive.set_archive(None)
 
-    assert "owner_verification_documents created" in "\n".join(fake.messages)
-    assert "📎 1" in "\n".join(fake.messages)
+    (message,) = fake.messages
+    lines = message.splitlines()
+    assert len(lines) == 3
+    assert ar("identity.full_name") in lines[0]
+    assert lines[1] == f"📞 {APPLICANT_E164}"
+    assert lines[2].startswith("🔗 /admin/businesses/")
+    assert ar("business.applicant") not in message, "no listing fields"
+    assert ar("identity.residence_place") not in message, "no identity fields"
     assert fake.documents == []
 
 
@@ -124,12 +133,14 @@ def test_with_files_on_an_application_is_posted_with_its_id_scan(
     assert response.status_code == 202, response.text
     archive.drain()
 
+    from app.models.business import Business
+
+    with SessionLocal() as session:
+        business_id = session.execute(select(Business.id)).scalar_one()
     text = "\n".join(fake.messages)
-    assert "users created" in text
-    assert "businesses created" in text
-    assert "owner_verification_documents created" in text
-    assert ar("business.applicant") in text
     assert ar("identity.full_name") in text
+    assert APPLICANT_E164 in text
+    assert f"🔗 {SITE}/admin/businesses/{business_id}" in text
     assert "password_hash" not in text
     assert len(fake.documents) == 1, "the ID scan is attached"
 
@@ -162,6 +173,9 @@ def test_an_order_is_posted(
         json={"title": ar("item.generic"), "price": "2.00", "currency": "USD"},
     ).json()
     archive.drain()
+    products = "\n".join(fake.messages)
+    assert "+9613990501" in products, "the signed-in owner's phone"
+    assert f"{SITE}/admin/businesses/{business_id}" in products
     fake.messages.clear()
 
     from app.models.business import Business
@@ -183,11 +197,10 @@ def test_an_order_is_posted(
     assert placed.status_code == 201, placed.text
     archive.drain()
 
-    text = "\n".join(fake.messages)
-    assert "orders created" in text
-    assert ar("order.customer") in text
-    assert "+9613990600" in text
-    assert ar("business.sweets_shop") in text, "the shop is named"
+    (message,) = fake.messages
+    assert ar("order.customer") in message
+    assert "+9613990600" in message
+    assert message.endswith(f"🔗 {SITE}/admin/orders")
 
 
 def test_an_administrators_saves_are_not_posted(
@@ -227,7 +240,9 @@ def test_the_bot_token_never_reaches_the_logs(
     caplog.set_level(logging.DEBUG)
     archive.submit(
         telegram_archive.Batch(
-            actor="x", changes=[telegram_archive.Change("created", "orders", "1", {"a": "b"})]
+            name="x",
+            phone=None,
+            changes=[telegram_archive.Change("created", "orders", "1", {"a": "b"})],
         )
     )
     archive.drain()
@@ -244,8 +259,8 @@ def test_the_backfill_sends_a_business_with_its_owner_and_id_scan_once(
     telegram: tuple[FakeTelegram, TelegramArchive],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Past data: one business, sent with the owner's identity, ID scan and
-    products, and recorded so a second run sends nothing."""
+    """Past data: one business, sent as its owner's name, phone and review
+    link with the ID scan, and recorded so a second run sends nothing."""
     from app.models.business import Business
     from scripts import telegram_backfill
 
@@ -263,9 +278,10 @@ def test_the_backfill_sends_a_business_with_its_owner_and_id_scan_once(
     batch = telegram_backfill.business_batch(db, business)
     archive.send(batch)
     text = "\n".join(fake.messages)
-    assert "users created" in text and ar("identity.full_name") in text
-    assert "businesses created" in text and ar("business.applicant") in text
-    assert "password_hash" not in text
+    assert text.startswith("↩️ ") and ar("identity.full_name") in text
+    assert APPLICANT_E164 in text
+    assert f"{SITE}/admin/businesses/{business.id}" in text
+    assert ar("business.applicant") not in text
     assert len(fake.documents) == 1, "the ID scan is attached"
 
     sent: list[Batch] = []
