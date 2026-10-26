@@ -17,6 +17,7 @@ from app.core.dependencies import AdminUser, AppSettings, DbSession
 from app.core.downloads import content_disposition
 from app.core.errors import NotFoundError, PayloadTooLargeError, ValidationError
 from app.core.i18n import translate
+from app.core.uploads import read_at_most
 from app.models.business import BusinessItem
 from app.models.enums import BusinessStatus, ImageKind
 from app.repositories.business import BusinessRepository
@@ -195,7 +196,7 @@ def upload_brand_image(
     one. Logo and cover only: the gallery and products stay the owner's."""
     if kind not in (ImageKind.LOGO, ImageKind.COVER):
         raise ValidationError("image.invalid_kind", code="invalid_image_kind")
-    data = file.file.read()
+    data = read_at_most(file.file, settings.max_upload_bytes)
     if len(data) > settings.max_upload_bytes:
         raise PayloadTooLargeError()
     business = _load(db, business_id)

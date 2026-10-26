@@ -40,9 +40,13 @@ class FakeBucket:
         return set(self.files)
 
 
-def _runner(output: bytes, seen: list[list[str]]):  # type: ignore[no-untyped-def]
-    def run(command: list[str], **_: object) -> subprocess.CompletedProcess[bytes]:
+def _runner(  # type: ignore[no-untyped-def]
+    output: bytes, seen: list[list[str]], envs: list[dict[str, str]] | None = None
+):
+    def run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[bytes]:
         seen.append(command)
+        if envs is not None:
+            envs.append(kwargs["env"])  # type: ignore[arg-type]
         return subprocess.CompletedProcess(command, 0, stdout=output)
 
     return run
@@ -62,8 +66,24 @@ def test_a_backup_is_a_pg_dump_of_the_database_saved_in_the_private_folder() -> 
     assert bucket.files[key] == b"PGDMP-archive"
     # pg_dump reads a libpq URL: the SQLAlchemy driver suffix is dropped.
     assert seen[0][0] == "pg_dump"
-    assert seen[0][-1] == "postgresql://user:secret@db.internal:5432/railway"
+    assert seen[0][-1] == "postgresql://user@db.internal:5432/railway"
     assert "--format=custom" in seen[0]
+
+
+def test_the_database_password_is_never_on_the_pg_dump_command_line() -> None:
+    """A failed dump raises CalledProcessError carrying the command, and that
+    exception is logged and sent to Sentry: the password goes in PGPASSWORD."""
+    seen: list[list[str]] = []
+    envs: list[dict[str, str]] = []
+    db_backup.dump(
+        "postgresql+psycopg://user:s3cr%40t@db.internal:5432/railway?sslmode=require",
+        run=_runner(b"", seen, envs),
+    )
+    assert not any("s3cr" in part for part in seen[0])
+    assert seen[0][-1] == "postgresql://user@db.internal:5432/railway?sslmode=require"
+    assert envs[0]["PGPASSWORD"] == "s3cr@t"
+    # Not a copy of the process environment, which holds every other secret.
+    assert set(envs[0]) == {"PATH", "PGPASSWORD"}
 
 
 def test_old_backups_are_pruned_and_the_newest_kept() -> None:

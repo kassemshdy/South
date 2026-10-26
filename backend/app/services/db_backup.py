@@ -23,11 +23,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import subprocess
 from collections.abc import Callable, Iterable
 from datetime import UTC, datetime
 
 from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.engine import make_url
 
 from app.storage.base import StorageBackend
 
@@ -47,10 +49,17 @@ KEEP = 60
 _CONTENT_FOLDERS = ("businesses/", "talent/", "articles/", "pages/")
 
 
-def libpq_url(database_url: str) -> str:
-    """The SQLAlchemy URL as ``pg_dump`` reads it: no ``+driver`` suffix."""
-    scheme, rest = database_url.split("://", 1)
-    return f"{scheme.split('+', 1)[0]}://{rest}"
+def libpq_url(database_url: str) -> tuple[str, str | None]:
+    """The SQLAlchemy URL as ``pg_dump`` reads it, and its password apart.
+
+    No ``+driver`` suffix, and no password: a password in the command line
+    would be in ``CalledProcessError.cmd`` when the dump fails, and from
+    there in the log line and the Sentry event. It goes in ``PGPASSWORD``.
+    """
+    url = make_url(database_url)
+    # ``URL.set`` reads password=None as "unchanged"; _replace really clears it.
+    bare = url._replace(drivername=url.drivername.split("+", 1)[0], password=None)
+    return bare.render_as_string(hide_password=False), url.password
 
 
 def backup_key(now: datetime, reason: str) -> str:
@@ -78,11 +87,18 @@ Runner = Callable[..., "subprocess.CompletedProcess[bytes]"]
 
 def dump(database_url: str, run: Runner = subprocess.run) -> bytes:
     """The whole database as one ``pg_dump`` custom-format archive."""
+    target, password = libpq_url(database_url)
+    # Only what pg_dump needs, not a copy of os.environ: an error report
+    # carries a frame's locals, and the process environment holds every secret.
+    env = {"PATH": os.environ.get("PATH", "")}
+    if password:
+        env["PGPASSWORD"] = password
     result = run(
-        ["pg_dump", "--format=custom", "--no-owner", "--no-acl", libpq_url(database_url)],
+        ["pg_dump", "--format=custom", "--no-owner", "--no-acl", target],
         capture_output=True,
         check=True,
         timeout=600,
+        env=env,
     )
     return result.stdout
 

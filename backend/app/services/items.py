@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.arabic import build_search_text
 from app.core.errors import NotFoundError, ValidationError
+from app.core.urls import normalize_url
 from app.models.business import Business, BusinessItem
 from app.models.enums import ViewSubject
 from app.repositories.item import ItemRepository
@@ -20,6 +21,18 @@ from app.services.slug import unique_slug
 logger = logging.getLogger(__name__)
 
 MAX_ITEMS_PER_BUSINESS = 200
+
+
+def _external_link(raw: str | None) -> str | None:
+    """An http(s) URL or nothing.
+
+    The link is rendered as an ``href`` on the public product page, so a
+    ``javascript:`` or ``data:`` value stored here would run in every
+    visitor's browser. Same rule as a listing's website.
+    """
+    if raw is None or not raw.strip():
+        return None
+    return normalize_url(raw)
 
 
 class BusinessItemService:
@@ -84,7 +97,7 @@ class BusinessItemService:
             manufactured_at=payload.manufactured_at,
             expiry_date=payload.expiry_date,
             net_weight=payload.net_weight,
-            external_link=payload.external_link,
+            external_link=_external_link(payload.external_link),
             goods_origin=payload.goods_origin or business.goods_origin,
             search_text=build_search_text(payload.title, payload.description),
         )
@@ -97,7 +110,10 @@ class BusinessItemService:
         return item
 
     def update(self, item: BusinessItem, payload: BusinessItemUpdateIn) -> BusinessItem:
-        for field, value in payload.model_dump(exclude_unset=True).items():
+        data = payload.model_dump(exclude_unset=True)
+        if "external_link" in data:
+            data["external_link"] = _external_link(data["external_link"])
+        for field, value in data.items():
             setattr(item, field, value)
         # The slug is part of the product's public URL, so it is only derived
         # once at creation — same reasoning as Business.slug.
