@@ -5,7 +5,8 @@ listing edit, review and request, in a Telegram chat they control. Each
 message is three lines -- who saved it, their phone, and a link to the admin
 screen where it is reviewed (the owners' decision, 26 Oct 2026, after the
 full field dump proved too much to read) -- plus, for a business, its logo
-as the photo and its Instagram and Facebook pages. Inert without both
+as the photo and its Instagram and Facebook pages. Only what is created is
+posted; edits and deletions are not. Inert without both
 ``TELEGRAM_BOT_TOKEN`` and ``TELEGRAM_CHAT_ID``, like every other optional
 integration here, so local development and the test suite never send.
 
@@ -331,6 +332,12 @@ def _after_flush(session: Session, _context: Any) -> None:
 def _after_commit(session: Session) -> None:
     pending = session.info.pop(_PENDING, None)
     if not pending or _archive is None:
+        return
+    # Only a commit that adds something is posted (an application, shop,
+    # product, order, review), not an edit or a deletion -- the owners'
+    # decision, 26 Oct 2026. The edits in the same commit stay: an
+    # application fills in the new account's name after creating it.
+    if not any(change.action == "created" for change in pending):
         return
     actor = session.info.get(SESSION_ACTOR)
     name, phone = (actor[1], actor[2]) if actor else _who(pending)
