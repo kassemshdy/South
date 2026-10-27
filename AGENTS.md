@@ -195,7 +195,11 @@ Five things about it are load-bearing rather than incidental:
   `POST /api/admin/users/{id}/credentials`, stored only as a hash, and relayed
   by the administrator from their own WhatsApp. This application never sends
   it anywhere. Issuing a second one replaces the first and signs out any
-  session opened with it.
+  session opened with it. The issuing administrator's **browser** keeps it in
+  local storage beside the account's `token_version` and shows it only while
+  `GET .../credentials` reports that version unchanged (the owners' request,
+  27 Oct 2026); the server still never holds the plaintext, and another
+  browser never sees it.
 - **An issued password is the owner's to keep** (the owners' decision,
   replacing a forced change on first sign-in). The WhatsApp message it
   arrived in is their record of it; a lost one is replaced by issuing another.

@@ -22,7 +22,7 @@ from app.models.enums import UserRole, VerificationDocumentKind
 from app.repositories.business import BusinessRepository
 from app.repositories.talent import TalentRepository
 from app.repositories.user import UserRepository
-from app.schemas.auth import IssuedPasswordOut
+from app.schemas.auth import CredentialStateOut, IssuedPasswordOut
 from app.schemas.common import MessageResponse
 from app.schemas.moderation import AdminUserDetailOut
 from app.schemas.verification import VerificationDocumentOut
@@ -148,7 +148,26 @@ def issue_credentials(
         raise ValidationError("user.credentials_need_phone", code="missing_phone")
 
     password = AuthService(db, settings).issue_password(user)
-    return IssuedPasswordOut(phone_number=user.phone_number, password=password)
+    return IssuedPasswordOut(
+        phone_number=user.phone_number, password=password, version=user.token_version
+    )
+
+
+@router.get("/users/{user_id}/credentials", response_model=CredentialStateOut)
+def credential_state(user_id: uuid.UUID, admin: AdminUser, db: DbSession) -> CredentialStateOut:
+    """Whether the password an administrator's browser remembers is current.
+
+    The owners asked for an issued password to stay on screen until it is
+    replaced (ticket, 26 Oct 2026). The server still keeps only a hash; the
+    browser keeps the plaintext with the version it was issued at, and this
+    says whether that version is still the account's.
+    """
+    user = UserRepository(db).get(user_id)
+    if user is None:
+        raise NotFoundError("user.not_found")
+    return CredentialStateOut(
+        version=user.token_version, has_password=user.password_hash is not None
+    )
 
 
 @router.delete("/users/{user_id}", response_model=MessageResponse)

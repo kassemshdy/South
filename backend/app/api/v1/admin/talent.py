@@ -20,9 +20,15 @@ from app.models.talent import TalentProfile
 from app.repositories.talent import TalentRepository
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.moderation import AdminTalentOut, RejectIn, SuspendIn
-from app.schemas.talent import TalentSkillChangeIn, TalentUpdateIn
+from app.schemas.talent import (
+    ConvertedOut,
+    ConvertToBusinessIn,
+    TalentSkillChangeIn,
+    TalentUpdateIn,
+)
 from app.services.account import AccountDeletionService
 from app.services.talent import TalentService
+from app.services.talent_conversion import TalentConversionService
 from app.services.talent_moderation import TalentModerationService
 from app.storage.factory import get_storage
 
@@ -112,6 +118,17 @@ def set_skill(
         TalentUpdateIn(skill_id=payload.skill_id, custom_skill_text=payload.custom_skill_text),
     )
     return admin_talent(_load(db, profile_id))
+
+
+@router.post("/talent/{profile_id}/convert-to-business", response_model=ConvertedOut)
+def convert_to_business(
+    profile_id: uuid.UUID, payload: ConvertToBusinessIn, db: DbSession, admin: AdminUser
+) -> ConvertedOut:
+    """Move a profile that sells goods into a shop -- see TalentConversionService."""
+    business = TalentConversionService(db).to_business(
+        _load(db, profile_id), payload.category_id
+    )
+    return ConvertedOut(business_id=business.id)
 
 
 @router.delete("/talent/{profile_id}", response_model=MessageResponse)
