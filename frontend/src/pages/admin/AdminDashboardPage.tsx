@@ -29,7 +29,7 @@ export function AdminDashboardPage() {
           page. Talent has its own queue: a service or job application never
           appears among the businesses, and without its own count here it was
           easy to miss that one was waiting. */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-3">
         <QueueCard
           label={t('admin.pendingLabel')}
           count={stats.isLoading ? null : (stats.data?.pending_businesses ?? 0)}
@@ -40,6 +40,14 @@ export function AdminDashboardPage() {
           label={t('admin.pendingTalentLabel')}
           count={stats.isLoading ? null : (stats.data?.pending_talents ?? 0)}
           to="/admin/talent?status=PENDING_REVIEW"
+          action={t('admin.reviewRequests')}
+        />
+        {/* Testimonials are published only by an administrator's approval,
+            so a waiting one is invisible until somebody opens this queue. */}
+        <QueueCard
+          label={t('admin.pendingTestimonialsLabel')}
+          count={stats.isLoading ? null : (stats.data?.pending_testimonials ?? 0)}
+          to="/admin/testimonials"
           action={t('admin.reviewRequests')}
         />
       </div>

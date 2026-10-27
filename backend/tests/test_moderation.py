@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from urllib.parse import unquote
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -322,4 +324,6 @@ def test_public_endpoints_never_return_non_approved_businesses(
 
     assert listing.json()["meta"]["total"] == 0
     assert latest.json() == []
-    assert ar("business.hidden_prefix") not in sitemap.text
+    # URLs are percent-encoded, so read them back decoded: an encoded leak
+    # must not pass for an absent one.
+    assert ar("business.hidden_prefix") not in unquote(sitemap.text)

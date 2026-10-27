@@ -322,11 +322,14 @@ for something that hands out sessions.
   The owners' decision (24 Oct 2026), made knowing the cost:
   `app/services/telegram_archive.py` posts each commit in which a
   non-administrator creates something -- applications, orders, products,
-  listings, reviews; edits and deletions are not posted -- as an
-  action/kind icon, who saved it, their phone, and a link to the admin
-  screen that reviews it, plus a shop's logo and Instagram/Facebook pages
-  (the owners cut it to that on 26 Oct 2026; no other field is sent as
-  text) -- and, only with
+  listings, reviews; edits and deletions are not posted -- as labelled
+  Arabic lines from the backend catalog (`telegram.*`): what was added, who
+  saved it, their phone, the shop with its category and town, the few
+  fields that say what it is (a product's title and price, an order's
+  items, a review's rating and text), the shop's Instagram/Facebook pages
+  and a link to the admin screen that reviews it, with the shop's logo as
+  the photo (the owners' choices, 26-27 Oct 2026; identity fields are never
+  sent as text) -- and, only with
   `TELEGRAM_SEND_FILES` on (off by default; the owners started with text
   alone), every stored file attached. `scripts/telegram_backfill.py` sends
   the history, one business at a time, while `TELEGRAM_BACKFILL` is set

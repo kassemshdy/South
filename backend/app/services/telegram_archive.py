@@ -60,6 +60,7 @@ from sqlalchemy import event, inspect
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import Settings
+from app.core.i18n import translate
 from app.database.session import ARCHIVE_SESSION_FLAG as SESSION_ARCHIVE_FLAG
 
 logger = logging.getLogger(__name__)
@@ -156,7 +157,7 @@ class Batch:
     name: str | None
     phone: str | None
     changes: list[Change]
-    icon: str | None = None  # the backfill marks its messages ↩️
+    past: bool = False  # sent by the backfill, not as it happened
 
 
 def _format(value: Any) -> str | None:
@@ -269,39 +270,112 @@ _PATH_RANK = (
 )
 
 
-# What the message is about, most specific first: a new product's photo is a
-# product, an application's account is a shop.
-_KIND_ICONS = (
-    (("orders", "order_lines"), "🛒"),
-    (("testimonials",), "⭐"),
-    (("business_items", "business_item_images"), "📦"),
-    (("businesses", "business_images", "business_documents", "business_social_links"), "🏪"),
-    (("service_requests",), "📩"),
+# What the message is about, read from the rows the commit created, most
+# specific first: an application's account belongs to its shop.
+_KINDS = (
+    (("orders", "order_lines"), "order"),
+    (("testimonials",), "review"),
+    (("business_items",), "product"),
+    (("business_item_images",), "product_media"),
+    (("businesses",), "shop"),
+    (("business_images", "business_documents", "business_social_links"), "shop_media"),
+    (("service_requests",), "service_request"),
+    (("talent_profiles",), "service"),
     (
-        (
-            "talent_profiles",
-            "talent_languages",
-            "talent_skills",
-            "talent_social_links",
-            "talent_images",
-        ),
-        "🧑‍🔧",
+        ("talent_languages", "talent_skills", "talent_social_links", "talent_images"),
+        "service_media",
     ),
-    (("partner_requests",), "🤝"),
-    (("feedback_tickets", "feedback_comments", "feedback_attachments"), "🎫"),
-    (("discarded_applications",), "📥"),
-    (("users", "owner_verification_documents"), "👤"),
+    (("partner_requests",), "partner"),
+    (("feedback_tickets", "feedback_comments", "feedback_attachments"), "ticket"),
+    (("discarded_applications",), "set_aside"),
+    (("users", "owner_verification_documents"), "account"),
 )
-_ACTION_ICONS = {"created": "🆕", "updated": "✏️", "deleted": "🗑"}
+
+MAX_DETAIL = 300
 
 
-def _icons(changes: list[Change]) -> str:
-    """What happened (new, edited, deleted) and what it is about."""
-    actions = {change.action for change in changes}
-    action = next((a for a in ("created", "deleted", "updated") if a in actions), "updated")
-    tables = {change.table for change in changes}
-    kind = next((icon for group, icon in _KIND_ICONS if tables.intersection(group)), "")
-    return _ACTION_ICONS[action] + kind
+def _kind(changes: list[Change]) -> str:
+    created = {change.table for change in changes if change.action == "created"}
+    return next((kind for tables, kind in _KINDS if created.intersection(tables)), "other")
+
+
+def _t(key: str) -> str:
+    # The chat is read in Arabic, whatever locale the request that saved
+    # the row was in.
+    return translate(key, locale="ar")
+
+
+def _first(changes: list[Change], table: str, *names: str) -> str | None:
+    for change in changes:
+        if change.table == table:
+            for name in names:
+                value = change.fields.get(name)
+                if value:
+                    return value if len(value) <= MAX_DETAIL else value[:MAX_DETAIL] + "…"
+    return None
+
+
+def _details(kind: str, changes: list[Change]) -> list[tuple[str, str | None]]:
+    """The few fields that say what was added, by label key."""
+    if kind == "product":
+        price = _first(changes, "business_items", "price")
+        currency = _first(changes, "business_items", "currency")
+        return [
+            ("product", _first(changes, "business_items", "title")),
+            ("price", f"{price} {currency or ''}".strip() if price else None),
+        ]
+    if kind == "order":
+        items = [
+            f"{c.fields.get('title', '')} × {c.fields.get('quantity', '1')}"
+            for c in changes
+            if c.table == "order_lines"
+        ]
+        return [
+            ("items", " | ".join(items) or None),
+            ("note", _first(changes, "orders", "note")),
+        ]
+    if kind == "review":
+        rating = _first(changes, "testimonials", "rating")
+        return [
+            ("rating", f"{rating}/5" if rating else None),
+            ("text", _first(changes, "testimonials", "body")),
+        ]
+    if kind == "shop":
+        return [("description", _first(changes, "businesses", "short_description"))]
+    if kind == "service":
+        return [("service", _first(changes, "talent_profiles", "display_name"))]
+    if kind == "service_request":
+        return [("details", _first(changes, "service_requests", "details"))]
+    if kind == "partner":
+        return [
+            ("occupation", _first(changes, "partner_requests", "occupation")),
+            ("residence", _first(changes, "partner_requests", "residence")),
+            ("offer", _first(changes, "partner_requests", "offer")),
+        ]
+    if kind == "ticket":
+        return [
+            ("title", _first(changes, "feedback_tickets", "title")),
+            (
+                "text",
+                _first(changes, "feedback_tickets", "description")
+                or _first(changes, "feedback_comments", "body"),
+            ),
+        ]
+    return []
+
+
+def _business_id(
+    changes: list[Change], business_of_item: Callable[[str], str | None]
+) -> str | None:
+    for change in changes:
+        if change.table == "businesses":
+            return change.row_id
+        if "business_id" in change.refs:
+            return change.refs["business_id"]
+    for change in changes:
+        if "item_id" in change.refs:
+            return business_of_item(change.refs["item_id"])
+    return None
 
 
 def _rank(path: str) -> int:
@@ -356,17 +430,21 @@ Lookup = Callable[[str], str | None]
 
 @dataclass
 class Shop:
-    """What the message shows of a business besides the link: its logo,
-    sent as the photo, and its Instagram and Facebook pages."""
+    """What the message shows of the business a save belongs to: its name,
+    category and town, its logo (sent as the photo), and its Instagram and
+    Facebook pages."""
 
+    name: str | None = None
+    category: str | None = None
+    town: str | None = None
     logo_key: str | None = None
-    links: list[str] = field(default_factory=list)
+    instagram: str | None = None
+    facebook: str | None = None
 
 
 ShopLookup = Callable[[str], Shop | None]
 
 MAX_PHOTO_BYTES = 10 * 1024 * 1024  # sendPhoto's limit.
-SHOP_PREFIX = "/admin/businesses/"
 
 
 @dataclass
@@ -436,10 +514,11 @@ class TelegramArchive:
                 logger.exception("telegram archive batch failed")
 
     def render(self, batch: Batch) -> Message | None:
-        """Name, phone and a review link; for a business, also its logo and
-        its Instagram and Facebook pages. Nothing else: the owners found the
-        full field dump too much to read, and the details are on the site,
-        behind the administrator's sign-in.
+        """What was added, by whom, with its key details and a review link;
+        a shop's logo is the photo. Labelled lines in Arabic, from the
+        catalog, rather than icons -- the owners' request, 27 Oct 2026. Not
+        every field: the full dump was too much to read, and the rest is on
+        the site behind the administrator's sign-in.
 
         None for a commit that names nobody: an application is saved in
         more than one commit, and only the first carries the applicant."""
@@ -451,17 +530,25 @@ class TelegramArchive:
         lookup = self._lookup or (lambda _item_id: None)
         paths = [p for p in (admin_path(c, lookup) for c in batch.changes) if p]
         path = min(paths, key=_rank) if paths else None
-        icon = (batch.icon or "") + _icons(batch.changes)
-        lines = [f"{icon} {name or '-'}"]
-        if phone:
-            lines.append(f"📞 {phone}")
-        if path:
-            lines.append(f"🔗 {self._base_url}{path}")
-        shop = None
-        if path and path.startswith(SHOP_PREFIX) and self._shop is not None:
-            shop = self._shop(path.removeprefix(SHOP_PREFIX))
+        business_id = _business_id(batch.changes, lookup)
+        shop = self._shop(business_id) if business_id and self._shop else None
+
+        kind = _kind(batch.changes)
+        title = _t(f"telegram.kind.{kind}")
+        if batch.past:
+            title = f"{title} ({_t('telegram.past')})"
+        rows: list[tuple[str, str | None]] = [("name", name), ("phone", phone)]
         if shop is not None:
-            lines.extend(shop.links)
+            place = " · ".join(p for p in (shop.category, shop.town) if p) or None
+            rows += [("shop", shop.name), ("category", place)]
+        rows += _details(kind, batch.changes)
+        if shop is not None:
+            rows += [("instagram", shop.instagram), ("facebook", shop.facebook)]
+        if path:
+            rows.append(("link", f"{self._base_url}{path}"))
+        lines = [title] + [
+            f"{_t(f'telegram.label.{label}')}: {value}" for label, value in rows if value
+        ]
         return Message("\n".join(lines), shop.logo_key if shop else None)
 
     def send(self, batch: Batch) -> None:
@@ -542,13 +629,11 @@ def context_lookup(session_factory: sessionmaker[Session]) -> Lookup:
 
 
 def shop_lookup(session_factory: sessionmaker[Session]) -> ShopLookup:
-    """A business's logo and its Instagram and Facebook pages."""
+    """A business's name, category, town, logo and social pages."""
     from sqlalchemy import select
 
     from app.models.business import Business, BusinessSocialLink
     from app.models.enums import SocialPlatform
-
-    icons = {SocialPlatform.INSTAGRAM: "📷", SocialPlatform.FACEBOOK: "📘"}
 
     def lookup(business_id: str) -> Shop | None:
         try:
@@ -556,15 +641,21 @@ def shop_lookup(session_factory: sessionmaker[Session]) -> ShopLookup:
                 business = db.get(Business, uuid.UUID(business_id))
                 if business is None:
                     return None
-                links = db.execute(
-                    select(BusinessSocialLink)
-                    .where(BusinessSocialLink.business_id == business.id)
-                    .where(BusinessSocialLink.platform.in_(list(icons)))
-                    .order_by(BusinessSocialLink.platform)
-                ).scalars()
+                links = {
+                    link.platform: link.url
+                    for link in db.execute(
+                        select(BusinessSocialLink).where(
+                            BusinessSocialLink.business_id == business.id
+                        )
+                    ).scalars()
+                }
                 return Shop(
+                    name=business.name,
+                    category=business.category.name_ar if business.category else None,
+                    town=business.location.name_ar if business.location else None,
                     logo_key=business.logo_storage_key,
-                    links=[f"{icons[link.platform]} {link.url}" for link in links],
+                    instagram=links.get(SocialPlatform.INSTAGRAM),
+                    facebook=links.get(SocialPlatform.FACEBOOK),
                 )
         except Exception:
             logger.warning("telegram archive shop lookup failed", exc_info=True)

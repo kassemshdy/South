@@ -19,6 +19,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
+from app.core.i18n import translate
 from app.database.session import SessionLocal
 from app.models.taxonomy import Category, Location
 from app.models.user import User
@@ -29,6 +30,12 @@ from tests.samples import ar
 from tests.test_registration import APPLICANT_E164, PNG_BYTES, _business_payload, _register
 
 TOKEN = "123456:secret-bot-token"
+
+
+def label(name: str) -> str:
+    return translate(f"telegram.label.{name}", locale="ar")
+
+
 SITE = "https://site.test"
 
 
@@ -58,6 +65,7 @@ def telegram() -> Iterator[tuple[FakeTelegram, TelegramArchive]]:
         chat_id="-100",
         read_file=lambda key: b"FILE:" + key.encode(),
         lookup=telegram_archive.context_lookup(SessionLocal),
+        shop=telegram_archive.shop_lookup(SessionLocal),
         base_url=SITE,
         client=httpx.Client(transport=httpx.MockTransport(fake.handler)),
         interval=0,
@@ -111,13 +119,12 @@ def test_by_default_only_text_is_sent(
 
     (message,) = fake.messages
     lines = message.splitlines()
-    assert len(lines) == 3
-    assert lines[0].startswith("🆕🏪 "), "new, and about a shop"
-    assert ar("identity.full_name") in lines[0]
-    assert lines[1] == f"📞 {APPLICANT_E164}"
-    assert lines[2].startswith("🔗 /admin/businesses/")
-    assert ar("business.applicant") not in message, "no listing fields"
+    assert lines[0] == translate("telegram.kind.shop", locale="ar")
+    assert lines[1] == f"{label('name')}: {ar('identity.full_name')}"
+    assert lines[2] == f"{label('phone')}: {APPLICANT_E164}"
+    assert lines[-1].startswith(f"{label('link')}: /admin/businesses/")
     assert ar("identity.residence_place") not in message, "no identity fields"
+    assert "1986" not in message, "no identity fields"
     assert fake.documents == []
 
 
@@ -144,7 +151,8 @@ def test_with_files_on_an_application_is_posted_with_its_id_scan(
     text = "\n".join(fake.messages)
     assert ar("identity.full_name") in text
     assert APPLICANT_E164 in text
-    assert f"🔗 {SITE}/admin/businesses/{business_id}" in text
+    assert f"{label('link')}: {SITE}/admin/businesses/{business_id}" in text
+    assert f"{label('shop')}: {ar('business.applicant')}" in text
     assert "password_hash" not in text
     assert len(fake.documents) == 1, "the ID scan is attached"
 
@@ -202,10 +210,12 @@ def test_an_order_is_posted(
     archive.drain()
 
     (message,) = fake.messages
-    assert message.startswith("🆕🛒 ")
+    assert message.startswith(translate("telegram.kind.order", locale="ar"))
     assert ar("order.customer") in message
     assert "+9613990600" in message
-    assert message.endswith(f"🔗 {SITE}/admin/orders")
+    assert f"{label('shop')}: {ar('business.sweets_shop')}" in message
+    assert f"{ar('item.generic')} × 2" in message, "what was ordered"
+    assert message.endswith(f"{label('link')}: {SITE}/admin/orders")
 
 
 def test_an_administrators_saves_are_not_posted(
@@ -283,10 +293,11 @@ def test_the_backfill_sends_a_business_with_its_owner_and_id_scan_once(
     batch = telegram_backfill.business_batch(db, business)
     archive.send(batch)
     text = "\n".join(fake.messages)
-    assert text.startswith("↩️🆕🏪 ") and ar("identity.full_name") in text
+    assert translate("telegram.past", locale="ar") in text.splitlines()[0]
+    assert ar("identity.full_name") in text
     assert APPLICANT_E164 in text
     assert f"{SITE}/admin/businesses/{business.id}" in text
-    assert ar("business.applicant") not in text
+    assert f"{label('shop')}: {ar('business.applicant')}" in text
     assert len(fake.documents) == 1, "the ID scan is attached"
 
     sent: list[Batch] = []
@@ -308,10 +319,12 @@ def test_a_business_is_posted_with_its_logo_and_social_pages() -> None:
     fake = FakeTelegram()
     shops = {
         "b1": telegram_archive.Shop(
+            name="Shop one",
             logo_key="logos/b1.png",
-            links=["📷 https://instagram.com/shop", "📘 https://facebook.com/shop"],
+            instagram="https://instagram.com/shop",
+            facebook="https://facebook.com/shop",
         ),
-        "b2": telegram_archive.Shop(links=["📷 https://instagram.com/other"]),
+        "b2": telegram_archive.Shop(name="Shop two", instagram="https://instagram.com/other"),
     }
     archive = TelegramArchive(
         token=TOKEN,
@@ -328,7 +341,7 @@ def test_a_business_is_posted_with_its_logo_and_social_pages() -> None:
             Batch(
                 name="n",
                 phone="+9613000000",
-                changes=[telegram_archive.Change("updated", "businesses", business_id)],
+                changes=[telegram_archive.Change("created", "businesses", business_id)],
             )
         )
 
@@ -338,8 +351,11 @@ def test_a_business_is_posted_with_its_logo_and_social_pages() -> None:
     assert f"{SITE}/admin/businesses/b1" in caption
     assert "https://instagram.com/shop" in caption
     assert "https://facebook.com/shop" in caption
+    assert "Shop one" in caption
     (message,) = fake.messages
-    assert message.endswith(f"{SITE}/admin/businesses/b2\n📷 https://instagram.com/other")
+    assert f"{label('shop')}: Shop two" in message
+    assert f"{label('instagram')}: https://instagram.com/other" in message
+    assert label("facebook") not in message, "no line for a page it does not have"
 
 
 def test_only_new_things_are_posted_not_edits(

@@ -394,6 +394,7 @@ export function BusinessProfilePage() {
                           open={openItemId === item.id}
                           onOpenChange={(open) => setOpenItemId(open ? item.id : null)}
                           action={cart}
+                          businessName={data.name}
                         />
                       </Card>
                     )

@@ -23,6 +23,9 @@ class ItemImageOut(ORMModel):
 
 class BusinessItemOut(ORMModel):
     id: uuid.UUID
+    # Public already: it is the product page's address, and the shop page's
+    # pop-up links and shares by it.
+    slug: str
     title: str
     description: str | None = None
     price: Decimal | None = None

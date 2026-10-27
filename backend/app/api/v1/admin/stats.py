@@ -12,9 +12,10 @@ from sqlalchemy import Date, cast, func, select
 from app.api.serializers import admin_user
 from app.core.dependencies import AdminUser, DbSession
 from app.models.business import Business, BusinessItem
-from app.models.enums import BusinessStatus, UserRole
+from app.models.enums import BusinessStatus, TestimonialStatus, UserRole
 from app.models.order import Order
 from app.models.talent import TalentProfile
+from app.models.testimonial import Testimonial
 from app.repositories.business import BusinessRepository
 from app.repositories.talent import TalentRepository
 from app.repositories.user import UserRepository
@@ -54,6 +55,13 @@ def platform_stats(db: DbSession, admin: AdminUser) -> StatsResponse:
         total_talents=sum(talent_counts.values()),
         pending_talents=talent_counts.get(BusinessStatus.PENDING_REVIEW, 0),
         approved_talents=talent_counts.get(BusinessStatus.APPROVED, 0),
+        pending_testimonials=int(
+            db.execute(
+                select(func.count())
+                .select_from(Testimonial)
+                .where(Testimonial.status == TestimonialStatus.PENDING_REVIEW)
+            ).scalar_one()
+        ),
     )
 
 

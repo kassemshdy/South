@@ -21,7 +21,10 @@ Environment = Literal["development", "test", "staging", "production"]
 #   - connect-src: the API (self) and the beacons those tags talk to, plus the
 #     Sentry ingest host. A blocked beacon degrades analytics, never the site.
 #   - frame-src: Turnstile's challenge iframe and the YouTube/Maps embeds.
-#   - img-src: self and data: URIs, plus https: so remote thumbnails render.
+#   - img-src: self and data: URIs, plus https: so remote thumbnails render,
+#     and blob: for the preview of a photo picked for upload, which is shown
+#     from the browser's own copy before it is sent. Without it every upload
+#     form showed an empty box, and owners re-submitted thinking it had failed.
 #   - style-src: 'unsafe-inline' because component inline styles need it; this
 #     does not weaken script protection.
 #   - object-src/base-uri/frame-ancestors/form-action: lock down plugin
@@ -33,7 +36,7 @@ DEFAULT_CONTENT_SECURITY_POLICY = "; ".join(
         "object-src 'none'",
         "frame-ancestors 'none'",
         "form-action 'self'",
-        "img-src 'self' data: https:",
+        "img-src 'self' data: blob: https:",
         "font-src 'self' data:",
         "style-src 'self' 'unsafe-inline'",
         (

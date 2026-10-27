@@ -76,7 +76,7 @@ def business_batch(db: Session, business: Business) -> Batch:
         objects.append(talent)
         objects += talent.images
     name, phone = person(owner)
-    return Batch(name=name, phone=phone, changes=_changes(objects), icon="↩️")
+    return Batch(name=name, phone=phone, changes=_changes(objects), past=True)
 
 
 def _targets(db: Session, wanted: str) -> list[Business]:

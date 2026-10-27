@@ -60,7 +60,7 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     ("DELETE", "/api/admin/businesses/{business_id}/items/{item_id}"): _MODERATE,
     **{
         ("POST", f"/api/admin/talent/{{profile_id}}/{action}"): _MODERATE
-        for action in ("approve", "reject", "suspend", "reactivate")
+        for action in ("approve", "reject", "suspend", "reactivate", "skill")
     },
     ("POST", "/api/admin/testimonials/{testimonial_id}/approve"): _MODERATE,
     ("POST", "/api/admin/testimonials/{testimonial_id}/reject"): _MODERATE,
