@@ -1345,5 +1345,6 @@
   "admin.homeSectionProducts": "أحدث المنتجات",
   "admin.homeSectionShops": "أحدث المتاجر",
   "admin.homeSectionTalents": "أحدث الخدمات",
-  "admin.homeSectionNews": "الأخبار"
+  "admin.homeSectionNews": "الأخبار",
+  "admin.homeSectionCategoryProducts": "المنتجات حسب التصنيف"
 }

@@ -1345,5 +1345,6 @@
   "admin.homeSectionProducts": "Newest products",
   "admin.homeSectionShops": "Newest shops",
   "admin.homeSectionTalents": "Newest services",
-  "admin.homeSectionNews": "News"
+  "admin.homeSectionNews": "News",
+  "admin.homeSectionCategoryProducts": "Products by category"
 }

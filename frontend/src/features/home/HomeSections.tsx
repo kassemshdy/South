@@ -17,6 +17,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Dialog, DialogContent } from '@/components/ui/Dialog'
 import { YouTubePlayer } from '@/components/ui/YouTubePlayer'
 import { BusinessCard } from '@/features/businesses/BusinessCard'
+import { CategoryIcon } from '@/features/home/categoryIcon'
 import { ProductCard } from '@/features/items/ProductCard'
 import { TalentCard } from '@/features/talent/TalentCard'
 import { useI18n, useT } from '@/i18n'
@@ -29,7 +30,7 @@ import {
   taxonomyApi,
 } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import type { GoodsOrigin, HomeStory, ProductQuery } from '@/types/api'
+import type { Category, GoodsOrigin, HomeStory, ProductQuery } from '@/types/api'
 import { cn } from '@/utils/cn'
 import { formatDate } from '@/utils/format'
 
@@ -104,11 +105,8 @@ export function CategoriesSection() {
               to={`/products?category=${encodeURIComponent(category.slug)}`}
               className="flex w-28 flex-col items-center gap-2 rounded-2xl border border-ink-100 bg-white p-3 text-center shadow-card transition-colors hover:border-brand-300"
             >
-              <span
-                className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 font-display text-xl font-bold text-brand-700"
-                aria-hidden="true"
-              >
-                {category.name_ar.slice(0, 1)}
+              <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-brand-700">
+                <CategoryIcon name={category.icon} className="h-7 w-7" />
               </span>
               <span className="text-sm font-semibold leading-snug text-ink-900">{category.name_ar}</span>
             </Link>
@@ -247,6 +245,67 @@ export function ProductsSection() {
         ))}
       </div>
     </Band>
+  )
+}
+
+/** At most this many category rows, busiest categories first. */
+const CATEGORY_ROWS = 6
+
+/**
+ * One row of newest products per category, OLX-style: the categories with
+ * the most shops first, a row only where the category has products.
+ */
+export function CategoryProductsSection() {
+  const t = useT()
+  const categories = useQuery({ queryKey: queryKeys.categories, queryFn: taxonomyApi.categories })
+  const busiest = (categories.data ?? [])
+    .filter((category) => category.is_active !== false && category.business_count > 0)
+    .sort((a, b) => b.business_count - a.business_count)
+    .slice(0, CATEGORY_ROWS)
+  if (busiest.length === 0) return null
+  return (
+    <Band>
+      <div className="space-y-10">
+        {busiest.map((category) => (
+          <CategoryRow key={category.id} category={category} more={t('home.viewAll')} />
+        ))}
+      </div>
+    </Band>
+  )
+}
+
+function CategoryRow({ category, more }: { category: Category; more: string }) {
+  const query: ProductQuery = { category: category.slug, sort: 'newest', page_size: 8 }
+  const products = useQuery({
+    queryKey: queryKeys.products(query),
+    queryFn: () => publicItemApi.search(query),
+  })
+  const items = products.data?.items ?? []
+  if (items.length === 0) return null
+  return (
+    <section aria-labelledby={`cat-row-${category.id}`}>
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <h2 id={`cat-row-${category.id}`} className="flex items-center gap-3 font-display text-2xl font-bold text-ink-900">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-700">
+            <CategoryIcon name={category.icon} className="h-5 w-5" />
+          </span>
+          {category.name_ar}
+        </h2>
+        <Link
+          to={`/products?category=${encodeURIComponent(category.slug)}`}
+          className="shrink-0 text-sm font-semibold text-brand-700 hover:underline"
+        >
+          {more}
+        </Link>
+      </div>
+      <ul className="flex gap-4 overflow-x-auto pb-2">
+        {items.map((product) => (
+          <li key={product.id} className="w-52 shrink-0 sm:w-60">
+            <ProductCard product={product} />
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 

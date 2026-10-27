@@ -549,6 +549,7 @@ export type HomeSectionId =
   | 'stories'
   | 'stats'
   | 'products'
+  | 'category_products'
   | 'shops'
   | 'talents'
   | 'news'

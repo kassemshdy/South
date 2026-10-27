@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 
 import {
   CategoriesSection,
+  CategoryProductsSection,
   NewsSection,
   ProductsSection,
   SearchSection,
@@ -37,6 +38,7 @@ const DEFAULT_ORDER: HomeSectionId[] = [
   'stories',
   'stats',
   'products',
+  'category_products',
   'shops',
   'talents',
   'news',
@@ -51,6 +53,7 @@ const SECTIONS: Record<HomeSectionId, () => ReactNode> = {
   stories: () => <StoriesSection />,
   stats: () => <StatsSection />,
   products: () => <ProductsSection />,
+  category_products: () => <CategoryProductsSection />,
   shops: () => <ShopsSection />,
   talents: () => <TalentsSection />,
   news: () => <NewsSection />,

@@ -20,6 +20,7 @@ const LABELS: Record<HomeSectionId, TranslationKey> = {
   stories: 'admin.homeSectionStories',
   stats: 'admin.homeSectionStats',
   products: 'admin.homeSectionProducts',
+  category_products: 'admin.homeSectionCategoryProducts',
   shops: 'admin.homeSectionShops',
   talents: 'admin.homeSectionTalents',
   news: 'admin.homeSectionNews',
