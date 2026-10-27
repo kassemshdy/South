@@ -981,6 +981,7 @@
   "products.seoDescription": "Browse products and services for sale from businesses across South Lebanon.",
   "products.seoSearchTitle": "Search results for “{query}” in products | Janoubna",
   "products.seoTitle": "Products directory | Janoubna",
+  "products.openPage": "Product page",
   "products.shareText": "{name} — {price}, from {business} in South Lebanon.",
   "products.shareTextNoPrice": "{name}, from {business} in South Lebanon.",
   "products.viewBusinessCta": "Visit business page",

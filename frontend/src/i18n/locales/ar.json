@@ -981,6 +981,7 @@
   "products.seoDescription": "تصفّح منتجات وخدمات معروضة للبيع من أصحاب الأنشطة في جنوب لبنان.",
   "products.seoSearchTitle": "نتائج البحث عن «{query}» في المنتجات | جنوبنا",
   "products.seoTitle": "دليل المنتجات | جنوبنا",
+  "products.openPage": "صفحة المنتج",
   "products.shareText": "{name} — {price}، من {business} في جنوب لبنان.",
   "products.shareTextNoPrice": "{name}، من {business} في جنوب لبنان.",
   "products.viewBusinessCta": "زيارة صفحة النشاط",

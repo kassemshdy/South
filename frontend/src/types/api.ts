@@ -195,6 +195,8 @@ export interface ItemImage {
 
 export interface BusinessItem {
   id: string
+  /** The product page's address, `/product/<slug>`. */
+  slug: string
   title: string
   description: string | null
   /** Decimal serialized as a string to avoid float rounding on prices. */
