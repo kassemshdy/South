@@ -262,6 +262,13 @@ class TalentCreateIn(TalentProfileFieldsIn):
         return self
 
 
+class TalentSkillChangeIn(BaseModel):
+    """An administrator's correction of the skill a profile was filed under."""
+
+    skill_id: uuid.UUID
+    custom_skill_text: str | None = Field(default=None, max_length=120)
+
+
 class TalentUpdateIn(TalentProfileFieldsIn):
     """Every field optional: the profile editor saves one section at a time."""
 

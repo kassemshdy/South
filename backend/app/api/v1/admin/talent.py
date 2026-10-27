@@ -20,7 +20,9 @@ from app.models.talent import TalentProfile
 from app.repositories.talent import TalentRepository
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.moderation import AdminTalentOut, RejectIn, SuspendIn
+from app.schemas.talent import TalentSkillChangeIn, TalentUpdateIn
 from app.services.account import AccountDeletionService
+from app.services.talent import TalentService
 from app.services.talent_moderation import TalentModerationService
 from app.storage.factory import get_storage
 
@@ -94,6 +96,22 @@ def suspend(
 def reactivate(profile_id: uuid.UUID, db: DbSession, admin: AdminUser) -> AdminTalentOut:
     profile = TalentModerationService(db).reactivate(_load(db, profile_id), admin)
     return admin_talent(profile)
+
+
+@router.post("/talent/{profile_id}/skill", response_model=AdminTalentOut)
+def set_skill(
+    profile_id: uuid.UUID, payload: TalentSkillChangeIn, db: DbSession, admin: AdminUser
+) -> AdminTalentOut:
+    """Correct the skill an applicant chose, on their behalf.
+
+    Through the owner's own update path, so the skill is validated against
+    the taxonomy and the search text is rebuilt exactly as when they edit it.
+    """
+    TalentService(db).update(
+        _load(db, profile_id),
+        TalentUpdateIn(skill_id=payload.skill_id, custom_skill_text=payload.custom_skill_text),
+    )
+    return admin_talent(_load(db, profile_id))
 
 
 @router.delete("/talent/{profile_id}", response_model=MessageResponse)

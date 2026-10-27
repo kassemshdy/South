@@ -9,6 +9,8 @@ else's.
 
 from __future__ import annotations
 
+import uuid
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
@@ -833,3 +835,32 @@ def test_numbers_kept_private_never_reach_a_visitor(
     own = client.get("/api/my/talent", headers=headers).json()
     assert own["phone_public"] is False
     assert own["whatsapp"] == "+9613950101"
+
+
+def test_an_administrator_can_correct_a_profiles_skill(
+    client: TestClient,
+    admin: User,
+    skill: TalentSkill,
+    skill_other: TalentSkill,
+    location: Location,
+) -> None:
+    """An applicant who filed under the wrong skill is moved by an
+    administrator; an unknown skill is refused and an owner cannot do it."""
+    headers = sign_in(client, "03950140")
+    profile = _create_profile(client, headers, skill, location)
+    route = f"/api/admin/talent/{profile['id']}/skill"
+
+    moved = client.post(
+        route,
+        headers=admin_headers(client),
+        json={"skill_id": str(skill_other.id), "custom_skill_text": ar("talent.designer")},
+    )
+    assert moved.status_code == 200, moved.text
+    assert moved.json()["skill"]["id"] == str(skill_other.id)
+    assert moved.json()["custom_skill_text"] == ar("talent.designer")
+
+    unknown = client.post(
+        route, headers=admin_headers(client), json={"skill_id": str(uuid.uuid4())}
+    )
+    assert unknown.status_code == 422
+    assert client.post(route, headers=headers, json={"skill_id": str(skill.id)}).status_code == 403
