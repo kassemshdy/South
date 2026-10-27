@@ -40,6 +40,7 @@ import type {
   EmploymentType,
   Gender,
   ImageKind,
+  CredentialState,
   IssuedPassword,
   LanguageProficiency,
   LocationNode,
@@ -698,6 +699,8 @@ export const adminApi = {
    */
   issueCredentials: (userId: string) =>
     apiRequest<IssuedPassword>(`/api/admin/users/${userId}/credentials`, { method: 'POST' }),
+  credentialState: (userId: string) =>
+    apiRequest<CredentialState>(`/api/admin/users/${userId}/credentials`),
 
   getVerificationDocument: (userId: string) =>
     apiRequest<VerificationDocument>(`/api/admin/users/${userId}/verification-document`),

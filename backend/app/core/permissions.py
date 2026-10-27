@@ -44,6 +44,8 @@ RESTRICTED_READS: dict[str, frozenset[StaffRole]] = {
     # A spreadsheet of every account's identity and every customer's phone.
     "/api/admin/export/{dataset}.csv": frozenset({M}),
     "/api/admin/staff": frozenset({M}),
+    # Whoever may issue an owner's password may see whether theirs is current.
+    "/api/admin/users/{user_id}/credentials": frozenset({M, R, S}),
 }
 
 _MODERATE = frozenset({M, R})

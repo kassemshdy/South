@@ -100,6 +100,20 @@ class IssuedPasswordOut(BaseModel):
 
     phone_number: str
     password: str
+    # Which issue this is. The admin's browser keeps the password beside this
+    # number and shows it only while the account still carries it, so a new
+    # password, or the owner changing theirs, retires the remembered one.
+    version: int
+
+
+class CredentialStateOut(BaseModel):
+    """Whether a password remembered in the administrator's browser is still
+    the account's: it is, while ``version`` matches the one issued with it.
+    Carries no secret -- the version is a counter that changes on every new
+    password, password change or sign-out-everywhere."""
+
+    version: int
+    has_password: bool
 
 
 class TokenOut(BaseModel):

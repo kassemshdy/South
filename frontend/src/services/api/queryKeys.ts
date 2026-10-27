@@ -40,6 +40,7 @@ export const queryKeys = {
   myTalentReadiness: ['my-talent', 'readiness'] as const,
   myServiceRequests: ['my-talent', 'requests'] as const,
   adminStats: ['admin', 'stats'] as const,
+  adminCredentials: (userId: string) => ['admin', 'credentials', userId] as const,
   adminGrowth: ['admin', 'stats', 'growth'] as const,
   adminStaff: ['admin', 'staff'] as const,
   adminBusinesses: (status: BusinessStatus | undefined, page: number, q?: string) =>
