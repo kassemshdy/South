@@ -147,6 +147,7 @@
   "status.rejected": "Needs changes",
   "status.suspended": "Suspended",
   "talent.already_exists": "You already have a talent profile. Edit it instead of creating a new one.",
+  "talent.convert_has_requests": "This profile cannot be moved into a shop because it has service requests from customers.",
   "talent.deleted": "The talent profile has been deleted.",
   "talent.field.bio": "your bio",
   "talent.field.contact": "a phone or WhatsApp number",

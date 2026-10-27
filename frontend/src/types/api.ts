@@ -115,6 +115,13 @@ export interface User extends OwnerIdentity {
 export interface IssuedPassword {
   phone_number: string
   password: string
+  /** Which issue this is; the browser keeps the password while it is current. */
+  version: number
+}
+
+export interface CredentialState {
+  version: number
+  has_password: boolean
 }
 
 /** Metadata only — the document bytes are never exposed by a URL. */

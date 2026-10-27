@@ -44,6 +44,8 @@ RESTRICTED_READS: dict[str, frozenset[StaffRole]] = {
     # A spreadsheet of every account's identity and every customer's phone.
     "/api/admin/export/{dataset}.csv": frozenset({M}),
     "/api/admin/staff": frozenset({M}),
+    # Whoever may issue an owner's password may see whether theirs is current.
+    "/api/admin/users/{user_id}/credentials": frozenset({M, R, S}),
 }
 
 _MODERATE = frozenset({M, R})
@@ -60,7 +62,14 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     ("DELETE", "/api/admin/businesses/{business_id}/items/{item_id}"): _MODERATE,
     **{
         ("POST", f"/api/admin/talent/{{profile_id}}/{action}"): _MODERATE
-        for action in ("approve", "reject", "suspend", "reactivate", "skill")
+        for action in (
+            "approve",
+            "reject",
+            "suspend",
+            "reactivate",
+            "skill",
+            "convert-to-business",
+        )
     },
     ("POST", "/api/admin/testimonials/{testimonial_id}/approve"): _MODERATE,
     ("POST", "/api/admin/testimonials/{testimonial_id}/reject"): _MODERATE,

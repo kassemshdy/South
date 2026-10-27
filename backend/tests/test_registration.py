@@ -1085,3 +1085,35 @@ def test_an_application_without_a_map_pin_is_refused(
     refused = _register(client, "business", payload)
     assert refused.status_code == 422, refused.text
     assert _owner(db) is None
+
+
+def test_a_remembered_password_is_current_until_replaced_or_changed(
+    client: TestClient, db: Session, category: Category, location: Location, admin: User
+) -> None:
+    """The admin's browser keeps an issued password beside its version and
+    shows it while the account still carries that version: a new password,
+    or the owner choosing their own, retires it."""
+    _apply(client, _business_payload(category, location))
+    owner = _owner(db)
+    assert owner is not None
+    route = f"/api/admin/users/{owner.id}/credentials"
+
+    def current() -> int:
+        state = client.get(route, headers=admin_headers(client))
+        assert state.status_code == 200, state.text
+        return int(state.json()["version"])
+
+    first = client.post(route, headers=admin_headers(client)).json()
+    assert first["version"] == current()
+
+    second = client.post(route, headers=admin_headers(client)).json()
+    assert second["version"] != first["version"]
+    assert second["version"] == current()
+
+    headers = _sign_in(client, APPLICANT_PHONE, second["password"])
+    client.post(
+        "/api/me/password",
+        headers=headers,
+        json={"current_password": second["password"], "new_password": "OwnerChosen9"},
+    )
+    assert current() != second["version"], "the owner's own password retires it"

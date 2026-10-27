@@ -40,6 +40,7 @@ import type {
   EmploymentType,
   Gender,
   ImageKind,
+  CredentialState,
   IssuedPassword,
   LanguageProficiency,
   LocationNode,
@@ -647,6 +648,11 @@ export const adminApi = {
     apiRequest<{ message: string }>(`/api/admin/businesses/${businessId}/items/${itemId}`, {
       method: 'DELETE',
     }),
+  convertTalentToBusiness: (profileId: string, category_id: string) =>
+    apiRequest<{ business_id: string }>(`/api/admin/talent/${profileId}/convert-to-business`, {
+      method: 'POST',
+      body: { category_id },
+    }),
   setTalentSkill: (profileId: string, skill_id: string, custom_skill_text: string | null) =>
     apiRequest<AdminTalent>(`/api/admin/talent/${profileId}/skill`, {
       method: 'POST',
@@ -698,6 +704,8 @@ export const adminApi = {
    */
   issueCredentials: (userId: string) =>
     apiRequest<IssuedPassword>(`/api/admin/users/${userId}/credentials`, { method: 'POST' }),
+  credentialState: (userId: string) =>
+    apiRequest<CredentialState>(`/api/admin/users/${userId}/credentials`),
 
   getVerificationDocument: (userId: string) =>
     apiRequest<VerificationDocument>(`/api/admin/users/${userId}/verification-document`),
