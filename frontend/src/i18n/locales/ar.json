@@ -1346,5 +1346,8 @@
   "admin.homeSectionShops": "أحدث المتاجر",
   "admin.homeSectionTalents": "أحدث الخدمات",
   "admin.homeSectionNews": "الأخبار",
-  "admin.homeSectionCategoryProducts": "المنتجات حسب التصنيف"
+  "admin.homeSectionCategoryProducts": "المنتجات حسب التصنيف",
+  "home.previewBanner": "معاينة الصفحة الرئيسية المقترحة — لا يراها الزوار بعد",
+  "admin.homeLayoutApplyProposed": "تطبيق الترتيب المقترح",
+  "admin.homeLayoutPreview": "معاينة التصميم المقترح"
 }

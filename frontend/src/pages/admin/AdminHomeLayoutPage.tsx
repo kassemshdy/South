@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
 import { ErrorState, InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
+import { PREVIEW_PARAM, PREVIEW_VALUE, PROPOSED_ORDER } from '@/features/home/layout'
 import { useT, type TranslationKey } from '@/i18n'
 import { adminApi, homeApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
@@ -58,6 +59,16 @@ export function AdminHomeLayoutPage() {
     ;[next[index], next[target]] = [next[target]!, next[index]!]
     setSections(next)
   }
+  // The proposed page, as previewed: its sections in its order, shown, and
+  // anything it leaves out kept below, hidden. Saved only by Save.
+  const applyProposed = () => {
+    const rest = sections.filter((s) => !PROPOSED_ORDER.includes(s.id))
+    setSections([
+      ...PROPOSED_ORDER.map((id) => ({ id, visible: true })),
+      ...rest.map((s) => ({ ...s, visible: false })),
+    ])
+  }
+
   const toggle = (index: number) =>
     setSections(sections.map((s, i) => (i === index ? { ...s, visible: !s.visible } : s)))
 
@@ -110,9 +121,22 @@ export function AdminHomeLayoutPage() {
           </ol>
         </CardBody>
       </Card>
-      <Button onClick={() => save.mutate()} loading={save.isPending}>
-        {t('common.save')}
-      </Button>
+      <div className="flex flex-wrap gap-3">
+        <Button onClick={() => save.mutate()} loading={save.isPending}>
+          {t('common.save')}
+        </Button>
+        <Button variant="secondary" onClick={applyProposed}>
+          {t('admin.homeLayoutApplyProposed')}
+        </Button>
+        <a
+          href={`/?${PREVIEW_PARAM}=${PREVIEW_VALUE}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center rounded-xl px-4 py-2.5 font-semibold text-brand-700 hover:bg-sand-100"
+        >
+          {t('admin.homeLayoutPreview')}
+        </a>
+      </div>
     </div>
   )
 }

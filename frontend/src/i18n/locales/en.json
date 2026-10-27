@@ -1346,5 +1346,8 @@
   "admin.homeSectionShops": "Newest shops",
   "admin.homeSectionTalents": "Newest services",
   "admin.homeSectionNews": "News",
-  "admin.homeSectionCategoryProducts": "Products by category"
+  "admin.homeSectionCategoryProducts": "Products by category",
+  "home.previewBanner": "Preview of the proposed home page — visitors do not see it yet",
+  "admin.homeLayoutApplyProposed": "Apply the proposed order",
+  "admin.homeLayoutPreview": "Preview the proposed design"
 }

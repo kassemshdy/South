@@ -1,7 +1,7 @@
 import { Handshake, ShieldCheck } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 
 import {
   CategoriesSection,
@@ -14,6 +14,12 @@ import {
   StoriesSection,
   TalentsSection,
 } from '@/features/home/HomeSections'
+import {
+  ORIGINAL_ORDER,
+  PREVIEW_PARAM,
+  PREVIEW_VALUE,
+  PROPOSED_ORDER,
+} from '@/features/home/layout'
 import { WelcomeVideoPlayer } from '@/features/home/WelcomeVideo'
 import { AudienceChooser } from '@/features/onboarding/AudienceChooser'
 import { useT } from '@/i18n'
@@ -23,26 +29,6 @@ import { useSeo } from '@/hooks/useSeo'
 import { homeApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { HomeSectionId } from '@/types/api'
-
-/**
- * The order a fresh site shows, and the one used until the saved order
- * arrives: the page as it was, then the browsing sections an administrator
- * can move up from /admin/home-layout (the owners' request, 27 Oct 2026).
- */
-const DEFAULT_ORDER: HomeSectionId[] = [
-  'cover',
-  'hero',
-  'slogan',
-  'search',
-  'categories',
-  'stories',
-  'stats',
-  'products',
-  'category_products',
-  'shops',
-  'talents',
-  'news',
-]
 
 const SECTIONS: Record<HomeSectionId, () => ReactNode> = {
   cover: () => <CoverSection />,
@@ -61,20 +47,32 @@ const SECTIONS: Record<HomeSectionId, () => ReactNode> = {
 
 export function HomePage() {
   const t = useT()
+  const [searchParams] = useSearchParams()
+  // The manager's review of the proposed page, on live data, saving
+  // nothing: every proposed section in the proposed order.
+  const preview = searchParams.get(PREVIEW_PARAM) === PREVIEW_VALUE
   const layout = useQuery({ queryKey: queryKeys.homeLayout, queryFn: homeApi.layout })
 
   useSeo({
     title: t('home.seoTitle'),
     description: t('home.seoDescription'),
     canonicalPath: '/',
+    noIndex: preview,
   })
 
-  const order = layout.data
-    ? layout.data.sections.filter((section) => section.visible).map((section) => section.id)
-    : DEFAULT_ORDER
+  const order = preview
+    ? PROPOSED_ORDER
+    : layout.data
+      ? layout.data.sections.filter((section) => section.visible).map((section) => section.id)
+      : ORIGINAL_ORDER
 
   return (
     <>
+      {preview ? (
+        <div className="bg-wheat-200 py-2 text-center text-sm font-semibold text-ink-900">
+          {t('home.previewBanner')}
+        </div>
+      ) : null}
       {order.map((id) =>
         SECTIONS[id] ? <SectionSlot key={id}>{SECTIONS[id]()}</SectionSlot> : null,
       )}

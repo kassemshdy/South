@@ -1,8 +1,9 @@
 """The home page's sections and its stories row.
 
-Asserted: a fresh site lists every section, the page's original three
-first; an administrator's order and hidden sections are kept, unknown
-names dropped and missing ones appended; only staff who edit content may
+Asserted: a fresh site lists every section with only the page's original
+three shown, so a release changes nothing a visitor sees; an
+administrator's order and hidden sections are kept, unknown names dropped
+and missing ones appended hidden; only staff who edit content may
 save it; the stories row lists only published profiles that have a video.
 """
 
@@ -21,11 +22,11 @@ from tests.test_talent import _approve, _create_profile, skill  # noqa: F401
 VIDEO = "https://www.youtube.com/shorts/3Np8hKhrbB4"
 
 
-def test_a_fresh_site_shows_every_section_the_original_ones_first(client: TestClient) -> None:
+def test_a_fresh_site_shows_only_the_original_sections(client: TestClient) -> None:
     layout = client.get("/api/home/layout").json()["sections"]
     assert [s["id"] for s in layout] == list(SECTIONS)
-    assert [s["id"] for s in layout][:3] == ["cover", "hero", "slogan"]
-    assert all(s["visible"] for s in layout)
+    shown = [s["id"] for s in layout if s["visible"]]
+    assert shown == ["cover", "hero", "slogan"], "new sections wait for an administrator"
 
 
 def test_an_administrator_reorders_and_hides_sections(client: TestClient, admin: User) -> None:
@@ -51,6 +52,7 @@ def test_an_administrator_reorders_and_hides_sections(client: TestClient, admin:
     assert sorted(ids) == sorted(SECTIONS), "a missing section is appended, a duplicate dropped"
     assert {s["id"]: s["visible"] for s in layout}["slogan"] is False
     assert {s["id"]: s["visible"] for s in layout}["search"] is True
+    assert {s["id"]: s["visible"] for s in layout}["news"] is False, "appended hidden"
 
 
 def test_only_staff_may_save_the_layout(client: TestClient, admin: User) -> None:

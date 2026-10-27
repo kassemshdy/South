@@ -8,8 +8,10 @@ stories, live counts, newest products, shops, services and news.
 
 The order is one row in ``site_settings`` (``home_layout``), written as
 ``id:1,id:0,...`` (1 shown, 0 hidden). Reading it, an unknown id is dropped
-and a section that is missing is appended, shown, so a section added in a
-later release appears without anyone having to save the layout again.
+and a section that is missing is appended **hidden**: the page visitors see
+changes only when an administrator switches a section on. The manager
+reviews the new sections first at ``/?preview=home``, which shows the
+proposed page on live data without saving anything.
 """
 
 from __future__ import annotations
@@ -32,9 +34,9 @@ admin_router = APIRouter(prefix="/admin/home", tags=["admin-home"])
 
 LAYOUT_KEY = "home_layout"
 
-#: Every section there is, in the order a fresh site shows them: the page as
-#: it was first, so a deploy changes nothing until an administrator moves
-#: the new sections up.
+#: Every section there is. A fresh site shows the original three
+#: (``ORIGINAL``) and keeps the rest hidden until an administrator turns them
+#: on, so a deploy changes nothing a visitor sees.
 SECTIONS: tuple[str, ...] = (
     "cover",
     "hero",
@@ -49,6 +51,8 @@ SECTIONS: tuple[str, ...] = (
     "talents",
     "news",
 )
+
+ORIGINAL = frozenset({"cover", "hero", "slogan"})
 
 STORIES_LIMIT = 16
 
@@ -77,7 +81,11 @@ def _normalise(sections: list[HomeSection]) -> list[HomeSection]:
         if section.id in SECTIONS and section.id not in seen:
             seen.add(section.id)
             kept.append(HomeSection(id=section.id, visible=section.visible))
-    kept += [HomeSection(id=name) for name in SECTIONS if name not in seen]
+    kept += [
+        HomeSection(id=name, visible=name in ORIGINAL and not sections)
+        for name in SECTIONS
+        if name not in seen
+    ]
     return kept
 
 
