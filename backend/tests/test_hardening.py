@@ -77,6 +77,9 @@ def test_every_response_carries_a_content_security_policy(client: TestClient) ->
     # The point of the policy: an injected inline <script> is refused.
     assert "'unsafe-inline'" not in directives["script-src"]
     assert "'unsafe-eval'" not in directives["script-src"]
+    # A photo picked for upload is previewed from a blob: URL; refusing it
+    # left every upload form showing an empty box.
+    assert "blob:" in directives["img-src"].split()
 
 
 def test_the_policy_can_be_switched_off_per_environment() -> None:
