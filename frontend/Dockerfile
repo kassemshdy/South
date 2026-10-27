@@ -47,7 +47,10 @@ RUN npm run build
 FROM caddy:2-alpine AS runtime
 
 COPY --from=build /build/dist /srv
-COPY frontend/Caddyfile /etc/caddy/Caddyfile
+# The staging front sets CADDYFILE=frontend/Caddyfile.staging, which serves
+# this build itself instead of the API's; the live service leaves it unset.
+ARG CADDYFILE=frontend/Caddyfile
+COPY ${CADDYFILE} /etc/caddy/Caddyfile
 
 # Railway injects PORT; the Caddyfile falls back to 8080 elsewhere.
 ENV PORT=8080 \
