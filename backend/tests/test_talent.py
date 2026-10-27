@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 
 from app.models.enums import BusinessStatus
 from app.models.talent import TalentProfile, TalentSkill
-from app.models.taxonomy import Location
+from app.models.taxonomy import Category, Location
 from app.models.user import User
 from tests.conftest import admin_headers, sign_in
 from tests.samples import ar
@@ -864,3 +864,78 @@ def test_an_administrator_can_correct_a_profiles_skill(
     )
     assert unknown.status_code == 422
     assert client.post(route, headers=headers, json={"skill_id": str(skill.id)}).status_code == 403
+
+
+def test_an_administrator_can_move_a_service_profile_into_a_shop(
+    client: TestClient,
+    db: Session,
+    admin: User,
+    skill: TalentSkill,
+    location: Location,
+    category: Category,
+) -> None:
+    """A seller who applied as a service: the profile becomes a published
+    shop for the same owner, and the service profile is gone."""
+    headers = sign_in(client, "03950150")
+    profile = _create_profile(client, headers, skill, location)
+    _approve(client, db, admin, profile["id"])
+    route = f"/api/admin/talent/{profile['id']}/convert-to-business"
+
+    assert (
+        client.post(route, headers=headers, json={"category_id": str(category.id)}).status_code
+        == 403
+    )
+    assert (
+        client.post(
+            route, headers=admin_headers(client), json={"category_id": str(uuid.uuid4())}
+        ).status_code
+        == 422
+    )
+
+    moved = client.post(
+        route, headers=admin_headers(client), json={"category_id": str(category.id)}
+    )
+    assert moved.status_code == 200, moved.text
+    business_id = moved.json()["business_id"]
+
+    shop = client.get(f"/api/admin/businesses/{business_id}", headers=admin_headers(client)).json()
+    assert shop["name"] == profile["display_name"]
+    assert shop["status"] == "APPROVED", "a published profile is a published shop"
+    assert shop["category"]["id"] == str(category.id)
+    assert client.get(f"/api/businesses/{shop['slug']}").status_code == 200
+    assert client.get(f"/api/talent/{profile['slug']}").status_code == 404
+    assert [b["id"] for b in client.get("/api/my/businesses", headers=headers).json()] == [
+        business_id
+    ]
+
+
+def test_a_profile_with_service_requests_is_not_moved(
+    client: TestClient,
+    db: Session,
+    admin: User,
+    skill: TalentSkill,
+    location: Location,
+    category: Category,
+) -> None:
+    """Customers' requests have nowhere to live on a shop, so the move is
+    refused rather than losing them."""
+    headers = sign_in(client, "03950151")
+    profile = _create_profile(client, headers, skill, location)
+    _approve(client, db, admin, profile["id"])
+    asked = client.post(
+        f"/api/talent/{profile['slug']}/requests",
+        json={
+            "customer_name": ar("service_request.customer"),
+            "customer_phone": "03950152",
+            "details": ar("service_request.details"),
+        },
+    )
+    assert asked.status_code == 201, asked.text
+
+    refused = client.post(
+        f"/api/admin/talent/{profile['id']}/convert-to-business",
+        headers=admin_headers(client),
+        json={"category_id": str(category.id)},
+    )
+    assert refused.status_code == 422
+    assert client.get(f"/api/talent/{profile['slug']}").status_code == 200

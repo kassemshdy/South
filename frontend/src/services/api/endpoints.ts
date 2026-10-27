@@ -648,6 +648,11 @@ export const adminApi = {
     apiRequest<{ message: string }>(`/api/admin/businesses/${businessId}/items/${itemId}`, {
       method: 'DELETE',
     }),
+  convertTalentToBusiness: (profileId: string, category_id: string) =>
+    apiRequest<{ business_id: string }>(`/api/admin/talent/${profileId}/convert-to-business`, {
+      method: 'POST',
+      body: { category_id },
+    }),
   setTalentSkill: (profileId: string, skill_id: string, custom_skill_text: string | null) =>
     apiRequest<AdminTalent>(`/api/admin/talent/${profileId}/skill`, {
       method: 'POST',

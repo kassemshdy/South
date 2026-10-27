@@ -269,6 +269,16 @@ class TalentSkillChangeIn(BaseModel):
     custom_skill_text: str | None = Field(default=None, max_length=120)
 
 
+class ConvertToBusinessIn(BaseModel):
+    """The shop category a service profile is moved into."""
+
+    category_id: uuid.UUID
+
+
+class ConvertedOut(BaseModel):
+    business_id: uuid.UUID
+
+
 class TalentUpdateIn(TalentProfileFieldsIn):
     """Every field optional: the profile editor saves one section at a time."""
 
