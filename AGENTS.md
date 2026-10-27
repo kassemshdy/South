@@ -320,8 +320,9 @@ for something that hands out sessions.
   `tests/test_map_pin.py` pins it.
 - **Everything users save is copied to a Telegram chat, ID scans included.**
   The owners' decision (24 Oct 2026), made knowing the cost:
-  `app/services/telegram_archive.py` posts each commit a non-administrator
-  makes -- applications, orders, products, listings, reviews -- as an
+  `app/services/telegram_archive.py` posts each commit in which a
+  non-administrator creates something -- applications, orders, products,
+  listings, reviews; edits and deletions are not posted -- as an
   action/kind icon, who saved it, their phone, and a link to the admin
   screen that reviews it, plus a shop's logo and Instagram/Facebook pages
   (the owners cut it to that on 26 Oct 2026; no other field is sent as

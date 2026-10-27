@@ -340,3 +340,20 @@ def test_a_business_is_posted_with_its_logo_and_social_pages() -> None:
     assert "https://facebook.com/shop" in caption
     (message,) = fake.messages
     assert message.endswith(f"{SITE}/admin/businesses/b2\n📷 https://instagram.com/other")
+
+
+def test_only_new_things_are_posted_not_edits(
+    client: TestClient,
+    telegram: tuple[FakeTelegram, TelegramArchive],
+) -> None:
+    """The owners asked for creations only: an owner editing their account
+    posts nothing."""
+    fake, archive = telegram
+    headers = sign_in(client, "03990801")
+    archive.drain()
+    fake.messages.clear()
+
+    response = client.patch("/api/me", headers=headers, json={"display_name": "Owner"})
+    assert response.status_code == 200, response.text
+    archive.drain()
+    assert fake.messages == []
