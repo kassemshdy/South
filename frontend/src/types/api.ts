@@ -519,6 +519,7 @@ export interface PlatformStats {
   total_items: number
   total_talents: number
   pending_talents: number
+  pending_testimonials: number
   approved_talents: number
 }
 

@@ -73,6 +73,7 @@ export function AdminTestimonialsPage() {
     onSuccess: () => {
       toast.success(t(messageKey))
       void queryClient.invalidateQueries({ queryKey: ['admin', 'testimonials'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.adminStats })
     },
     onError: () => toast.error(t('admin.testimonialActionFailed')),
   })

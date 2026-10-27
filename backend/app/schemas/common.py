@@ -56,6 +56,7 @@ class StatsResponse(BaseModel):
     total_items: int
     total_talents: int = Field(default=0, description="All talent profiles regardless of status")
     pending_talents: int = 0
+    pending_testimonials: int = Field(default=0, description="Testimonials awaiting approval")
     approved_talents: int = 0
 
 
