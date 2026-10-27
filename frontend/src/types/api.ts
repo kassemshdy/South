@@ -539,6 +539,39 @@ export interface PlatformStats {
  * count towns instead of products, which measured the map rather than the
  * directory.
  */
+/** The home page's sections, in the order the API knows them. */
+export type HomeSectionId =
+  | 'cover'
+  | 'hero'
+  | 'slogan'
+  | 'search'
+  | 'categories'
+  | 'stories'
+  | 'stats'
+  | 'products'
+  | 'category_products'
+  | 'shops'
+  | 'talents'
+  | 'news'
+
+export interface HomeSection {
+  id: HomeSectionId
+  visible: boolean
+}
+
+export interface HomeLayout {
+  sections: HomeSection[]
+}
+
+/** A published listing with an introduction video, for the stories row. */
+export interface HomeStory {
+  kind: 'business' | 'talent'
+  slug: string
+  name: string
+  image_url: string | null
+  youtube_video_id: string
+}
+
 export interface PublicStats {
   total_businesses: number
   total_products: number

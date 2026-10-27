@@ -1,0 +1,59 @@
+# ---------------------------------------------------------------------------
+# Staging front (the owners' request, 27 Oct 2026): the frontend built from
+# the develop-claude branch, on the LIVE API and data.
+#
+# Unlike the live Caddyfile, this one serves its own build: the live web
+# service forwards every route to the API, which serves the live bundle, so
+# a copy of it would only ever show production. Here only data goes to the
+# API -- /api, /media, the sitemap -- and the pages and assets come from
+# this image's /srv.
+#
+# What that means for whoever uses it: everything they see and save is the
+# real site's data, through the real API and its rules. A backend change on
+# develop-claude is not here until it is released; a new endpoint answers
+# 404 and the page has to cope. And it is kept out of search engines.
+# ---------------------------------------------------------------------------
+{
+	admin off
+	auto_https off
+}
+
+:{$PORT:8080} {
+	encode zstd gzip
+
+	handle /healthz {
+		respond "ok" 200
+	}
+
+	# Never indexed: a second copy of the site would compete with the real one.
+	handle /robots.txt {
+		respond "User-agent: *
+Disallow: /
+" 200
+	}
+
+	header {
+		X-Robots-Tag "noindex, nofollow"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	@data path /api/* /media/* /sitemap.xml
+	handle @data {
+		reverse_proxy {$API_INTERNAL_HOST:api.railway.internal:8000}
+	}
+
+	@assets path /assets/*
+	handle @assets {
+		root * /srv
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}
