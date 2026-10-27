@@ -41,6 +41,8 @@ import type {
   Gender,
   ImageKind,
   CredentialState,
+  HomeLayout,
+  HomeStory,
   IssuedPassword,
   LanguageProficiency,
   LocationNode,
@@ -341,6 +343,11 @@ export const partnerApi = {
 
 export const siteSettingsApi = {
   get: () => apiRequest<SiteSettings>('/api/site-settings'),
+}
+
+export const homeApi = {
+  layout: () => apiRequest<HomeLayout>('/api/home/layout'),
+  stories: () => apiRequest<HomeStory[]>('/api/home/stories'),
 }
 
 export const pageApi = {
@@ -653,6 +660,8 @@ export const adminApi = {
       method: 'POST',
       body: { category_id },
     }),
+  saveHomeLayout: (layout: HomeLayout) =>
+    apiRequest<HomeLayout>('/api/admin/home/layout', { method: 'PUT', body: layout }),
   setTalentSkill: (profileId: string, skill_id: string, custom_skill_text: string | null) =>
     apiRequest<AdminTalent>(`/api/admin/talent/${profileId}/skill`, {
       method: 'POST',
