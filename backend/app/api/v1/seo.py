@@ -9,6 +9,7 @@ there is no second definition of "public" here to drift from the first.
 
 from __future__ import annotations
 
+from urllib.parse import quote
 from xml.etree.ElementTree import Element, SubElement, tostring
 
 from fastapi import APIRouter, Response
@@ -21,14 +22,18 @@ from app.repositories.talent import TalentRepository, TalentSkillRepository
 router = APIRouter(include_in_schema=False)
 
 
-@router.get("/sitemap.xml")
+# HEAD as well as GET: some sitemap checkers ask for the headers first, and a
+# 405 there reads as "could not be read".
+@router.api_route("/sitemap.xml", methods=["GET", "HEAD"])
 def sitemap(db: DbSession, settings: AppSettings) -> Response:
     base = settings.public_base_url.rstrip("/")
     urlset = Element("urlset", xmlns="http://www.sitemaps.org/schemas/sitemap/0.9")
 
     def add(path: str, *, changefreq: str, priority: str, lastmod: object | None = None) -> None:
         url = SubElement(urlset, "url")
-        SubElement(url, "loc").text = f"{base}{path}"
+        # Percent-encoded: the sitemap protocol wants ASCII URLs, and a shop
+        # whose slug is Arabic would otherwise be listed with raw letters.
+        SubElement(url, "loc").text = f"{base}{quote(path, safe='/?=&')}"
         if lastmod is not None and hasattr(lastmod, "date"):
             SubElement(url, "lastmod").text = lastmod.date().isoformat()
         SubElement(url, "changefreq").text = changefreq
@@ -75,7 +80,7 @@ def sitemap(db: DbSession, settings: AppSettings) -> Response:
     )
 
 
-@router.get("/robots.txt")
+@router.api_route("/robots.txt", methods=["GET", "HEAD"])
 def robots(settings: AppSettings) -> Response:
     base = settings.public_base_url.rstrip("/")
     # Owner and admin areas hold private data and have no search value.
