@@ -28,6 +28,7 @@ import { useStaffCan } from '@/features/admin/staffAccess'
 import { IssueCredentialsCard } from '@/features/admin/IssueCredentialsCard'
 import { OwnerIdentityCard } from '@/features/admin/OwnerIdentityCard'
 import { OwnerWhatsappButton } from '@/features/admin/OwnerWhatsappButton'
+import { TalentSkillCard } from '@/features/admin/TalentSkillCard'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
 import { EMPLOYMENT_TYPE_KEYS, PROFICIENCY_KEYS, WORK_MODE_KEYS } from '@/features/talent/labels'
 import { useI18n, type TranslationKey } from '@/i18n'
@@ -245,6 +246,8 @@ export function AdminTalentReviewPage() {
           </CardBody>
         </Card>
       ) : null}
+
+      {canModerate ? <TalentSkillCard profile={data} /> : null}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">

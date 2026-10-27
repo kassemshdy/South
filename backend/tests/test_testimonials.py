@@ -815,3 +815,31 @@ def test_deleting_a_service_profile_deletes_its_testimonials(
         Testimonial.__table__.select().where(Testimonial.talent_profile_id == profile_id)
     ).all()
     assert remaining == []
+
+
+def test_the_admin_dashboard_counts_testimonials_awaiting_review(
+    client: TestClient, admin: User, business: Business
+) -> None:
+    """The dashboard's queue card: an approved testimonial leaves the count."""
+    for index in range(2):
+        response = _submit(
+            client,
+            business.slug,
+            author=ar("testimonial.author"),
+            body=ar("testimonial.body"),
+            ip=f"10.0.0.{index + 1}",
+        )
+        assert response.status_code == 201, response.text
+
+    def waiting() -> int:
+        stats = client.get("/api/admin/stats", headers=admin_headers(client))
+        return int(stats.json()["pending_testimonials"])
+
+    assert waiting() == 2
+    first = client.get(
+        "/api/admin/testimonials",
+        params={"status": "PENDING_REVIEW"},
+        headers=admin_headers(client),
+    ).json()[0]
+    _approve(client, first["id"])
+    assert waiting() == 1

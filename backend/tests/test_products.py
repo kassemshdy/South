@@ -8,6 +8,8 @@ status, item availability) from being conflated with each other.
 
 from __future__ import annotations
 
+from urllib.parse import unquote
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
@@ -261,7 +263,11 @@ def test_sitemap_lists_an_available_product(
     assert "/products/local" in sitemap.text
     assert "/products/imported" in sitemap.text
     slug = _item_slug(db, ar("item.zaatar_local"))
-    assert f"/product/{slug}" in sitemap.text
+    assert f"/product/{slug}" in unquote(sitemap.text)
+    # The protocol wants ASCII URLs: an Arabic slug is percent-encoded.
+    loc = sitemap.text.split("<loc>")[1:]
+    assert all(part.split("</loc>")[0].isascii() for part in loc)
+    assert client.head("/sitemap.xml").status_code == 200, "checkers ask for headers first"
 
 
 def test_sitemap_hides_an_unavailable_product(
@@ -270,7 +276,7 @@ def test_sitemap_hides_an_unavailable_product(
     """An owner marking a product unavailable must not leave it advertised."""
     slug = _item_slug(db, ar("item.generic"))
     assert client.get(f"/api/items/{slug}").status_code == 404
-    assert f"/product/{slug}" not in client.get("/sitemap.xml").text
+    assert f"/product/{slug}" not in unquote(client.get("/sitemap.xml").text)
 
 
 def test_sitemap_hides_a_product_whose_business_is_not_approved(
