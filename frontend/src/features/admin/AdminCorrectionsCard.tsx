@@ -5,6 +5,7 @@ import { useRef, type RefObject } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody, CardHeader } from '@/components/ui/Card'
 import { useToast } from '@/components/ui/Toast'
+import { useCropStep } from '@/features/images/ImageCropDialog'
 import { useT } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { adminApi } from '@/services/api/endpoints'
@@ -24,6 +25,8 @@ export function AdminCorrectionsCard({ business }: { business: AdminBusiness }) 
   const queryClient = useQueryClient()
   const logoInput = useRef<HTMLInputElement>(null)
   const coverInput = useRef<HTMLInputElement>(null)
+  const logoCrop = useCropStep('logo')
+  const coverCrop = useCropStep('cover')
 
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.adminBusiness(business.id) })
@@ -65,8 +68,11 @@ export function AdminCorrectionsCard({ business }: { business: AdminBusiness }) 
         aria-label={t(kind === 'LOGO' ? 'images.logoTitle' : 'images.coverTitle')}
         onChange={(event) => {
           const file = event.target.files?.[0]
-          if (file) image.mutate({ file, kind })
           event.target.value = ''
+          if (!file) return
+          void (kind === 'LOGO' ? logoCrop : coverCrop).crop(file).then((cropped) => {
+            if (cropped) image.mutate({ file: cropped, kind })
+          })
         }}
       />
       <Button
@@ -88,6 +94,8 @@ export function AdminCorrectionsCard({ business }: { business: AdminBusiness }) 
         <h2 className="text-lg font-bold">{t('admin.correctionsTitle')}</h2>
       </CardHeader>
       <CardBody className="space-y-5">
+        {logoCrop.dialog}
+        {coverCrop.dialog}
         <div>
           <p className="text-sm font-semibold">{t('directory.origin')}</p>
           <p className="mt-0.5 text-sm text-ink-500">{t('admin.goodsOriginHint')}</p>

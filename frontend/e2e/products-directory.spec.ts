@@ -9,6 +9,7 @@ import { openBusinessWizard } from './support/wizard'
 import { demoOwnerPhone, signIn } from './support/sign-in'
 import { ADMIN_EMAIL, ADMIN_PASSWORD } from './support/admin'
 import { dropPin } from './support/map'
+import { cropAndUse } from './support/crop'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
@@ -91,6 +92,7 @@ test.describe('Products directory', () => {
 
     await expect(page.getByRole('heading', { name: t('images.logoTitle') })).toBeVisible()
     await page.locator('input[type="file"]').first().setInputFiles(jpeg())
+    await cropAndUse(page)
     await expect(page.getByText(t('images.uploaded'), { exact: true }).first()).toBeVisible()
     await page.getByRole('button', { name: t('common.continue'), exact: true }).click()
 
@@ -103,6 +105,7 @@ test.describe('Products directory', () => {
     // --- Two items: one available, one not -----------------------------------
     await page.getByRole('button', { name: t('items.addItem') }).first().click()
     await page.getByLabel(t('items.photoLabel'), { exact: true }).setInputFiles(jpeg())
+    await cropAndUse(page)
     await page.getByLabel(t('items.nameLabel')).fill(fixture.availableItem.title)
     await page.getByLabel(t('items.priceLabel')).fill(fixture.availableItem.price)
     await page.getByRole('button', { name: t('items.addAction') }).click()
@@ -112,6 +115,7 @@ test.describe('Products directory', () => {
 
     await page.getByRole('button', { name: t('items.addItem') }).first().click()
     await page.getByLabel(t('items.photoLabel'), { exact: true }).setInputFiles(jpeg())
+    await cropAndUse(page)
     await page.getByLabel(t('items.nameLabel')).fill(fixture.unavailableItem.title)
     await page.getByLabel(t('items.priceLabel')).fill(fixture.unavailableItem.price)
     await page.getByLabel(t('items.availableLabel')).uncheck()

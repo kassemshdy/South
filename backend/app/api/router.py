@@ -18,9 +18,12 @@ from app.api.v1 import (
     page_covers,
     pages,
     partners,
+    reels,
     registration,
+    search,
     service_requests,
     site_settings,
+    stories,
     talent,
     talent_images,
     taxonomy,
@@ -58,12 +61,15 @@ api_router.include_router(admin_users.router)
 api_router.include_router(orders.admin_router)
 api_router.include_router(page_covers.admin_router)
 api_router.include_router(team.admin_router)
+api_router.include_router(reels.admin_router)
+api_router.include_router(stories.admin_router)
 api_router.include_router(pages.admin_router)
 api_router.include_router(site_settings.admin_router)
 api_router.include_router(home.admin_router)
 api_router.include_router(testimonials.admin_router)
 
 api_router.include_router(feedback.router)
+api_router.include_router(stories.owner_router)
 api_router.include_router(analytics.owner_router)
 # Owner testimonial routes before the public business routes, so
 # "/api/businesses/{business_id}/testimonials" is never captured by
@@ -83,6 +89,7 @@ api_router.include_router(orders.public_router)
 api_router.include_router(businesses.public_router)
 api_router.include_router(articles.router)
 api_router.include_router(registration.router)
+api_router.include_router(search.router)
 api_router.include_router(partners.public_router)
 api_router.include_router(partners.admin_router)
 api_router.include_router(items.public_router)
@@ -90,6 +97,7 @@ api_router.include_router(service_requests.public_router)
 api_router.include_router(talent.public_router)
 api_router.include_router(page_covers.public_router)
 api_router.include_router(team.public_router)
+api_router.include_router(reels.public_router)
 api_router.include_router(pages.public_router)
 api_router.include_router(site_settings.public_router)
 api_router.include_router(home.public_router)

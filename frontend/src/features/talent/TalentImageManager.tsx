@@ -9,6 +9,7 @@ import {
   SingleImageSlot,
   UploadButton,
 } from '@/features/images/ImageManager'
+import { useCropStep } from '@/features/images/ImageCropDialog'
 import { useT } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { ownerTalentApi } from '@/services/api/endpoints'
@@ -33,6 +34,8 @@ export function TalentImageManager({ profile, maxGallery = 10 }: TalentImageMana
   const toast = useToast()
   const t = useT()
   const [uploadingKind, setUploadingKind] = useState<ImageKind | null>(null)
+  const photoCrop = useCropStep('logo')
+  const galleryCrop = useCropStep('gallery')
 
   const gallery = profile.images.filter((image) => image.kind === 'GALLERY')
 
@@ -68,12 +71,15 @@ export function TalentImageManager({ profile, maxGallery = 10 }: TalentImageMana
     onSuccess: invalidate,
   })
 
-  const handleFile = (file: File | undefined, kind: ImageKind) => {
-    if (!file) return
-    if (!ACCEPTED_IMAGE_TYPES.split(',').includes(file.type)) {
+  const handleFile = async (picked: File | undefined, kind: ImageKind) => {
+    if (!picked) return
+    if (!ACCEPTED_IMAGE_TYPES.split(',').includes(picked.type)) {
       toast.error(t('images.badType'), t('images.badTypeDescription'))
       return
     }
+    // The size is checked on what is sent: a crop is usually much smaller.
+    const file = await (kind === PHOTO_KIND ? photoCrop : galleryCrop).crop(picked)
+    if (!file) return
     if (file.size > MAX_IMAGE_BYTES) {
       toast.error(t('images.tooLarge'), t('images.tooLargeDescription'))
       return
@@ -95,13 +101,15 @@ export function TalentImageManager({ profile, maxGallery = 10 }: TalentImageMana
 
   return (
     <div className="space-y-8">
+      {photoCrop.dialog}
+      {galleryCrop.dialog}
       <SingleImageSlot
         label={t('talentImages.photoTitle')}
         hint={t('talentImages.photoHint')}
         required
         url={profile.photo_url}
         uploading={uploadingKind === PHOTO_KIND}
-        onSelect={(file) => handleFile(file, PHOTO_KIND)}
+        onSelect={(file) => void handleFile(file, PHOTO_KIND)}
         onRemove={() => {
           const photo = profile.images.find((image) => image.kind === PHOTO_KIND)
           if (photo) remove.mutate(photo.id)
@@ -120,7 +128,7 @@ export function TalentImageManager({ profile, maxGallery = 10 }: TalentImageMana
             label={t('images.addImage')}
             disabled={gallery.length >= maxGallery}
             uploading={uploadingKind === 'GALLERY'}
-            onSelect={(file) => handleFile(file, 'GALLERY')}
+            onSelect={(file) => void handleFile(file, 'GALLERY')}
           />
         </div>
 

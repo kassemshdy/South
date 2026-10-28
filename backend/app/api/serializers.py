@@ -69,11 +69,13 @@ def admin_article_out(article: Article) -> AdminArticleOut:
     return AdminArticleOut.model_validate(article)
 
 
-def category_out(category: Category | None, *, business_count: int = 0) -> CategoryOut | None:
+def category_out(
+    category: Category | None, *, business_count: int = 0, item_count: int = 0
+) -> CategoryOut | None:
     if category is None:
         return None
     data = CategoryOut.model_validate(category)
-    return data.model_copy(update={"business_count": business_count})
+    return data.model_copy(update={"business_count": business_count, "item_count": item_count})
 
 
 def location_out(location: Location | None, *, business_count: int = 0) -> LocationOut | None:

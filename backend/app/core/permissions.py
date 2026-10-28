@@ -71,6 +71,10 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
             "convert-to-business",
         )
     },
+    # Owners' photo stories are reviewed like the listings they belong to.
+    ("POST", "/api/admin/stories/{story_id}/approve"): _MODERATE,
+    ("POST", "/api/admin/stories/{story_id}/reject"): _MODERATE,
+    ("DELETE", "/api/admin/stories/{story_id}"): _MODERATE,
     ("POST", "/api/admin/testimonials/{testimonial_id}/approve"): _MODERATE,
     ("POST", "/api/admin/testimonials/{testimonial_id}/reject"): _MODERATE,
     ("DELETE", "/api/admin/testimonials/{testimonial_id}"): _MODERATE,
@@ -102,6 +106,13 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     ("PUT", "/api/admin/team/{slot}"): _CONTENT,
     ("POST", "/api/admin/team/{slot}/photo"): _CONTENT,
     ("DELETE", "/api/admin/team/{slot}/photo"): _CONTENT,
+    # The home page's Instagram reels.
+    ("POST", "/api/admin/reels"): _CONTENT,
+    ("PUT", "/api/admin/reels/order"): _CONTENT,
+    ("PUT", "/api/admin/reels/{reel_id}"): _CONTENT,
+    ("DELETE", "/api/admin/reels/{reel_id}"): _CONTENT,
+    ("POST", "/api/admin/reels/{reel_id}/cover"): _CONTENT,
+    ("DELETE", "/api/admin/reels/{reel_id}/cover"): _CONTENT,
     **{
         (method, path): _CONTENT
         for kind, key in (

@@ -84,6 +84,18 @@ export function formatDate(iso: string | null, locale: string): string {
   }).format(new Date(iso))
 }
 
+/** A date with its time of day, for things that end within the day. */
+export function formatDateTime(iso: string | null, locale: string): string {
+  if (!iso) return '—'
+  const tag = locale === 'ar' ? 'ar-LB-u-nu-latn' : 'en-GB'
+  return new Intl.DateTimeFormat(tag, {
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(iso))
+}
+
 type Translate = (key: TranslationKey, params?: Record<string, string | number>) => string
 
 export function formatRelativeDate(iso: string | null, locale: string, t: Translate): string {

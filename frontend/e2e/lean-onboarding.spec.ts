@@ -8,6 +8,7 @@ import { openBusinessWizard } from './support/wizard'
 
 import { demoOwnerPhone, signIn } from './support/sign-in'
 import { dropPin } from './support/map'
+import { cropAndUse } from './support/crop'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
@@ -97,6 +98,7 @@ test.describe('Lean onboarding', () => {
       mimeType: 'image/jpeg',
       buffer: JPEG,
     })
+    await cropAndUse(page)
     // Wait for the upload to actually land before judging readiness.
     await expect(page.getByText(t('images.uploaded'), { exact: true }).first()).toBeVisible()
 
