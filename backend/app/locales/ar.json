@@ -98,7 +98,7 @@
   "platform.whatsapp": "واتساب",
   "platform.youtube": "يوتيوب",
   "reel.duplicate": "هذا المقطع مضاف من قبل.",
-  "reel.invalid_url": "هذا ليس رابطًا لمنشور أو مقطع واحد على إنستغرام.",
+  "reel.invalid_url": "هذا ليس رابطًا لمقطع واحد على يوتيوب أو إنستغرام.",
   "reel.order_mismatch": "تغيّرت قائمة المقاطع، فأعد تحميل الصفحة ثم رتّبها من جديد.",
   "registration.identity_required": "هذا الحقل مطلوب.",
   "registration.location_required": "اختر الموقع",

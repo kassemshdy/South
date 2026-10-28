@@ -1,6 +1,6 @@
 /**
  * The browsing sections of the home page (the owners' request, 27 Oct
- * 2026): search, categories, stories, Instagram reels, live counts, newest
+ * 2026): search, categories, stories, short videos, live counts, newest
  * products, shops, services and news. Each is one self-contained section an administrator
  * can move or hide at /admin/home-layout; each renders nothing while it has
  * nothing to show, so an empty one never leaves a heading over a blank.
@@ -10,13 +10,13 @@
  */
 
 import { useQuery } from '@tanstack/react-query'
-import { Instagram, Play, Search } from 'lucide-react'
+import { Play, Search } from 'lucide-react'
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { BusinessCard } from '@/features/businesses/BusinessCard'
 import { CategoryIcon } from '@/features/home/categoryIcon'
-import { ReelPlayer, reelCaption } from '@/features/home/ReelPlayer'
+import { ProviderIcon, ReelPlayer, reelCaption } from '@/features/home/ReelPlayer'
 import { StoryViewer } from '@/features/home/StoryViewer'
 import { ProductCard } from '@/features/items/ProductCard'
 import { TalentCard } from '@/features/talent/TalentCard'
@@ -210,7 +210,8 @@ function StoryCircle({ image, name, ring }: { image: string | null; name: string
 /**
  * The reels an administrator chose, as a row of tall cards on a dark band;
  * a tap opens them full screen (`ReelPlayer`). The cards draw our own cover
- * photographs, so nothing is fetched from Instagram until a reel is opened.
+ * photographs, so nothing is fetched from YouTube or Instagram until a reel
+ * is opened.
  */
 export function ReelsSection() {
   const { t, locale } = useI18n()
@@ -241,7 +242,7 @@ export function ReelsSection() {
                       className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                   ) : (
-                    <Instagram className="absolute start-3 top-3 h-6 w-6 text-white/80" aria-hidden="true" />
+                    <ProviderIcon provider={reel.provider} className="absolute start-3 top-3 h-6 w-6 text-white/80" />
                   )}
                   <span className="absolute inset-0 flex items-center justify-center">
                     <span className="flex h-12 w-12 items-center justify-center rounded-full bg-black/40 backdrop-blur transition-transform group-hover:scale-110">
