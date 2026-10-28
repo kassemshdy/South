@@ -49,6 +49,7 @@ class FakeTelegram:
         assert request.url.path.startswith(f"/bot{TOKEN}/")
         if request.url.path.endswith("/sendMessage"):
             form = dict(httpx.QueryParams(request.content.decode()))
+            assert form["parse_mode"] == "HTML"
             self.messages.append(form["text"])
         elif request.url.path.endswith("/sendPhoto"):
             self.photos.append(request.content)
@@ -119,7 +120,7 @@ def test_by_default_only_text_is_sent(
 
     (message,) = fake.messages
     lines = message.splitlines()
-    assert lines[0] == translate("telegram.kind.shop", locale="ar")
+    assert lines[0] == f"<b>{translate('telegram.kind.shop', locale='ar')}</b>"
     assert lines[1] == f"{label('name')}: {ar('identity.full_name')}"
     assert lines[2] == f"{label('phone')}: {APPLICANT_E164}"
     assert lines[-1].startswith(f"{label('link')}: /admin/businesses/")
@@ -152,7 +153,7 @@ def test_with_files_on_an_application_is_posted_with_its_id_scan(
     assert ar("identity.full_name") in text
     assert APPLICANT_E164 in text
     assert f"{label('link')}: {SITE}/admin/businesses/{business_id}" in text
-    assert f"{label('shop')}: {ar('business.applicant')}" in text
+    assert f"{label('shop')}: <b>{ar('business.applicant')}</b>" in text
     assert "password_hash" not in text
     assert len(fake.documents) == 1, "the ID scan is attached"
 
@@ -210,10 +211,10 @@ def test_an_order_is_posted(
     archive.drain()
 
     (message,) = fake.messages
-    assert message.startswith(translate("telegram.kind.order", locale="ar"))
+    assert message.startswith(f"<b>{translate('telegram.kind.order', locale='ar')}</b>")
     assert ar("order.customer") in message
     assert "+9613990600" in message
-    assert f"{label('shop')}: {ar('business.sweets_shop')}" in message
+    assert f"{label('shop')}: <b>{ar('business.sweets_shop')}</b>" in message
     assert f"{ar('item.generic')} × 2" in message, "what was ordered"
     assert message.endswith(f"{label('link')}: {SITE}/admin/orders")
 
@@ -297,7 +298,7 @@ def test_the_backfill_sends_a_business_with_its_owner_and_id_scan_once(
     assert ar("identity.full_name") in text
     assert APPLICANT_E164 in text
     assert f"{SITE}/admin/businesses/{business.id}" in text
-    assert f"{label('shop')}: {ar('business.applicant')}" in text
+    assert f"{label('shop')}: <b>{ar('business.applicant')}</b>" in text
     assert len(fake.documents) == 1, "the ID scan is attached"
 
     sent: list[Batch] = []
@@ -353,7 +354,7 @@ def test_a_business_is_posted_with_its_logo_and_social_pages() -> None:
     assert "https://facebook.com/shop" in caption
     assert "Shop one" in caption
     (message,) = fake.messages
-    assert f"{label('shop')}: Shop two" in message
+    assert f"{label('shop')}: <b>Shop two</b>" in message
     assert f"{label('instagram')}: https://instagram.com/other" in message
     assert label("facebook") not in message, "no line for a page it does not have"
 
@@ -373,3 +374,24 @@ def test_only_new_things_are_posted_not_edits(
     assert response.status_code == 200, response.text
     archive.drain()
     assert fake.messages == []
+
+
+def test_the_title_shop_product_and_review_are_bold_and_typed_text_is_escaped() -> None:
+    """Telegram reads the messages as HTML: the title, shop, product and a
+    review's text in bold, and anything a visitor typed escaped so it cannot
+    add markup of its own."""
+    archive = TelegramArchive(
+        token=TOKEN, chat_id="-100", read_file=lambda key: b"", autostart=False
+    )
+    change = telegram_archive.Change(
+        action="created",
+        table="testimonials",
+        row_id="t1",
+        fields={"author_name": "Sam <b>", "rating": "5", "body": "Great & <i>fresh</i>"},
+    )
+    message = archive.render(telegram_archive.Batch(name="Sam <b>", phone=None, changes=[change]))
+    assert message is not None
+    first, *rest = message.text.splitlines()
+    assert first == f"<b>{translate('telegram.kind.review', locale='ar')}</b>"
+    assert f"{label('name')}: Sam &lt;b&gt;" in rest
+    assert f"{label('text')}: <b>Great &amp; &lt;i&gt;fresh&lt;/i&gt;</b>" in rest
