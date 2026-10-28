@@ -66,6 +66,15 @@ class ItemRepository(BaseRepository[BusinessItem]):
             )
         )
 
+    def public_counts_by_category(self) -> dict[uuid.UUID, int]:
+        """Products a visitor can see, per category of their shop -- the same
+        rule as the catalogue, so a category's count is what opening it
+        shows."""
+        visible = self.public_query().with_only_columns(
+            Business.category_id, func.count(BusinessItem.id)
+        ).group_by(Business.category_id)
+        return {row[0]: row[1] for row in self.db.execute(visible).all() if row[0] is not None}
+
     def get_by_slug(self, slug: str) -> BusinessItem | None:
         stmt = self._with_relations(self.public_query().where(BusinessItem.slug == slug))
         return self.db.execute(stmt).unique().scalar_one_or_none()

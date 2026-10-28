@@ -15,6 +15,7 @@ import { kindFromQuery } from '@/features/talent/kind'
 import { OwnerServiceRequests } from '@/features/talent/OwnerServiceRequests'
 import { TalentForm } from '@/features/talent/TalentForm'
 import { TalentImageManager } from '@/features/talent/TalentImageManager'
+import { StoryManager } from '@/features/stories/StoryManager'
 import { OfferSwitcher } from '@/features/onboarding/OfferSwitcher'
 import { OwnerTestimonials } from '@/features/testimonials/OwnerTestimonials'
 import { useSeo } from '@/hooks/useSeo'
@@ -238,6 +239,7 @@ export function TalentDashboardPage() {
           >
             <TabTrigger value="details">{t('talentDashboard.tabDetails')}</TabTrigger>
             <TabTrigger value="images">{t('talentDashboard.tabImages')}</TabTrigger>
+            <TabTrigger value="stories">{t('stories.tab')}</TabTrigger>
             <TabTrigger value="requests">{t('serviceRequests.ownerTab')}</TabTrigger>
             {data.kind === 'SERVICE' ? (
               <TabTrigger value="testimonials">{t('wizard.stepTestimonials')}</TabTrigger>
@@ -270,6 +272,15 @@ export function TalentDashboardPage() {
 
             <Tabs.Content value="images">
               <TalentImageManager profile={data} />
+            </Tabs.Content>
+
+            <Tabs.Content value="stories">
+              <StoryManager
+                queryKey={queryKeys.myTalentStories}
+                list={ownerTalentApi.stories}
+                post={ownerTalentApi.postStory}
+                remove={ownerTalentApi.deleteStory}
+              />
             </Tabs.Content>
 
             <Tabs.Content value="requests">

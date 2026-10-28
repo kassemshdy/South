@@ -5,6 +5,7 @@ import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
 import { useT } from '@/i18n'
+import { useCropStep } from '@/features/images/ImageCropDialog'
 import { ApiError } from '@/services/api/client'
 import { ownerApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
@@ -33,6 +34,15 @@ export function ImageManager({ business, maxGallery = 10 }: ImageManagerProps) {
   const toast = useToast()
   const t = useT()
   const [uploadingKind, setUploadingKind] = useState<ImageKind | null>(null)
+  const logoCrop = useCropStep('logo')
+  const coverCrop = useCropStep('cover')
+  const galleryCrop = useCropStep('gallery')
+  const cropFor: Record<ImageKind, ReturnType<typeof useCropStep>> = {
+    LOGO: logoCrop,
+    COVER: coverCrop,
+    GALLERY: galleryCrop,
+    ITEM: galleryCrop,
+  }
 
   const gallery = business.images.filter((image) => image.kind === 'GALLERY')
 
@@ -73,12 +83,15 @@ export function ImageManager({ business, maxGallery = 10 }: ImageManagerProps) {
     onSuccess: invalidate,
   })
 
-  const handleFile = (file: File | undefined, kind: ImageKind) => {
-    if (!file) return
-    if (!ACCEPTED.split(',').includes(file.type)) {
+  const handleFile = async (picked: File | undefined, kind: ImageKind) => {
+    if (!picked) return
+    if (!ACCEPTED.split(',').includes(picked.type)) {
       toast.error(t('images.badType'), t('images.badTypeDescription'))
       return
     }
+    // The size is checked on what is sent: a crop is usually much smaller.
+    const file = await cropFor[kind].crop(picked)
+    if (!file) return
     if (file.size > MAX_BYTES) {
       toast.error(t('images.tooLarge'), t('images.tooLargeDescription'))
       return
@@ -100,6 +113,9 @@ export function ImageManager({ business, maxGallery = 10 }: ImageManagerProps) {
 
   return (
     <div className="space-y-8">
+      {logoCrop.dialog}
+      {coverCrop.dialog}
+      {galleryCrop.dialog}
       <div className="grid gap-6 sm:grid-cols-2">
         <SingleImageSlot
           label={t('images.logoTitle')}
@@ -107,7 +123,7 @@ export function ImageManager({ business, maxGallery = 10 }: ImageManagerProps) {
           required
           url={business.logo_url}
           uploading={uploadingKind === 'LOGO'}
-          onSelect={(file) => handleFile(file, 'LOGO')}
+          onSelect={(file) => void handleFile(file, 'LOGO')}
           onRemove={() => {
             const logo = business.images.find((image) => image.kind === 'LOGO')
             if (logo) remove.mutate(logo.id)
@@ -118,7 +134,7 @@ export function ImageManager({ business, maxGallery = 10 }: ImageManagerProps) {
           hint={t('images.coverHint')}
           url={business.cover_url}
           uploading={uploadingKind === 'COVER'}
-          onSelect={(file) => handleFile(file, 'COVER')}
+          onSelect={(file) => void handleFile(file, 'COVER')}
           onRemove={() => {
             const cover = business.images.find((image) => image.kind === 'COVER')
             if (cover) remove.mutate(cover.id)
@@ -138,7 +154,7 @@ export function ImageManager({ business, maxGallery = 10 }: ImageManagerProps) {
             label={t('images.addImage')}
             disabled={gallery.length >= maxGallery}
             uploading={uploadingKind === 'GALLERY'}
-            onSelect={(file) => handleFile(file, 'GALLERY')}
+            onSelect={(file) => void handleFile(file, 'GALLERY')}
           />
         </div>
 

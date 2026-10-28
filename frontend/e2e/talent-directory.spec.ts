@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { demoOwnerPhone, signIn } from './support/sign-in'
 import { ADMIN_EMAIL, ADMIN_PASSWORD } from './support/admin'
 import { dropPin } from './support/map'
+import { cropAndUse } from './support/crop'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
@@ -125,6 +126,7 @@ test.describe('Talent directory', () => {
     // --- Add the profile photo -------------------------------------------------
     await page.getByRole('tab', { name: t('talentDashboard.tabImages') }).click()
     await page.locator('input[type="file"]').first().setInputFiles(jpeg())
+    await cropAndUse(page)
     await expect(page.getByText(t('images.uploaded'), { exact: true }).first()).toBeVisible()
 
     // --- Not reachable before approval ------------------------------------------

@@ -20,7 +20,8 @@ Environment = Literal["development", "test", "staging", "production"]
 #     Turnstile, Google Tag Manager, Clarity. No 'unsafe-inline'.
 #   - connect-src: the API (self) and the beacons those tags talk to, plus the
 #     Sentry ingest host. A blocked beacon degrades analytics, never the site.
-#   - frame-src: Turnstile's challenge iframe and the YouTube/Maps embeds.
+#   - frame-src: Turnstile's challenge iframe, the YouTube/Maps embeds and
+#     Instagram's player for the home page's reels.
 #   - img-src: self and data: URIs, plus https: so remote thumbnails render,
 #     and blob: for the preview of a photo picked for upload, which is shown
 #     from the browser's own copy before it is sent. Without it every upload
@@ -51,7 +52,8 @@ DEFAULT_CONTENT_SECURITY_POLICY = "; ".join(
         (
             "frame-src https://challenges.cloudflare.com "
             "https://www.youtube-nocookie.com https://www.youtube.com "
-            "https://www.google.com https://maps.google.com"
+            "https://www.google.com https://maps.google.com "
+            "https://www.instagram.com"
         ),
     )
 )
@@ -249,6 +251,10 @@ class Settings(BaseSettings):
     # Off: messages carry the details and say how many files there are.
     # On: photos, ID scans, CVs and papers are attached as well.
     telegram_send_files: bool = False
+    # Hours between copies of the database sent to the same chat as a plain
+    # .sql file, without password hashes (app/services/telegram_db_backup.py);
+    # 0 turns them off. Production only, and only with the two above set.
+    telegram_db_backup_hours: int = 1
     # Fraction of requests traced. Performance data is far higher volume than
     # errors, so this stays low by default and is tuned per environment.
     sentry_traces_sample_rate: float = 0.0

@@ -86,8 +86,14 @@ export default {
       },
       keyframes: {
         'fade-up': { '0%': { opacity: '0', transform: 'translateY(6px)' }, '100%': { opacity: '1', transform: 'none' } },
+        // A story's bar filling while its photo is shown; the duration is set
+        // where it is used (`features/home/StoryViewer.tsx`).
+        'story-progress': { '0%': { width: '0%' }, '100%': { width: '100%' } },
       },
-      animation: { 'fade-up': 'fade-up 240ms ease-out both' },
+      animation: {
+        'fade-up': 'fade-up 240ms ease-out both',
+        'story-progress': 'story-progress 5s linear forwards',
+      },
     },
   },
   plugins: [],

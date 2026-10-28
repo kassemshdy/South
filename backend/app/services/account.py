@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.models.business import Business, BusinessItem
 from app.models.enums import ViewSubject
 from app.models.feedback import FeedbackTicket
+from app.models.story import StoryImage
 from app.models.talent import TalentProfile
 from app.models.user import User
 from app.models.verification import OwnerVerificationDocument
@@ -123,11 +124,22 @@ class AccountDeletionService:
         keys += [document.storage_key for document in business.documents]
         for item in business.items:
             keys += self._item_files(item)
+        keys += self._db.scalars(
+            select(StoryImage.image_storage_key).where(StoryImage.business_id == business.id)
+        ).all()
         return keys
 
-    @staticmethod
-    def _profile_files(profile: TalentProfile) -> list[str | None]:
-        return [profile.photo_storage_key, *(image.storage_key for image in profile.images)]
+    def _profile_files(self, profile: TalentProfile) -> list[str | None]:
+        stories = self._db.scalars(
+            select(StoryImage.image_storage_key).where(
+                StoryImage.talent_profile_id == profile.id
+            )
+        ).all()
+        return [
+            profile.photo_storage_key,
+            *(image.storage_key for image in profile.images),
+            *stories,
+        ]
 
     def _files_of(self, user: User) -> list[str]:
         keys: list[str | None] = [user.photo_storage_key]

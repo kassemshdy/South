@@ -9,6 +9,7 @@ import { openBusinessWizard } from './support/wizard'
 import { demoOwnerPhone, signIn } from './support/sign-in'
 import { ADMIN_EMAIL, ADMIN_PASSWORD } from './support/admin'
 import { dropPin } from './support/map'
+import { cropAndUse } from './support/crop'
 
 const here = dirname(fileURLToPath(import.meta.url))
 // Read rather than import: Playwright's ESM loader would require import
@@ -153,10 +154,12 @@ test.describe('MVP acceptance flow', () => {
     await expect(page.getByRole('heading', { name: t('images.logoTitle') })).toBeVisible()
     const fileInputs = page.locator('input[type="file"]')
     await fileInputs.nth(0).setInputFiles(jpeg())
+    await cropAndUse(page)
     await expect(page.getByText(t('images.uploaded'), { exact: true }).first()).toBeVisible()
 
     for (let index = 0; index < 3; index += 1) {
       await page.locator('input[type="file"]').last().setInputFiles(jpeg())
+      await cropAndUse(page)
       await expect(page.getByText(ar['images.galleryCount']!.replace('{current}', String(index + 1)).replace('{max}', '10'), { exact: true })).toBeVisible()
     }
     await page.screenshot({ path: 'e2e/screenshots/02-images.png', fullPage: false })
@@ -177,6 +180,7 @@ test.describe('MVP acceptance flow', () => {
       await page.getByRole('button', { name: t('items.addItem') }).first().click()
       // The photo is mandatory: the form refuses to save a product without one.
       await page.getByLabel(t('items.photoLabel'), { exact: true }).setInputFiles(jpeg())
+      await cropAndUse(page)
       await page.getByLabel(t('items.nameLabel')).fill(title)
       await page.getByLabel(t('items.priceLabel')).fill(price)
 
