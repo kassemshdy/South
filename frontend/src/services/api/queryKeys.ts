@@ -42,6 +42,8 @@ export const queryKeys = {
   adminStats: ['admin', 'stats'] as const,
   homeLayout: ['home', 'layout'] as const,
   homeStories: ['home', 'stories'] as const,
+  reels: ['reels'] as const,
+  adminReels: ['admin', 'reels'] as const,
   adminCredentials: (userId: string) => ['admin', 'credentials', userId] as const,
   adminGrowth: ['admin', 'stats', 'growth'] as const,
   adminStaff: ['admin', 'staff'] as const,

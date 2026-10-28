@@ -102,6 +102,13 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     ("PUT", "/api/admin/team/{slot}"): _CONTENT,
     ("POST", "/api/admin/team/{slot}/photo"): _CONTENT,
     ("DELETE", "/api/admin/team/{slot}/photo"): _CONTENT,
+    # The home page's Instagram reels.
+    ("POST", "/api/admin/reels"): _CONTENT,
+    ("PUT", "/api/admin/reels/order"): _CONTENT,
+    ("PUT", "/api/admin/reels/{reel_id}"): _CONTENT,
+    ("DELETE", "/api/admin/reels/{reel_id}"): _CONTENT,
+    ("POST", "/api/admin/reels/{reel_id}/cover"): _CONTENT,
+    ("DELETE", "/api/admin/reels/{reel_id}/cover"): _CONTENT,
     **{
         (method, path): _CONTENT
         for kind, key in (

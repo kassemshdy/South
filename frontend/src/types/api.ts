@@ -547,6 +547,7 @@ export type HomeSectionId =
   | 'search'
   | 'categories'
   | 'stories'
+  | 'reels'
   | 'stats'
   | 'products'
   | 'category_products'
@@ -561,6 +562,33 @@ export interface HomeSection {
 
 export interface HomeLayout {
   sections: HomeSection[]
+}
+
+/**
+ * An Instagram post or reel on the home page. `embed_url` is rebuilt by the
+ * server from the post's code on www.instagram.com, never the pasted link.
+ */
+export interface Reel {
+  id: string
+  url: string
+  embed_url: string
+  caption_ar: string | null
+  caption_en: string | null
+  cover_url: string | null
+}
+
+export interface AdminReel extends Reel {
+  is_published: boolean
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export interface ReelInput {
+  url: string
+  caption_ar: string | null
+  caption_en: string | null
+  is_published: boolean
 }
 
 /** A published listing with an introduction video, for the stories row. */

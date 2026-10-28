@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState, ErrorState, InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
+import { cropEach, useCropStep } from '@/features/images/ImageCropDialog'
 import { useT } from '@/i18n'
 import { useApplyServerFieldErrors } from '@/utils/serverFieldErrors'
 import { ApiError } from '@/services/api/client'
@@ -200,10 +201,12 @@ function ItemRow({
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const t = useT()
+  const photoCrop = useCropStep('product')
 
   return (
     <Card className={item.is_available ? '' : 'opacity-70'}>
       <CardBody className="flex gap-4 p-4">
+        {photoCrop.dialog}
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
@@ -226,8 +229,12 @@ function ItemRow({
           disabled={uploading}
           onChange={(event) => {
             const file = event.target.files?.[0]
-            if (file) onUploadImage(file)
             event.target.value = ''
+            if (file) {
+              void photoCrop.crop(file).then((cropped) => {
+                if (cropped) onUploadImage(cropped)
+              })
+            }
           }}
         />
 
@@ -326,7 +333,10 @@ function ItemForm({
   // attach the files to; uploaded right after the main photo.
   const [extraFiles, setExtraFiles] = useState<File[]>([])
 
-  const pickFile = (file: File) => {
+  const photoCrop = useCropStep('product')
+  const pickFile = async (picked: File) => {
+    const file = await photoCrop.crop(picked)
+    if (!file) return
     setSelectedFile(file)
     setPreviewUrl(URL.createObjectURL(file))
     setPhotoError(null)
@@ -420,6 +430,7 @@ function ItemForm({
         className="space-y-4"
         noValidate
       >
+        {photoCrop.dialog}
         <div className="flex items-center gap-4">
           <button
             type="button"
@@ -442,7 +453,7 @@ function ItemForm({
             aria-label={t('items.photoLabel')}
             onChange={(event) => {
               const file = event.target.files?.[0]
-              if (file) pickFile(file)
+              if (file) void pickFile(file)
               event.target.value = ''
             }}
           />
@@ -638,6 +649,7 @@ function ItemGalleryManager({ businessId, item }: { businessId: string; item: Bu
   const queryClient = useQueryClient()
   const toast = useToast()
   const t = useT()
+  const galleryCrop = useCropStep('gallery')
   const inputRef = useRef<HTMLInputElement>(null)
 
   const invalidate = () => {
@@ -679,6 +691,7 @@ function ItemGalleryManager({ businessId, item }: { businessId: string; item: Bu
     <div>
       <div className="mb-2 flex items-center justify-between gap-3">
         <p className="text-sm font-semibold">{t('items.galleryHeading')}</p>
+        {galleryCrop.dialog}
         <input
           ref={inputRef}
           type="file"
@@ -687,8 +700,10 @@ function ItemGalleryManager({ businessId, item }: { businessId: string; item: Bu
           className="sr-only"
           onChange={(event) => {
             const files = Array.from(event.target.files ?? [])
-            if (files.length > 0) upload.mutate(files)
             event.target.value = ''
+            void cropEach(galleryCrop.crop, files).then((cropped) => {
+              if (cropped.length > 0) upload.mutate(cropped)
+            })
           }}
         />
         <Button
@@ -766,6 +781,7 @@ function PendingGallery({
 }) {
   const t = useT()
   const inputRef = useRef<HTMLInputElement>(null)
+  const galleryCrop = useCropStep('gallery')
   const previews = useMemo(() => files.map((file) => URL.createObjectURL(file)), [files])
   useEffect(() => () => previews.forEach((url) => URL.revokeObjectURL(url)), [previews])
 
@@ -773,6 +789,7 @@ function PendingGallery({
     <div>
       <div className="mb-2 flex items-center justify-between gap-3">
         <p className="text-sm font-semibold">{t('items.galleryHeading')}</p>
+        {galleryCrop.dialog}
         <input
           ref={inputRef}
           type="file"
@@ -780,9 +797,12 @@ function PendingGallery({
           multiple
           className="sr-only"
           onChange={(event) => {
-            const picked = Array.from(event.target.files ?? [])
-            onChange([...files, ...picked].slice(0, MAX_GALLERY))
+            // Only as many as there is room for are offered to the crop window.
+            const picked = Array.from(event.target.files ?? []).slice(0, MAX_GALLERY - files.length)
             event.target.value = ''
+            void cropEach(galleryCrop.crop, picked).then((cropped) => {
+              if (cropped.length > 0) onChange([...files, ...cropped].slice(0, MAX_GALLERY))
+            })
           }}
         />
         <Button

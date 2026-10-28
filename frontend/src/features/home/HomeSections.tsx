@@ -1,7 +1,7 @@
 /**
  * The browsing sections of the home page (the owners' request, 27 Oct
- * 2026): search, categories, stories, live counts, newest products, shops,
- * services and news. Each is one self-contained section an administrator
+ * 2026): search, categories, stories, Instagram reels, live counts, newest
+ * products, shops, services and news. Each is one self-contained section an administrator
  * can move or hide at /admin/home-layout; each renders nothing while it has
  * nothing to show, so an empty one never leaves a heading over a blank.
  *
@@ -10,7 +10,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query'
-import { Search } from 'lucide-react'
+import { Instagram, Play, Search } from 'lucide-react'
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -18,6 +18,7 @@ import { Dialog, DialogContent } from '@/components/ui/Dialog'
 import { YouTubePlayer } from '@/components/ui/YouTubePlayer'
 import { BusinessCard } from '@/features/businesses/BusinessCard'
 import { CategoryIcon } from '@/features/home/categoryIcon'
+import { ReelPlayer, reelCaption } from '@/features/home/ReelPlayer'
 import { ProductCard } from '@/features/items/ProductCard'
 import { TalentCard } from '@/features/talent/TalentCard'
 import { useI18n, useT } from '@/i18n'
@@ -27,6 +28,7 @@ import {
   publicBusinessApi,
   publicItemApi,
   publicTalentApi,
+  reelApi,
   taxonomyApi,
 } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
@@ -171,6 +173,66 @@ export function StoriesSection() {
           ) : null}
         </DialogContent>
       </Dialog>
+    </section>
+  )
+}
+
+/**
+ * The reels an administrator chose, as a row of tall cards on a dark band;
+ * a tap opens them full screen (`ReelPlayer`). The cards draw our own cover
+ * photographs, so nothing is fetched from Instagram until a reel is opened.
+ */
+export function ReelsSection() {
+  const { t, locale } = useI18n()
+  const reels = useQuery({ queryKey: queryKeys.reels, queryFn: reelApi.list })
+  const [open, setOpen] = useState<number | null>(null)
+  const list = reels.data ?? []
+  if (list.length === 0) return null
+  return (
+    <section className="bg-ink-900 py-10 text-white sm:py-12">
+      <div className="container-page">
+        <h2 className="mb-5 font-display text-2xl font-bold sm:text-3xl">{t('home.reelsTitle')}</h2>
+        <ul className="flex gap-3 overflow-x-auto pb-2 sm:gap-4">
+          {list.map((reel, index) => {
+            const caption = reelCaption(reel, locale)
+            return (
+              <li key={reel.id} className="shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setOpen(index)}
+                  aria-label={caption ?? t('reels.play')}
+                  className="group relative block aspect-[9/16] w-36 overflow-hidden rounded-2xl bg-gradient-to-b from-brand-700 to-clay-600 text-start focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-wheat-500 sm:w-44"
+                >
+                  {reel.cover_url ? (
+                    <img
+                      src={reel.cover_url}
+                      alt=""
+                      loading="lazy"
+                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  ) : (
+                    <Instagram className="absolute start-3 top-3 h-6 w-6 text-white/80" aria-hidden="true" />
+                  )}
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-black/40 backdrop-blur transition-transform group-hover:scale-110">
+                      <Play className="h-6 w-6 translate-x-0.5 fill-white" aria-hidden="true" />
+                    </span>
+                  </span>
+                  {caption ? (
+                    <span
+                      dir="auto"
+                      className="absolute inset-x-0 bottom-0 line-clamp-3 bg-gradient-to-t from-black/80 to-transparent p-3 pt-8 text-sm font-semibold leading-snug"
+                    >
+                      {caption}
+                    </span>
+                  ) : null}
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      </div>
+      <ReelPlayer reels={list} index={open} onIndexChange={setOpen} />
     </section>
   )
 }

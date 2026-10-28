@@ -1,6 +1,7 @@
 import {
   BarChart3,
   Bug,
+  Clapperboard,
   Download,
   FileText,
   FolderTree,
@@ -55,6 +56,7 @@ const NAV: {
   { to: '/admin/pages', labelKey: 'admin.navPages', icon: FileText, end: false },
   { to: '/admin/page-covers', labelKey: 'admin.navPageCovers', icon: ImageIcon, end: false },
   { to: '/admin/home-layout', labelKey: 'admin.navHomeLayout', icon: LayoutList, end: false, needs: 'content' },
+  { to: '/admin/reels', labelKey: 'admin.navReels', icon: Clapperboard, end: false, needs: 'content' },
   { to: '/admin/site-settings', labelKey: 'nav.contact', icon: PhoneCall, end: false, needs: 'manage' },
   { to: '/admin/feedback', labelKey: 'admin.navFeedback', icon: Bug, end: false },
   { to: '/admin/export', labelKey: 'admin.navExport', icon: Download, end: false, needs: 'manage' },

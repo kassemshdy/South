@@ -7,6 +7,9 @@
 
 import { apiDownload, apiRequest } from '@/services/api/client'
 import type {
+  AdminReel,
+  Reel,
+  ReelInput,
   PageCover,
   PageCoverKey,
   TeamCaptionInput,
@@ -354,6 +357,11 @@ export const pageApi = {
   get: (key: PageKey) => apiRequest<PageText>(`/api/pages/${key}`),
 }
 
+export const reelApi = {
+  /** The published reels, in the administrator's order. */
+  list: () => apiRequest<Reel[]>('/api/reels'),
+}
+
 export const teamApi = {
   /** The filled slots of the about page's team section, in order. */
   list: () => apiRequest<TeamMember[]>('/api/team'),
@@ -620,6 +628,22 @@ export const adminApi = {
   },
   resetPageCover: (key: PageCoverKey) =>
     apiRequest<PageCover>(`/api/admin/page-covers/${key}`, { method: 'DELETE' }),
+  reels: () => apiRequest<AdminReel[]>('/api/admin/reels'),
+  addReel: (values: ReelInput) =>
+    apiRequest<AdminReel>('/api/admin/reels', { method: 'POST', body: values }),
+  updateReel: (id: string, values: ReelInput) =>
+    apiRequest<AdminReel>(`/api/admin/reels/${id}`, { method: 'PUT', body: values }),
+  /** Answers with the reels that remain. */
+  deleteReel: (id: string) => apiRequest<AdminReel[]>(`/api/admin/reels/${id}`, { method: 'DELETE' }),
+  reorderReels: (ids: string[]) =>
+    apiRequest<AdminReel[]>('/api/admin/reels/order', { method: 'PUT', body: { ids } }),
+  setReelCover: (id: string, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return apiRequest<AdminReel>(`/api/admin/reels/${id}/cover`, { method: 'POST', formData: form })
+  },
+  removeReelCover: (id: string) =>
+    apiRequest<AdminReel>(`/api/admin/reels/${id}/cover`, { method: 'DELETE' }),
   team: () => apiRequest<TeamMember[]>('/api/admin/team'),
   setTeamCaption: (slot: number, values: TeamCaptionInput) =>
     apiRequest<TeamMember>(`/api/admin/team/${slot}`, { method: 'PUT', body: values }),
