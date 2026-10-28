@@ -395,3 +395,20 @@ def test_the_title_shop_product_and_review_are_bold_and_typed_text_is_escaped() 
     assert first == f"<b>{translate('telegram.kind.review', locale='ar')}</b>"
     assert f"{label('name')}: Sam &lt;b&gt;" in rest
     assert f"{label('text')}: <b>Great &amp; &lt;i&gt;fresh&lt;/i&gt;</b>" in rest
+
+
+def test_a_shop_description_keeps_its_line_breaks() -> None:
+    """An owner's description is posted with the lines they typed, not run
+    together onto one line."""
+    archive = TelegramArchive(
+        token=TOKEN, chat_id="-100", read_file=lambda key: b"", autostart=False
+    )
+    change = telegram_archive.Change(
+        action="created",
+        table="businesses",
+        row_id="b1",
+        fields={"name": "Shop", "short_description": "first line\nsecond line"},
+    )
+    message = archive.render(telegram_archive.Batch(name="Sam", phone=None, changes=[change]))
+    assert message is not None
+    assert f"{label('description')}: first line\nsecond line" in message.text
