@@ -8,12 +8,15 @@ string, so the access log must not keep it.
 
 from __future__ import annotations
 
+import json
 import logging
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.core.logging import DropQueryString
+from app.core.pins import BORDER_FILE, in_lebanon
 from app.models.business import Business
 from app.models.enums import BusinessStatus
 from app.models.taxonomy import Category, Location
@@ -156,3 +159,48 @@ def test_the_access_log_keeps_the_path_and_drops_the_query() -> None:
     assert "/api/businesses" in message
     assert "33.27" not in message
     assert "?" not in message
+
+
+# Inside Lebanon's box, outside the country: the places the box let through.
+BEYOND_THE_BORDER = {
+    "Kiryat Shmona": (33.207, 35.570),
+    "Metula": (33.280, 35.579),
+    "Majdal Shams, Golan": (33.269, 35.770),
+    "Quneitra": (33.125, 35.824),
+    "Qusayr, Syria": (34.510, 36.580),
+    "Zabadani, Syria": (33.720, 36.100),
+    "the sea off Beirut": (33.900, 35.300),
+    "the sea off Tyre": (33.270, 35.100),
+}
+# Near the border or on the shore, and in Lebanon.
+NEAR_THE_EDGE = {
+    "Tyre old city": (33.2715, 35.1937),
+    "Naqoura": (33.118, 35.1395),
+    "Rmeish": (33.080, 35.366),
+    "Khiam": (33.328, 35.611),
+    "Shebaa": (33.3489, 35.7466),
+    "Beirut, Ras": (33.900, 35.470),
+    "Tripoli, Mina": (34.452, 35.813),
+    "Arida": (34.630, 35.970),
+    "Qaa": (34.348, 36.474),
+    "Anjar": (33.727, 35.930),
+}
+
+
+def test_a_pin_must_fall_inside_lebanon_s_border_not_just_its_box() -> None:
+    """Owners put pins in occupied Palestine, the Golan and Syria, which a
+    box around Lebanon accepted; the border itself now decides."""
+    for place, (lat, lng) in BEYOND_THE_BORDER.items():
+        assert not in_lebanon(lat, lng), place
+    for place, (lat, lng) in NEAR_THE_EDGE.items():
+        assert in_lebanon(lat, lng), place
+
+
+def test_the_map_and_the_api_draw_the_same_border() -> None:
+    """The editable map refuses a tap outside the border before the API
+    would; both read the same outline, so they cannot disagree."""
+    repo = Path(__file__).resolve().parents[2]
+    frontend = repo / "frontend" / "src" / "features" / "map" / "lebanonBorder.json"
+    assert json.loads(frontend.read_text(encoding="utf-8")) == json.loads(
+        BORDER_FILE.read_text(encoding="utf-8")
+    )

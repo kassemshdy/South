@@ -29,6 +29,7 @@ import { IssueCredentialsCard } from '@/features/admin/IssueCredentialsCard'
 import { OwnerIdentityCard } from '@/features/admin/OwnerIdentityCard'
 import { OwnerWhatsappButton } from '@/features/admin/OwnerWhatsappButton'
 import { ConvertToShopCard } from '@/features/admin/ConvertToShopCard'
+import { AdminPlaceCard } from '@/features/admin/AdminPlaceCard'
 import { TalentSkillCard } from '@/features/admin/TalentSkillCard'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
 import { EMPLOYMENT_TYPE_KEYS, PROFICIENCY_KEYS, WORK_MODE_KEYS } from '@/features/talent/labels'
@@ -252,6 +253,16 @@ export function AdminTalentReviewPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           <TalentSkillCard profile={data} />
           <ConvertToShopCard profileId={data.id} />
+          <AdminPlaceCard
+            key={`${data.location?.id}-${data.latitude}-${data.longitude}`}
+            locationId={data.location?.id ?? null}
+            latitude={data.latitude}
+            longitude={data.longitude}
+            onSave={(place) => adminApi.setTalentPlace(data.id, place)}
+            onSaved={() =>
+              void queryClient.invalidateQueries({ queryKey: queryKeys.adminTalent(data.id) })
+            }
+          />
         </div>
       ) : null}
 
