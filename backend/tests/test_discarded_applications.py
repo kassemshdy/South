@@ -15,17 +15,21 @@ from sqlalchemy.orm import Session
 
 from app.models.application import DiscardedApplication
 from app.models.business import Business
-from app.models.enums import ApplicationKind
+from app.models.enums import ApplicationKind, BusinessStatus
+from app.models.talent import TalentProfile, TalentSkill
 from app.models.taxonomy import Category, Location
 from app.models.user import User
 from app.models.verification import OwnerVerificationDocument
 from tests.conftest import admin_headers, sign_in
 from tests.samples import ar
 from tests.test_registration import (
+    APPLICANT_PHONE,
+    IDENTITY,
     PNG_BYTES,
     _business_payload,
     _owner,
     _register,
+    skill,  # noqa: F401 -- the fixture, used by name
 )
 
 
@@ -121,3 +125,111 @@ def test_a_first_application_is_not_set_aside(
     response = _register(client, "business", _business_payload(category, location))
     assert response.status_code == 202, response.text
     assert db.execute(select(func.count()).select_from(DiscardedApplication)).scalar_one() == 0
+
+
+def _talent_payload(skill: TalentSkill, location: Location) -> dict:  # noqa: F811
+    return {
+        "login_phone": APPLICANT_PHONE,
+        "identity": dict(IDENTITY),
+        "talent": {
+            "display_name": ar("talent.applicant"),
+            "skill_id": str(skill.id),
+            "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
+            "whatsapp": APPLICANT_PHONE,
+            "years_experience": 3,
+            "kind": "SERVICE",
+            "work_mode": "BOTH",
+        },
+    }
+
+
+def _only_entry(client: TestClient, headers: dict[str, str]) -> dict:
+    [entry] = client.get("/api/admin/discarded-applications", headers=headers).json()
+    return entry
+
+
+def test_a_shop_after_a_services_profile_is_added_to_the_account_by_an_administrator(
+    client: TestClient,
+    db: Session,
+    admin: User,
+    skill: TalentSkill,  # noqa: F811
+    category: Category,
+    location: Location,
+) -> None:
+    """The case that prompted it: services first, then a shop on the same
+    number. An administrator adds the shop to that account, pending review."""
+    assert _register(client, "talent", _talent_payload(skill, location)).status_code == 202
+    assert _register(client, "business", _business_payload(category, location)).status_code == 202
+    owner = _owner(db)
+    assert owner is not None
+    headers = admin_headers(client)
+    entry = _only_entry(client, headers)
+
+    response = client.post(
+        f"/api/admin/discarded-applications/{entry['id']}/attach", headers=headers
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["kind"] == "BUSINESS"
+    assert body["application"]["dismissed_at"] is not None
+
+    business = db.get(Business, body["listing_id"])
+    assert business is not None
+    assert business.owner_id == owner.id
+    assert business.status is BusinessStatus.PENDING_REVIEW
+    assert client.get("/api/admin/discarded-applications", headers=headers).json() == []
+
+    again = client.post(f"/api/admin/discarded-applications/{entry['id']}/attach", headers=headers)
+    assert again.status_code == 409
+
+
+def test_a_second_shop_is_added_beside_the_first(
+    client: TestClient, db: Session, admin: User, category: Category, location: Location
+) -> None:
+    owner = _apply_twice(client, db, category, location)
+    headers = admin_headers(client)
+    entry = _only_entry(client, headers)
+
+    response = client.post(
+        f"/api/admin/discarded-applications/{entry['id']}/attach", headers=headers
+    )
+    assert response.status_code == 200, response.text
+    listings = db.execute(
+        select(func.count()).select_from(Business).where(Business.owner_id == owner.id)
+    ).scalar_one()
+    assert listings == 2
+
+
+def test_a_second_services_profile_is_refused_and_the_application_kept(
+    client: TestClient,
+    db: Session,
+    admin: User,
+    skill: TalentSkill,  # noqa: F811
+    location: Location,
+) -> None:
+    """An account holds one services profile, so a second cannot be added."""
+    assert _register(client, "talent", _talent_payload(skill, location)).status_code == 202
+    assert _register(client, "talent", _talent_payload(skill, location)).status_code == 202
+    headers = admin_headers(client)
+    entry = _only_entry(client, headers)
+
+    response = client.post(
+        f"/api/admin/discarded-applications/{entry['id']}/attach", headers=headers
+    )
+    assert response.status_code == 409
+    assert db.execute(select(func.count()).select_from(TalentProfile)).scalar_one() == 1
+    assert _only_entry(client, headers)["id"] == entry["id"]
+
+
+def test_only_an_administrator_can_add_one(
+    client: TestClient, db: Session, category: Category, location: Location
+) -> None:
+    _apply_twice(client, db, category, location)
+    row = db.execute(select(DiscardedApplication)).scalar_one()
+    path = f"/api/admin/discarded-applications/{row.id}/attach"
+
+    assert client.post(path).status_code == 401
+    assert client.post(path, headers=sign_in(client, "03990001")).status_code == 403
+

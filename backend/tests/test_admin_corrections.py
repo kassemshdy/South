@@ -100,3 +100,69 @@ def test_an_administrator_gives_a_listing_a_logo_but_not_a_gallery(
         data={"kind": "GALLERY"},
     )
     assert gallery.status_code == 422
+
+
+def test_an_administrator_changes_a_shop_s_category_at_any_status(
+    client: TestClient,
+    admin: User,
+    category: Category,
+    category_other: Category,
+    location: Location,
+) -> None:
+    """The owners' ticket: a shop filed under the wrong category. "Other"
+    keeps the words it is given."""
+    business_id, _ = _listing(client, category, location)
+
+    changed = client.post(
+        f"/api/admin/businesses/{business_id}/category",
+        headers=admin_headers(client),
+        json={
+            "category_id": str(category_other.id),
+            "custom_category_text": ar("business.custom_category_text"),
+        },
+    )
+
+    assert changed.status_code == 200, changed.text
+    assert changed.json()["category"]["id"] == str(category_other.id)
+    assert changed.json()["custom_category_text"] == ar("business.custom_category_text")
+
+
+def test_an_administrator_moves_a_shop_s_pin_but_not_across_the_border(
+    client: TestClient, admin: User, category: Category, location: Location
+) -> None:
+    business_id, _ = _listing(client, category, location)
+    headers = admin_headers(client)
+    path = f"/api/admin/businesses/{business_id}/place"
+
+    moved = client.post(
+        path,
+        headers=headers,
+        json={"location_id": str(location.id), "latitude": 33.5631, "longitude": 35.3709},
+    )
+    assert moved.status_code == 200, moved.text
+    assert (moved.json()["latitude"], moved.json()["longitude"]) == (33.5631, 35.3709)
+
+    # Kiryat Shmona: inside Lebanon's box, outside its border.
+    refused = client.post(
+        path,
+        headers=headers,
+        json={"location_id": str(location.id), "latitude": 33.207, "longitude": 35.57},
+    )
+    assert refused.status_code == 422, refused.text
+
+
+def test_an_owner_cannot_change_category_or_place(
+    client: TestClient, admin: User, category: Category, location: Location
+) -> None:
+    business_id, owner = _listing(client, category, location)
+    for action, body in (
+        ("category", {"category_id": str(category.id)}),
+        (
+            "place",
+            {"location_id": str(location.id), "latitude": 33.27, "longitude": 35.2},
+        ),
+    ):
+        response = client.post(
+            f"/api/admin/businesses/{business_id}/{action}", headers=owner, json=body
+        )
+        assert response.status_code == 403, action

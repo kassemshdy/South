@@ -939,3 +939,27 @@ def test_a_profile_with_service_requests_is_not_moved(
     )
     assert refused.status_code == 422
     assert client.get(f"/api/talent/{profile['slug']}").status_code == 200
+
+
+def test_an_administrator_moves_a_service_profile_s_pin_inside_lebanon_only(
+    client: TestClient, admin: User, skill: TalentSkill, location: Location
+) -> None:
+    profile = _create_profile(client, sign_in(client, "03950140"), skill, location)
+    headers = admin_headers(client)
+    path = f"/api/admin/talent/{profile['id']}/place"
+
+    moved = client.post(
+        path,
+        headers=headers,
+        json={"location_id": str(location.id), "latitude": 33.5631, "longitude": 35.3709},
+    )
+    assert moved.status_code == 200, moved.text
+    assert moved.json()["latitude"] == 33.5631
+
+    # Majdal Shams, in the occupied Golan.
+    refused = client.post(
+        path,
+        headers=headers,
+        json={"location_id": str(location.id), "latitude": 33.269, "longitude": 35.77},
+    )
+    assert refused.status_code == 422, refused.text

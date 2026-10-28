@@ -3,15 +3,17 @@ import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import { useEffect, useRef, useState } from 'react'
 
+import { insideLebanon, LEBANON_OUTLINE } from '@/features/map/lebanon'
 import type { Pin } from '@/features/map/types'
 
 /** Roughly the South, for a map with no pin yet. */
 const SOUTH: L.LatLngExpression = [33.3, 35.4]
 
 /**
- * Lebanon with a little to spare -- the same box the API checks a pin against
- * (app/core/pins.py). An editable map cannot be panned out of it, so a tap
- * cannot land a pin in the sea off Haifa, which is where one was found.
+ * Lebanon with a little to spare. An editable map cannot be panned out of
+ * it; a pin must also fall inside the border itself (`insideLebanon`, the
+ * outline the API checks), which the box alone took in Galilee, the Golan
+ * and the sea.
  */
 const LEBANON = L.latLngBounds([33.0, 35.05], [34.75, 36.7])
 
@@ -71,8 +73,16 @@ export default function LeafletMap({ value, onChange, label, className }: Leafle
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(instance)
     if (editable) {
+      // Where a pin may go, drawn, so a tap beyond it is not a mystery.
+      L.polygon(LEBANON_OUTLINE, {
+        color: '#1f4d3a',
+        weight: 2,
+        dashArray: '6 6',
+        fill: false,
+        interactive: false,
+      }).addTo(instance)
       instance.on('click', (event: L.LeafletMouseEvent) => {
-        if (!LEBANON.contains(event.latlng)) return
+        if (!insideLebanon(event.latlng.lat, event.latlng.lng)) return
         changeRef.current?.({ lat: event.latlng.lat, lng: event.latlng.lng })
       })
     }
@@ -103,7 +113,7 @@ export default function LeafletMap({ value, onChange, label, className }: Leafle
       if (editable) {
         created.on('dragend', () => {
           const moved = created.getLatLng()
-          if (!LEBANON.contains(moved)) {
+          if (!insideLebanon(moved.lat, moved.lng)) {
             // Back to where it was: a drag cannot take a pin out of Lebanon.
             created.setLatLng(at)
             return

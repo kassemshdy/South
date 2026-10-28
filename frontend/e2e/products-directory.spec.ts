@@ -59,10 +59,9 @@ async function signInAsOwner(page: Page) {
 }
 
 /**
- * `/products` lists the shops with something on sale (the owners' decision,
- * round 3), and a product is searched inside its shop's page. A shop is only
- * there once approved, and only while one of its products is available — the
- * same two visibility rules the backend enforces.
+ * A product/service is only reachable through the public `/products` surface
+ * once its parent business is approved, and only while it is marked
+ * available — the same two visibility rules the backend enforces.
  */
 test.describe('Products directory', () => {
   test('owner publishes items, admin approves, visitor finds only the available one', async ({
@@ -131,7 +130,7 @@ test.describe('Products directory', () => {
 
     // --- Not reachable before approval -----------------------------------------
     await page.goto('/products')
-    await expect(page.getByText(fixture.businessName, { exact: true })).toHaveCount(0)
+    await expect(page.getByText(fixture.availableItem.title, { exact: true })).toHaveCount(0)
 
     // --- Administrator approves -------------------------------------------------
     await page.goto('/admin/login')
@@ -157,42 +156,33 @@ test.describe('Products directory', () => {
     await page.getByRole('button', { name: t('common.confirm'), exact: true }).click()
     await expect(page.getByText(t('status.APPROVED'), { exact: true }).first()).toBeVisible()
 
-    // --- The shop is now on /products, found by what it sells ----------------
+    // --- The available item is now findable in /products -----------------------
     await page.goto('/products')
-    await expect(page.getByRole('article').filter({ hasText: fixture.businessName })).toHaveCount(1)
-    await page.goto(`/products?q=${encodeURIComponent(fixture.availableItem.title)}`)
-    const card = page.getByRole('article').filter({ hasText: fixture.businessName })
+    const card = page.getByRole('article').filter({ hasText: fixture.availableItem.title })
     await expect(card).toHaveCount(1)
+    await expect(card.getByText('$3.00')).toBeVisible()
 
-    // --- Inside the shop, the products are searched ----------------------------
-    await card.getByRole('link', { name: fixture.businessName }).first().click()
-    await expect(
-      page.getByRole('heading', { name: fixture.businessName, level: 1 }),
-    ).toBeVisible()
-    const search = page.getByLabel(t('business.itemsSearchLabel'))
-    await search.fill(fixture.availableItem.title)
-    await expect(page.getByRole('heading', { name: fixture.availableItem.title })).toBeVisible()
-    await expect(page.getByRole('heading', { name: fixture.unavailableItem.title })).toHaveCount(0)
+    // The unavailable item never appears in the public products directory.
+    await expect(page.getByText(fixture.unavailableItem.title, { exact: true })).toHaveCount(0)
 
-    // The unavailable item still shows on its own business's page, marked as such.
-    await search.fill('')
-    await expect(page.getByRole('heading', { name: fixture.unavailableItem.title })).toBeVisible()
-    await expect(page.getByText(t('business.itemUnavailable')).first()).toBeVisible()
-
-    // --- A product keeps its own page, which links back to the shop ------------
-    const found = await page.request.get(
-      `/api/items?q=${encodeURIComponent(fixture.availableItem.title)}`,
-    )
-    const { items } = (await found.json()) as { items: { slug: string }[] }
-    expect(items).toHaveLength(1)
-    await page.goto(`/product/${encodeURIComponent(items[0]!.slug)}`)
+    // --- Clicking through reaches the product page, which links back ----------
+    await page.getByRole('link', { name: fixture.availableItem.title, exact: true }).click()
     await expect(
       page.getByRole('heading', { name: fixture.availableItem.title, level: 1 }),
     ).toBeVisible()
-    await expect(page.getByText('$3.00').first()).toBeVisible()
+    await expect(page.getByRole('link', { name: fixture.businessName })).toBeVisible()
+
     // A product is the most passed-around thing on this site — a photo, a name
     // and a price — and it was the one public page with no way to pass it on.
     await expect(page.getByRole('button', { name: t('business.share') })).toBeVisible()
-    await expect(page.getByRole('link', { name: fixture.businessName })).toBeVisible()
+
+    await page.getByRole('link', { name: fixture.businessName }).click()
+    await expect(
+      page.getByRole('heading', { name: fixture.businessName, level: 1 }),
+    ).toBeVisible()
+
+    // The unavailable item still shows on its own business's page, marked as such.
+    await expect(page.getByRole('heading', { name: fixture.unavailableItem.title })).toBeVisible()
+    await expect(page.getByText(t('business.itemUnavailable')).first()).toBeVisible()
   })
 })

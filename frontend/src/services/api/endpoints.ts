@@ -26,6 +26,7 @@ import type {
   ContactChannel,
   AdminArticle,
   AdminBusiness,
+  AdminPlace,
   AdminTalent,
   AdminTestimonial,
   AdminPartnerRequest,
@@ -33,6 +34,7 @@ import type {
   AdminUserDetail,
   Article,
   ArticleInput,
+  AttachedApplication,
   ArticleSection,
   AuthToken,
   BusinessDetail,
@@ -707,6 +709,10 @@ export const adminApi = {
     apiRequest<DiscardedApplication>(`/api/admin/discarded-applications/${id}/dismiss`, {
       method: 'POST',
     }),
+  attachApplication: (id: string) =>
+    apiRequest<AttachedApplication>(`/api/admin/discarded-applications/${id}/attach`, {
+      method: 'POST',
+    }),
   businesses: (params: { status?: BusinessStatus; q?: string; page?: number; page_size?: number }) =>
     apiRequest<Paginated<AdminBusiness>>('/api/admin/businesses', { query: { ...params } }),
   pending: (page = 1) =>
@@ -731,6 +737,21 @@ export const adminApi = {
       method: 'POST',
       body: { skill_id, custom_skill_text },
     }),
+  setBusinessCategory: (businessId: string, category_id: string, custom_category_text: string | null) =>
+    apiRequest<AdminBusiness>(`/api/admin/businesses/${businessId}/category`, {
+      method: 'POST',
+      body: { category_id, custom_category_text },
+    }),
+  setBusinessPlace: (businessId: string, place: AdminPlace) =>
+    apiRequest<AdminBusiness>(`/api/admin/businesses/${businessId}/place`, {
+      method: 'POST',
+      body: place,
+    }),
+  setTalentPlace: (profileId: string, place: AdminPlace) =>
+    apiRequest<AdminTalent>(`/api/admin/talent/${profileId}/place`, {
+      method: 'POST',
+      body: place,
+    }),
   setGoodsOrigin: (businessId: string, goods_origin: GoodsOrigin) =>
     apiRequest<AdminBusiness>(`/api/admin/businesses/${businessId}/goods-origin`, {
       method: 'POST',
@@ -749,7 +770,12 @@ export const adminApi = {
     apiRequest<{ message: string }>(`/api/admin/talent/${id}`, { method: 'DELETE' }),
   deleteUser: (id: string) =>
     apiRequest<{ message: string }>(`/api/admin/users/${id}`, { method: 'DELETE' }),
-  partners: () => apiRequest<AdminPartnerRequest[]>('/api/admin/partners'),
+  partners: (solved = false) =>
+    apiRequest<AdminPartnerRequest[]>('/api/admin/partners', { query: { solved } }),
+  solvePartner: (id: string) =>
+    apiRequest<AdminPartnerRequest>(`/api/admin/partners/${id}/solve`, { method: 'POST' }),
+  reopenPartner: (id: string) =>
+    apiRequest<AdminPartnerRequest>(`/api/admin/partners/${id}/reopen`, { method: 'POST' }),
   deletePartner: (id: string) =>
     apiRequest<{ message: string }>(`/api/admin/partners/${id}`, { method: 'DELETE' }),
   approve: (id: string) =>
