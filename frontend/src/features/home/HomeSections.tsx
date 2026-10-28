@@ -1,7 +1,7 @@
 /**
  * The browsing sections of the home page (the owners' request, 27 Oct
- * 2026): search, categories, stories, live counts, newest products, shops,
- * services and news. Each is one self-contained section an administrator
+ * 2026): search, categories, stories, short videos, live counts, newest
+ * products, shops, services and news. Each is one self-contained section an administrator
  * can move or hide at /admin/home-layout; each renders nothing while it has
  * nothing to show, so an empty one never leaves a heading over a blank.
  *
@@ -10,12 +10,13 @@
  */
 
 import { useQuery } from '@tanstack/react-query'
+import { Play } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
-import { Dialog, DialogContent } from '@/components/ui/Dialog'
-import { YouTubePlayer } from '@/components/ui/YouTubePlayer'
 import { CategoryIcon } from '@/features/home/categoryIcon'
+import { ProviderIcon, ReelPlayer, reelCaption } from '@/features/home/ReelPlayer'
+import { StoryViewer } from '@/features/home/StoryViewer'
 import { SearchBox } from '@/features/search/SearchBox'
 import { ProductCard } from '@/features/items/ProductCard'
 import { WORK_MODE_KEYS } from '@/features/talent/labels'
@@ -26,10 +27,11 @@ import {
   publicBusinessApi,
   publicItemApi,
   publicTalentApi,
+  reelApi,
   taxonomyApi,
 } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import type { ArticleSection, Category, GoodsOrigin, HomeStory, ProductQuery } from '@/types/api'
+import type { ArticleSection, Category, GoodsOrigin, ProductQuery } from '@/types/api'
 import { cn } from '@/utils/cn'
 import { formatDate } from '@/utils/format'
 
@@ -96,60 +98,152 @@ export function CategoriesSection() {
   )
 }
 
+/**
+ * Photo stories, one circle per listing: the shop's logo or the person's
+ * photo in a coloured ring, opening its photos full screen (`StoryViewer`).
+ * While no story is showing, the row shows the shops that have a logo
+ * instead, each opening its page (the owners' decisions, 28 Oct 2026).
+ */
 export function StoriesSection() {
   const t = useT()
   const stories = useQuery({ queryKey: queryKeys.homeStories, queryFn: homeApi.stories })
-  const [open, setOpen] = useState<HomeStory | null>(null)
-  if (!stories.data || stories.data.length === 0) return null
-  const pageOf = (story: HomeStory) =>
-    `/${story.kind === 'business' ? 'business' : 'talent'}/${encodeURIComponent(story.slug)}`
+  const [open, setOpen] = useState<number | null>(null)
+  if (!stories.isSuccess) return null
+  if (stories.data.length === 0) return <ShopLogoRow />
+  return (
+    <StoryRow title={t('home.storiesTitle')}>
+      {stories.data.map((group, index) => (
+        <li key={`${group.kind}-${group.slug}`} className="shrink-0">
+          <button
+            type="button"
+            onClick={() => setOpen(index)}
+            className="flex w-20 flex-col items-center gap-1.5 text-center"
+          >
+            <StoryCircle image={group.image_url} name={group.name} ring="bg-clay-500" />
+            <span dir="auto" className="line-clamp-1 w-full text-xs font-semibold text-ink-900">
+              {group.name}
+            </span>
+          </button>
+        </li>
+      ))}
+      <StoryViewer groups={stories.data} group={open} onGroupChange={setOpen} />
+    </StoryRow>
+  )
+}
+
+function ShopLogoRow() {
+  const t = useT()
+  const shops = useQuery({
+    queryKey: queryKeys.latestBusinesses(24),
+    queryFn: () => publicBusinessApi.latest(24),
+  })
+  const list = (shops.data ?? []).filter((business) => business.logo_url)
+  if (list.length === 0) return null
+  return (
+    <StoryRow title={t('home.storiesTitle')}>
+      {list.map((business) => (
+        <li key={business.id} className="shrink-0">
+          <Link
+            to={`/business/${encodeURIComponent(business.slug)}`}
+            className="flex w-20 flex-col items-center gap-1.5 text-center"
+          >
+            <StoryCircle
+              image={business.logo_thumb_url ?? business.logo_url}
+              name={business.name}
+              ring="bg-sand-300"
+            />
+            <span dir="auto" className="line-clamp-1 w-full text-xs font-semibold text-ink-900">
+              {business.name}
+            </span>
+          </Link>
+        </li>
+      ))}
+    </StoryRow>
+  )
+}
+
+function StoryRow({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="border-b border-ink-100 bg-white py-6">
       <div className="container-page">
-        <h2 className="mb-4 font-display text-xl font-bold text-ink-900">{t('home.storiesTitle')}</h2>
-        <ul className="flex gap-4 overflow-x-auto pb-1">
-          {stories.data.map((story) => (
-            <li key={`${story.kind}-${story.slug}`} className="shrink-0">
-              <button
-                type="button"
-                onClick={() => setOpen(story)}
-                className="flex w-20 flex-col items-center gap-1.5 text-center"
-              >
-                <span className="flex h-20 w-20 rounded-full bg-clay-500 p-[3px]">
-                  <span className="flex flex-1 items-center justify-center overflow-hidden rounded-full border-[3px] border-white bg-brand-700 font-display text-xl font-bold text-white">
-                    {story.image_url ? (
-                      <img src={story.image_url} alt="" className="h-full w-full object-cover" loading="lazy" />
-                    ) : (
-                      story.name.slice(0, 1)
-                    )}
+        <h2 className="mb-4 font-display text-xl font-bold text-ink-900">{title}</h2>
+        <ul className="flex gap-4 overflow-x-auto pb-1">{children}</ul>
+      </div>
+    </section>
+  )
+}
+
+function StoryCircle({ image, name, ring }: { image: string | null; name: string; ring: string }) {
+  return (
+    <span className={cn('flex h-20 w-20 rounded-full p-[3px]', ring)}>
+      <span className="flex flex-1 items-center justify-center overflow-hidden rounded-full border-[3px] border-white bg-brand-700 font-display text-xl font-bold text-white">
+        {image ? (
+          <img src={image} alt="" className="h-full w-full object-cover" loading="lazy" />
+        ) : (
+          name.trim().slice(0, 1)
+        )}
+      </span>
+    </span>
+  )
+}
+
+/**
+ * The reels an administrator chose, as a row of tall cards on a dark band;
+ * a tap opens them full screen (`ReelPlayer`). The cards draw our own cover
+ * photographs, so nothing is fetched from YouTube or Instagram until a reel
+ * is opened.
+ */
+export function ReelsSection() {
+  const { t, locale } = useI18n()
+  const reels = useQuery({ queryKey: queryKeys.reels, queryFn: reelApi.list })
+  const [open, setOpen] = useState<number | null>(null)
+  const list = reels.data ?? []
+  if (list.length === 0) return null
+  return (
+    <section className="bg-ink-900 py-10 text-white sm:py-12">
+      <div className="container-page">
+        <h2 className="mb-5 font-display text-2xl font-bold sm:text-3xl">{t('home.reelsTitle')}</h2>
+        <ul className="flex gap-3 overflow-x-auto pb-2 sm:gap-4">
+          {list.map((reel, index) => {
+            const caption = reelCaption(reel, locale)
+            return (
+              <li key={reel.id} className="shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setOpen(index)}
+                  aria-label={caption ?? t('reels.play')}
+                  className="group relative block aspect-[9/16] w-36 overflow-hidden rounded-2xl bg-gradient-to-b from-brand-700 to-clay-600 text-start focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-wheat-500 sm:w-44"
+                >
+                  {reel.cover_url ? (
+                    <img
+                      src={reel.cover_url}
+                      alt=""
+                      loading="lazy"
+                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  ) : (
+                    <ProviderIcon provider={reel.provider} className="absolute start-3 top-3 h-6 w-6 text-white/80" />
+                  )}
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-black/40 backdrop-blur transition-transform group-hover:scale-110">
+                      <Play className="h-6 w-6 translate-x-0.5 fill-white" aria-hidden="true" />
+                    </span>
                   </span>
-                </span>
-                <span className="line-clamp-1 w-full text-xs font-semibold text-ink-900">{story.name}</span>
-              </button>
-            </li>
-          ))}
+                  {caption ? (
+                    <span
+                      dir="auto"
+                      className="absolute inset-x-0 bottom-0 line-clamp-3 bg-gradient-to-t from-black/80 to-transparent p-3 pt-8 text-sm font-semibold leading-snug"
+                    >
+                      {caption}
+                    </span>
+                  ) : null}
+                </button>
+              </li>
+            )
+          })}
         </ul>
       </div>
-      <Dialog open={open !== null} onOpenChange={(next) => (next ? null : setOpen(null))}>
-        <DialogContent title={open?.name ?? ''} className="max-w-2xl">
-          {open ? (
-            <div className="space-y-4">
-              <YouTubePlayer
-                videoId={open.youtube_video_id}
-                title={open.name}
-                playLabel={t('home.storyPlay')}
-              />
-              <Link
-                to={pageOf(open)}
-                onClick={() => setOpen(null)}
-                className="inline-flex rounded-xl bg-brand-700 px-5 py-2.5 font-semibold text-white hover:bg-brand-800"
-              >
-                {t('home.storyOpen')}
-              </Link>
-            </div>
-          ) : null}
-        </DialogContent>
-      </Dialog>
+      <ReelPlayer reels={list} index={open} onIndexChange={setOpen} />
     </section>
   )
 }

@@ -549,6 +549,7 @@ export type HomeSectionId =
   | 'search'
   | 'categories'
   | 'stories'
+  | 'reels'
   | 'stats'
   | 'products'
   | 'category_products'
@@ -566,13 +567,64 @@ export interface HomeLayout {
   sections: HomeSection[]
 }
 
-/** A published listing with an introduction video, for the stories row. */
-export interface HomeStory {
+/**
+ * A YouTube Short or an Instagram post on the home page. `url` and
+ * `embed_url` are rebuilt by the server from the video's id, never the
+ * pasted link.
+ */
+export interface Reel {
+  id: string
+  provider: 'youtube' | 'instagram'
+  url: string
+  embed_url: string
+  caption_ar: string | null
+  caption_en: string | null
+  cover_url: string | null
+}
+
+export interface AdminReel extends Reel {
+  is_published: boolean
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export interface ReelInput {
+  url: string
+  caption_ar: string | null
+  caption_en: string | null
+  is_published: boolean
+}
+
+export type StoryStatus = 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED'
+
+/** A photo story as its owner sees it, whatever its state. */
+export interface Story {
+  id: string
+  image_url: string
+  caption: string | null
+  status: StoryStatus
+  approved_at: string | null
+  /** A day after approval; null until approved. */
+  expires_at: string | null
+  created_at: string
+}
+
+/** A story in the review queue, with the listing it belongs to. */
+export interface AdminStory extends Story {
+  listing_kind: 'business' | 'talent'
+  listing_id: string
+  listing_name: string
+  listing_slug: string
+}
+
+/** One circle of the home page's stories row: a listing and its photos. */
+export interface StoryGroup {
   kind: 'business' | 'talent'
   slug: string
   name: string
   image_url: string | null
-  youtube_video_id: string
+  stories: { id: string; image_url: string; caption: string | null; approved_at: string }[]
 }
 
 /** One suggestion under the search box while someone types. */
