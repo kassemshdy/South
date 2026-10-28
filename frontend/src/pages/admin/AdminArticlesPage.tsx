@@ -6,15 +6,17 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Input, Textarea } from '@/components/ui/Input'
+import { LocationCombobox } from '@/components/ui/LocationCombobox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
+import { useCategories, useLocationGroups } from '@/hooks/useTaxonomy'
 import { useI18n, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { adminApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import type { AdminArticle, ArticleSection } from '@/types/api'
+import type { AdminArticle, ArticleInput, ArticleSection } from '@/types/api'
 import { cn } from '@/utils/cn'
 import { formatDate } from '@/utils/format'
 
@@ -30,9 +32,20 @@ interface FormState {
   section: ArticleSection
   title: string
   body: string
+  /** '' for none. */
+  category_id: string
+  location_id: string
 }
 
-const EMPTY_FORM: FormState = { section: 'BLOG', title: '', body: '' }
+const EMPTY_FORM: FormState = { section: 'BLOG', title: '', body: '', category_id: '', location_id: '' }
+/** The category picker's "none": a Select item cannot be valued ''. */
+const NO_CATEGORY = 'none'
+
+const toInput = (form: FormState): ArticleInput => ({
+  ...form,
+  category_id: form.category_id || null,
+  location_id: form.location_id || null,
+})
 
 /**
  * Admin-only content management for the two "coming soon" pages in the top
@@ -50,6 +63,8 @@ export function AdminArticlesPage() {
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [uploadingId, setUploadingId] = useState<string | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
+  const categories = useCategories()
+  const { groups } = useLocationGroups()
 
   const articles = useQuery({
     queryKey: queryKeys.adminArticles(filter),
@@ -67,11 +82,17 @@ export function AdminArticlesPage() {
 
   const startEditing = (article: AdminArticle) => {
     setEditingId(article.id)
-    setForm({ section: article.section, title: article.title, body: article.body })
+    setForm({
+      section: article.section,
+      title: article.title,
+      body: article.body,
+      category_id: article.category?.id ?? '',
+      location_id: article.location?.id ?? '',
+    })
   }
 
   const create = useMutation({
-    mutationFn: (payload: FormState) => adminApi.createArticle(payload),
+    mutationFn: (payload: FormState) => adminApi.createArticle(toInput(payload)),
     onSuccess: () => {
       setEditingId(null)
       setForm(EMPTY_FORM)
@@ -83,7 +104,7 @@ export function AdminArticlesPage() {
 
   const update = useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: FormState }) =>
-      adminApi.updateArticle(id, payload),
+      adminApi.updateArticle(id, toInput(payload)),
     onSuccess: () => {
       setEditingId(null)
       toast.success(t('admin.articleSaved'))
@@ -175,6 +196,45 @@ export function AdminArticlesPage() {
           rows={6}
           required
         />
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="article-category">
+            {t('admin.articleCategoryLabel')}
+          </label>
+          <Select
+            value={form.category_id || NO_CATEGORY}
+            onValueChange={(value) =>
+              setForm((prev) => ({ ...prev, category_id: value === NO_CATEGORY ? '' : value }))
+            }
+          >
+            <SelectTrigger aria-labelledby="article-category">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NO_CATEGORY}>{t('admin.articleNoCategory')}</SelectItem>
+              {(categories.data ?? []).map((category) => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.name_ar}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label htmlFor="article-location" className="mb-1.5 block text-sm font-semibold text-ink-700">
+            {t('admin.articleLocationLabel')}
+          </label>
+          <LocationCombobox
+            id="article-location"
+            value={form.location_id}
+            onChange={(id) => setForm((prev) => ({ ...prev, location_id: id }))}
+            groups={groups}
+            emptyLabel={t('admin.articleNoLocation')}
+          />
+        </div>
+        <p className="text-sm text-ink-500 sm:col-span-2">{t('admin.articleRelatedHint')}</p>
       </div>
 
       <div className="flex gap-2">

@@ -8,8 +8,12 @@ delete one.
 
 from __future__ import annotations
 
-from fastapi.testclient import TestClient
+import uuid
 
+from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
+
+from app.models.taxonomy import Category, Location
 from app.models.user import User
 from tests.conftest import admin_headers, sign_in
 from tests.samples import ar
@@ -153,3 +157,57 @@ def test_admin_listing_includes_drafts_and_can_filter_by_section(
     blog_ids = [a["id"] for a in blog_only.json()]
     assert blog["id"] in blog_ids
     assert news["id"] not in blog_ids
+
+
+def test_an_article_names_a_category_and_place_and_its_page_carries_them(
+    client: TestClient, admin: User, category: Category, location: Location
+) -> None:
+    """The article page ends with the products and shops of what the article
+    is about, so the public article carries the category and place."""
+    headers = admin_headers(client)
+    article = _create(client, headers, category_id=str(category.id), location_id=str(location.id))
+    assert article["category"]["slug"] == category.slug
+    assert article["location"]["slug"] == location.slug
+    client.post(f"/api/admin/articles/{article['id']}/publish", headers=headers)
+
+    public = client.get(f"/api/articles/{article['slug']}").json()
+    assert public["category"]["slug"] == category.slug
+    assert public["location"]["slug"] == location.slug
+
+
+def test_an_article_link_is_cleared_with_null_and_kept_when_left_out(
+    client: TestClient, admin: User, category: Category, location: Location
+) -> None:
+    headers = admin_headers(client)
+    article = _create(client, headers, category_id=str(category.id), location_id=str(location.id))
+    response = client.put(
+        f"/api/admin/articles/{article['id']}", json={"category_id": None}, headers=headers
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["category"] is None
+    assert response.json()["location"]["slug"] == location.slug
+
+
+def test_an_unknown_category_or_place_is_refused(client: TestClient, admin: User) -> None:
+    headers = admin_headers(client)
+    for field in ("category_id", "location_id"):
+        payload = {
+            "section": "BLOG",
+            "title": ar("article.first_title"),
+            "body": ar("article.first_body"),
+            field: str(uuid.uuid4()),
+        }
+        response = client.post("/api/admin/articles", json=payload, headers=headers)
+        assert response.status_code == 404, response.text
+
+
+def test_deleting_the_category_keeps_the_article(
+    client: TestClient, admin: User, category: Category, db: Session
+) -> None:
+    headers = admin_headers(client)
+    article = _create(client, headers, category_id=str(category.id))
+    db.delete(category)
+    db.commit()
+    response = client.get("/api/admin/articles", headers=headers)
+    (kept,) = [a for a in response.json() if a["id"] == article["id"]]
+    assert kept["category"] is None
