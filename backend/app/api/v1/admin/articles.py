@@ -22,6 +22,7 @@ from app.core.i18n import translate
 from app.core.uploads import read_at_most
 from app.models.article import Article
 from app.models.enums import ArticleSection, ImageKind
+from app.models.taxonomy import Category, Location
 from app.repositories.article import ArticleRepository
 from app.schemas.article import AdminArticleOut, ArticleIn, ArticleUpdateIn
 from app.schemas.common import MessageResponse
@@ -37,6 +38,16 @@ def _get_or_404(repo: ArticleRepository, article_id: uuid.UUID) -> Article:
     if article is None:
         raise NotFoundError("article.not_found")
     return article
+
+
+def _check_related(
+    db: DbSession, category_id: uuid.UUID | None, location_id: uuid.UUID | None
+) -> None:
+    """A category or place the article names must exist."""
+    if category_id is not None and db.get(Category, category_id) is None:
+        raise NotFoundError("taxonomy.category.not_found")
+    if location_id is not None and db.get(Location, location_id) is None:
+        raise NotFoundError("taxonomy.location.not_found")
 
 
 @router.get("", response_model=list[AdminArticleOut])
@@ -61,6 +72,7 @@ def create_article(payload: ArticleIn, db: DbSession, admin: AdminUser) -> Admin
     )
     if repo.slug_exists(slug):
         raise ConflictError("article.duplicate_slug", code="duplicate_slug")
+    _check_related(db, payload.category_id, payload.location_id)
 
     article = repo.add(
         Article(
@@ -68,9 +80,12 @@ def create_article(payload: ArticleIn, db: DbSession, admin: AdminUser) -> Admin
             slug=slug,
             title=payload.title,
             body=payload.body,
+            category_id=payload.category_id,
+            location_id=payload.location_id,
         )
     )
     db.commit()
+    db.refresh(article)  # load the category and place it now names
     return admin_article_out(article)
 
 
@@ -87,10 +102,12 @@ def update_article(
         if repo.slug_exists(slug, exclude_id=article_id):
             raise ConflictError("article.duplicate_slug", code="duplicate_slug")
         data["slug"] = slug
+    _check_related(db, data.get("category_id"), data.get("location_id"))
 
     for field, value in data.items():
         setattr(article, field, value)
     db.commit()
+    db.refresh(article)  # load the category and place it now names
     return admin_article_out(article)
 
 

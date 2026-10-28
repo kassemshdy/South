@@ -895,6 +895,19 @@ export interface Article {
   body: string
   cover_url: string | null
   published_at: string | null
+  /** What it is about, if anything: its page ends with these listings. */
+  category: Category | null
+  location: LocationNode | null
+}
+
+/** What an administrator sends; null clears a link, '' is never sent. */
+export interface ArticleInput {
+  section: ArticleSection
+  title: string
+  body: string
+  slug?: string
+  category_id: string | null
+  location_id: string | null
 }
 
 export interface AdminArticle extends Article {
