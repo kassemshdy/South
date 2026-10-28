@@ -1361,13 +1361,13 @@
   "reels.previous": "Previous reel",
   "reels.next": "Next reel",
   "reels.openOnInstagram": "Open on Instagram",
-  "admin.homeSectionReels": "Instagram reels",
-  "admin.navReels": "Instagram reels",
-  "admin.reelsTitle": "Instagram reels",
-  "admin.reelsHint": "Paste a link to an Instagram reel or post, add a caption and a cover, then show it and put it in order. The row appears on the home page once its section is switched on in the home page order.",
+  "admin.homeSectionReels": "Short videos",
+  "admin.navReels": "Short videos",
+  "admin.reelsTitle": "Short videos",
+  "admin.reelsHint": "Paste a link to a YouTube Short or an Instagram reel, add a caption, then show it and put it in order. The row appears on the home page once its section is switched on in the home page order.",
   "admin.reelAdd": "Add a reel",
-  "admin.reelUrl": "Instagram link",
-  "admin.reelUrlHint": "A link to one reel or post, as Instagram gives it when you share.",
+  "admin.reelUrl": "YouTube Shorts or Instagram link",
+  "admin.reelUrlHint": "A link to one video, as the app gives it when you share. A YouTube Short takes its own thumbnail as the cover if none is uploaded.",
   "admin.reelCaptionAr": "Caption in Arabic",
   "admin.reelCaptionEn": "Caption in English",
   "admin.reelPublished": "Shown on the home page",
@@ -1375,5 +1375,6 @@
   "admin.reelRemoveCover": "Remove the cover",
   "admin.reelsEmpty": "No reels yet.",
   "admin.reelDeleted": "The reel was deleted.",
-  "admin.reelDeleteConfirm": "Delete this reel?"
+  "admin.reelDeleteConfirm": "Delete this reel?",
+  "reels.openOnYoutube": "Open on YouTube"
 }

@@ -1,12 +1,21 @@
 import * as DialogPrimitive from '@radix-ui/react-dialog'
-import { ChevronLeft, ChevronRight, ExternalLink, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ExternalLink, Instagram, X, Youtube } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 
 import { useI18n } from '@/i18n'
 import type { Reel } from '@/types/api'
 
-/** Only Instagram's own player is ever framed, whatever the API returned. */
-const EMBED_ORIGIN = 'https://www.instagram.com/'
+/** Only these players are ever framed, whatever the API returned. */
+const EMBED_ORIGINS: Record<Reel['provider'], string> = {
+  youtube: 'https://www.youtube-nocookie.com/embed/',
+  instagram: 'https://www.instagram.com/',
+}
+
+/** The site a reel plays from, drawn where a reel has no cover. */
+export function ProviderIcon({ provider, className }: { provider: Reel['provider']; className?: string }) {
+  const Icon = provider === 'youtube' ? Youtube : Instagram
+  return <Icon className={className} aria-hidden="true" />
+}
 
 export function reelCaption(reel: Reel, locale: string): string | null {
   return locale === 'ar' ? reel.caption_ar ?? reel.caption_en : reel.caption_en ?? reel.caption_ar
@@ -14,15 +23,16 @@ export function reelCaption(reel: Reel, locale: string): string | null {
 
 /**
  * The home page's reels opened full screen, one at a time: a dark backdrop,
- * the reel in the middle in Instagram's own player, and the next one a tap,
+ * the reel in the middle in its site's own player (YouTube or Instagram),
+ * and the next one a tap,
  * a swipe or an arrow key away -- the way news sites present their video
  * strips.
  *
- * Instagram is contacted only here, once a visitor opens a reel: the row on
- * the page draws our own covers, so the page itself makes no request to
- * Instagram. Directions follow the page's, as in the photo lightbox: in
+ * YouTube or Instagram is contacted only here, once a visitor opens a reel:
+ * the row on the page draws our own covers, so the page itself makes no
+ * request to either. Directions follow the page's, as in the photo lightbox: in
  * Arabic the next reel is to the left. A swipe is read on the backdrop
- * around the player; touches on the player itself belong to Instagram.
+ * around the player; touches on the player itself belong to the player.
  */
 export function ReelPlayer({
   reels,
@@ -92,7 +102,7 @@ export function ReelPlayer({
           {current ? (
             <>
               <div className="relative flex w-full max-w-[min(26rem,100%)] flex-1 items-center justify-center">
-                {current.embed_url.startsWith(EMBED_ORIGIN) ? (
+                {current.embed_url.startsWith(EMBED_ORIGINS[current.provider]) ? (
                   <iframe
                     // A new frame per reel, so the last one stops playing.
                     key={current.id}
@@ -121,7 +131,7 @@ export function ReelPlayer({
                     className="inline-flex items-center gap-1 font-semibold text-white hover:underline"
                   >
                     <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                    {t('reels.openOnInstagram')}
+                    {t(current.provider === 'youtube' ? 'reels.openOnYoutube' : 'reels.openOnInstagram')}
                   </a>
                 </span>
               </div>

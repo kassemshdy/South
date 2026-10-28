@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowDown, ArrowUp, ExternalLink, ImagePlus, Instagram, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, ExternalLink, ImagePlus, Trash2 } from 'lucide-react'
 import { useRef, useState, type FormEvent } from 'react'
 
 import { Button } from '@/components/ui/Button'
@@ -8,6 +8,7 @@ import { Field } from '@/components/ui/Field'
 import { Input, Textarea } from '@/components/ui/Input'
 import { EmptyState, ErrorState, InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
+import { ProviderIcon } from '@/features/home/ReelPlayer'
 import { useCropStep } from '@/features/images/ImageCropDialog'
 import { useT } from '@/i18n'
 import { ApiError } from '@/services/api/client'
@@ -18,7 +19,8 @@ import type { AdminReel, ReelInput } from '@/types/api'
 const EMPTY: ReelInput = { url: '', caption_ar: null, caption_en: null, is_published: false }
 
 /**
- * The home page's Instagram reels: paste a link, add a caption and a cover,
+ * The home page's short videos -- YouTube Shorts or Instagram reels: paste a
+ * link, add a caption (a Short brings its own cover; one can be uploaded),
  * publish, and put them in order. A reel is saved hidden unless "shown" is
  * ticked, and the row appears on the home page only once its section is
  * switched on at /admin/home-layout.
@@ -173,7 +175,7 @@ function ReelRow({
             {reel.cover_url ? (
               <img src={reel.cover_url} alt="" className="h-full w-full object-cover" />
             ) : (
-              <Instagram className="absolute start-2 top-2 h-5 w-5 text-white/80" aria-hidden="true" />
+              <ProviderIcon provider={reel.provider} className="absolute start-2 top-2 h-5 w-5 text-white/80" />
             )}
           </div>
           <div className="flex flex-col gap-2">
@@ -314,7 +316,7 @@ function ReelForm({
             inputMode="url"
             required
             maxLength={500}
-            placeholder="https://www.instagram.com/reel/…"
+            placeholder="https://youtube.com/shorts/…"
             value={url}
             onChange={(event) => setUrl(event.target.value)}
           />

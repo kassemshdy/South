@@ -1,7 +1,10 @@
 """The home page's reels: read by anyone, chosen by an administrator.
 
-Each reel is a link to one Instagram post, embedded with Instagram's own
-player (see ``app.core.instagram``). Only an administrator adds them -- there
+Each reel is a link to one YouTube Short or one Instagram post, embedded
+with that site's own player. Only the video's id or code is kept (see
+``app.core.urls.youtube_video_id`` and ``app.core.instagram``) and every
+address is rebuilt from it. A Short given no cover gets its own thumbnail
+(``app.services.youtube_covers``). Only an administrator adds them -- there
 is no owner submission and so no moderation state, only a published switch,
 and a reel is saved hidden unless the administrator says otherwise. The row
 appears on the home page only once the ``reels`` section is switched on at
@@ -17,13 +20,16 @@ from fastapi import APIRouter, File, UploadFile
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.config import Settings
 from app.core.dependencies import AdminUser, AppSettings, DbSession
 from app.core.errors import ConflictError, NotFoundError, ValidationError
 from app.core.instagram import InstagramPost, parse_instagram_post
 from app.core.uploads import read_at_most
+from app.core.urls import youtube_video_id
 from app.models.enums import ImageKind
 from app.models.reel import Reel
 from app.schemas.reel import AdminReelOut, ReelIn, ReelOrderIn, ReelOut
+from app.services import youtube_covers
 from app.services.images import ImageService
 from app.storage.factory import get_storage
 
@@ -37,16 +43,30 @@ PUBLIC_LIMIT = 24
 _ORDER = (Reel.sort_order.asc(), Reel.created_at.desc())
 
 
-def _post(reel: Reel) -> InstagramPost:
-    return InstagramPost(kind=reel.kind, code=reel.shortcode)
+YOUTUBE = "youtube"
+
+
+def _links(reel: Reel) -> tuple[str, str]:
+    """The reel's page and the address its player is framed from."""
+    if reel.kind == YOUTUBE:
+        code = reel.shortcode
+        return (
+            f"https://www.youtube.com/shorts/{code}",
+            # Opened by a tap, so it may start playing; loops like a Short.
+            f"https://www.youtube-nocookie.com/embed/{code}"
+            f"?autoplay=1&playsinline=1&rel=0&loop=1&playlist={code}",
+        )
+    post = InstagramPost(kind=reel.kind, code=reel.shortcode)
+    return post.url, post.embed_url
 
 
 def _out(reel: Reel) -> ReelOut:
-    post = _post(reel)
+    url, embed_url = _links(reel)
     return ReelOut(
         id=reel.id,
-        url=post.url,
-        embed_url=post.embed_url,
+        provider="youtube" if reel.kind == YOUTUBE else "instagram",
+        url=url,
+        embed_url=embed_url,
         caption_ar=reel.caption_ar,
         caption_en=reel.caption_en,
         cover_url=reel.cover_url,
@@ -70,16 +90,26 @@ def _get(db: Session, reel_id: uuid.UUID) -> Reel:
     return reel
 
 
+def _identify(pasted: str) -> tuple[str, str]:
+    """The kind and code of the video a link names: a YouTube Short (or any
+    YouTube video) or one Instagram post."""
+    post = parse_instagram_post(pasted)
+    if post is not None:
+        return post.kind, post.code
+    try:
+        return YOUTUBE, youtube_video_id(pasted)
+    except ValidationError:
+        raise ValidationError("reel.invalid_url") from None
+
+
 def _apply(db: Session, reel: Reel, payload: ReelIn) -> None:
-    post = parse_instagram_post(payload.url)
-    if post is None:
-        raise ValidationError("reel.invalid_url")
+    kind, code = _identify(payload.url)
     taken = db.execute(
-        select(Reel.id).where(Reel.shortcode == post.code, Reel.id != reel.id)
+        select(Reel.id).where(Reel.shortcode == code, Reel.id != reel.id)
     ).scalar_one_or_none()
     if taken is not None:
         raise ConflictError("reel.duplicate")
-    reel.kind, reel.shortcode = post.kind, post.code
+    reel.kind, reel.shortcode = kind, code
     reel.caption_ar, reel.caption_en = payload.caption_ar, payload.caption_en
     reel.is_published = payload.is_published
 
@@ -98,13 +128,34 @@ def list_reels(db: DbSession, admin: AdminUser) -> list[AdminReelOut]:
     return [_admin_out(reel) for reel in db.execute(select(Reel).order_by(*_ORDER)).scalars()]
 
 
+def _default_cover(db: Session, reel: Reel, settings: Settings) -> None:
+    """A Short with no cover gets its own thumbnail, once."""
+    if reel.kind != YOUTUBE or reel.cover_storage_key:
+        return
+    data = youtube_covers.fetch_short_cover(reel.shortcode)
+    if data is None:
+        return
+    stored = ImageService(get_storage(), settings).process_and_store(
+        data=data,
+        content_type="image/jpeg",
+        owner_id=reel.id,
+        kind=ImageKind.GALLERY,
+        prefix="reels",
+    )
+    reel.cover_url, reel.cover_storage_key = stored.url, stored.key
+    db.commit()
+
+
 @admin_router.post("", response_model=AdminReelOut, status_code=201)
-def add_reel(payload: ReelIn, db: DbSession, admin: AdminUser) -> AdminReelOut:
+def add_reel(
+    payload: ReelIn, db: DbSession, admin: AdminUser, settings: AppSettings
+) -> AdminReelOut:
     first = db.execute(select(func.min(Reel.sort_order))).scalar_one_or_none()
     reel = Reel(id=uuid.uuid4(), sort_order=(first or 0) - 1)
     _apply(db, reel, payload)
     db.add(reel)
     db.commit()
+    _default_cover(db, reel, settings)
     db.refresh(reel)
     return _admin_out(reel)
 
@@ -123,11 +174,16 @@ def reorder_reels(payload: ReelOrderIn, db: DbSession, admin: AdminUser) -> list
 
 @admin_router.put("/{reel_id}", response_model=AdminReelOut)
 def update_reel(
-    reel_id: uuid.UUID, payload: ReelIn, db: DbSession, admin: AdminUser
+    reel_id: uuid.UUID,
+    payload: ReelIn,
+    db: DbSession,
+    admin: AdminUser,
+    settings: AppSettings,
 ) -> AdminReelOut:
     reel = _get(db, reel_id)
     _apply(db, reel, payload)
     db.commit()
+    _default_cover(db, reel, settings)
     db.refresh(reel)
     return _admin_out(reel)
 

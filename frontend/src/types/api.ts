@@ -565,11 +565,13 @@ export interface HomeLayout {
 }
 
 /**
- * An Instagram post or reel on the home page. `embed_url` is rebuilt by the
- * server from the post's code on www.instagram.com, never the pasted link.
+ * A YouTube Short or an Instagram post on the home page. `url` and
+ * `embed_url` are rebuilt by the server from the video's id, never the
+ * pasted link.
  */
 export interface Reel {
   id: string
+  provider: 'youtube' | 'instagram'
   url: string
   embed_url: string
   caption_ar: string | null

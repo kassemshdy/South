@@ -1,10 +1,10 @@
-"""Instagram reels shown on the home page, chosen by an administrator.
+"""Short videos shown on the home page, chosen by an administrator.
 
-A reel is a link to a post on Instagram, not a copy of it: the video stays on
-Instagram and the page embeds Instagram's own player. What is kept here is
-the post's kind and code (see ``app.core.instagram``), a caption in each
-language, an optional cover photograph for the card, and whether and where
-it is shown.
+A reel is a link to a YouTube Short or an Instagram post, not a copy of it:
+the video stays where it is and the page embeds that site's own player.
+What is kept here is the video's kind (``youtube``, or Instagram's ``reel``,
+``p`` or ``tv``) and its id or code, a caption in each language, an optional
+cover photograph for the card, and whether and where it is shown.
 """
 
 from __future__ import annotations

@@ -2,15 +2,17 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
 
 class ReelOut(BaseModel):
     """A reel as the home page shows it. ``url`` and ``embed_url`` are rebuilt
-    from the post's code on ``www.instagram.com``, never the pasted link."""
+    from the video's id or code, never the pasted link."""
 
     id: uuid.UUID
+    provider: Literal["youtube", "instagram"]
     url: str
     embed_url: str
     caption_ar: str | None = None

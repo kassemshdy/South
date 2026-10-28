@@ -7,10 +7,24 @@ from fastapi.testclient import TestClient
 
 from app.core.instagram import parse_instagram_post
 from app.models.user import User
+from app.services import youtube_covers
 from tests.conftest import admin_headers, sign_in
 from tests.samples import ar
 from tests.test_permissions import _invite
 from tests.test_uploads_and_urls import make_image
+
+
+@pytest.fixture(autouse=True)
+def _no_network(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """The suite never talks to YouTube: thumbnails come from here."""
+    asked: list[str] = []
+
+    def fake(video_id: str) -> bytes:
+        asked.append(video_id)
+        return make_image((720, 1280))
+
+    monkeypatch.setattr(youtube_covers, "fetch_short_cover", fake)
+    return asked
 
 
 @pytest.mark.parametrize(
@@ -155,3 +169,42 @@ def test_only_content_staff_choose_reels(client: TestClient, admin: User) -> Non
     owner = sign_in(client, "03990010")
     assert client.get("/api/admin/reels", headers=owner).status_code == 403
     assert client.post("/api/admin/reels", json=body).status_code == 401
+
+
+def test_a_youtube_short_is_a_reel_with_its_own_thumbnail(
+    client: TestClient, admin: User, _no_network: list[str]
+) -> None:
+    headers = admin_headers(client)
+    added = client.post(
+        "/api/admin/reels",
+        headers=headers,
+        json={"url": "https://youtube.com/shorts/3Np8hKhrbB4?si=abc", "is_published": True},
+    )
+    assert added.status_code == 201, added.text
+    reel = added.json()
+    assert reel["provider"] == "youtube"
+    assert reel["url"] == "https://www.youtube.com/shorts/3Np8hKhrbB4"
+    assert reel["embed_url"].startswith("https://www.youtube-nocookie.com/embed/3Np8hKhrbB4?")
+    # No cover was uploaded, so the Short's own thumbnail became one, stored here.
+    assert _no_network == ["3Np8hKhrbB4"]
+    assert reel["cover_url"] and "/reels/" in reel["cover_url"]
+    assert client.get(reel["cover_url"]).status_code == 200
+
+    # The same video through another YouTube link is the same reel.
+    again = client.post(
+        "/api/admin/reels", headers=headers, json={"url": "https://youtu.be/3Np8hKhrbB4"}
+    )
+    assert again.status_code == 409
+
+
+def test_an_instagram_reel_fetches_no_thumbnail(
+    client: TestClient, admin: User, _no_network: list[str]
+) -> None:
+    added = client.post(
+        "/api/admin/reels",
+        headers=admin_headers(client),
+        json={"url": "instagram.com/reel/C9xYz_12-ab"},
+    )
+    assert added.json()["provider"] == "instagram"
+    assert added.json()["cover_url"] is None
+    assert _no_network == []
