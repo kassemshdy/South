@@ -165,9 +165,10 @@ export function BasicsForm({
         hint={t('form.shortDescriptionHint')}
       >
         {(props) => (
-          <Input
+          <Textarea
             {...props}
             {...register('short_description')}
+            rows={3}
             placeholder={t('form.shortDescriptionPlaceholder')}
             invalid={Boolean(errors.short_description)}
           />
