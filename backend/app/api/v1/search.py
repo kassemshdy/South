@@ -2,9 +2,9 @@
 
 Each kind is found by the directories' own public search -- the same
 approved-only queries and the same Arabic folding (``normalize_arabic``),
-so a suggestion is always something the results page would show, and
-«مناقيش» finds «مناقيش» however the hamza or the taa marbuta was typed.
-Categories are a short table, matched in Python with the same folding.
+so a suggestion is always something the results page would show, and a
+word is found however its hamza or taa marbuta was typed. Categories
+are a short table, matched in Python with the same folding.
 
 The query string is dropped from the access log like every other
 (``DropQueryString``), so what people type is not written anywhere.
