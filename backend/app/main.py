@@ -130,6 +130,7 @@ STATIC_MEDIA_TYPES = {
     # Same trap, same fix: the logo and the video poster are WebP, and an
     # image served as text/plain under nosniff is an image that never draws.
     ".webp": "image/webp",
+    ".ico": "image/x-icon",
 }
 
 
@@ -459,7 +460,7 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
         ]
         return site_json_ld(
             base_url=base_url,
-            logo_url=f"{base_url}/janoubna-logo.png",
+            logo_url=f"{base_url}/janoubona-logo.png",
             same_as=same_as,
             telephone=values.get("contact_phone"),
             email=values.get("contact_email"),
