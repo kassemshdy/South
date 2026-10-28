@@ -57,7 +57,16 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     # Moderation
     **{
         ("POST", f"/api/admin/businesses/{{business_id}}/{action}"): _MODERATE
-        for action in ("approve", "reject", "suspend", "reactivate", "goods-origin", "images")
+        for action in (
+            "approve",
+            "reject",
+            "suspend",
+            "reactivate",
+            "goods-origin",
+            "images",
+            "category",
+            "place",
+        )
     },
     ("DELETE", "/api/admin/businesses/{business_id}/items/{item_id}"): _MODERATE,
     **{
@@ -68,6 +77,7 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
             "suspend",
             "reactivate",
             "skill",
+            "place",
             "convert-to-business",
         )
     },
@@ -90,6 +100,8 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     ("POST", "/api/admin/feedback/tickets/{ticket_id}/move"): _SUPPORT,
     ("POST", "/api/admin/discarded-applications/{application_id}/dismiss"): _SUPPORT,
     ("DELETE", "/api/admin/partners/{request_id}"): _SUPPORT,
+    ("POST", "/api/admin/partners/{request_id}/solve"): _SUPPORT,
+    ("POST", "/api/admin/partners/{request_id}/reopen"): _SUPPORT,
     # Content
     ("POST", "/api/admin/articles"): _CONTENT,
     ("PUT", "/api/admin/articles/{article_id}"): _CONTENT,

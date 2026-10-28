@@ -41,3 +41,4 @@ class PartnerRequestOut(ORMModel):
     residence: str
     offer: str
     created_at: datetime
+    solved_at: datetime | None = None

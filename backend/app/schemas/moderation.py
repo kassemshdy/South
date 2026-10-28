@@ -3,9 +3,10 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.core.i18n import translate
+from app.core.pins import check_pin
 from app.models.enums import BusinessStatus, GoodsOrigin, ModerationActionType, UserRole
 from app.schemas.business import OwnerBusinessOut
 from app.schemas.common import ORMModel
@@ -92,4 +93,26 @@ class AdminUserDetailOut(AdminUserOut):
 
 class GoodsOriginIn(BaseModel):
     goods_origin: GoodsOrigin
+
+
+class CategoryChangeIn(BaseModel):
+    """An administrator's correction of a shop's category. "Other" keeps the
+    owner's own words, as on the owner's form."""
+
+    category_id: uuid.UUID
+    custom_category_text: str | None = Field(default=None, max_length=120)
+
+
+class PlaceChangeIn(BaseModel):
+    """An administrator's correction of where a listing is: its town and its
+    map pin, which must fall inside Lebanon like any owner's."""
+
+    location_id: uuid.UUID
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+
+    @model_validator(mode="after")
+    def _in_lebanon(self) -> PlaceChangeIn:
+        check_pin(self.latitude, self.longitude)
+        return self
 

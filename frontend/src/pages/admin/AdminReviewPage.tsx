@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody, CardHeader } from '@/components/ui/Card'
 import { AdminCorrectionsCard } from '@/features/admin/AdminCorrectionsCard'
+import { AdminPlaceCard } from '@/features/admin/AdminPlaceCard'
 import { DeleteForeverButton } from '@/features/admin/DeleteForeverButton'
 import { useStaffCan } from '@/features/admin/staffAccess'
 import { Dialog, DialogClose, DialogContent } from '@/components/ui/Dialog'
@@ -220,7 +221,21 @@ export function AdminReviewPage() {
         </CardBody>
       </Card>
 
-      {canModerate ? <AdminCorrectionsCard business={data} /> : null}
+      {canModerate ? (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <AdminCorrectionsCard business={data} />
+          <AdminPlaceCard
+            key={`${data.location?.id}-${data.latitude}-${data.longitude}`}
+            locationId={data.location?.id ?? null}
+            latitude={data.latitude}
+            longitude={data.longitude}
+            onSave={(place) => adminApi.setBusinessPlace(data.id, place)}
+            onSaved={() =>
+              void queryClient.invalidateQueries({ queryKey: queryKeys.adminBusiness(data.id) })
+            }
+          />
+        </div>
+      ) : null}
 
       {data.rejection_reason ? (
         <Card className="border-clay-200">
