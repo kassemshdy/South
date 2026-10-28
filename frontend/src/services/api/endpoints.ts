@@ -32,6 +32,7 @@ import type {
   AdminUser,
   AdminUserDetail,
   Article,
+  ArticleInput,
   ArticleSection,
   AuthToken,
   BusinessDetail,
@@ -852,12 +853,9 @@ export const adminApi = {
 
   articles: (section?: ArticleSection) =>
     apiRequest<AdminArticle[]>('/api/admin/articles', { query: section ? { section } : {} }),
-  createArticle: (body: { section: ArticleSection; title: string; body: string; slug?: string }) =>
+  createArticle: (body: ArticleInput) =>
     apiRequest<AdminArticle>('/api/admin/articles', { method: 'POST', body }),
-  updateArticle: (
-    id: string,
-    body: Partial<{ section: ArticleSection; title: string; body: string; slug: string }>,
-  ) => apiRequest<AdminArticle>(`/api/admin/articles/${id}`, { method: 'PUT', body }),
+  updateArticle: (id: string, body: Partial<ArticleInput>) => apiRequest<AdminArticle>(`/api/admin/articles/${id}`, { method: 'PUT', body }),
   publishArticle: (id: string) =>
     apiRequest<AdminArticle>(`/api/admin/articles/${id}/publish`, { method: 'POST' }),
   unpublishArticle: (id: string) =>

@@ -5,6 +5,7 @@ import { Link, useParams } from 'react-router-dom'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { ArticleBody } from '@/features/articles/ArticleBody'
+import { RelatedListings } from '@/features/articles/RelatedListings'
 import { useSeo } from '@/hooks/useSeo'
 import { useI18n, type TranslationKey } from '@/i18n'
 import { publicArticleApi } from '@/services/api/endpoints'
@@ -81,6 +82,8 @@ export function ArticleDetailPage() {
       <div className="mt-6 whitespace-pre-line leading-relaxed text-ink-700" dir="auto">
         <ArticleBody text={article.body} />
       </div>
+
+      <RelatedListings article={article} />
     </div>
   )
 }
