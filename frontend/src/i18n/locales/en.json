@@ -1329,7 +1329,6 @@
   "home.viewAll": "View all",
   "home.shopsTitle": "Recently joined shops",
   "home.talentsTitle": "Services and trades",
-  "home.newsTitle": "News from the South",
   "admin.navHomeLayout": "Home page order",
   "admin.homeLayoutTitle": "Home page order",
   "admin.homeLayoutHint": "Order the home page sections with the arrows, untick a section to hide it, then save.",
@@ -1349,5 +1348,6 @@
   "admin.homeSectionCategoryProducts": "Products by category",
   "home.previewBanner": "Preview of the proposed home page — visitors do not see it yet",
   "admin.homeLayoutApplyProposed": "Apply the proposed order",
-  "admin.homeLayoutPreview": "Preview the proposed design"
+  "admin.homeLayoutPreview": "Preview the proposed design",
+  "admin.homeSectionBlog": "Blog"
 }

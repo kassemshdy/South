@@ -163,6 +163,8 @@ export interface Category {
   sort_order: number
   is_active: boolean
   business_count: number
+  /** Products on sale in its shops, as the catalogue counts them. */
+  item_count: number
 }
 
 export interface LocationNode {
@@ -553,6 +555,7 @@ export type HomeSectionId =
   | 'shops'
   | 'talents'
   | 'news'
+  | 'blog'
 
 export interface HomeSection {
   id: HomeSectionId

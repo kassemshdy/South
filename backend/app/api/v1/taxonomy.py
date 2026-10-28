@@ -11,6 +11,7 @@ from fastapi import APIRouter
 from app.api.serializers import category_out, location_out, talent_skill_out
 from app.core.dependencies import DbSession
 from app.repositories.business import BusinessRepository
+from app.repositories.item import ItemRepository
 from app.repositories.talent import TalentRepository, TalentSkillRepository
 from app.repositories.taxonomy import CategoryRepository, LocationRepository
 from app.schemas.talent import TalentSkillOut
@@ -21,12 +22,21 @@ router = APIRouter(tags=["taxonomy"])
 
 @router.get("/categories", response_model=list[CategoryOut])
 def list_categories(db: DbSession) -> list[CategoryOut]:
-    """Active categories with the number of approved businesses in each."""
+    """Active categories with the number of approved businesses, and of
+    products on sale, in each."""
     counts = BusinessRepository(db).public_counts_by_category()
+    items = ItemRepository(db).public_counts_by_category()
     return [
         out
         for category in CategoryRepository(db).list_all()
-        if (out := category_out(category, business_count=counts.get(category.id, 0))) is not None
+        if (
+            out := category_out(
+                category,
+                business_count=counts.get(category.id, 0),
+                item_count=items.get(category.id, 0),
+            )
+        )
+        is not None
     ]
 
 

@@ -30,7 +30,7 @@ import {
   taxonomyApi,
 } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import type { Category, GoodsOrigin, HomeStory, ProductQuery } from '@/types/api'
+import type { ArticleSection, Category, GoodsOrigin, HomeStory, ProductQuery } from '@/types/api'
 import { cn } from '@/utils/cn'
 import { formatDate } from '@/utils/format'
 
@@ -93,7 +93,10 @@ export function SearchSection() {
 export function CategoriesSection() {
   const t = useT()
   const categories = useQuery({ queryKey: queryKeys.categories, queryFn: taxonomyApi.categories })
-  const list = (categories.data ?? []).filter((category) => category.is_active !== false)
+  // Only categories with products on sale, the fullest first.
+  const list = (categories.data ?? [])
+    .filter((category) => category.is_active !== false && category.item_count > 0)
+    .sort((a, b) => b.item_count - a.item_count)
   if (list.length === 0) return null
   return (
     <Band>
@@ -109,6 +112,7 @@ export function CategoriesSection() {
                 <CategoryIcon name={category.icon} className="h-7 w-7" />
               </span>
               <span className="text-sm font-semibold leading-snug text-ink-900">{category.name_ar}</span>
+              <span className="ltr-nums text-xs text-ink-500">{category.item_count}</span>
             </Link>
           </li>
         ))}
@@ -259,8 +263,8 @@ export function CategoryProductsSection() {
   const t = useT()
   const categories = useQuery({ queryKey: queryKeys.categories, queryFn: taxonomyApi.categories })
   const busiest = (categories.data ?? [])
-    .filter((category) => category.is_active !== false && category.business_count > 0)
-    .sort((a, b) => b.business_count - a.business_count)
+    .filter((category) => category.is_active !== false && category.item_count > 0)
+    .sort((a, b) => b.item_count - a.item_count)
     .slice(0, CATEGORY_ROWS)
   if (busiest.length === 0) return null
   return (
@@ -348,16 +352,29 @@ export function TalentsSection() {
 }
 
 export function NewsSection() {
+  return <ArticlesSection section="NEWS" />
+}
+
+export function BlogSection() {
+  return <ArticlesSection section="BLOG" />
+}
+
+/** The latest articles of one section; nothing at all while it has none. */
+function ArticlesSection({ section }: { section: ArticleSection }) {
   const { t, locale } = useI18n()
   const news = useQuery({
-    queryKey: queryKeys.articles('NEWS'),
-    queryFn: () => publicArticleApi.list('NEWS'),
+    queryKey: queryKeys.articles(section),
+    queryFn: () => publicArticleApi.list(section),
   })
   const [lead, ...rest] = news.data ?? []
   if (!lead) return null
   return (
     <Band tone="sand">
-      <SectionHeading title={t('home.newsTitle')} to="/news" more={t('home.viewAll')} />
+      <SectionHeading
+        title={t(section === 'NEWS' ? 'nav.news' : 'blog.title')}
+        to={section === 'NEWS' ? '/news' : '/blog'}
+        more={t('home.viewAll')}
+      />
       <div className="grid gap-6 lg:grid-cols-3">
         <Link to={`/articles/${encodeURIComponent(lead.slug)}`} className="group lg:col-span-2">
           {lead.cover_url ? (

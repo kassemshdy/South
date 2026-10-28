@@ -50,6 +50,7 @@ SECTIONS: tuple[str, ...] = (
     "shops",
     "talents",
     "news",
+    "blog",
 )
 
 ORIGINAL = frozenset({"cover", "hero", "slogan"})

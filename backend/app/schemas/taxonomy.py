@@ -16,6 +16,8 @@ class CategoryOut(ORMModel):
     sort_order: int
     is_active: bool
     business_count: int = 0
+    # Products on sale in this category's shops, as the catalogue counts them.
+    item_count: int = 0
 
 
 class CategoryIn(BaseModel):
