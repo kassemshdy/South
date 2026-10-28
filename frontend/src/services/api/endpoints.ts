@@ -45,7 +45,10 @@ import type {
   ImageKind,
   CredentialState,
   HomeLayout,
-  HomeStory,
+  AdminStory,
+  Story,
+  StoryGroup,
+  StoryStatus,
   IssuedPassword,
   LanguageProficiency,
   LocationNode,
@@ -350,7 +353,7 @@ export const siteSettingsApi = {
 
 export const homeApi = {
   layout: () => apiRequest<HomeLayout>('/api/home/layout'),
-  stories: () => apiRequest<HomeStory[]>('/api/home/stories'),
+  stories: () => apiRequest<StoryGroup[]>('/api/home/stories'),
 }
 
 export const pageApi = {
@@ -390,6 +393,16 @@ export const publicTalentApi = {
  * one-per-account, so the authenticated user is the lookup key.
  */
 export const ownerTalentApi = {
+  stories: () => apiRequest<Story[]>('/api/my/talent/stories'),
+  postStory: (file: File, caption: string | null) => {
+    const form = new FormData()
+    form.append('file', file)
+    if (caption) form.append('caption', caption)
+    return apiRequest<Story>('/api/my/talent/stories', { method: 'POST', formData: form })
+  },
+  /** Answers with the stories that remain. */
+  deleteStory: (id: string) =>
+    apiRequest<Story[]>(`/api/my/talent/stories/${id}`, { method: 'DELETE' }),
   get: () => apiRequest<OwnerTalent>('/api/my/talent'),
   create: (payload: TalentPayload) =>
     apiRequest<OwnerTalent>('/api/talent', { method: 'POST', body: payload }),
@@ -505,6 +518,19 @@ export const serviceRequestApi = {
 }
 
 export const ownerApi = {
+  stories: (businessId: string) => apiRequest<Story[]>(`/api/my/businesses/${businessId}/stories`),
+  postStory: (businessId: string, file: File, caption: string | null) => {
+    const form = new FormData()
+    form.append('file', file)
+    if (caption) form.append('caption', caption)
+    return apiRequest<Story>(`/api/my/businesses/${businessId}/stories`, {
+      method: 'POST',
+      formData: form,
+    })
+  },
+  /** Answers with the stories that remain. */
+  deleteStory: (businessId: string, id: string) =>
+    apiRequest<Story[]>(`/api/my/businesses/${businessId}/stories/${id}`, { method: 'DELETE' }),
   list: () => apiRequest<OwnerBusiness[]>('/api/my/businesses'),
   get: (id: string) => apiRequest<OwnerBusiness>(`/api/businesses/${id}/manage`),
   create: (payload: BusinessPayload) =>
@@ -628,6 +654,13 @@ export const adminApi = {
   },
   resetPageCover: (key: PageCoverKey) =>
     apiRequest<PageCover>(`/api/admin/page-covers/${key}`, { method: 'DELETE' }),
+  stories: (status: StoryStatus) =>
+    apiRequest<AdminStory[]>('/api/admin/stories', { query: { status } }),
+  approveStory: (id: string) =>
+    apiRequest<Story>(`/api/admin/stories/${id}/approve`, { method: 'POST' }),
+  rejectStory: (id: string) =>
+    apiRequest<Story>(`/api/admin/stories/${id}/reject`, { method: 'POST' }),
+  deleteStory: (id: string) => apiRequest<Story>(`/api/admin/stories/${id}`, { method: 'DELETE' }),
   reels: () => apiRequest<AdminReel[]>('/api/admin/reels'),
   addReel: (values: ReelInput) =>
     apiRequest<AdminReel>('/api/admin/reels', { method: 'POST', body: values }),

@@ -22,6 +22,7 @@ from app.api.v1 import (
     registration,
     service_requests,
     site_settings,
+    stories,
     talent,
     talent_images,
     taxonomy,
@@ -60,12 +61,14 @@ api_router.include_router(orders.admin_router)
 api_router.include_router(page_covers.admin_router)
 api_router.include_router(team.admin_router)
 api_router.include_router(reels.admin_router)
+api_router.include_router(stories.admin_router)
 api_router.include_router(pages.admin_router)
 api_router.include_router(site_settings.admin_router)
 api_router.include_router(home.admin_router)
 api_router.include_router(testimonials.admin_router)
 
 api_router.include_router(feedback.router)
+api_router.include_router(stories.owner_router)
 api_router.include_router(analytics.owner_router)
 # Owner testimonial routes before the public business routes, so
 # "/api/businesses/{business_id}/testimonials" is never captured by

@@ -14,11 +14,10 @@ import { Instagram, Play, Search } from 'lucide-react'
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
-import { Dialog, DialogContent } from '@/components/ui/Dialog'
-import { YouTubePlayer } from '@/components/ui/YouTubePlayer'
 import { BusinessCard } from '@/features/businesses/BusinessCard'
 import { CategoryIcon } from '@/features/home/categoryIcon'
 import { ReelPlayer, reelCaption } from '@/features/home/ReelPlayer'
+import { StoryViewer } from '@/features/home/StoryViewer'
 import { ProductCard } from '@/features/items/ProductCard'
 import { TalentCard } from '@/features/talent/TalentCard'
 import { useI18n, useT } from '@/i18n'
@@ -32,7 +31,7 @@ import {
   taxonomyApi,
 } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import type { Category, GoodsOrigin, HomeStory, ProductQuery } from '@/types/api'
+import type { Category, GoodsOrigin, ProductQuery } from '@/types/api'
 import { cn } from '@/utils/cn'
 import { formatDate } from '@/utils/format'
 
@@ -119,64 +118,92 @@ export function CategoriesSection() {
   )
 }
 
+/**
+ * Photo stories, one circle per listing: the shop's logo or the person's
+ * photo in a coloured ring, opening its photos full screen (`StoryViewer`).
+ * While no story is showing, the row shows the shops that have a logo
+ * instead, each opening its page (the owners' decisions, 28 Oct 2026).
+ */
 export function StoriesSection() {
   const t = useT()
   const stories = useQuery({ queryKey: queryKeys.homeStories, queryFn: homeApi.stories })
-  const [open, setOpen] = useState<HomeStory | null>(null)
+  const [open, setOpen] = useState<number | null>(null)
   if (!stories.isSuccess) return null
-  // No listing has a video yet: the row shows our own Instagram reels
-  // instead, rather than disappearing (the owners' request, 28 Oct 2026).
-  if (stories.data.length === 0) return <ReelStories />
-  const pageOf = (story: HomeStory) =>
-    `/${story.kind === 'business' ? 'business' : 'talent'}/${encodeURIComponent(story.slug)}`
+  if (stories.data.length === 0) return <ShopLogoRow />
+  return (
+    <StoryRow title={t('home.storiesTitle')}>
+      {stories.data.map((group, index) => (
+        <li key={`${group.kind}-${group.slug}`} className="shrink-0">
+          <button
+            type="button"
+            onClick={() => setOpen(index)}
+            className="flex w-20 flex-col items-center gap-1.5 text-center"
+          >
+            <StoryCircle image={group.image_url} name={group.name} ring="bg-clay-500" />
+            <span dir="auto" className="line-clamp-1 w-full text-xs font-semibold text-ink-900">
+              {group.name}
+            </span>
+          </button>
+        </li>
+      ))}
+      <StoryViewer groups={stories.data} group={open} onGroupChange={setOpen} />
+    </StoryRow>
+  )
+}
+
+function ShopLogoRow() {
+  const t = useT()
+  const shops = useQuery({
+    queryKey: queryKeys.latestBusinesses(24),
+    queryFn: () => publicBusinessApi.latest(24),
+  })
+  const list = (shops.data ?? []).filter((business) => business.logo_url)
+  if (list.length === 0) return null
+  return (
+    <StoryRow title={t('home.storiesTitle')}>
+      {list.map((business) => (
+        <li key={business.id} className="shrink-0">
+          <Link
+            to={`/business/${encodeURIComponent(business.slug)}`}
+            className="flex w-20 flex-col items-center gap-1.5 text-center"
+          >
+            <StoryCircle
+              image={business.logo_thumb_url ?? business.logo_url}
+              name={business.name}
+              ring="bg-sand-300"
+            />
+            <span dir="auto" className="line-clamp-1 w-full text-xs font-semibold text-ink-900">
+              {business.name}
+            </span>
+          </Link>
+        </li>
+      ))}
+    </StoryRow>
+  )
+}
+
+function StoryRow({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="border-b border-ink-100 bg-white py-6">
       <div className="container-page">
-        <h2 className="mb-4 font-display text-xl font-bold text-ink-900">{t('home.storiesTitle')}</h2>
-        <ul className="flex gap-4 overflow-x-auto pb-1">
-          {stories.data.map((story) => (
-            <li key={`${story.kind}-${story.slug}`} className="shrink-0">
-              <button
-                type="button"
-                onClick={() => setOpen(story)}
-                className="flex w-20 flex-col items-center gap-1.5 text-center"
-              >
-                <span className="flex h-20 w-20 rounded-full bg-clay-500 p-[3px]">
-                  <span className="flex flex-1 items-center justify-center overflow-hidden rounded-full border-[3px] border-white bg-brand-700 font-display text-xl font-bold text-white">
-                    {story.image_url ? (
-                      <img src={story.image_url} alt="" className="h-full w-full object-cover" loading="lazy" />
-                    ) : (
-                      story.name.slice(0, 1)
-                    )}
-                  </span>
-                </span>
-                <span className="line-clamp-1 w-full text-xs font-semibold text-ink-900">{story.name}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <h2 className="mb-4 font-display text-xl font-bold text-ink-900">{title}</h2>
+        <ul className="flex gap-4 overflow-x-auto pb-1">{children}</ul>
       </div>
-      <Dialog open={open !== null} onOpenChange={(next) => (next ? null : setOpen(null))}>
-        <DialogContent title={open?.name ?? ''} className="max-w-2xl">
-          {open ? (
-            <div className="space-y-4">
-              <YouTubePlayer
-                videoId={open.youtube_video_id}
-                title={open.name}
-                playLabel={t('home.storyPlay')}
-              />
-              <Link
-                to={pageOf(open)}
-                onClick={() => setOpen(null)}
-                className="inline-flex rounded-xl bg-brand-700 px-5 py-2.5 font-semibold text-white hover:bg-brand-800"
-              >
-                {t('home.storyOpen')}
-              </Link>
-            </div>
-          ) : null}
-        </DialogContent>
-      </Dialog>
     </section>
+  )
+}
+
+function StoryCircle({ image, name, ring }: { image: string | null; name: string; ring: string }) {
+  return (
+    <span className={cn('flex h-20 w-20 rounded-full p-[3px]', ring)}>
+      <span className="flex flex-1 items-center justify-center overflow-hidden rounded-full border-[3px] border-white bg-brand-700 font-display text-xl font-bold text-white">
+        {image ? (
+          <img src={image} alt="" className="h-full w-full object-cover" loading="lazy" />
+        ) : (
+          name.trim().slice(0, 1)
+        )}
+      </span>
+    </span>
   )
 }
 
@@ -226,57 +253,6 @@ export function ReelsSection() {
                       dir="auto"
                       className="absolute inset-x-0 bottom-0 line-clamp-3 bg-gradient-to-t from-black/80 to-transparent p-3 pt-8 text-sm font-semibold leading-snug"
                     >
-                      {caption}
-                    </span>
-                  ) : null}
-                </button>
-              </li>
-            )
-          })}
-        </ul>
-      </div>
-      <ReelPlayer reels={list} index={open} onIndexChange={setOpen} />
-    </section>
-  )
-}
-
-/**
- * The stories row filled with the reels an administrator added, as round
- * covers; a tap opens them in the full-screen player. Nothing at all while
- * there are no reels either.
- */
-function ReelStories() {
-  const { t, locale } = useI18n()
-  const reels = useQuery({ queryKey: queryKeys.reels, queryFn: reelApi.list })
-  const [open, setOpen] = useState<number | null>(null)
-  const list = reels.data ?? []
-  if (list.length === 0) return null
-  return (
-    <section className="border-b border-ink-100 bg-white py-6">
-      <div className="container-page">
-        <h2 className="mb-4 font-display text-xl font-bold text-ink-900">{t('home.storiesTitle')}</h2>
-        <ul className="flex gap-4 overflow-x-auto pb-1">
-          {list.map((reel, index) => {
-            const caption = reelCaption(reel, locale)
-            return (
-              <li key={reel.id} className="shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setOpen(index)}
-                  aria-label={caption ?? t('reels.play')}
-                  className="flex w-20 flex-col items-center gap-1.5 text-center"
-                >
-                  <span className="flex h-20 w-20 rounded-full bg-clay-500 p-[3px]">
-                    <span className="flex flex-1 items-center justify-center overflow-hidden rounded-full border-[3px] border-white bg-gradient-to-b from-brand-700 to-clay-600 text-white">
-                      {reel.cover_url ? (
-                        <img src={reel.cover_url} alt="" className="h-full w-full object-cover" loading="lazy" />
-                      ) : (
-                        <Instagram className="h-7 w-7" aria-hidden="true" />
-                      )}
-                    </span>
-                  </span>
-                  {caption ? (
-                    <span dir="auto" className="line-clamp-1 w-full text-xs font-semibold text-ink-900">
                       {caption}
                     </span>
                   ) : null}

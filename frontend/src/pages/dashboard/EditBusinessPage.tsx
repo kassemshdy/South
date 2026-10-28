@@ -15,6 +15,7 @@ import { DocumentManager } from '@/features/businesses/DocumentManager'
 import { SocialForm } from '@/features/businesses/SocialForm'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
 import { ImageManager } from '@/features/images/ImageManager'
+import { StoryManager } from '@/features/stories/StoryManager'
 import { OwnerOrders } from '@/features/cart/OwnerOrders'
 import { OwnerTestimonials } from '@/features/testimonials/OwnerTestimonials'
 import { useSeo } from '@/hooks/useSeo'
@@ -28,6 +29,7 @@ const TABS: { value: string; labelKey: TranslationKey }[] = [
   { value: 'basics', labelKey: 'wizard.stepBasics' },
   { value: 'location', labelKey: 'wizard.stepLocation' },
   { value: 'images', labelKey: 'wizard.stepImages' },
+  { value: 'stories', labelKey: 'stories.tab' },
   { value: 'social', labelKey: 'wizard.stepSocial' },
   { value: 'documents', labelKey: 'wizard.stepDocuments' },
   { value: 'testimonials', labelKey: 'wizard.stepTestimonials' },
@@ -187,6 +189,14 @@ export function EditBusinessPage() {
             </Tabs.Content>
             <Tabs.Content value="images">
               <ImageManager business={data} />
+            </Tabs.Content>
+            <Tabs.Content value="stories">
+              <StoryManager
+                queryKey={queryKeys.myBusinessStories(data.id)}
+                list={() => ownerApi.stories(data.id)}
+                post={(file, caption) => ownerApi.postStory(data.id, file, caption)}
+                remove={(storyId) => ownerApi.deleteStory(data.id, storyId)}
+              />
             </Tabs.Content>
             <Tabs.Content value="social">
               <SocialForm

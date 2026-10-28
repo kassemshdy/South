@@ -20,6 +20,7 @@ export const CROP_SHAPES = {
   product: ['4:3', '1:1', '16:9'],
   gallery: ['4:3', '1:1', '16:9'],
   reel: ['9:16'],
+  story: ['9:16'],
 } as const satisfies Record<string, readonly CropRatio[]>
 
 export type CropShape = keyof typeof CROP_SHAPES

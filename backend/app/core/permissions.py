@@ -71,6 +71,10 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
             "convert-to-business",
         )
     },
+    # Owners' photo stories are reviewed like the listings they belong to.
+    ("POST", "/api/admin/stories/{story_id}/approve"): _MODERATE,
+    ("POST", "/api/admin/stories/{story_id}/reject"): _MODERATE,
+    ("DELETE", "/api/admin/stories/{story_id}"): _MODERATE,
     ("POST", "/api/admin/testimonials/{testimonial_id}/approve"): _MODERATE,
     ("POST", "/api/admin/testimonials/{testimonial_id}/reject"): _MODERATE,
     ("DELETE", "/api/admin/testimonials/{testimonial_id}"): _MODERATE,

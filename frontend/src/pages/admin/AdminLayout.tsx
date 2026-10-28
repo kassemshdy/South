@@ -1,6 +1,7 @@
 import {
   BarChart3,
   Bug,
+  Aperture,
   Clapperboard,
   Download,
   FileText,
@@ -46,6 +47,7 @@ const NAV: {
   { to: '/admin/orders', labelKey: 'admin.navOrders', icon: ShoppingBag, end: false },
   { to: '/admin/applications', labelKey: 'admin.navApplications', icon: Inbox, end: false },
   { to: '/admin/partners', labelKey: 'admin.navPartners', icon: Handshake, end: false },
+  { to: '/admin/stories', labelKey: 'admin.navStories', icon: Aperture, end: false },
   {
     to: '/admin/testimonials',
     labelKey: 'admin.navTestimonials',

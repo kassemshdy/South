@@ -96,6 +96,7 @@ ARCHIVED_TABLES = frozenset(
         "feedback_attachments",
         "discarded_applications",
         "partner_requests",
+        "story_images",
     }
 )
 
@@ -240,6 +241,8 @@ def admin_path(change: Change, business_of_item: Callable[[str], str | None]) ->
         return "/admin/feedback"
     if table == "discarded_applications":
         return "/admin/applications"
+    if table == "story_images":
+        return "/admin/stories"
     business_id = row_id if table == "businesses" else refs.get("business_id")
     if business_id is None and "item_id" in refs:
         business_id = business_of_item(refs["item_id"])
@@ -264,6 +267,7 @@ _PATH_RANK = (
     "/admin/partners",
     "/admin/feedback",
     "/admin/applications",
+    "/admin/stories",
     "/admin/businesses/",
     "/admin/talent/",
     "/admin/users/",
@@ -288,6 +292,7 @@ _KINDS = (
     (("partner_requests",), "partner"),
     (("feedback_tickets", "feedback_comments", "feedback_attachments"), "ticket"),
     (("discarded_applications",), "set_aside"),
+    (("story_images",), "story"),
     (("users", "owner_verification_documents"), "account"),
 )
 
@@ -352,6 +357,8 @@ def _details(kind: str, changes: list[Change]) -> list[tuple[str, str | None]]:
             ("residence", _first(changes, "partner_requests", "residence")),
             ("offer", _first(changes, "partner_requests", "offer")),
         ]
+    if kind == "story":
+        return [("text", _first(changes, "story_images", "caption"))]
     if kind == "ticket":
         return [
             ("title", _first(changes, "feedback_tickets", "title")),
