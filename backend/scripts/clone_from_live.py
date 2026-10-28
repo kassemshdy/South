@@ -46,6 +46,8 @@ SOURCE_BUCKET = {
     "s3_region": "CLONE_FROM_S3_REGION",
     "s3_access_key_id": "CLONE_FROM_S3_ACCESS_KEY_ID",
     "s3_secret_access_key": "CLONE_FROM_S3_SECRET_ACCESS_KEY",
+    # The live bucket predates virtual-hosted URLs and may need path style.
+    "s3_addressing_style": "CLONE_FROM_S3_ADDRESSING_STYLE",
 }
 
 #: Never copied: the same folders ``/media`` refuses (see ``app.main``).
@@ -113,6 +115,7 @@ def source_bucket_settings(settings: Settings) -> Settings | None:
     values = {field: os.environ.get(name) for field, name in SOURCE_BUCKET.items()}
     if not values["s3_bucket"]:
         return None
+    values["s3_addressing_style"] = values["s3_addressing_style"] or "auto"
     return settings.model_copy(update=values)
 
 
