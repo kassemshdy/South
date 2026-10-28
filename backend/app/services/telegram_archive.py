@@ -44,6 +44,7 @@ from __future__ import annotations
 
 import datetime as dt
 import enum
+import html
 import json
 import logging
 import queue
@@ -292,6 +293,14 @@ _KINDS = (
 )
 
 MAX_DETAIL = 300
+
+#: The lines whose value is in bold: the shop, the product, a review's text.
+BOLD_LABELS = frozenset({"shop", "product", "text"})
+
+
+def _html(value: str) -> str:
+    """Escaped for Telegram's HTML mode: only these three characters matter."""
+    return html.escape(value, quote=False)
 
 
 def _kind(changes: list[Change]) -> str:
@@ -546,8 +555,14 @@ class TelegramArchive:
             rows += [("instagram", shop.instagram), ("facebook", shop.facebook)]
         if path:
             rows.append(("link", f"{self._base_url}{path}"))
-        lines = [title] + [
-            f"{_t(f'telegram.label.{label}')}: {value}" for label, value in rows if value
+        # Sent as HTML: the title, the shop, the product and a review's text
+        # in bold (the owners' request, 28 Oct 2026), and everything else --
+        # much of it typed by visitors -- escaped so it cannot add markup.
+        lines = [f"<b>{_html(title)}</b>"] + [
+            f"{_html(_t(f'telegram.label.{label}'))}: "
+            + (f"<b>{_html(value)}</b>" if label in BOLD_LABELS else _html(value))
+            for label, value in rows
+            if value
         ]
         return Message("\n".join(lines), shop.logo_key if shop else None)
 
@@ -588,11 +603,14 @@ class TelegramArchive:
         if key and logo is not None and len(logo) <= MAX_PHOTO_BYTES:
             self._post(
                 "sendPhoto",
-                data={"chat_id": self._chat_id, "caption": message.text},
+                data={"chat_id": self._chat_id, "caption": message.text, "parse_mode": "HTML"},
                 files={"photo": (key.rsplit("/", 1)[-1], logo)},
             )
             return
-        self._post("sendMessage", data={"chat_id": self._chat_id, "text": message.text})
+        self._post(
+            "sendMessage",
+            data={"chat_id": self._chat_id, "text": message.text, "parse_mode": "HTML"},
+        )
 
     def _post(
         self, method: str, *, data: dict[str, str], files: dict[str, Any] | None = None
