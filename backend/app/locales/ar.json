@@ -181,6 +181,7 @@
   "taxonomy.skill.duplicate_slug": "توجد مهارة بنفس المعرّف.",
   "taxonomy.skill.in_use": "لا يمكن حذف مهارة مستخدمة من قبل ملفات مواهب. يمكنك إلغاء تفعيلها بدلاً من ذلك.",
   "taxonomy.skill.not_found": "المهارة غير موجودة.",
+  "telegram.db_backup": "نسخة احتياطية من قاعدة البيانات، {time}. كلمات المرور غير مضمّنة.",
   "telegram.kind.account": "حساب جديد",
   "telegram.kind.order": "طلب شراء جديد",
   "telegram.kind.other": "إضافة جديدة",

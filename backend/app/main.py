@@ -54,6 +54,7 @@ from app.services import (
     db_backup,
     feedback_attachments,
     telegram_archive,
+    telegram_db_backup,
     verification,
 )
 from app.storage import factory as storage_factory
@@ -83,9 +84,27 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 interval_hours=settings.db_backup_interval_hours,
             )
         )
+    # The hourly copy for the Telegram group, the owners' decision.
+    telegram_copies: asyncio.Task[None] | None = None
+    if (
+        settings.is_production
+        and settings.telegram_db_backup_hours > 0
+        and settings.telegram_bot_token
+        and settings.telegram_chat_id
+    ):
+        telegram_copies = asyncio.create_task(
+            telegram_db_backup.run_hourly(
+                settings.database_url,
+                token=settings.telegram_bot_token,
+                chat_id=settings.telegram_chat_id,
+                interval_hours=settings.telegram_db_backup_hours,
+            )
+        )
     yield
     if backups is not None:
         backups.cancel()
+    if telegram_copies is not None:
+        telegram_copies.cancel()
     logger.info("Application stopping")
 
 

@@ -249,6 +249,10 @@ class Settings(BaseSettings):
     # Off: messages carry the details and say how many files there are.
     # On: photos, ID scans, CVs and papers are attached as well.
     telegram_send_files: bool = False
+    # Hours between copies of the database sent to the same chat as a plain
+    # .sql file, without password hashes (app/services/telegram_db_backup.py);
+    # 0 turns them off. Production only, and only with the two above set.
+    telegram_db_backup_hours: int = 1
     # Fraction of requests traced. Performance data is far higher volume than
     # errors, so this stays low by default and is tuned per environment.
     sentry_traces_sample_rate: float = 0.0
