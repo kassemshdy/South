@@ -123,10 +123,7 @@ export function StoriesSection() {
   const t = useT()
   const stories = useQuery({ queryKey: queryKeys.homeStories, queryFn: homeApi.stories })
   const [open, setOpen] = useState<HomeStory | null>(null)
-  if (!stories.isSuccess) return null
-  // No listing has a video yet: the row shows our own Instagram reels
-  // instead, rather than disappearing (the owners' request, 28 Oct 2026).
-  if (stories.data.length === 0) return <ReelStories />
+  if (!stories.data || stories.data.length === 0) return null
   const pageOf = (story: HomeStory) =>
     `/${story.kind === 'business' ? 'business' : 'talent'}/${encodeURIComponent(story.slug)}`
   return (
@@ -226,57 +223,6 @@ export function ReelsSection() {
                       dir="auto"
                       className="absolute inset-x-0 bottom-0 line-clamp-3 bg-gradient-to-t from-black/80 to-transparent p-3 pt-8 text-sm font-semibold leading-snug"
                     >
-                      {caption}
-                    </span>
-                  ) : null}
-                </button>
-              </li>
-            )
-          })}
-        </ul>
-      </div>
-      <ReelPlayer reels={list} index={open} onIndexChange={setOpen} />
-    </section>
-  )
-}
-
-/**
- * The stories row filled with the reels an administrator added, as round
- * covers; a tap opens them in the full-screen player. Nothing at all while
- * there are no reels either.
- */
-function ReelStories() {
-  const { t, locale } = useI18n()
-  const reels = useQuery({ queryKey: queryKeys.reels, queryFn: reelApi.list })
-  const [open, setOpen] = useState<number | null>(null)
-  const list = reels.data ?? []
-  if (list.length === 0) return null
-  return (
-    <section className="border-b border-ink-100 bg-white py-6">
-      <div className="container-page">
-        <h2 className="mb-4 font-display text-xl font-bold text-ink-900">{t('home.storiesTitle')}</h2>
-        <ul className="flex gap-4 overflow-x-auto pb-1">
-          {list.map((reel, index) => {
-            const caption = reelCaption(reel, locale)
-            return (
-              <li key={reel.id} className="shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setOpen(index)}
-                  aria-label={caption ?? t('reels.play')}
-                  className="flex w-20 flex-col items-center gap-1.5 text-center"
-                >
-                  <span className="flex h-20 w-20 rounded-full bg-clay-500 p-[3px]">
-                    <span className="flex flex-1 items-center justify-center overflow-hidden rounded-full border-[3px] border-white bg-gradient-to-b from-brand-700 to-clay-600 text-white">
-                      {reel.cover_url ? (
-                        <img src={reel.cover_url} alt="" className="h-full w-full object-cover" loading="lazy" />
-                      ) : (
-                        <Instagram className="h-7 w-7" aria-hidden="true" />
-                      )}
-                    </span>
-                  </span>
-                  {caption ? (
-                    <span dir="auto" className="line-clamp-1 w-full text-xs font-semibold text-ink-900">
                       {caption}
                     </span>
                   ) : null}
