@@ -344,7 +344,13 @@ for something that hands out sessions.
   `TELEGRAM_CHAT_ID`. Password hashes and session counters are never sent
   (`SKIPPED_COLUMNS`), and httpx is held at WARNING because a bot API URL
   carries the token -- `tests/test_telegram_archive.py` pins both. A new
-  table users write to belongs in `ARCHIVED_TABLES`.
+  table users write to belongs in `ARCHIVED_TABLES`. Every hour the live API
+  also sends the **whole database as a plain `.sql` file** to the same chat
+  (the owners' decision, 28 Oct 2026; `app/services/telegram_db_backup.py`):
+  the `users` rows are written by the app's own `COPY` with `password_hash`
+  emptied and `token_version` reset, so the file restores a whole site
+  without anyone's password -- `tests/test_telegram_db_backup.py` pins it.
+  A new column that signs someone in belongs in `REDACTED_USER_COLUMNS`.
 - **Deleting an account deletes its files too.** `AccountDeletionService`
   removes the rows in one transaction and then every file they pointed at,
   private documents included; a new upload type that belongs to an account

@@ -185,6 +185,7 @@
   "taxonomy.skill.duplicate_slug": "A skill with this identifier already exists.",
   "taxonomy.skill.in_use": "A skill used by talent profiles cannot be deleted. Deactivate it instead.",
   "taxonomy.skill.not_found": "Skill not found.",
+  "telegram.db_backup": "Database backup, {time}. Passwords are not included.",
   "telegram.kind.account": "New account",
   "telegram.kind.order": "New order",
   "telegram.kind.other": "New addition",
