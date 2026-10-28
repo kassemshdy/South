@@ -67,6 +67,9 @@ export function SearchSection() {
   )
 }
 
+/** What four rows hold at the narrowest width; past it some are cut. */
+const CATEGORY_GRID_SMALLEST = 4 * 3
+
 export function CategoriesSection() {
   const t = useT()
   const categories = useQuery({ queryKey: queryKeys.categories, queryFn: taxonomyApi.categories })
@@ -77,19 +80,25 @@ export function CategoriesSection() {
   if (list.length === 0) return null
   return (
     <Band>
-      <SectionHeading title={t('home.categoriesTitle')} />
-      <ul className="flex gap-3 overflow-x-auto pb-2">
+      <SectionHeading
+        title={t('home.categoriesTitle')}
+        to={list.length > CATEGORY_GRID_SMALLEST ? '/products' : undefined}
+        more={t('home.viewAll')}
+      />
+      {/* Every card is one fixed height, so the height cap shows four whole
+          rows at any width and cuts the rest. */}
+      <ul className="grid max-h-[42.25rem] auto-rows-[10rem] grid-cols-3 gap-3 overflow-hidden sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
         {list.map((category) => (
-          <li key={category.id} className="shrink-0">
+          <li key={category.id}>
             <Link
               to={`/products?category=${encodeURIComponent(category.slug)}`}
-              className="flex w-28 flex-col items-center gap-2 rounded-2xl border border-ink-100 bg-white p-3 text-center shadow-card transition-colors hover:border-brand-300"
+              className="flex h-full flex-col items-center gap-2 rounded-2xl border border-ink-100 bg-white p-3 text-center shadow-card transition-colors hover:border-brand-300"
             >
-              <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-brand-700">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-700">
                 <CategoryIcon name={category.icon} className="h-7 w-7" />
               </span>
-              <span className="text-sm font-semibold leading-snug text-ink-900">{category.name_ar}</span>
-              <span className="ltr-nums text-xs text-ink-500">{category.item_count}</span>
+              <span className="line-clamp-2 text-sm font-semibold leading-snug text-ink-900">{category.name_ar}</span>
+              <span className="ltr-nums mt-auto text-xs text-ink-500">{category.item_count}</span>
             </Link>
           </li>
         ))}
