@@ -19,6 +19,7 @@ from app.api.v1 import (
     pages,
     partners,
     registration,
+    search,
     service_requests,
     site_settings,
     talent,
@@ -83,6 +84,7 @@ api_router.include_router(orders.public_router)
 api_router.include_router(businesses.public_router)
 api_router.include_router(articles.router)
 api_router.include_router(registration.router)
+api_router.include_router(search.router)
 api_router.include_router(partners.public_router)
 api_router.include_router(partners.admin_router)
 api_router.include_router(items.public_router)

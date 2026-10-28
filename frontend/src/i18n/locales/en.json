@@ -1350,5 +1350,11 @@
   "admin.homeLayoutApplyProposed": "Apply the proposed order",
   "admin.homeLayoutPreview": "Preview the proposed design",
   "admin.homeSectionBlog": "Blog",
-  "home.talentRequest": "Request the service"
+  "home.talentRequest": "Request the service",
+  "search.suggestions": "Search suggestions",
+  "search.groupCategories": "Categories",
+  "search.groupProducts": "Products",
+  "search.groupShops": "Shops",
+  "search.groupServices": "Services",
+  "search.searchFor": "Search for “{term}”"
 }

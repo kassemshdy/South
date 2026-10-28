@@ -7,6 +7,7 @@
 
 import { apiDownload, apiRequest } from '@/services/api/client'
 import type {
+  SearchSuggestion,
   PageCover,
   PageCoverKey,
   TeamCaptionInput,
@@ -352,6 +353,11 @@ export const homeApi = {
 
 export const pageApi = {
   get: (key: PageKey) => apiRequest<PageText>(`/api/pages/${key}`),
+}
+
+export const searchApi = {
+  /** Suggestions for what has been typed so far; none under two letters. */
+  suggest: (q: string) => apiRequest<SearchSuggestion[]>('/api/search/suggest', { query: { q } }),
 }
 
 export const teamApi = {

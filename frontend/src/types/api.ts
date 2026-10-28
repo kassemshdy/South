@@ -575,6 +575,16 @@ export interface HomeStory {
   youtube_video_id: string
 }
 
+/** One suggestion under the search box while someone types. */
+export interface SearchSuggestion {
+  kind: 'category' | 'product' | 'shop' | 'service'
+  label: string
+  slug: string
+  image_url: string | null
+  /** A second line: the shop of a product, the category of a shop. */
+  detail: string | null
+}
+
 export interface PublicStats {
   total_businesses: number
   total_products: number

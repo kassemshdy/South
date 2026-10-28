@@ -10,13 +10,13 @@
  */
 
 import { useQuery } from '@tanstack/react-query'
-import { Search } from 'lucide-react'
-import { useState, type FormEvent, type ReactNode } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 
 import { Dialog, DialogContent } from '@/components/ui/Dialog'
 import { YouTubePlayer } from '@/components/ui/YouTubePlayer'
 import { CategoryIcon } from '@/features/home/categoryIcon'
+import { SearchBox } from '@/features/search/SearchBox'
 import { ProductCard } from '@/features/items/ProductCard'
 import { WORK_MODE_KEYS } from '@/features/talent/labels'
 import { useI18n, useT } from '@/i18n'
@@ -54,37 +54,13 @@ function Band({ children, tone = 'plain' }: { children: ReactNode; tone?: 'plain
   )
 }
 
+/** The search box on its band, suggesting as someone types (`SearchBox`). */
 export function SearchSection() {
-  const t = useT()
-  const navigate = useNavigate()
-  const [q, setQ] = useState('')
-  const submit = (event: FormEvent) => {
-    event.preventDefault()
-    const term = q.trim()
-    navigate(term ? `/products?q=${encodeURIComponent(term)}` : '/products')
-  }
   return (
     <section className="bg-brand-700 py-6 sm:py-8">
-      <form onSubmit={submit} className="container-page flex gap-2" role="search">
-        <label htmlFor="home-search" className="sr-only">
-          {t('products.searchLabel')}
-        </label>
-        <input
-          id="home-search"
-          type="search"
-          value={q}
-          onChange={(event) => setQ(event.target.value)}
-          placeholder={t('products.searchLabel')}
-          className="h-12 min-w-0 flex-1 rounded-xl border-0 bg-white px-4 text-base text-ink-900 shadow-card focus:outline-none focus:ring-2 focus:ring-wheat-500"
-        />
-        <button
-          type="submit"
-          className="flex h-12 items-center gap-2 rounded-xl bg-clay-500 px-5 font-semibold text-white hover:bg-clay-600"
-        >
-          <Search className="h-5 w-5" aria-hidden="true" />
-          <span className="hidden sm:inline">{t('common.search')}</span>
-        </button>
-      </form>
+      <div className="container-page">
+        <SearchBox />
+      </div>
     </section>
   )
 }
