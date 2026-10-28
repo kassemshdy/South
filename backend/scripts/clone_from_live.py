@@ -2,15 +2,17 @@
 
 For ``api-develop`` only: it runs from the container's start command like
 every other boot step, and does nothing at all unless ``CLONE_FROM_DATABASE_URL``
-is set -- which it is on ``api-develop`` and nowhere else. The live API runs
-the same image and never has it.
+or ``CLONE_FROM_S3_BUCKET`` is set -- which they are on ``api-develop`` and
+nowhere else. The live API runs the same image and never has them.
 
 What it does, reading from live and writing only to this deployment:
 
 - **The database**, when this deployment's is still empty: ``pg_dump`` of the
-  live database (read-only) restored with ``pg_restore`` into this one. Once
-  the copy is in, later boots leave it alone; the migrations that follow
-  bring it up to this branch's schema, in this database only.
+  live database (read-only), or -- from another Railway environment, which
+  cannot reach it -- the newest backup the live API left in its bucket
+  (``backups/db/``), restored with ``pg_restore`` into this one. Once the
+  copy is in, later boots leave it alone; the migrations that follow bring
+  it up to this branch's schema, in this database only.
 - **The photographs**, every boot: what the live bucket has and this
   deployment's bucket lacks is copied across. Private folders -- ID scans,
   CVs, official papers, ticket attachments and the live database backups --
@@ -85,7 +87,24 @@ def clone_database(source: str, target: str) -> bool:
     if not db_backup.database_is_empty(target):
         logger.info("Develop database already holds data; not copying it again")
         return False
-    archive = db_backup.dump(source)
+    return restore(db_backup.dump(source), target)
+
+
+def restore_latest_backup(source: S3Storage, target: str) -> bool:
+    """The newest ``backups/db/`` dump in the live bucket, restored here."""
+    if not db_backup.database_is_empty(target):
+        logger.info("Develop database already holds data; not copying it again")
+        return False
+    stored = source.keys()
+    dumps = sorted(key for key in stored if key.startswith("backups/db/"))
+    if not dumps:
+        logger.error("No database backup in the live bucket to copy")
+        return False
+    logger.info("Restoring the live backup %s", dumps[-1])
+    return restore(source.read(dumps[-1]), target)
+
+
+def restore(archive: bytes, target: str) -> bool:
     target_url, password = db_backup.libpq_url(target)
     env = {"PATH": os.environ.get("PATH", "")}
     if password:
@@ -140,26 +159,30 @@ def clone_media(source: S3Storage, target: S3Storage) -> tuple[int, int, int]:
 
 
 def main() -> int:
-    source_db = os.environ.get(SOURCE_DATABASE)
-    if not source_db:
-        return 0
     settings = get_settings()
+    source_db = os.environ.get(SOURCE_DATABASE)
+    source_settings = source_bucket_settings(settings)
+    if not source_db and source_settings is None:
+        return 0
     configure_logging(settings.log_level, json_output=False)
+    if source_settings is not None and (
+        source_settings.s3_bucket,
+        source_settings.s3_endpoint_url,
+    ) == (settings.s3_bucket, settings.s3_endpoint_url):
+        logger.error("Refusing to clone: the source and destination are the same bucket")
+        return 0
+
     try:
-        clone_database(source_db, settings.database_url)
+        if source_db:
+            clone_database(source_db, settings.database_url)
+        elif source_settings is not None:
+            restore_latest_backup(S3Storage(source_settings), settings.database_url)
     except Exception:
         logger.exception("Could not copy the live database")
 
     try:
-        source_settings = source_bucket_settings(settings)
         target = get_storage()
         if source_settings is None or not isinstance(target, S3Storage):
-            return 0
-        if (source_settings.s3_bucket, source_settings.s3_endpoint_url) == (
-            settings.s3_bucket,
-            settings.s3_endpoint_url,
-        ):
-            logger.error("Refusing to clone: the source and destination are the same bucket")
             return 0
         copied, already, failed = clone_media(S3Storage(source_settings), target)
         logger.info(
