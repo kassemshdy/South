@@ -1056,3 +1056,10 @@ export interface DiscardedApplication {
   created_at: string
   dismissed_at: string | null
 }
+
+/** A set-aside application, now a listing pending review on its account. */
+export interface AttachedApplication {
+  application: DiscardedApplication
+  kind: DiscardedApplication['kind']
+  listing_id: string
+}

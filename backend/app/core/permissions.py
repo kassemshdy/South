@@ -89,6 +89,8 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     ("POST", "/api/admin/feedback/tickets/{ticket_id}/comments"): _SUPPORT,
     ("POST", "/api/admin/feedback/tickets/{ticket_id}/move"): _SUPPORT,
     ("POST", "/api/admin/discarded-applications/{application_id}/dismiss"): _SUPPORT,
+    # Adds it to the account: deciding it is that person is a review call.
+    ("POST", "/api/admin/discarded-applications/{application_id}/attach"): _MODERATE,
     ("DELETE", "/api/admin/partners/{request_id}"): _SUPPORT,
     # Content
     ("POST", "/api/admin/articles"): _CONTENT,

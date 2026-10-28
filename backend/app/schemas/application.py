@@ -4,6 +4,8 @@ import uuid
 from datetime import datetime
 from typing import Any
 
+from pydantic import BaseModel
+
 from app.models.enums import ApplicationKind
 from app.schemas.common import ORMModel
 
@@ -23,3 +25,12 @@ class DiscardedApplicationOut(ORMModel):
     payload: dict[str, Any]
     created_at: datetime
     dismissed_at: datetime | None = None
+
+
+class AttachedApplicationOut(BaseModel):
+    """A set-aside application, now a listing pending review on its account."""
+
+    application: DiscardedApplicationOut
+    kind: ApplicationKind
+    listing_id: uuid.UUID
+
