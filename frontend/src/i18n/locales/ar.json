@@ -975,6 +975,8 @@
   "platform.WEBSITE": "الموقع الإلكتروني",
   "platform.WHATSAPP": "واتساب",
   "platform.YOUTUBE": "يوتيوب",
+  "products.sortPriceAsc": "السعر: من الأدنى إلى الأعلى",
+  "products.sortPriceDesc": "السعر: من الأعلى إلى الأدنى",
   "products.backToDirectory": "العودة إلى دليل المنتجات",
   "products.brandNameLabel": "الماركة التجارية",
   "products.detailHeading": "تفاصيل السلعة",

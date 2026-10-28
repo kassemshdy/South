@@ -975,6 +975,8 @@
   "platform.WEBSITE": "Website",
   "platform.WHATSAPP": "WhatsApp",
   "platform.YOUTUBE": "YouTube",
+  "products.sortPriceAsc": "Price: low to high",
+  "products.sortPriceDesc": "Price: high to low",
   "products.backToDirectory": "Back to the products directory",
   "products.brandNameLabel": "Brand",
   "products.detailHeading": "Product detail",
