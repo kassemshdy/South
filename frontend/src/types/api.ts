@@ -163,6 +163,8 @@ export interface Category {
   sort_order: number
   is_active: boolean
   business_count: number
+  /** Products on sale in its shops, as the catalogue counts them. */
+  item_count: number
 }
 
 export interface LocationNode {
@@ -554,6 +556,7 @@ export type HomeSectionId =
   | 'shops'
   | 'talents'
   | 'news'
+  | 'blog'
 
 export interface HomeSection {
   id: HomeSectionId
@@ -622,6 +625,16 @@ export interface StoryGroup {
   name: string
   image_url: string | null
   stories: { id: string; image_url: string; caption: string | null; approved_at: string }[]
+}
+
+/** One suggestion under the search box while someone types. */
+export interface SearchSuggestion {
+  kind: 'category' | 'product' | 'shop' | 'service'
+  label: string
+  slug: string
+  image_url: string | null
+  /** A second line: the shop of a product, the category of a shop. */
+  detail: string | null
 }
 
 export interface PublicStats {

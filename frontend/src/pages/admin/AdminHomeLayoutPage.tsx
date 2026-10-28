@@ -26,6 +26,7 @@ const LABELS: Record<HomeSectionId, TranslationKey> = {
   shops: 'admin.homeSectionShops',
   talents: 'admin.homeSectionTalents',
   news: 'admin.homeSectionNews',
+  blog: 'admin.homeSectionBlog',
 }
 
 /**

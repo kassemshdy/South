@@ -10,16 +10,16 @@
  */
 
 import { useQuery } from '@tanstack/react-query'
-import { Play, Search } from 'lucide-react'
-import { useState, type FormEvent, type ReactNode } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Play } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 
-import { BusinessCard } from '@/features/businesses/BusinessCard'
 import { CategoryIcon } from '@/features/home/categoryIcon'
 import { ProviderIcon, ReelPlayer, reelCaption } from '@/features/home/ReelPlayer'
 import { StoryViewer } from '@/features/home/StoryViewer'
+import { SearchBox } from '@/features/search/SearchBox'
 import { ProductCard } from '@/features/items/ProductCard'
-import { TalentCard } from '@/features/talent/TalentCard'
+import { WORK_MODE_KEYS } from '@/features/talent/labels'
 import { useI18n, useT } from '@/i18n'
 import {
   homeApi,
@@ -31,7 +31,7 @@ import {
   taxonomyApi,
 } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import type { Category, GoodsOrigin, ProductQuery } from '@/types/api'
+import type { ArticleSection, Category, GoodsOrigin, ProductQuery } from '@/types/api'
 import { cn } from '@/utils/cn'
 import { formatDate } from '@/utils/format'
 
@@ -56,37 +56,13 @@ function Band({ children, tone = 'plain' }: { children: ReactNode; tone?: 'plain
   )
 }
 
+/** The search box on its band, suggesting as someone types (`SearchBox`). */
 export function SearchSection() {
-  const t = useT()
-  const navigate = useNavigate()
-  const [q, setQ] = useState('')
-  const submit = (event: FormEvent) => {
-    event.preventDefault()
-    const term = q.trim()
-    navigate(term ? `/products?q=${encodeURIComponent(term)}` : '/products')
-  }
   return (
     <section className="bg-brand-700 py-6 sm:py-8">
-      <form onSubmit={submit} className="container-page flex gap-2" role="search">
-        <label htmlFor="home-search" className="sr-only">
-          {t('products.searchLabel')}
-        </label>
-        <input
-          id="home-search"
-          type="search"
-          value={q}
-          onChange={(event) => setQ(event.target.value)}
-          placeholder={t('products.searchLabel')}
-          className="h-12 min-w-0 flex-1 rounded-xl border-0 bg-white px-4 text-base text-ink-900 shadow-card focus:outline-none focus:ring-2 focus:ring-wheat-500"
-        />
-        <button
-          type="submit"
-          className="flex h-12 items-center gap-2 rounded-xl bg-clay-500 px-5 font-semibold text-white hover:bg-clay-600"
-        >
-          <Search className="h-5 w-5" aria-hidden="true" />
-          <span className="hidden sm:inline">{t('common.search')}</span>
-        </button>
-      </form>
+      <div className="container-page">
+        <SearchBox />
+      </div>
     </section>
   )
 }
@@ -94,7 +70,10 @@ export function SearchSection() {
 export function CategoriesSection() {
   const t = useT()
   const categories = useQuery({ queryKey: queryKeys.categories, queryFn: taxonomyApi.categories })
-  const list = (categories.data ?? []).filter((category) => category.is_active !== false)
+  // Only categories with products on sale, the fullest first.
+  const list = (categories.data ?? [])
+    .filter((category) => category.is_active !== false && category.item_count > 0)
+    .sort((a, b) => b.item_count - a.item_count)
   if (list.length === 0) return null
   return (
     <Band>
@@ -110,6 +89,7 @@ export function CategoriesSection() {
                 <CategoryIcon name={category.icon} className="h-7 w-7" />
               </span>
               <span className="text-sm font-semibold leading-snug text-ink-900">{category.name_ar}</span>
+              <span className="ltr-nums text-xs text-ink-500">{category.item_count}</span>
             </Link>
           </li>
         ))}
@@ -352,8 +332,8 @@ export function CategoryProductsSection() {
   const t = useT()
   const categories = useQuery({ queryKey: queryKeys.categories, queryFn: taxonomyApi.categories })
   const busiest = (categories.data ?? [])
-    .filter((category) => category.is_active !== false && category.business_count > 0)
-    .sort((a, b) => b.business_count - a.business_count)
+    .filter((category) => category.is_active !== false && category.item_count > 0)
+    .sort((a, b) => b.item_count - a.item_count)
     .slice(0, CATEGORY_ROWS)
   if (busiest.length === 0) return null
   return (
@@ -402,55 +382,139 @@ function CategoryRow({ category, more }: { category: Category; more: string }) {
   )
 }
 
+/** Shops on the home page: the newest with a logo, as small logo cards. */
+const SHOPS_SHOWN = 8
+
 export function ShopsSection() {
   const t = useT()
+  // The API's own cap; enough that eight with a logo are usually among them.
   const shops = useQuery({
-    queryKey: queryKeys.latestBusinesses(6),
-    queryFn: () => publicBusinessApi.latest(6),
+    queryKey: queryKeys.latestBusinesses(24),
+    queryFn: () => publicBusinessApi.latest(24),
   })
-  if (!shops.data || shops.data.length === 0) return null
+  const list = (shops.data ?? []).filter((business) => business.logo_url).slice(0, SHOPS_SHOWN)
+  if (list.length === 0) return null
   return (
     <Band tone="sand">
       <SectionHeading title={t('home.shopsTitle')} to="/businesses" more={t('home.viewAll')} />
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {shops.data.map((business) => (
-          <BusinessCard key={business.id} business={business} />
-        ))}
-      </div>
+      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        {list.map((business) => {
+          const category =
+            business.category?.slug === 'other' && business.custom_category_text
+              ? business.custom_category_text
+              : business.category?.name_ar
+          return (
+            <li key={business.id}>
+              <Link
+                to={`/business/${encodeURIComponent(business.slug)}`}
+                // Logo above the name on a phone, beside it from sm up.
+                className="flex h-full flex-col items-center gap-2 rounded-2xl border border-ink-100 bg-white p-3 text-center shadow-card transition-shadow hover:shadow-lift sm:flex-row sm:gap-3 sm:text-start"
+              >
+                <img
+                  src={business.logo_thumb_url ?? business.logo_url ?? ''}
+                  alt=""
+                  loading="lazy"
+                  className="h-14 w-14 shrink-0 rounded-xl border border-ink-100 bg-sand-50 object-cover"
+                />
+                <span className="flex min-w-0 max-w-full flex-col" dir="auto">
+                  <span className="line-clamp-2 text-sm font-bold leading-snug text-ink-900">{business.name}</span>
+                  <span className="truncate text-xs text-ink-500">
+                    {[category, business.location?.name_ar].filter(Boolean).join(' · ')}
+                  </span>
+                </span>
+              </Link>
+            </li>
+          )
+        })}
+      </ul>
     </Band>
   )
 }
 
+/**
+ * People offering a trade, drawn without their photograph: an initial in a
+ * circle, the trade, where and how they work, and a button to ask for it.
+ */
 export function TalentsSection() {
   const t = useT()
   const talents = useQuery({
-    queryKey: queryKeys.latestTalents(6),
-    queryFn: () => publicTalentApi.latest(6),
+    queryKey: queryKeys.latestTalents(8),
+    queryFn: () => publicTalentApi.latest(8),
   })
   if (!talents.data || talents.data.length === 0) return null
   return (
-    <Band>
-      <SectionHeading title={t('home.talentsTitle')} to="/services" more={t('home.viewAll')} />
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {talents.data.map((talent) => (
-          <TalentCard key={talent.id} talent={talent} />
-        ))}
+    <section className="py-10 sm:py-12">
+      <div className="container-page">
+        <div className="rounded-3xl bg-brand-50 p-5 sm:p-7">
+          <SectionHeading title={t('home.talentsTitle')} to="/services" more={t('home.viewAll')} />
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {talents.data.map((talent) => {
+              const skill =
+                talent.skill?.slug === 'other' && talent.custom_skill_text
+                  ? talent.custom_skill_text
+                  : talent.skill?.name_ar
+              const where = [
+                talent.location?.name_ar,
+                talent.work_mode ? t(WORK_MODE_KEYS[talent.work_mode]) : null,
+              ].filter(Boolean)
+              const page = `/talent/${encodeURIComponent(talent.slug)}`
+              return (
+                <li key={talent.id} className="flex flex-col gap-3 rounded-2xl bg-white p-4" dir="auto">
+                  <div className="flex items-center gap-3">
+                    <span
+                      aria-hidden="true"
+                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-600 font-display text-lg font-bold text-white"
+                    >
+                      {talent.display_name.trim().slice(0, 1)}
+                    </span>
+                    <span className="flex min-w-0 flex-col">
+                      <Link to={page} className="truncate font-bold text-ink-900 hover:text-brand-700">
+                        {talent.display_name}
+                      </Link>
+                      {skill ? <span className="truncate text-sm font-semibold text-brand-600">{skill}</span> : null}
+                    </span>
+                  </div>
+                  {where.length > 0 ? <span className="text-sm text-ink-500">{where.join(' · ')}</span> : null}
+                  <Link
+                    to={page}
+                    className="mt-auto rounded-xl bg-brand-700 px-4 py-2.5 text-center font-semibold text-white hover:bg-brand-800"
+                  >
+                    {t('home.talentRequest')}
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
       </div>
-    </Band>
+    </section>
   )
 }
 
 export function NewsSection() {
+  return <ArticlesSection section="NEWS" />
+}
+
+export function BlogSection() {
+  return <ArticlesSection section="BLOG" />
+}
+
+/** The latest articles of one section; nothing at all while it has none. */
+function ArticlesSection({ section }: { section: ArticleSection }) {
   const { t, locale } = useI18n()
   const news = useQuery({
-    queryKey: queryKeys.articles('NEWS'),
-    queryFn: () => publicArticleApi.list('NEWS'),
+    queryKey: queryKeys.articles(section),
+    queryFn: () => publicArticleApi.list(section),
   })
   const [lead, ...rest] = news.data ?? []
   if (!lead) return null
   return (
     <Band tone="sand">
-      <SectionHeading title={t('home.newsTitle')} to="/news" more={t('home.viewAll')} />
+      <SectionHeading
+        title={t(section === 'NEWS' ? 'nav.news' : 'blog.title')}
+        to={section === 'NEWS' ? '/news' : '/blog'}
+        more={t('home.viewAll')}
+      />
       <div className="grid gap-6 lg:grid-cols-3">
         <Link to={`/articles/${encodeURIComponent(lead.slug)}`} className="group lg:col-span-2">
           {lead.cover_url ? (

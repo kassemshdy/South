@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 
 import {
+  BlogSection,
   CategoriesSection,
   CategoryProductsSection,
   NewsSection,
@@ -45,6 +46,7 @@ const SECTIONS: Record<HomeSectionId, () => ReactNode> = {
   shops: () => <ShopsSection />,
   talents: () => <TalentsSection />,
   news: () => <NewsSection />,
+  blog: () => <BlogSection />,
 }
 
 export function HomePage() {

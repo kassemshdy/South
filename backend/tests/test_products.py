@@ -512,3 +512,14 @@ def test_a_product_without_a_photo_stays_with_its_owner(
     assert [i["title"] for i in client.get("/api/items").json()["items"]] == [ar("item.generic")]
     shop = client.get(f"/api/businesses/{business['slug']}").json()
     assert [i["title"] for i in shop["items"]] == [ar("item.generic")]
+
+
+def test_a_category_counts_only_the_products_a_visitor_can_see(
+    client: TestClient, category: Category, approved_business_with_items: str
+) -> None:
+    """The home page's category row keeps categories with products and orders
+    them by this count, so it must match what opening the category shows:
+    the unavailable product is not counted."""
+    listed = client.get("/api/items", params={"category": category.slug}).json()
+    counted = {c["slug"]: c["item_count"] for c in client.get("/api/categories").json()}
+    assert counted[category.slug] == listed["meta"]["total"] == 1
