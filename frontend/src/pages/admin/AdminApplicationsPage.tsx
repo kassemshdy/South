@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check } from 'lucide-react'
+import { Check, UserPlus } from 'lucide-react'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -9,7 +9,9 @@ import { Card, CardBody } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
+import { useStaffCan } from '@/features/admin/staffAccess'
 import { useI18n } from '@/i18n'
+import { ApiError } from '@/services/api/client'
 import { adminApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { DiscardedApplication } from '@/types/api'
@@ -22,14 +24,17 @@ import { formatDate } from '@/utils/format'
  * that is what stops it being a way to ask which numbers are registered, or
  * to put a listing in somebody else's dashboard. They used to be thrown
  * away; at the CEO's request they wait here instead, so a real owner who
- * applied twice is not silently lost. Handling one is a conversation with the
- * account holder, outside this site, so the only action here is to mark it
- * handled.
+ * applied twice is not silently lost. Once a reviewer has made sure it is the
+ * account holder's own -- typically a shop after a services profile -- it can
+ * be added to that account, pending review like any application (the owners'
+ * decision, 28 Oct 2026); otherwise it is marked handled.
  */
 export function AdminApplicationsPage() {
   const { t, locale } = useI18n()
   const toast = useToast()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const canAttach = useStaffCan('moderate')
   const [includeDismissed, setIncludeDismissed] = useState(false)
 
   const applications = useQuery({
@@ -42,6 +47,22 @@ export function AdminApplicationsPage() {
     onSuccess: () =>
       void queryClient.invalidateQueries({ queryKey: ['admin', 'discarded-applications'] }),
     onError: () => toast.error(t('admin.applicationsActionFailed')),
+  })
+
+  // Lands on the review screen of what it became, which is the next step.
+  const attach = useMutation({
+    mutationFn: (id: string) => adminApi.attachApplication(id),
+    onSuccess: (result) => {
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'discarded-applications'] })
+      toast.success(t('admin.applicationsAttached'))
+      navigate(
+        result.kind === 'BUSINESS'
+          ? `/admin/businesses/${result.listing_id}`
+          : `/admin/talent/${result.listing_id}`,
+      )
+    },
+    onError: (error) =>
+      toast.error(error instanceof ApiError ? error.message : t('admin.applicationsActionFailed')),
   })
 
   return (
@@ -118,15 +139,31 @@ export function AdminApplicationsPage() {
                           {t('admin.applicationsDismissed')}
                         </Badge>
                       ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          loading={dismiss.isPending && dismiss.variables === entry.id}
-                          onClick={() => dismiss.mutate(entry.id)}
-                        >
-                          <Check className="h-4 w-4" aria-hidden="true" />
-                          {t('admin.applicationsDismiss')}
-                        </Button>
+                        <div className="flex flex-wrap gap-2">
+                          {canAttach && entry.existing_user_id ? (
+                            <Button
+                              size="sm"
+                              loading={attach.isPending && attach.variables === entry.id}
+                              onClick={() => {
+                                if (window.confirm(t('admin.applicationsAttachConfirm'))) {
+                                  attach.mutate(entry.id)
+                                }
+                              }}
+                            >
+                              <UserPlus className="h-4 w-4" aria-hidden="true" />
+                              {t('admin.applicationsAttach')}
+                            </Button>
+                          ) : null}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            loading={dismiss.isPending && dismiss.variables === entry.id}
+                            onClick={() => dismiss.mutate(entry.id)}
+                          >
+                            <Check className="h-4 w-4" aria-hidden="true" />
+                            {t('admin.applicationsDismiss')}
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </CardBody>

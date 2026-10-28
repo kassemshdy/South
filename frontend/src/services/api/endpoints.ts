@@ -33,6 +33,7 @@ import type {
   AdminUserDetail,
   Article,
   ArticleInput,
+  AttachedApplication,
   ArticleSection,
   AuthToken,
   BusinessDetail,
@@ -705,6 +706,10 @@ export const adminApi = {
     apiRequest<SiteSettings>('/api/admin/site-settings', { method: 'PUT', body: values }),
   dismissApplication: (id: string) =>
     apiRequest<DiscardedApplication>(`/api/admin/discarded-applications/${id}/dismiss`, {
+      method: 'POST',
+    }),
+  attachApplication: (id: string) =>
+    apiRequest<AttachedApplication>(`/api/admin/discarded-applications/${id}/attach`, {
       method: 'POST',
     }),
   businesses: (params: { status?: BusinessStatus; q?: string; page?: number; page_size?: number }) =>
