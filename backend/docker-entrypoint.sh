@@ -12,6 +12,10 @@ chown -R appuser:appuser "$STORAGE_LOCAL_DIR"
 
 exec gosu appuser sh -c '
   set -e
+  # api-develop only: a copy of the live data, before anything else touches
+  # this database. Does nothing unless CLONE_FROM_DATABASE_URL is set, which
+  # it never is on the live api. See scripts/clone_from_live.py.
+  python -m scripts.clone_from_live
   # A copy of the database before this deploy changes anything -- or, if the
   # database came back empty beside existing uploads, a fatal alarm instead.
   # Never fails the boot. See app/services/db_backup.py.
