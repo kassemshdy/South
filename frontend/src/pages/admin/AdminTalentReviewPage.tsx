@@ -29,6 +29,7 @@ import { IssueCredentialsCard } from '@/features/admin/IssueCredentialsCard'
 import { OwnerIdentityCard } from '@/features/admin/OwnerIdentityCard'
 import { OwnerWhatsappButton } from '@/features/admin/OwnerWhatsappButton'
 import { ConvertToShopCard } from '@/features/admin/ConvertToShopCard'
+import { AdminPlaceCard } from '@/features/admin/AdminPlaceCard'
 import { TalentSkillCard } from '@/features/admin/TalentSkillCard'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
 import { EMPLOYMENT_TYPE_KEYS, PROFICIENCY_KEYS, WORK_MODE_KEYS } from '@/features/talent/labels'
@@ -252,6 +253,16 @@ export function AdminTalentReviewPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           <TalentSkillCard profile={data} />
           <ConvertToShopCard profileId={data.id} />
+          <AdminPlaceCard
+            key={`${data.location?.id}-${data.latitude}-${data.longitude}`}
+            locationId={data.location?.id ?? null}
+            latitude={data.latitude}
+            longitude={data.longitude}
+            onSave={(place) => adminApi.setTalentPlace(data.id, place)}
+            onSaved={() =>
+              void queryClient.invalidateQueries({ queryKey: queryKeys.adminTalent(data.id) })
+            }
+          />
         </div>
       ) : null}
 
@@ -515,15 +526,20 @@ function Detail({
   ltr?: boolean
 }) {
   const { t } = useI18n()
+  // A row per field, the label bold and a rule beneath, side by side from
+  // sm up, so a reviewer scanning a long application can tell where one
+  // answer ends and the next label starts (the owners' request).
   return (
-    <div>
-      <p className="text-sm font-semibold text-ink-700">{t(labelKey)}</p>
-      <p
-        className={`mt-0.5 whitespace-pre-line ${value ? 'text-ink-900' : 'text-ink-300'} ${
-          ltr ? 'ltr-nums' : ''
-        }`}
-      >
-        {value || t('common.notSet')}
+    <div className="grid gap-1 border-b border-ink-100 pb-3 last:border-b-0 last:pb-0 sm:grid-cols-[minmax(0,13rem)_1fr] sm:gap-4">
+      <p className="text-sm font-bold text-ink-900">{t(labelKey)}</p>
+      <p className={`whitespace-pre-line ${value ? 'text-ink-900' : 'text-ink-300'}`}>
+        {value && ltr ? (
+          <span dir="ltr" className="ltr-nums">
+            {value}
+          </span>
+        ) : (
+          value || t('common.notSet')
+        )}
       </p>
     </div>
   )

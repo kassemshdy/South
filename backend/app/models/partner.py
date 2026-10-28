@@ -12,8 +12,9 @@ it is published.
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 
-from sqlalchemy import String, Text
+from sqlalchemy import DateTime, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base, TimestampMixin, uuid_pk
@@ -30,3 +31,6 @@ class PartnerRequest(Base, TimestampMixin):
     residence: Mapped[str] = mapped_column(String(200), nullable=False)
     # What they would like to offer.
     offer: Mapped[str] = mapped_column(Text, nullable=False)
+    # Set when an administrator marks it solved: it moves to the archive
+    # rather than being deleted (the owners' ticket, 28 Oct 2026).
+    solved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

@@ -19,7 +19,7 @@ from app.models.enums import BusinessStatus
 from app.models.talent import TalentProfile
 from app.repositories.talent import TalentRepository
 from app.schemas.common import MessageResponse, PaginatedResponse
-from app.schemas.moderation import AdminTalentOut, RejectIn, SuspendIn
+from app.schemas.moderation import AdminTalentOut, PlaceChangeIn, RejectIn, SuspendIn
 from app.schemas.talent import (
     ConvertedOut,
     ConvertToBusinessIn,
@@ -116,6 +116,22 @@ def set_skill(
     TalentService(db).update(
         _load(db, profile_id),
         TalentUpdateIn(skill_id=payload.skill_id, custom_skill_text=payload.custom_skill_text),
+    )
+    return admin_talent(_load(db, profile_id))
+
+
+@router.post("/talent/{profile_id}/place", response_model=AdminTalentOut)
+def set_place(
+    profile_id: uuid.UUID, payload: PlaceChangeIn, db: DbSession, admin: AdminUser
+) -> AdminTalentOut:
+    """Correct a service profile's town and map pin, as for a shop."""
+    TalentService(db).update(
+        _load(db, profile_id),
+        TalentUpdateIn(
+            location_id=payload.location_id,
+            latitude=payload.latitude,
+            longitude=payload.longitude,
+        ),
     )
     return admin_talent(_load(db, profile_id))
 

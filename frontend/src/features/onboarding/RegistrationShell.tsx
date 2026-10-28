@@ -419,6 +419,15 @@ export function RegistrationShell({
               />
             )}
           </Field>
+          {/* A second application on a registered number is set aside, not
+              added to that account (see DiscardedApplication), so someone
+              who already has one is sent to their dashboard instead. */}
+          <p className="rounded-xl bg-sand-100 p-3 text-sm text-ink-700">
+            {t('register.existingAccountNote')}{' '}
+            <Link to="/login" className="font-semibold text-brand-700 hover:underline">
+              {t('register.signInLink')}
+            </Link>
+          </p>
         </CardBody>
       </Card>
 

@@ -21,8 +21,16 @@ from app.core.uploads import read_at_most
 from app.models.business import BusinessItem
 from app.models.enums import BusinessStatus, ImageKind
 from app.repositories.business import BusinessRepository
+from app.schemas.business import BusinessUpdateIn
 from app.schemas.common import MessageResponse, PaginatedResponse
-from app.schemas.moderation import AdminBusinessOut, GoodsOriginIn, RejectIn, SuspendIn
+from app.schemas.moderation import (
+    AdminBusinessOut,
+    CategoryChangeIn,
+    GoodsOriginIn,
+    PlaceChangeIn,
+    RejectIn,
+    SuspendIn,
+)
 from app.services.account import AccountDeletionService
 from app.services.business import BusinessService
 from app.services.business_documents import BusinessDocumentService
@@ -179,6 +187,42 @@ def set_goods_origin(
     for item in business.items:
         item.goods_origin = payload.goods_origin
     db.commit()
+    return admin_business(_load(db, business_id))
+
+
+@router.post("/businesses/{business_id}/category", response_model=AdminBusinessOut)
+def set_category(
+    business_id: uuid.UUID, payload: CategoryChangeIn, db: DbSession, admin: AdminUser
+) -> AdminBusinessOut:
+    """Correct the category a shop is filed under, at any status.
+
+    Through the owner's own update path, so the category is validated and
+    the search text rebuilt as when they edit it.
+    """
+    BusinessService(db).update(
+        _load(db, business_id),
+        BusinessUpdateIn(
+            category_id=payload.category_id,
+            custom_category_text=payload.custom_category_text,
+        ),
+    )
+    return admin_business(_load(db, business_id))
+
+
+@router.post("/businesses/{business_id}/place", response_model=AdminBusinessOut)
+def set_place(
+    business_id: uuid.UUID, payload: PlaceChangeIn, db: DbSession, admin: AdminUser
+) -> AdminBusinessOut:
+    """Correct a shop's town and map pin -- for a pin put across the border,
+    or a town that is not where the shop is."""
+    BusinessService(db).update(
+        _load(db, business_id),
+        BusinessUpdateIn(
+            location_id=payload.location_id,
+            latitude=payload.latitude,
+            longitude=payload.longitude,
+        ),
+    )
     return admin_business(_load(db, business_id))
 
 

@@ -59,3 +59,33 @@ def test_one_sender_is_rate_limited(client: TestClient) -> None:
     for _ in range(3):
         assert client.post("/api/partners", json=_payload(), headers=headers).status_code == 201
     assert client.post("/api/partners", json=_payload(), headers=headers).status_code == 429
+
+
+def test_a_solved_request_moves_to_the_archive_and_can_come_back(
+    client: TestClient, admin: User
+) -> None:
+    """The owners asked to keep handled requests rather than delete them."""
+    assert client.post("/api/partners", json=_payload()).status_code == 201
+    headers = admin_headers(client)
+    [entry] = client.get("/api/admin/partners", headers=headers).json()
+    assert entry["solved_at"] is None
+
+    solved = client.post(f"/api/admin/partners/{entry['id']}/solve", headers=headers)
+    assert solved.status_code == 200, solved.text
+    assert solved.json()["solved_at"] is not None
+    assert client.get("/api/admin/partners", headers=headers).json() == []
+    archive = client.get("/api/admin/partners", params={"solved": True}, headers=headers).json()
+    assert [row["id"] for row in archive] == [entry["id"]]
+
+    reopened = client.post(f"/api/admin/partners/{entry['id']}/reopen", headers=headers)
+    assert reopened.status_code == 200, reopened.text
+    assert [row["id"] for row in client.get("/api/admin/partners", headers=headers).json()] == [
+        entry["id"]
+    ]
+
+
+def test_an_owner_cannot_solve_one(client: TestClient, admin: User) -> None:
+    assert client.post("/api/partners", json=_payload()).status_code == 201
+    [entry] = client.get("/api/admin/partners", headers=admin_headers(client)).json()
+    owner = sign_in(client, "03990001")
+    assert client.post(f"/api/admin/partners/{entry['id']}/solve", headers=owner).status_code == 403

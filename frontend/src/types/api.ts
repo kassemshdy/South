@@ -878,6 +878,8 @@ export interface AdminPartnerRequest {
   residence: string
   offer: string
   created_at: string
+  /** Set once marked solved: the request is then in the archive. */
+  solved_at: string | null
 }
 
 export type ArticleSection = 'BLOG' | 'NEWS'
@@ -908,6 +910,13 @@ export interface ArticleInput {
   slug?: string
   category_id: string | null
   location_id: string | null
+}
+
+/** A listing's town and map pin, as an administrator corrects them. */
+export interface AdminPlace {
+  location_id: string
+  latitude: number
+  longitude: number
 }
 
 export interface AdminArticle extends Article {
@@ -1055,4 +1064,11 @@ export interface DiscardedApplication {
   }
   created_at: string
   dismissed_at: string | null
+}
+
+/** A set-aside application, now a listing pending review on its account. */
+export interface AttachedApplication {
+  application: DiscardedApplication
+  kind: DiscardedApplication['kind']
+  listing_id: string
 }

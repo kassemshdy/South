@@ -7,13 +7,11 @@ import type { Config } from 'tailwindcss'
  * **`brand` is olive and `sand` is sea sand** — «لون الزيتون ولون الرمل
  * البحري», asked for directly. Two scales changed and no component touched:
  * every `brand-*` and `sand-*` class in the app already pointed here, so the
- * whole repaint is these hex values plus the favicon, which hard-codes two of
- * them.
+ * whole repaint is these hex values.
  *
  * `brand` was the deep forest green of the جنوبنا wordmark and ring. It is
  * now the olive of the groves — the mark's foliage rather than its ring, which
- * is the one thing this gives up and the reason `public/favicon.svg` moves
- * with it. `wheat` and `sea` still come off the mark untouched: the gold of
+ * is the one thing this gives up. `wheat` and `sea` still come off the mark untouched: the gold of
  * the wheat ears and the blue of the sea below the hills. The gold matters
  * more than it did — it is what keeps olive from reading as drab.
  *

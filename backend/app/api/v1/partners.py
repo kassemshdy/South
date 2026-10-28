@@ -8,8 +8,10 @@ captcha when one is configured. The public route only ever writes.
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
+from typing import Annotated
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Query, status
 from sqlalchemy import select
 
 from app.core.captcha import verify_captcha
@@ -62,12 +64,47 @@ def send_partner_request(
 
 
 @admin_router.get("/partners", response_model=list[PartnerRequestOut])
-def list_partner_requests(db: DbSession, admin: AdminUser) -> list[PartnerRequestOut]:
-    """Newest first."""
-    rows = db.execute(
-        select(PartnerRequest).order_by(PartnerRequest.created_at.desc())
-    ).scalars()
+def list_partner_requests(
+    db: DbSession, admin: AdminUser, solved: Annotated[bool, Query()] = False
+) -> list[PartnerRequestOut]:
+    """Open requests, or with ``solved`` the archive; newest first."""
+    stmt = select(PartnerRequest)
+    if solved:
+        stmt = stmt.where(PartnerRequest.solved_at.is_not(None))
+    else:
+        stmt = stmt.where(PartnerRequest.solved_at.is_(None))
+    rows = db.execute(stmt.order_by(PartnerRequest.created_at.desc())).scalars()
     return [PartnerRequestOut.model_validate(row) for row in rows]
+
+
+@admin_router.post("/partners/{request_id}/solve", response_model=PartnerRequestOut)
+def solve_partner_request(
+    request_id: uuid.UUID, db: DbSession, admin: AdminUser
+) -> PartnerRequestOut:
+    """Move a handled request to the archive, keeping it."""
+    row = db.get(PartnerRequest, request_id)
+    if row is None:
+        raise NotFoundError("partner.not_found")
+    if row.solved_at is None:
+        row.solved_at = datetime.now(UTC)
+        db.commit()
+        db.refresh(row)
+    return PartnerRequestOut.model_validate(row)
+
+
+@admin_router.post("/partners/{request_id}/reopen", response_model=PartnerRequestOut)
+def reopen_partner_request(
+    request_id: uuid.UUID, db: DbSession, admin: AdminUser
+) -> PartnerRequestOut:
+    """Bring an archived request back, for one marked solved by mistake."""
+    row = db.get(PartnerRequest, request_id)
+    if row is None:
+        raise NotFoundError("partner.not_found")
+    if row.solved_at is not None:
+        row.solved_at = None
+        db.commit()
+        db.refresh(row)
+    return PartnerRequestOut.model_validate(row)
 
 
 @admin_router.delete("/partners/{request_id}", response_model=MessageResponse)

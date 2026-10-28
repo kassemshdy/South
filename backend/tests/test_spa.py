@@ -200,11 +200,11 @@ def test_rendered_index_is_never_edge_cached(spa_client: TestClient) -> None:
 
 def test_static_files_are_served_with_their_real_content(spa_client: TestClient) -> None:
     """Regression: the SPA fallback used to return empty bodies for non-HTML files."""
-    response = spa_client.get("/favicon.svg")
+    response = spa_client.get("/janoubona-icon-32.png")
 
     assert response.status_code == 200
-    assert response.content.startswith(b"<svg")
-    assert "svg" in response.headers["content-type"]
+    assert response.content.startswith(b"\x89PNG")
+    assert response.headers["content-type"] == "image/png"
 
 
 def test_standalone_page_is_reachable_without_its_extension(spa_client: TestClient) -> None:
@@ -318,7 +318,7 @@ def test_the_logo_is_served_as_webp_and_cached_for_a_day(spa_client: TestClient)
     system MIME table to guess from. Cached for a day rather than forever,
     because files in ``public/`` keep their names across deploys.
     """
-    response = spa_client.get("/janoubna-logo.webp")
+    response = spa_client.get("/janoubona-logo.webp")
 
     assert response.status_code == 200
     assert response.headers["content-type"] == "image/webp"
@@ -441,7 +441,7 @@ def test_the_homepage_says_who_publishes_the_site_and_how_to_search_it(
 ) -> None:
     organization, website = _json_ld(spa_client.get("/").text)
     assert organization["@type"] == "Organization"
-    assert organization["logo"] == "https://example.test/janoubna-logo.png"
+    assert organization["logo"] == "https://example.test/janoubona-logo.png"
     assert website["@type"] == "WebSite"
     action = website["potentialAction"]
     assert isinstance(action, dict)

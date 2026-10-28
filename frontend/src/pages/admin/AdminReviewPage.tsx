@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody, CardHeader } from '@/components/ui/Card'
 import { AdminCorrectionsCard } from '@/features/admin/AdminCorrectionsCard'
+import { AdminPlaceCard } from '@/features/admin/AdminPlaceCard'
 import { DeleteForeverButton } from '@/features/admin/DeleteForeverButton'
 import { useStaffCan } from '@/features/admin/staffAccess'
 import { Dialog, DialogClose, DialogContent } from '@/components/ui/Dialog'
@@ -220,7 +221,21 @@ export function AdminReviewPage() {
         </CardBody>
       </Card>
 
-      {canModerate ? <AdminCorrectionsCard business={data} /> : null}
+      {canModerate ? (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <AdminCorrectionsCard business={data} />
+          <AdminPlaceCard
+            key={`${data.location?.id}-${data.latitude}-${data.longitude}`}
+            locationId={data.location?.id ?? null}
+            latitude={data.latitude}
+            longitude={data.longitude}
+            onSave={(place) => adminApi.setBusinessPlace(data.id, place)}
+            onSaved={() =>
+              void queryClient.invalidateQueries({ queryKey: queryKeys.adminBusiness(data.id) })
+            }
+          />
+        </div>
+      ) : null}
 
       {data.rejection_reason ? (
         <Card className="border-clay-200">
@@ -574,15 +589,20 @@ function Detail({
   ltr?: boolean
 }) {
   const { t } = useI18n()
+  // A row per field, the label bold and a rule beneath, side by side from
+  // sm up, so a reviewer scanning a long application can tell where one
+  // answer ends and the next label starts (the owners' request).
   return (
-    <div>
-      <p className="text-sm font-semibold text-ink-700">{t(labelKey)}</p>
-      <p
-        className={`mt-0.5 whitespace-pre-line ${value ? 'text-ink-900' : 'text-ink-300'} ${
-          ltr ? 'ltr-nums' : ''
-        }`}
-      >
-        {value || t('common.notSet')}
+    <div className="grid gap-1 border-b border-ink-100 pb-3 last:border-b-0 last:pb-0 sm:grid-cols-[minmax(0,13rem)_1fr] sm:gap-4">
+      <p className="text-sm font-bold text-ink-900">{t(labelKey)}</p>
+      <p className={`whitespace-pre-line ${value ? 'text-ink-900' : 'text-ink-300'}`}>
+        {value && ltr ? (
+          <span dir="ltr" className="ltr-nums">
+            {value}
+          </span>
+        ) : (
+          value || t('common.notSet')
+        )}
       </p>
     </div>
   )

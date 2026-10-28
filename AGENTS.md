@@ -191,6 +191,10 @@ Five things about it are load-bearing rather than incidental:
   though: it is kept in `discarded_applications`, without its ID scan, where
   only an administrator can read it (`/admin/applications`), so a real owner
   applying twice is not silently lost — `tests/test_discarded_applications.py`.
+  A reviewer who has made sure it is the account holder's own (typically a
+  shop after a services profile) can **add it to that account**, pending
+  review, with the account's identity left as it was (the owners' decision,
+  28 Oct 2026): a person decides, so the form itself still attaches nothing.
 - **An issued password is returned exactly once** by
   `POST /api/admin/users/{id}/credentials`, stored only as a hash, and relayed
   by the administrator from their own WhatsApp. This application never sends
