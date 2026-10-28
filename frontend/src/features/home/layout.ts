@@ -4,16 +4,17 @@ import type { HomeSectionId } from '@/types/api'
 export const ORIGINAL_ORDER: HomeSectionId[] = ['cover', 'hero', 'slogan']
 
 /**
- * The proposed home page, in the owners' order (28 Oct 2026): the cover
- * with the site's message, the pitch with Dr Hossam's video and the two
- * action cards, then search and categories and the browsing sections; the
- * slogan band closes the page. Shown at `/?preview=home` for
- * the manager to review on live data, and applied in one click at
- * /admin/home-layout.
+ * The proposed home page, as the owners asked when it went live (28 Oct
+ * 2026): the live page's own sections first, unchanged -- the cover with the
+ * site's message, the pitch with Dr Hossam's video and the two action cards,
+ * the slogan band -- and every new section below them. Shown at
+ * `/?preview=home`, applied in one click at /admin/home-layout, where an
+ * administrator then reorders or hides any of them.
  */
 export const PROPOSED_ORDER: HomeSectionId[] = [
   'cover',
   'hero',
+  'slogan',
   'search',
   'categories',
   'stories',
@@ -24,7 +25,6 @@ export const PROPOSED_ORDER: HomeSectionId[] = [
   'talents',
   'news',
   'blog',
-  'slogan',
 ]
 
 export const PREVIEW_PARAM = 'preview'
