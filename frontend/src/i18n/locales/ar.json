@@ -1349,5 +1349,6 @@
   "home.previewBanner": "معاينة الصفحة الرئيسية المقترحة — لا يراها الزوار بعد",
   "admin.homeLayoutApplyProposed": "تطبيق الترتيب المقترح",
   "admin.homeLayoutPreview": "معاينة التصميم المقترح",
-  "admin.homeSectionBlog": "المدوّنة"
+  "admin.homeSectionBlog": "المدوّنة",
+  "home.talentRequest": "اطلب الخدمة"
 }

@@ -1349,5 +1349,6 @@
   "home.previewBanner": "Preview of the proposed home page — visitors do not see it yet",
   "admin.homeLayoutApplyProposed": "Apply the proposed order",
   "admin.homeLayoutPreview": "Preview the proposed design",
-  "admin.homeSectionBlog": "Blog"
+  "admin.homeSectionBlog": "Blog",
+  "home.talentRequest": "Request the service"
 }
