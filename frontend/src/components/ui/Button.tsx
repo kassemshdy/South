@@ -21,7 +21,10 @@ const buttonVariants = cva(
       size: {
         sm: 'min-h-9 px-3 text-sm',
         md: 'min-h-11 px-5 text-[15px]',
-        lg: 'min-h-13 px-7 text-base sm:text-lg',
+        // 52px. Tailwind 3's scale has no 13 (12, then 14), so `min-h-13`
+        // generated nothing and every large button fell back to its text
+        // height -- the thin WhatsApp button on the shop page.
+        lg: 'min-h-[3.25rem] px-7 text-base sm:text-lg',
         icon: 'h-11 w-11',
       },
       block: { true: 'w-full', false: '' },
