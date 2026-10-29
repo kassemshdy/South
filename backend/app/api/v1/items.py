@@ -12,7 +12,7 @@ from sqlalchemy import func, select
 
 from app.api.serializers import item_out, paginate, product_detail, product_summary
 from app.core.cache import cached
-from app.core.dependencies import AppSettings, DbSession, OwnedBusiness, Viewer
+from app.core.dependencies import AppSettings, Crawler, DbSession, OwnedBusiness, Viewer
 from app.core.errors import NotFoundError, PayloadTooLargeError, ValidationError
 from app.core.i18n import translate
 from app.core.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
@@ -138,7 +138,7 @@ def related_products(
 
 @public_router.get("/items/{slug}", response_model=ProductDetailOut)
 def get_product(
-    slug: Annotated[str, Path(max_length=200)], db: DbSession, viewer: Viewer
+    slug: Annotated[str, Path(max_length=200)], db: DbSession, viewer: Viewer, crawler: Crawler
 ) -> ProductDetailOut:
     item = ItemRepository(db).get_by_slug(slug)
     if item is None:
@@ -152,6 +152,7 @@ def get_product(
         item.id,
         owner_id=item.business.owner_id,
         viewer=viewer,
+        crawler=crawler,
     )
     return payload
 

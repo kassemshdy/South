@@ -205,6 +205,17 @@ def get_viewer(request: Request, db: DbSession) -> User | None:
 Viewer = Annotated[User | None, Depends(get_viewer)]
 
 
+def is_crawler_request(request: Request) -> bool:
+    """Whether the caller is a search crawler or link-preview fetcher, so a
+    public page is not counted as a view. The user agent is read, never kept."""
+    from app.services.analytics import is_crawler
+
+    return is_crawler(request.headers.get("user-agent"))
+
+
+Crawler = Annotated[bool, Depends(is_crawler_request)]
+
+
 def require_admin(request: Request, user: CurrentUser) -> User:
     """An administrator whose staff role may use this route.
 
