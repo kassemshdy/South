@@ -1120,6 +1120,7 @@
   "talent.field.location": "area",
   "talent.field.map_pin": "Location on the map",
   "talent.field.photo": "profile photo",
+  "talent.field.cover": "cover image",
   "talent.field.skill": "skill",
   "talent.field.work_mode": "How the service is delivered",
   "talent.field.years_experience": "Years of experience",

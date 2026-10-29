@@ -287,6 +287,7 @@ def test_submission_lists_what_is_still_missing(
         "talent.field.bio",
         "talent.field.years_experience",
         "talent.field.photo",
+        "talent.field.cover",
         "talent.field.contact",
         "talent.field.work_mode",
     }
@@ -328,6 +329,7 @@ def test_rejection_reason_reaches_the_owner_and_clears_on_resubmit(
     assert entity is not None
     entity.status = BusinessStatus.PENDING_REVIEW
     entity.photo_url = "https://example.invalid/photo.jpg"
+    entity.cover_url = "https://example.invalid/cover.jpg"
     db.commit()
 
     rejected = client.post(

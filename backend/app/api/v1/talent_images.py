@@ -7,14 +7,16 @@ from typing import Annotated
 
 from fastapi import APIRouter, File, Form, UploadFile, status
 from sqlalchemy import func, select
+from sqlalchemy.orm import Session
 
 from app.api.serializers import owner_talent
+from app.core.config import Settings
 from app.core.dependencies import AppSettings, DbSession, OwnTalentProfile
 from app.core.errors import NotFoundError, PayloadTooLargeError, ValidationError
 from app.core.i18n import translate
 from app.core.uploads import read_at_most
 from app.models.enums import ImageKind
-from app.models.talent import TalentImage
+from app.models.talent import TalentImage, TalentProfile
 from app.schemas.business import ImageReorderIn
 from app.schemas.common import MessageResponse
 from app.schemas.talent import OwnerTalentOut
@@ -23,38 +25,42 @@ from app.storage.factory import get_storage
 
 router = APIRouter(tags=["talent-images"])
 
-# A profile has a headshot and a portfolio, and nothing else: COVER and ITEM
-# are business concepts with no talent equivalent. LOGO is reused for the
-# headshot because its variant (square, 600px) is exactly the right shape.
+# A profile has a headshot, a cover and a portfolio; ITEM is a business
+# concept with no talent equivalent. LOGO is reused for the headshot because
+# its variant (square, 600px) is exactly the right shape, and COVER for the
+# wide image across the top of the page (the owners' ticket, 29 Oct 2026).
 PHOTO_KIND = ImageKind.LOGO
-ALLOWED_KINDS = frozenset({PHOTO_KIND, ImageKind.GALLERY})
+COVER_KIND = ImageKind.COVER
+SINGLE_KINDS = frozenset({PHOTO_KIND, COVER_KIND})
+ALLOWED_KINDS = frozenset({PHOTO_KIND, COVER_KIND, ImageKind.GALLERY})
 
 
-@router.post(
-    "/my/talent/images",
-    response_model=OwnerTalentOut,
-    status_code=status.HTTP_201_CREATED,
-)
-def upload_talent_image(
-    profile: OwnTalentProfile,
-    db: DbSession,
-    settings: AppSettings,
-    file: Annotated[UploadFile, File(description="Image file")],
-    kind: Annotated[ImageKind, Form()] = ImageKind.GALLERY,
-    caption: Annotated[str | None, Form(max_length=300)] = None,
-) -> OwnerTalentOut:
-    """Upload the profile photo or a portfolio image.
+def _point_profile_at(
+    profile: TalentProfile, kind: ImageKind, url: str | None, key: str | None
+) -> None:
+    if kind is PHOTO_KIND:
+        profile.photo_url, profile.photo_storage_key = url, key
+    elif kind is COVER_KIND:
+        profile.cover_url, profile.cover_storage_key = url, key
 
-    The file is validated by decoding it, then re-encoded and resized before it
-    reaches storage, so nothing the client sends is served back verbatim.
+
+def store_talent_image(
+    db: Session,
+    settings: Settings,
+    profile: TalentProfile,
+    *,
+    kind: ImageKind,
+    data: bytes,
+    content_type: str | None,
+    caption: str | None = None,
+) -> None:
+    """Store one photo, cover or portfolio image and point the profile at it.
+
+    Shared with the administrator's route for a profile that went live
+    without a photo or cover. Does not commit.
     """
     if kind not in ALLOWED_KINDS:
         raise ValidationError("image.invalid_kind", code="invalid_image_kind")
-
-    data = read_at_most(file.file, settings.max_upload_bytes)
-    if len(data) > settings.max_upload_bytes:
-        raise PayloadTooLargeError()
-
     service = ImageService(get_storage(), settings)
 
     if kind is ImageKind.GALLERY:
@@ -75,8 +81,8 @@ def upload_talent_image(
                 params={"max": settings.max_gallery_images},
             )
     else:
-        # A profile has one photo; replacing it removes the previous file from
-        # storage rather than orphaning it.
+        # A profile has one photo and one cover; replacing either removes the
+        # previous file from storage rather than orphaning it.
         existing = (
             db.execute(
                 select(TalentImage).where(
@@ -94,7 +100,7 @@ def upload_talent_image(
 
     stored = service.process_and_store(
         data=data,
-        content_type=file.content_type,
+        content_type=content_type,
         owner_id=profile.id,
         kind=kind,
         prefix="talent",
@@ -113,9 +119,37 @@ def upload_talent_image(
             size_bytes=stored.size_bytes,
         )
     )
+    _point_profile_at(profile, kind, stored.url, stored.key)
 
-    if kind is PHOTO_KIND:
-        profile.photo_url, profile.photo_storage_key = stored.url, stored.key
+
+@router.post(
+    "/my/talent/images",
+    response_model=OwnerTalentOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def upload_talent_image(
+    profile: OwnTalentProfile,
+    db: DbSession,
+    settings: AppSettings,
+    file: Annotated[UploadFile, File(description="Image file")],
+    kind: Annotated[ImageKind, Form()] = ImageKind.GALLERY,
+    caption: Annotated[str | None, Form(max_length=300)] = None,
+) -> OwnerTalentOut:
+    """Upload the profile photo, the cover or a portfolio image.
+
+    The file is validated by decoding it, then re-encoded and resized before it
+    reaches storage, so nothing the client sends is served back verbatim.
+    """
+    if kind not in ALLOWED_KINDS:
+        raise ValidationError("image.invalid_kind", code="invalid_image_kind")
+
+    data = read_at_most(file.file, settings.max_upload_bytes)
+    if len(data) > settings.max_upload_bytes:
+        raise PayloadTooLargeError()
+
+    store_talent_image(
+        db, settings, profile, kind=kind, data=data, content_type=file.content_type, caption=caption
+    )
 
     db.commit()
     db.refresh(profile)
@@ -136,10 +170,29 @@ def delete_talent_image(
 
     ImageService(get_storage(), settings).delete(image.storage_key)
 
-    if image.kind is PHOTO_KIND:
-        profile.photo_url, profile.photo_storage_key = None, None
+    if image.kind in SINGLE_KINDS:
+        _point_profile_at(profile, image.kind, None, None)
 
     db.delete(image)
+    db.commit()
+    db.refresh(profile)
+    return owner_talent(profile)
+
+
+@router.delete("/my/talent/images/kind/{kind}", response_model=OwnerTalentOut)
+def delete_single_talent_image(
+    kind: ImageKind, profile: OwnTalentProfile, db: DbSession, settings: AppSettings
+) -> OwnerTalentOut:
+    """Remove the photo or the cover. By kind rather than id: the owner's
+    payload lists only the portfolio, so the page never holds those ids."""
+    if kind not in SINGLE_KINDS:
+        raise ValidationError("image.invalid_kind", code="invalid_image_kind")
+    service = ImageService(get_storage(), settings)
+    for image in list(profile.images):
+        if image.kind is kind:
+            service.delete(image.storage_key)
+            db.delete(image)
+    _point_profile_at(profile, kind, None, None)
     db.commit()
     db.refresh(profile)
     return owner_talent(profile)

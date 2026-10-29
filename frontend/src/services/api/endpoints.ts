@@ -515,6 +515,9 @@ export const ownerTalentApi = {
   },
   deleteImage: (imageId: string) =>
     apiRequest<OwnerTalent>(`/api/my/talent/images/${imageId}`, { method: 'DELETE' }),
+  /** The photo or the cover, by kind: the owner's payload lists only the portfolio. */
+  deleteSingleImage: (kind: 'LOGO' | 'COVER') =>
+    apiRequest<OwnerTalent>(`/api/my/talent/images/kind/${kind}`, { method: 'DELETE' }),
   reorderImages: (image_ids: string[]) =>
     apiRequest<OwnerTalent>('/api/my/talent/images/order', {
       method: 'PUT',
