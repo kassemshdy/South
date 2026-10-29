@@ -407,6 +407,31 @@ export function WorkshopsSection() {
   )
 }
 
+/** The next online workshops, joinable from anywhere; nothing until one is published. */
+export function OnlineWorkshopsSection() {
+  const t = useT()
+  const workshops = useQuery({
+    queryKey: queryKeys.workshops({ limit: 3, mode: 'ONLINE' }),
+    queryFn: () => workshopApi.list({ limit: 3, mode: 'ONLINE' }),
+  })
+  const items = workshops.data ?? []
+  if (items.length === 0) return null
+  return (
+    <Band>
+      <SectionHeading
+        title={t('workshops.onlineTitle')}
+        to="/workshops?mode=online"
+        more={t('workshops.viewAll')}
+      />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {items.map((workshop) => (
+          <WorkshopCard key={workshop.id} workshop={workshop} />
+        ))}
+      </div>
+    </Band>
+  )
+}
+
 /** At most this many category rows, busiest categories first. */
 const CATEGORY_ROWS = 6
 

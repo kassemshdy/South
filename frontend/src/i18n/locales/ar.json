@@ -1563,5 +1563,10 @@
   "admin.workshopDeleteConfirm": "حذف هذه الورشة وكل التسجيلات فيها؟",
   "admin.homeSectionWorkshops": "ورش العمل",
   "nav.workshops": "ورش العمل",
-  "admin.workshopContact": "تواصل عبر واتساب"
+  "admin.workshopContact": "تواصل عبر واتساب",
+  "workshops.filterAll": "الكل",
+  "workshops.onlineTitle": "ورش عمل عبر الإنترنت",
+  "admin.workshopExamples": "إضافة ورش نموذجية",
+  "admin.workshopExamplesAdded": "أُضيفت {count} ورش نموذجية كمسودّات. حدّد الموعد والمدرّب ثم انشرها.",
+  "admin.homeSectionOnlineWorkshops": "ورش عمل عبر الإنترنت"
 }

@@ -1563,5 +1563,10 @@
   "admin.workshopDeleteConfirm": "Delete this workshop and every sign-up for it?",
   "admin.homeSectionWorkshops": "Workshops",
   "nav.workshops": "Workshops",
-  "admin.workshopContact": "Contact on WhatsApp"
+  "admin.workshopContact": "Contact on WhatsApp",
+  "workshops.filterAll": "All",
+  "workshops.onlineTitle": "Online workshops",
+  "admin.workshopExamples": "Add example workshops",
+  "admin.workshopExamplesAdded": "{count} example workshops added as drafts. Set the date and trainer, then publish.",
+  "admin.homeSectionOnlineWorkshops": "Online workshops"
 }

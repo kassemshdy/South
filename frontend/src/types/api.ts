@@ -560,6 +560,7 @@ export type HomeSectionId =
   | 'top_rated_products'
   | 'top_viewed_products'
   | 'workshops'
+  | 'online_workshops'
   | 'category_products'
   | 'shops'
   | 'talents'

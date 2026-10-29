@@ -70,6 +70,7 @@ def _slug_exists(db: DbSession, slug: str, exclude_id: uuid.UUID | None = None) 
 def list_workshops(
     db: DbSession,
     when: Annotated[Literal["upcoming", "past"], Query()] = "upcoming",
+    mode: Annotated[WorkshopMode | None, Query()] = None,
     category: Annotated[str | None, Query(max_length=140)] = None,
     location: Annotated[str | None, Query(max_length=140)] = None,
     limit: Annotated[int, Query(ge=1, le=MAX_LISTED)] = MAX_LISTED,
@@ -86,6 +87,8 @@ def list_workshops(
         stmt = stmt.where(Workshop.starts_at >= cutoff).order_by(Workshop.starts_at.asc())
     else:
         stmt = stmt.where(Workshop.starts_at < cutoff).order_by(Workshop.starts_at.desc())
+    if mode is not None:
+        stmt = stmt.where(Workshop.mode == mode)
     if category:
         category_id = select(Category.id).where(Category.slug == category).scalar_subquery()
         stmt = stmt.where(
@@ -220,6 +223,37 @@ def create_workshop(payload: WorkshopIn, db: DbSession, admin: AdminUser) -> Adm
     db.commit()
     db.refresh(workshop)
     return _admin_out(db, workshop)
+
+
+@admin_router.post("/examples", response_model=list[AdminWorkshopOut])
+def add_example_workshops(db: DbSession, admin: AdminUser) -> list[AdminWorkshopOut]:
+    """The example online workshops, added as drafts.
+
+    Each is a starting point -- a date a few weeks out, no trainer, free --
+    for an administrator to complete and publish; none reaches a visitor on
+    its own. An example whose slug is already taken is skipped, so pressing
+    the button twice adds nothing the second time.
+    """
+    from scripts.seed_data import WORKSHOPS
+
+    evening = _now().replace(hour=16, minute=0, second=0, microsecond=0)
+    added: list[Workshop] = []
+    for example in WORKSHOPS:
+        if _slug_exists(db, example["slug"]):
+            continue
+        starts_at = evening + timedelta(days=example["days_from_now"])
+        workshop = Workshop(
+            slug=example["slug"],
+            title=example["title"],
+            description=example["description"],
+            starts_at=starts_at,
+            ends_at=starts_at + timedelta(minutes=example["duration_minutes"]),
+            mode=WorkshopMode.ONLINE,
+        )
+        db.add(workshop)
+        added.append(workshop)
+    db.commit()
+    return [_admin_out(db, workshop) for workshop in added]
 
 
 @admin_router.put("/{workshop_id}", response_model=AdminWorkshopOut)

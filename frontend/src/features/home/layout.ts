@@ -28,6 +28,7 @@ export const PROPOSED_ORDER: HomeSectionId[] = [
   'shops',
   'talents',
   'workshops',
+  'online_workshops',
   'news',
   'blog',
 ]

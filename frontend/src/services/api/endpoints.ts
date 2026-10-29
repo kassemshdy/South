@@ -72,6 +72,7 @@ import type {
   Workshop,
   WorkshopInput,
   WorkshopRegistration,
+  WorkshopMode,
   GrowthPlan,
   StaffMember,
   StaffPassword,
@@ -361,7 +362,15 @@ export const partnerApi = {
 
 /** Workshops: anyone reads and signs up; who signed up is for staff only. */
 export const workshopApi = {
-  list: (query: { when?: 'upcoming' | 'past'; category?: string; location?: string; limit?: number } = {}) =>
+  list: (
+    query: {
+      when?: 'upcoming' | 'past'
+      mode?: WorkshopMode
+      category?: string
+      location?: string
+      limit?: number
+    } = {},
+  ) =>
     apiRequest<Workshop[]>('/api/workshops', { query: { ...query } }),
   bySlug: (slug: string) => apiRequest<Workshop>(`/api/workshops/${encodeURIComponent(slug)}`),
   register: (
@@ -913,6 +922,8 @@ export const adminApi = {
     apiRequest<AdminTestimonial>(`/api/admin/testimonials/${id}/reject`, { method: 'POST' }),
 
   workshops: () => apiRequest<AdminWorkshop[]>('/api/admin/workshops'),
+  addExampleWorkshops: () =>
+    apiRequest<AdminWorkshop[]>('/api/admin/workshops/examples', { method: 'POST' }),
   createWorkshop: (body: WorkshopInput) =>
     apiRequest<AdminWorkshop>('/api/admin/workshops', { method: 'POST', body }),
   updateWorkshop: (id: string, body: Partial<WorkshopInput>) =>

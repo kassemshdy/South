@@ -122,6 +122,7 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     ("DELETE", "/api/admin/team/{slot}/photo"): _CONTENT,
     # Workshops: written like articles, by the editorial pages' people.
     ("POST", "/api/admin/workshops"): _CONTENT,
+    ("POST", "/api/admin/workshops/examples"): _CONTENT,
     ("PUT", "/api/admin/workshops/{workshop_id}"): _CONTENT,
     ("DELETE", "/api/admin/workshops/{workshop_id}"): _CONTENT,
     ("POST", "/api/admin/workshops/{workshop_id}/publish"): _CONTENT,

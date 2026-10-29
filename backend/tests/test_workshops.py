@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.models.taxonomy import Category, Location
 from app.models.user import User
 from app.services import telegram_archive
+from scripts.seed_data import WORKSHOPS
 from tests.conftest import admin_headers
 from tests.samples import ar
 from tests.test_permissions import _invite
@@ -137,3 +138,30 @@ def test_content_editors_write_workshops_and_support_cannot(
 
 def test_sign_ups_are_copied_to_the_telegram_archive() -> None:
     assert "workshop_registrations" in telegram_archive.ARCHIVED_TABLES
+
+
+def test_the_examples_arrive_as_online_drafts_once(client: TestClient, admin: User) -> None:
+    headers = admin_headers(client)
+    added = client.post("/api/admin/workshops/examples", headers=headers)
+    assert added.status_code == 200, added.text
+    examples = added.json()
+    assert len(examples) == len(WORKSHOPS)
+    assert {w["slug"] for w in examples} == {seed["slug"] for seed in WORKSHOPS}
+    assert all(w["mode"] == "ONLINE" and not w["is_published"] for w in examples)
+    assert all(w["price"] is None and w["trainer_name"] is None for w in examples)
+    assert client.get("/api/workshops").json() == [], "drafts reach nobody"
+
+    assert client.post("/api/admin/workshops/examples", headers=headers).json() == []
+    support = _invite(client, headers, "SUPPORT", "support-examples@example.com")
+    refused = client.post("/api/admin/workshops/examples", headers=support)
+    assert refused.status_code == 403
+
+
+def test_the_online_section_lists_online_workshops_only(client: TestClient, admin: User) -> None:
+    headers = admin_headers(client)
+    online = _create(client, headers, slug="online", mode="ONLINE")
+    _create(client, headers, slug="in-person", mode="IN_PERSON")
+
+    listed = client.get("/api/workshops?mode=ONLINE").json()
+    assert [w["slug"] for w in listed] == [online["slug"]]
+    assert len(client.get("/api/workshops").json()) == 2

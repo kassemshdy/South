@@ -111,6 +111,14 @@ export function AdminWorkshopsPage() {
     onSuccess: refresh,
     onError: fail,
   })
+  const addExamples = useMutation({
+    mutationFn: adminApi.addExampleWorkshops,
+    onSuccess: (added) => {
+      toast.success(t('admin.workshopExamplesAdded', { count: added.length }))
+      refresh()
+    },
+    onError: fail,
+  })
   const uploadCover = useMutation({
     mutationFn: ({ id, file }: { id: string; file: File }) => adminApi.uploadWorkshopCover(id, file),
     onSuccess: refresh,
@@ -127,10 +135,19 @@ export function AdminWorkshopsPage() {
           <p className="mt-2 text-ink-500">{t('admin.workshopRelatedHint')}</p>
         </div>
         {canEdit && editing === null ? (
-          <Button onClick={() => setEditing('new')}>
-            <Plus className="h-4 w-4" aria-hidden="true" />
-            {t('admin.workshopNew')}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              loading={addExamples.isPending}
+              onClick={() => addExamples.mutate()}
+            >
+              {t('admin.workshopExamples')}
+            </Button>
+            <Button onClick={() => setEditing('new')}>
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              {t('admin.workshopNew')}
+            </Button>
+          </div>
         ) : null}
       </header>
 
