@@ -45,6 +45,7 @@ export function VacancyPage() {
   useSeo({
     title: data ? `${data.title} | ${t('app.name')}` : t('vacancies.title'),
     description: data?.description.slice(0, 160),
+    image: data?.cover_url ?? null,
     canonicalPath: `/vacancies/${encodeURIComponent(slug)}`,
   })
 
@@ -80,6 +81,13 @@ export function VacancyPage() {
       <BackLink fallback="/vacancies" />
       <div className="mt-4 grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
+          {data.cover_url ? (
+            <img
+              src={data.cover_url}
+              alt=""
+              className="mb-6 aspect-[16/9] w-full rounded-2xl object-cover"
+            />
+          ) : null}
           <h1 className="text-2xl sm:text-3xl" dir="auto">
             {data.title}
           </h1>

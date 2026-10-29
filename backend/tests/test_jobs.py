@@ -14,9 +14,11 @@ from app.models.job import JobApplication, JobOpening
 from app.models.user import User
 from app.services import telegram_archive
 from app.services.job_applications import EMPLOYER_ID_FOLDER, FOLDER
+from app.storage.factory import get_storage
 from tests.conftest import admin_headers
 from tests.samples import ar
 from tests.test_permissions import _invite
+from tests.test_product_profile import make_image
 
 PDF = b"%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n"
 
@@ -183,3 +185,58 @@ def test_an_offer_without_a_real_document_is_refused_and_leaves_nothing(
     assert _offer(client, data=b"not a document").status_code == 415
     assert _offer(client, work_mode="SOMETIMES").status_code == 422
     assert db.query(JobOpening).count() == 0
+
+
+def _cover_key(db: Session, job_id: str) -> str | None:
+    db.expire_all()
+    job = db.get(JobOpening, job_id)
+    assert job is not None
+    return job.cover_storage_key
+
+
+def test_a_thumbnail_is_shown_replaced_and_removed_with_its_file(
+    client: TestClient, db: Session, admin: User
+) -> None:
+    headers = admin_headers(client)
+    job = _create(client, headers)
+    url = f"/api/admin/job-openings/{job['id']}/image"
+
+    def photo() -> dict[str, tuple[str, bytes, str]]:
+        return {"file": ("thumb.jpg", make_image((600, 400)), "image/jpeg")}
+
+    first = client.post(url, headers=headers, files=photo())
+    assert first.status_code == 200, first.text
+    first_key = _cover_key(db, job["id"])
+    assert first_key and get_storage().exists(first_key)
+    public = client.get(f"/api/job-openings/{job['slug']}").json()
+    assert public["cover_url"] == first.json()["cover_url"]
+    assert [j["cover_url"] for j in client.get("/api/job-openings").json()] == [public["cover_url"]]
+    assert "cover_storage_key" not in public
+
+    # Replacing it removes the old file.
+    assert client.post(url, headers=headers, files=photo()).status_code == 200
+    second_key = _cover_key(db, job["id"])
+    assert second_key and second_key != first_key
+    assert not get_storage().exists(first_key)
+
+    removed = client.delete(url, headers=headers)
+    assert removed.status_code == 200 and removed.json()["cover_url"] is None
+    assert not get_storage().exists(second_key)
+    assert client.get(f"/api/job-openings/{job['slug']}").json()["cover_url"] is None
+
+    # Deleting the opening takes its thumbnail with it.
+    assert client.post(url, headers=headers, files=photo()).status_code == 200
+    last_key = _cover_key(db, job["id"])
+    assert client.delete(f"/api/admin/job-openings/{job['id']}", headers=headers).status_code == 200
+    assert last_key and not get_storage().exists(last_key)
+
+
+def test_only_content_staff_set_a_thumbnail(client: TestClient, admin: User) -> None:
+    manager = admin_headers(client)
+    job = _create(client, manager)
+    support = _invite(client, manager, "SUPPORT", "support-jobs-thumb@example.com")
+    url = f"/api/admin/job-openings/{job['id']}/image"
+    photo = {"file": ("thumb.jpg", make_image((600, 400)), "image/jpeg")}
+    assert client.post(url, headers=support, files=photo).status_code == 403
+    assert client.delete(url, headers=support).status_code == 403
+    assert client.post(url, files=photo).status_code == 401

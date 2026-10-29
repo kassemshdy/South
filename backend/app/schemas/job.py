@@ -51,6 +51,7 @@ class JobOpeningOut(ORMModel):
     location: LocationOut | None = None
     work_place: str | None = None
     work_mode: WorkMode | None = None
+    cover_url: str | None = None
     created_at: datetime
 
 

@@ -66,6 +66,10 @@ class JobOpening(Base, TimestampMixin):
     id_document_storage_key: Mapped[str | None] = mapped_column(String(300), nullable=True)
     id_document_content_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
+    #: A thumbnail chosen by staff, shown on the list and the page.
+    cover_url: Mapped[str | None] = mapped_column(String, nullable=True)
+    cover_storage_key: Mapped[str | None] = mapped_column(String, nullable=True)
+
     location: Mapped[Location | None] = relationship(lazy="joined")
     applications: Mapped[list[JobApplication]] = relationship(
         back_populates="job", cascade="all, delete-orphan", passive_deletes=True
