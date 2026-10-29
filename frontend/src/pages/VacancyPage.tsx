@@ -13,6 +13,7 @@ import { ErrorState } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
 import { Turnstile } from '@/components/ui/Turnstile'
 import { JOB_TYPE_LABELS } from '@/features/jobs/JobCard'
+import { WORK_MODE_LABELS } from '@/pages/JobOfferPage'
 import { useSeo } from '@/hooks/useSeo'
 import { useI18n } from '@/i18n'
 import { ApiError } from '@/services/api/client'
@@ -97,6 +98,14 @@ export function VacancyPage() {
               <li className="flex items-center gap-2">
                 <MapPin className="h-5 w-5 shrink-0 text-clay-600" aria-hidden="true" />
                 {data.location.name_ar}
+              </li>
+            ) : null}
+            {data.work_place || data.work_mode ? (
+              <li className="flex items-center gap-2" dir="auto">
+                <MapPin className="h-5 w-5 shrink-0 text-clay-600" aria-hidden="true" />
+                {[data.work_place, data.work_mode ? t(WORK_MODE_LABELS[data.work_mode]) : null]
+                  .filter(Boolean)
+                  .join(t('common.listSeparator'))}
               </li>
             ) : null}
             {data.salary ? (

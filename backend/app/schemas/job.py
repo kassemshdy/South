@@ -6,7 +6,7 @@ from datetime import date, datetime
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.core.phone import normalize_phone
-from app.models.enums import JobType
+from app.models.enums import JobType, WorkMode
 from app.schemas.common import ORMModel
 from app.schemas.taxonomy import LocationOut
 
@@ -20,6 +20,8 @@ class JobOpeningIn(BaseModel):
     salary: str | None = Field(default=None, max_length=120)
     deadline: date | None = None
     location_id: uuid.UUID | None = None
+    work_place: str | None = Field(default=None, max_length=200)
+    work_mode: WorkMode | None = None
 
 
 class JobOpeningUpdateIn(BaseModel):
@@ -31,6 +33,8 @@ class JobOpeningUpdateIn(BaseModel):
     salary: str | None = Field(default=None, max_length=120)
     deadline: date | None = None
     location_id: uuid.UUID | None = None
+    work_place: str | None = Field(default=None, max_length=200)
+    work_mode: WorkMode | None = None
 
 
 class JobOpeningOut(ORMModel):
@@ -45,6 +49,8 @@ class JobOpeningOut(ORMModel):
     salary: str | None = None
     deadline: date | None = None
     location: LocationOut | None = None
+    work_place: str | None = None
+    work_mode: WorkMode | None = None
     created_at: datetime
 
 
@@ -52,6 +58,33 @@ class AdminJobOpeningOut(JobOpeningOut):
     is_published: bool
     application_count: int = 0
     updated_at: datetime
+    #: Who offered it, when an employer did on the public form. Staff only.
+    submitter_name: str | None = None
+    submitter_phone: str | None = None
+    has_id_document: bool = False
+
+
+class JobOfferIn(BaseModel):
+    """An employer's offer from the public form; the ID scan arrives beside it."""
+
+    submitter_name: str = Field(min_length=2, max_length=80)
+    phone_number: str = Field(min_length=6, max_length=20)
+    employer_name: str = Field(min_length=2, max_length=160)
+    work_place: str = Field(min_length=2, max_length=200)
+    work_mode: WorkMode
+    title: str = Field(min_length=3, max_length=200)
+    description: str = Field(min_length=10, max_length=5000)
+    captcha_token: str | None = Field(default=None, max_length=4096)
+
+    @field_validator("submitter_name", "employer_name", "work_place", "title", "description")
+    @classmethod
+    def _strip_text(cls, value: str) -> str:
+        return value.strip()
+
+    @field_validator("phone_number")
+    @classmethod
+    def _normalize_phone(cls, value: str) -> str:
+        return normalize_phone(value)
 
 
 class JobApplicationIn(BaseModel):

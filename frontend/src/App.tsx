@@ -15,6 +15,7 @@ import { BrowsePage } from '@/pages/BrowsePage'
 import { BusinessProfilePage } from '@/pages/BusinessProfilePage'
 import { ContactPage } from '@/pages/ContactPage'
 import { PartnerPage } from '@/pages/PartnerPage'
+import { JobOfferPage } from '@/pages/JobOfferPage'
 import { VacanciesPage } from '@/pages/VacanciesPage'
 import { VacancyPage } from '@/pages/VacancyPage'
 import { WorkshopPage } from '@/pages/WorkshopPage'
@@ -219,6 +220,7 @@ export function App() {
           <Route path="workshops" element={<WorkshopsPage />} />
           <Route path="workshops/:slug" element={<WorkshopPage />} />
           <Route path="vacancies" element={<VacanciesPage />} />
+          <Route path="vacancies/offer" element={<JobOfferPage />} />
           <Route path="vacancies/:slug" element={<VacancyPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="forgot-password" element={<ForgotPasswordPage />} />

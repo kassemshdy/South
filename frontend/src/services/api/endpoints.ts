@@ -77,6 +77,7 @@ import type {
   AdminJobOpening,
   JobApplication,
   JobOpening,
+  JobOfferInput,
   JobOpeningInput,
   WorkshopMode,
   GrowthPlan,
@@ -391,6 +392,17 @@ export const jobApi = {
       `/api/job-openings/${encodeURIComponent(slug)}/apply`,
       { method: 'POST', formData: form },
     )
+  },
+  /** An employer offers a job; it waits as a draft for an administrator. */
+  offer: (payload: JobOfferInput, idDocument: File, captchaToken: string | null) => {
+    const form = new FormData()
+    for (const [key, value] of Object.entries(payload)) form.append(key, value)
+    if (captchaToken) form.append('captcha_token', captchaToken)
+    form.append('id_document', idDocument)
+    return apiRequest<{ message: string }>('/api/job-openings/offer', {
+      method: 'POST',
+      formData: form,
+    })
   },
 }
 
@@ -1002,6 +1014,8 @@ export const adminApi = {
     apiRequest<JobApplication[]>(`/api/admin/job-openings/${id}/applications`),
   downloadJobApplicationCv: (jobId: string, applicationId: string) =>
     apiDownload(`/api/admin/job-openings/${jobId}/applications/${applicationId}/cv`),
+  downloadJobOfferIdDocument: (jobId: string) =>
+    apiDownload(`/api/admin/job-openings/${jobId}/id-document`),
   deleteJobApplication: (jobId: string, applicationId: string) =>
     apiRequest<{ message: string }>(
       `/api/admin/job-openings/${jobId}/applications/${applicationId}`,

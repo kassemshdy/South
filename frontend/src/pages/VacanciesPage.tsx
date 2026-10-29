@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { Briefcase } from 'lucide-react'
+import { Briefcase, Building2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/States'
@@ -25,6 +26,13 @@ export function VacanciesPage() {
         <Briefcase className="h-8 w-8 text-brand-700" aria-hidden="true" />
         <h1 className="mt-3 text-3xl">{t('vacancies.title')}</h1>
         <p className="mt-2 max-w-2xl text-ink-500">{t('vacancies.subtitle')}</p>
+        <Link
+          to="/vacancies/offer"
+          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand-800 px-4 py-2.5 font-semibold text-white hover:bg-brand-900"
+        >
+          <Building2 className="h-5 w-5" aria-hidden="true" />
+          {t('onboarding.offerEmployerTitle')}
+        </Link>
       </header>
       {jobs.isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

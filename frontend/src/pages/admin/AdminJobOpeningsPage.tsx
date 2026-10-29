@@ -19,7 +19,8 @@ import { useI18n } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { adminApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import type { AdminJobOpening, JobOpeningInput, JobType } from '@/types/api'
+import { WORK_MODE_LABELS } from '@/pages/JobOfferPage'
+import type { AdminJobOpening, JobOpeningInput, JobType, WorkMode } from '@/types/api'
 import { formatDate, formatDateTime, whatsappHref } from '@/utils/format'
 
 const JOB_TYPES = Object.keys(JOB_TYPE_LABELS) as JobType[]
@@ -32,7 +33,11 @@ interface FormState {
   salary: string
   deadline: string
   location_id: string
+  work_place: string
+  work_mode: WorkMode | ''
 }
+
+const NO_MODE = '__none__'
 
 const EMPTY: FormState = {
   title: '',
@@ -42,6 +47,8 @@ const EMPTY: FormState = {
   salary: '',
   deadline: '',
   location_id: '',
+  work_place: '',
+  work_mode: '',
 }
 
 function toPayload(form: FormState): JobOpeningInput {
@@ -54,6 +61,8 @@ function toPayload(form: FormState): JobOpeningInput {
     salary: blank(form.salary),
     deadline: form.deadline || null,
     location_id: form.location_id || null,
+    work_place: blank(form.work_place),
+    work_mode: form.work_mode || null,
   }
 }
 
@@ -150,6 +159,8 @@ export function AdminJobOpeningsPage() {
                         {t(JOB_TYPE_LABELS[job.job_type])}
                         {job.employer_name ? ` · ${job.employer_name}` : ''}
                         {job.location ? ` · ${job.location.name_ar}` : ''}
+                        {job.work_place ? ` · ${job.work_place}` : ''}
+                        {job.work_mode ? ` · ${t(WORK_MODE_LABELS[job.work_mode])}` : ''}
                         {job.deadline
                           ? ` · ${t('vacancies.deadline', { date: formatDate(job.deadline, locale) })}`
                           : ''}
@@ -192,6 +203,7 @@ export function AdminJobOpeningsPage() {
                       ) : null}
                     </div>
                   </div>
+                  {job.submitter_name ? <OfferedBy job={job} /> : null}
                   {openApplications === job.id ? <Applications job={job} /> : null}
                 </CardBody>
               </Card>
@@ -199,6 +211,45 @@ export function AdminJobOpeningsPage() {
           ))}
         </ul>
       )}
+    </div>
+  )
+}
+
+/** Who offered the job on the public form, and their ID for the reviewer. */
+function OfferedBy({ job }: { job: AdminJobOpening }) {
+  const { t } = useI18n()
+  const toast = useToast()
+  const canReadId = useStaffCan('documents')
+  const download = useMutation({
+    mutationFn: () => adminApi.downloadJobOfferIdDocument(job.id),
+    onSuccess: ({ blob, filename }) => {
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename ?? 'id'
+      link.click()
+      URL.revokeObjectURL(url)
+    },
+    onError: (error) =>
+      toast.error(t('admin.downloadDocumentFailed'), error instanceof ApiError ? error.message : undefined),
+  })
+  const wa = job.submitter_phone ? whatsappHref(job.submitter_phone, '') : null
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-xl bg-sand-50 px-3 py-2 text-sm">
+      <span dir="auto">
+        {t('admin.jobOfferedBy', { name: job.submitter_name ?? '', phone: job.submitter_phone ?? '' })}
+      </span>
+      {wa ? (
+        <a href={wa} target="_blank" rel="noopener noreferrer" className="font-semibold text-olive-700 hover:underline">
+          {t('admin.workshopContact')}
+        </a>
+      ) : null}
+      {canReadId && job.has_id_document ? (
+        <Button variant="outline" size="sm" loading={download.isPending} onClick={() => download.mutate()}>
+          <Download className="h-4 w-4" aria-hidden="true" />
+          {t('admin.jobDownloadId')}
+        </Button>
+      ) : null}
     </div>
   )
 }
@@ -318,6 +369,8 @@ function JobForm({ job, onDone }: { job: AdminJobOpening | null; onDone: () => v
           salary: job.salary ?? '',
           deadline: job.deadline ?? '',
           location_id: job.location?.id ?? '',
+          work_place: job.work_place ?? '',
+          work_mode: job.work_mode ?? '',
         }
       : EMPTY,
   )
@@ -421,6 +474,38 @@ function JobForm({ job, onDone }: { job: AdminJobOpening | null; onDone: () => v
                 />
               )}
             </Field>
+            <Field label={t('admin.jobWorkPlaceLabel')}>
+              {(props) => (
+                <Input
+                  {...props}
+                  maxLength={200}
+                  dir="auto"
+                  value={form.work_place}
+                  onChange={(event) => set('work_place', event.target.value)}
+                />
+              )}
+            </Field>
+            <div>
+              <label id="job-mode" className="mb-1.5 block text-sm font-semibold text-ink-700">
+                {t('admin.jobWorkModeLabel')}
+              </label>
+              <Select
+                value={form.work_mode || NO_MODE}
+                onValueChange={(value) => set('work_mode', value === NO_MODE ? '' : (value as WorkMode))}
+              >
+                <SelectTrigger aria-labelledby="job-mode">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_MODE}>{t('admin.jobWorkModeNone')}</SelectItem>
+                  {(Object.keys(WORK_MODE_LABELS) as WorkMode[]).map((mode) => (
+                    <SelectItem key={mode} value={mode}>
+                      {t(WORK_MODE_LABELS[mode])}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <label htmlFor="job-location" className="mb-1.5 block text-sm font-semibold text-ink-700">
                 {t('admin.jobLocationLabel')}

@@ -18,9 +18,11 @@ from app.storage.base import StorageBackend
 logger = logging.getLogger(__name__)
 
 FOLDER = "job-cv"
-#: Holds strangers' CVs; the media mount refuses it
+#: The ID scan an employer sends with a job they offer.
+EMPLOYER_ID_FOLDER = "job-employer-id"
+#: Hold strangers' CVs and ID scans; the media mount refuses them
 #: (``app.main.PRIVATE_MEDIA_FOLDERS``).
-STORAGE_FOLDERS = frozenset({FOLDER})
+STORAGE_FOLDERS = frozenset({FOLDER, EMPLOYER_ID_FOLDER})
 
 
 class JobCvService:
@@ -32,8 +34,10 @@ class JobCvService:
         """The content type the bytes really are, or the 413/415 refusal."""
         return self._documents.validate(data)
 
-    def store(self, *, job_id: uuid.UUID, data: bytes, content_type: str) -> str:
-        key = f"{FOLDER}/{job_id}/{uuid.uuid4().hex}.{DOCUMENT_EXTENSIONS[content_type]}"
+    def store(
+        self, *, job_id: uuid.UUID, data: bytes, content_type: str, folder: str = FOLDER
+    ) -> str:
+        key = f"{folder}/{job_id}/{uuid.uuid4().hex}.{DOCUMENT_EXTENSIONS[content_type]}"
         self._storage.save(key=key, data=data, content_type=content_type)
         logger.info("Stored job application CV", extra={"storage_key": key})
         return key

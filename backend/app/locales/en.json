@@ -297,5 +297,8 @@
   "job.deleted": "The job opening and every application to it were deleted.",
   "job.application_not_found": "Application not found.",
   "job.application_deleted": "The application and its CV were deleted.",
-  "telegram.kind.job_application": "New job application"
+  "telegram.kind.job_application": "New job application",
+  "job.offer_received": "We received the job you offered; our team will review it before publishing.",
+  "job.id_document_not_found": "This opening has no ID document.",
+  "telegram.kind.job_offer": "New job offered by an employer"
 }

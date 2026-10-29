@@ -1,4 +1,4 @@
-"""job openings and the applications sent to them
+"""job openings, offered by staff or by employers, and the applications sent to them
 
 Revision ID: f4c9d2e6b8a1
 Revises: e3b8c5d1a7f2
@@ -19,6 +19,7 @@ depends_on = None
 _job_type = postgresql.ENUM(
     "FULL_TIME", "PART_TIME", "REMOTE", "FREELANCE", "INTERNSHIP", name="job_type"
 )
+# Already created for talent profiles (remote, on site, both); reused.
 
 
 def _timestamps() -> list[sa.Column]:
@@ -56,6 +57,14 @@ def upgrade() -> None:
             sa.ForeignKey("locations.id", ondelete="SET NULL"),
             nullable=True,
         ),
+        sa.Column("work_place", sa.String(200), nullable=True),
+        sa.Column(
+            "work_mode", postgresql.ENUM(name="work_mode", create_type=False), nullable=True
+        ),
+        sa.Column("submitter_name", sa.String(80), nullable=True),
+        sa.Column("submitter_phone", sa.String(20), nullable=True),
+        sa.Column("id_document_storage_key", sa.String(300), nullable=True),
+        sa.Column("id_document_content_type", sa.String(100), nullable=True),
         *_timestamps(),
     )
     op.create_index("ix_job_openings_slug", "job_openings", ["slug"], unique=True)

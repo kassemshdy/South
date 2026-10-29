@@ -10,10 +10,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.main import PRIVATE_MEDIA_FOLDERS
-from app.models.job import JobApplication
+from app.models.job import JobApplication, JobOpening
 from app.models.user import User
 from app.services import telegram_archive
-from app.services.job_applications import FOLDER
+from app.services.job_applications import EMPLOYER_ID_FOLDER, FOLDER
 from tests.conftest import admin_headers
 from tests.samples import ar
 from tests.test_permissions import _invite
@@ -124,5 +124,62 @@ def test_content_editors_write_openings_and_support_cannot(
 
 
 def test_applications_are_archived_and_cvs_are_private() -> None:
-    assert "job_applications" in telegram_archive.ARCHIVED_TABLES
-    assert FOLDER in PRIVATE_MEDIA_FOLDERS
+    assert {"job_applications", "job_openings"} <= telegram_archive.ARCHIVED_TABLES
+    assert {FOLDER, EMPLOYER_ID_FOLDER} <= PRIVATE_MEDIA_FOLDERS
+
+
+def _offer(client: TestClient, data: bytes = PDF, **fields: str):  # type: ignore[no-untyped-def]
+    form = {
+        "submitter_name": ar("order.customer"),
+        "phone_number": "70111222",
+        "employer_name": ar("business.first"),
+        "work_place": ar("business.second"),
+        "work_mode": "BOTH",
+        "title": ar("business.generic_short"),
+        "description": ar("business.applicant_description"),
+        **fields,
+    }
+    return client.post(
+        "/api/job-openings/offer",
+        data=form,
+        files={"id_document": ("id.pdf", data, "application/pdf")},
+    )
+
+
+def test_an_employer_offer_arrives_as_a_draft_with_who_sent_it(
+    client: TestClient, db: Session, admin: User
+) -> None:
+    sent = _offer(client)
+    assert sent.status_code == 201, sent.text
+    assert client.get("/api/job-openings").json() == [], "nothing is published unchecked"
+
+    headers = admin_headers(client)
+    [job] = client.get("/api/admin/job-openings", headers=headers).json()
+    assert job["is_published"] is False and job["work_mode"] == "BOTH"
+    assert job["submitter_name"] == ar("order.customer")
+    assert job["submitter_phone"].endswith("70111222") and job["has_id_document"] is True
+
+    stored = db.get(JobOpening, job["id"])
+    assert stored is not None and stored.id_document_storage_key is not None
+    assert stored.id_document_storage_key.startswith(f"{EMPLOYER_ID_FOLDER}/")
+    assert client.get(f"/media/{stored.id_document_storage_key}").status_code == 404
+
+    id_url = f"/api/admin/job-openings/{job['id']}/id-document"
+    assert client.get(id_url, headers=headers).content == PDF
+    support = _invite(client, headers, "SUPPORT", "support-offer@example.com")
+    assert client.get(id_url, headers=support).status_code == 403
+
+    # Published, the visitor reads the job and never who offered it.
+    client.post(f"/api/admin/job-openings/{job['id']}/publish", headers=headers)
+    public = client.get(f"/api/job-openings/{job['slug']}")
+    assert public.status_code == 200
+    assert "submitter" not in public.text and "70111222" not in public.text
+    assert "id_document" not in public.text
+
+
+def test_an_offer_without_a_real_document_is_refused_and_leaves_nothing(
+    client: TestClient, db: Session
+) -> None:
+    assert _offer(client, data=b"not a document").status_code == 415
+    assert _offer(client, work_mode="SOMETIMES").status_code == 422
+    assert db.query(JobOpening).count() == 0

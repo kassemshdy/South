@@ -34,11 +34,12 @@ from app.schemas.job import (
     AdminJobOpeningOut,
     JobApplicationIn,
     JobApplicationOut,
+    JobOfferIn,
     JobOpeningIn,
     JobOpeningOut,
     JobOpeningUpdateIn,
 )
-from app.services.job_applications import JobCvService
+from app.services.job_applications import EMPLOYER_ID_FOLDER, JobCvService
 from app.services.slug import slugify_name, unique_slug
 from app.storage.factory import get_storage
 
@@ -72,6 +73,32 @@ def _slug_exists(db: DbSession, slug: str, exclude_id: uuid.UUID | None = None) 
     if exclude_id is not None:
         stmt = stmt.where(JobOpening.id != exclude_id)
     return db.execute(stmt.limit(1)).scalar_one_or_none() is not None
+
+
+def _limit(db: DbSession, settings: AppSettings, client_ip: str | None, bucket: str) -> None:
+    """The partner form's limits: per address, and for the whole site per day."""
+    limiter = DatabaseRateLimiter(db)
+    if client_ip:
+        per_ip = limiter.hit(
+            RateLimitRule(
+                bucket=f"{bucket}_ip",
+                limit=settings.partner_per_ip_limit,
+                window_seconds=settings.partner_per_ip_window_seconds,
+            ),
+            client_ip,
+        )
+        if not per_ip.allowed:
+            raise RateLimitedError(per_ip.retry_after_seconds, "job.rate_limited")
+    overall = limiter.hit(
+        RateLimitRule(
+            bucket=f"{bucket}_global",
+            limit=settings.partner_per_day_limit,
+            window_seconds=86400,
+        ),
+        "all",
+    )
+    if not overall.allowed:
+        raise RateLimitedError(overall.retry_after_seconds, "job.rate_limited")
 
 
 # --- Public ----------------------------------------------------------------
@@ -124,28 +151,7 @@ def apply_to_job(
     if job is None:
         raise NotFoundError("job.not_found")
 
-    limiter = DatabaseRateLimiter(db)
-    if client_ip:
-        per_ip = limiter.hit(
-            RateLimitRule(
-                bucket="job_apply_ip",
-                limit=settings.partner_per_ip_limit,
-                window_seconds=settings.partner_per_ip_window_seconds,
-            ),
-            client_ip,
-        )
-        if not per_ip.allowed:
-            raise RateLimitedError(per_ip.retry_after_seconds, "job.rate_limited")
-    overall = limiter.hit(
-        RateLimitRule(
-            bucket="job_apply_global",
-            limit=settings.partner_per_day_limit,
-            window_seconds=86400,
-        ),
-        "all",
-    )
-    if not overall.allowed:
-        raise RateLimitedError(overall.retry_after_seconds, "job.rate_limited")
+    _limit(db, settings, client_ip, "job_apply")
     verify_captcha(payload.captcha_token, settings, client_ip=client_ip)
 
     # Read bounded, then refused before any row exists if it is not a document.
@@ -173,6 +179,79 @@ def apply_to_job(
     return MessageResponse(message=translate("job.applied"))
 
 
+@public_router.post(
+    "/job-openings/offer",
+    response_model=MessageResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def offer_a_job(
+    db: DbSession,
+    settings: AppSettings,
+    client_ip: ClientIp,
+    submitter_name: Annotated[str, Form()],
+    phone_number: Annotated[str, Form()],
+    employer_name: Annotated[str, Form()],
+    work_place: Annotated[str, Form()],
+    work_mode: Annotated[str, Form()],
+    title: Annotated[str, Form()],
+    description: Annotated[str, Form()],
+    id_document: Annotated[UploadFile, File(description="The employer's ID: PDF, JPEG or PNG")],
+    captcha_token: Annotated[str | None, Form()] = None,
+) -> MessageResponse:
+    """An employer offers a job for a southerner (the owners' ticket).
+
+    It becomes a **draft** opening: nothing is published until an
+    administrator has read it. Who sent it -- name, phone, ID scan -- is kept
+    on the row for staff and never reaches a public payload.
+    """
+    try:
+        payload = JobOfferIn(
+            submitter_name=submitter_name,
+            phone_number=phone_number,
+            employer_name=employer_name,
+            work_place=work_place,
+            work_mode=work_mode,  # type: ignore[arg-type]
+            title=title,
+            description=description,
+            captcha_token=captcha_token,
+        )
+    except PydanticValidationError as exc:
+        raise RequestValidationError(
+            [{**error, "loc": ("body", *error["loc"])} for error in exc.errors()]
+        ) from exc
+
+    _limit(db, settings, client_ip, "job_offer")
+    verify_captcha(payload.captcha_token, settings, client_ip=client_ip)
+
+    files = JobCvService(get_storage(), settings)
+    data = read_at_most(id_document.file, settings.max_verification_doc_bytes)
+    content_type = files.validate(data)
+    job = JobOpening(
+        slug=unique_slug(payload.title, lambda s: _slug_exists(db, s), fallback_prefix="job"),
+        title=payload.title,
+        description=payload.description,
+        employer_name=payload.employer_name,
+        work_place=payload.work_place,
+        work_mode=payload.work_mode,
+        submitter_name=payload.submitter_name,
+        submitter_phone=payload.phone_number,
+        is_published=False,
+    )
+    db.add(job)
+    db.flush()
+    key = files.store(
+        job_id=job.id, data=data, content_type=content_type, folder=EMPLOYER_ID_FOLDER
+    )
+    job.id_document_storage_key = key
+    job.id_document_content_type = content_type
+    try:
+        db.commit()
+    except Exception:
+        files.delete(key)
+        raise
+    return MessageResponse(message=translate("job.offer_received"))
+
+
 # --- Administrators --------------------------------------------------------
 
 
@@ -193,7 +272,10 @@ def _admin_out(db: DbSession, job: JobOpening) -> AdminJobOpeningOut:
         select(func.count()).select_from(JobApplication).where(JobApplication.job_id == job.id)
     ).scalar_one()
     return AdminJobOpeningOut.model_validate(job).model_copy(
-        update={"application_count": int(count)}
+        update={
+            "application_count": int(count),
+            "has_id_document": job.id_document_storage_key is not None,
+        }
     )
 
 
@@ -267,6 +349,8 @@ def delete_job_opening(
     """The opening, every application to it, and every CV they carried."""
     job = _get_or_404(db, job_id)
     keys = [application.storage_key for application in job.applications]
+    if job.id_document_storage_key:
+        keys.append(job.id_document_storage_key)
     db.delete(job)
     db.commit()
     cvs = JobCvService(get_storage(), settings)
@@ -287,6 +371,25 @@ def list_job_applications(
         .order_by(JobApplication.created_at.asc())
     ).scalars()
     return [JobApplicationOut.model_validate(row) for row in rows]
+
+
+@admin_router.get("/{job_id}/id-document")
+def download_job_offer_id_document(
+    job_id: uuid.UUID, db: DbSession, admin: AdminUser, settings: AppSettings
+) -> Response:
+    """The ID scan an employer sent with the job they offered."""
+    job = _get_or_404(db, job_id)
+    if not job.id_document_storage_key:
+        raise NotFoundError("job.id_document_not_found")
+    data = JobCvService(get_storage(), settings).read(job.id_document_storage_key)
+    return Response(
+        content=data,
+        media_type=job.id_document_content_type or "application/octet-stream",
+        headers={
+            "Content-Disposition": content_disposition(f"id-{job.slug}"),
+            "Cache-Control": "no-store",
+        },
+    )
 
 
 def _application_or_404(

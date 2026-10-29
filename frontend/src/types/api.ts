@@ -1252,6 +1252,8 @@ export interface JobOpening {
   /** ISO date; the last day applications are taken. */
   deadline: string | null
   location: LocationNode | null
+  work_place: string | null
+  work_mode: WorkMode | null
   created_at: string
 }
 
@@ -1259,6 +1261,10 @@ export interface AdminJobOpening extends JobOpening {
   is_published: boolean
   application_count: number
   updated_at: string
+  /** Set when an employer offered the job on the public form. */
+  submitter_name: string | null
+  submitter_phone: string | null
+  has_id_document: boolean
 }
 
 export interface JobOpeningInput {
@@ -1269,6 +1275,19 @@ export interface JobOpeningInput {
   salary: string | null
   deadline: string | null
   location_id: string | null
+  work_place: string | null
+  work_mode: WorkMode | null
+}
+
+/** An employer's offer from the public form; the ID scan travels beside it. */
+export interface JobOfferInput {
+  submitter_name: string
+  phone_number: string
+  employer_name: string
+  work_place: string
+  work_mode: WorkMode
+  title: string
+  description: string
 }
 
 /** An application as staff read it; the CV is downloaded separately. */

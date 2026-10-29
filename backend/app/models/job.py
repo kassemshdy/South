@@ -6,6 +6,11 @@ and a visitor applies with their name, email, phone and CV. Unlike a
 job seeker's profile (``/jobs``), an opening is written by staff, has a draft
 and published switch, and may close on a deadline.
 
+An employer may also offer a job on a public form (the same ticket's
+description): it arrives as a **draft** opening carrying who sent it --
+their name, phone and ID scan -- which no public schema carries, and an
+administrator checks it before publishing.
+
 An application is a stranger's contact details and CV, so like a workshop
 sign-up it is read by staff only, and the CV by reviewers and the manager
 (``RESTRICTED_READS``). The CV sits in a private storage folder the media
@@ -22,7 +27,7 @@ from sqlalchemy import Boolean, Date, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base, TimestampMixin, pg_enum, uuid_pk
-from app.models.enums import JobType
+from app.models.enums import JobType, WorkMode
 
 if TYPE_CHECKING:
     from app.models.taxonomy import Location
@@ -48,6 +53,18 @@ class JobOpening(Base, TimestampMixin):
     location_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("locations.id", ondelete="SET NULL"), nullable=True
     )
+    #: Where the work is, in the employer's words, and how it is done.
+    work_place: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    work_mode: Mapped[WorkMode | None] = mapped_column(
+        pg_enum(WorkMode, "work_mode"), nullable=True
+    )
+
+    # Set only when an employer offered the job on the public form. Staff
+    # read them; no public schema carries any of them.
+    submitter_name: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    submitter_phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    id_document_storage_key: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    id_document_content_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
     location: Mapped[Location | None] = relationship(lazy="joined")
     applications: Mapped[list[JobApplication]] = relationship(
