@@ -166,10 +166,15 @@ export function BusinessProfilePage() {
             )}
           </div>
 
-          {/* Owner-authored text carries its own direction — see BusinessCard. */}
-          <div className="min-w-0 flex-1" dir="auto">
+          {/* The block follows the page (right to left); only owner-authored
+              text is isolated with its own direction. On the whole block,
+              dir="auto" turned a Latin name into a left-to-right header with
+              its badges and details reversed. */}
+          <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl sm:text-3xl">{data.name}</h1>
+              <h1 className="text-2xl sm:text-3xl">
+                <bdi>{data.name}</bdi>
+              </h1>
               <Badge className="bg-olive-100 text-olive-700">
                 <BadgeCheck className="h-3.5 w-3.5" aria-hidden="true" />
                 {t('business.verified')}
@@ -179,7 +184,7 @@ export function BusinessProfilePage() {
 
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-500">
               {data.category ? (
-                <Link to={`/products?category=${encodeURIComponent(data.category.slug)}`} className="font-semibold text-brand-700 hover:underline">
+                <Link to={`/products?category=${encodeURIComponent(data.category.slug)}`} dir="auto" className="font-semibold text-brand-700 hover:underline">
                   {data.custom_category_text || data.category.name_ar}
                 </Link>
               ) : null}

@@ -235,10 +235,15 @@ export function TalentProfilePage() {
             )}
           </div>
 
-          {/* Owner-authored text carries its own direction — see BusinessCard. */}
-          <div className="min-w-0 flex-1" dir="auto">
+          {/* The block follows the page (right to left); only owner-authored
+              text is isolated with its own direction. On the whole block,
+              dir="auto" turned a Latin name into a left-to-right header with
+              its badges and details reversed. */}
+          <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl sm:text-3xl">{data.display_name}</h1>
+              <h1 className="text-2xl sm:text-3xl">
+                <bdi>{data.display_name}</bdi>
+              </h1>
               <Badge className="bg-olive-100 text-olive-700">
                 <BadgeCheck className="h-3.5 w-3.5" aria-hidden="true" />
                 {t('business.verified')}
