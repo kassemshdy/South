@@ -22,15 +22,42 @@ from app.repositories.talent import TalentRepository
 
 router = APIRouter(include_in_schema=False)
 
+IMAGE_NS = "http://www.google.com/schemas/sitemap-image/1.1"
+
+
+def _absolute_image(base: str, image: str | None) -> str | None:
+    """A stored picture as an absolute, percent-encoded URL, or None.
+
+    Stored paths are site-relative (``/media/...``); an external URL is kept
+    as it is. Only http(s) is ever listed."""
+    if not image:
+        return None
+    if image.startswith("/"):
+        return f"{base}{quote(image, safe='/')}"
+    return image if image.startswith(("https://", "http://")) else None
+
 
 # HEAD as well as GET: some sitemap checkers ask for the headers first, and a
 # 405 there reads as "could not be read".
 @router.api_route("/sitemap.xml", methods=["GET", "HEAD"])
 def sitemap(db: DbSession, settings: AppSettings) -> Response:
     base = settings.public_base_url.rstrip("/")
-    urlset = Element("urlset", xmlns="http://www.sitemaps.org/schemas/sitemap/0.9")
+    # Google's image extension: each listing names its own picture, so
+    # products and shops can be found in Google Images (the owners asked for
+    # it after comparing with aljazeera.net's sitemaps, 29 Oct 2026).
+    urlset = Element(
+        "urlset",
+        {"xmlns": "http://www.sitemaps.org/schemas/sitemap/0.9", "xmlns:image": IMAGE_NS},
+    )
 
-    def add(path: str, *, changefreq: str, priority: str, lastmod: object | None = None) -> None:
+    def add(
+        path: str,
+        *,
+        changefreq: str,
+        priority: str,
+        lastmod: object | None = None,
+        image: str | None = None,
+    ) -> None:
         url = SubElement(urlset, "url")
         # Percent-encoded: the sitemap protocol wants ASCII URLs, and a shop
         # whose slug is Arabic would otherwise be listed with raw letters.
@@ -39,6 +66,9 @@ def sitemap(db: DbSession, settings: AppSettings) -> Response:
             SubElement(url, "lastmod").text = lastmod.date().isoformat()
         SubElement(url, "changefreq").text = changefreq
         SubElement(url, "priority").text = priority
+        picture = _absolute_image(base, image)
+        if picture:
+            SubElement(SubElement(url, "image:image"), "image:loc").text = picture
 
     add("/", changefreq="daily", priority="1.0")
 
@@ -48,8 +78,14 @@ def sitemap(db: DbSession, settings: AppSettings) -> Response:
     # the site itself hides would send search traffic somewhere a visitor
     # cannot navigate from. Each shop's own page stays listed below.
 
-    for slug, updated_at in BusinessRepository(db).approved_slugs():
-        add(f"/business/{slug}", changefreq="weekly", priority="0.8", lastmod=updated_at)
+    for slug, updated_at, image in BusinessRepository(db).approved_slugs():
+        add(
+            f"/business/{slug}",
+            changefreq="weekly",
+            priority="0.8",
+            lastmod=updated_at,
+            image=image,
+        )
 
     # Products were missing entirely: they have public pages and a directory,
     # and a product is the most shareable thing here — a photo, a name and a
@@ -60,8 +96,14 @@ def sitemap(db: DbSession, settings: AppSettings) -> Response:
     add("/products/local", changefreq="daily", priority="0.8")
     add("/products/imported", changefreq="daily", priority="0.8")
 
-    for slug, updated_at in ItemRepository(db).public_slugs():
-        add(f"/product/{slug}", changefreq="weekly", priority="0.7", lastmod=updated_at)
+    for slug, updated_at, image in ItemRepository(db).public_slugs():
+        add(
+            f"/product/{slug}",
+            changefreq="weekly",
+            priority="0.7",
+            lastmod=updated_at,
+            image=image,
+        )
 
     # Services and job applications, the two halves of what used to be one
     # talent directory. `/talent` itself now forwards to services, so it is
@@ -81,8 +123,14 @@ def sitemap(db: DbSession, settings: AppSettings) -> Response:
     for slug, updated_at in jobs.open_slugs(db):
         add(f"/vacancies/{slug}", changefreq="weekly", priority="0.7", lastmod=updated_at)
 
-    for slug, updated_at in TalentRepository(db).approved_slugs():
-        add(f"/talent/{slug}", changefreq="weekly", priority="0.8", lastmod=updated_at)
+    for slug, updated_at, image in TalentRepository(db).approved_slugs():
+        add(
+            f"/talent/{slug}",
+            changefreq="weekly",
+            priority="0.8",
+            lastmod=updated_at,
+            image=image,
+        )
 
     return Response(
         content=tostring(urlset, encoding="utf-8", xml_declaration=True),
