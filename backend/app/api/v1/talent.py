@@ -12,6 +12,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Path, Query, status
 
 from app.api.serializers import owner_talent, paginate, talent_detail, talent_summary
+from app.core.cache import cached
 from app.core.dependencies import (
     AppSettings,
     CurrentUser,
@@ -104,7 +105,10 @@ def get_talent(
     profile = TalentRepository(db).get_by_slug(slug, public_only=True)
     if profile is None:
         raise NotFoundError("talent.not_public")
-    payload = talent_detail(profile, TestimonialService(db, settings).public_for(profile))
+    payload = cached(
+        f"talent:{slug}",
+        lambda: talent_detail(profile, TestimonialService(db, settings).public_for(profile)),
+    )
     ViewCounterService(db).record(
         ViewSubject.TALENT, profile.id, owner_id=profile.owner_id, viewer=viewer
     )

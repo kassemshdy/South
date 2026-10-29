@@ -25,6 +25,7 @@ from starlette.types import Scope
 
 from app.api.router import api_router
 from app.api.v1 import seo as seo_router
+from app.core import cache as public_cache
 from app.core.config import Settings, get_settings
 from app.core.errors import AppError, RateLimitedError
 from app.core.i18n import DEFAULT_LOCALE, translate, using_locale
@@ -255,6 +256,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = settings
 
+    # Innermost, so the headers the outer middleware add per request (request
+    # id, CORS, security) are never stored with a cached answer.
+    public_cache.configure(settings.public_cache_seconds, settings.public_cache_version_file)
+    app.add_middleware(public_cache.PublicCacheMiddleware)
     app.add_middleware(
         SecurityHeadersMiddleware,
         enable_hsts=settings.is_production,

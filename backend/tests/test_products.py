@@ -270,6 +270,28 @@ def test_sitemap_lists_an_available_product(
     assert client.head("/sitemap.xml").status_code == 200, "checkers ask for headers first"
 
 
+def test_sitemap_names_each_product_photo(
+    client: TestClient, db: Session, approved_business_with_items: str
+) -> None:
+    """Google's image extension: a product entry carries its own photo, as an
+    absolute URL, so it can be found in Google Images."""
+    import xml.etree.ElementTree as ET
+
+    root = ET.fromstring(client.get("/sitemap.xml").content)
+    ns = {
+        "s": "http://www.sitemaps.org/schemas/sitemap/0.9",
+        "image": "http://www.google.com/schemas/sitemap-image/1.1",
+    }
+    slug = _item_slug(db, ar("item.zaatar_local"))
+    [entry] = [
+        url for url in root.findall("s:url", ns)
+        if unquote(url.findtext("s:loc", "", ns)).endswith(f"/product/{slug}")
+    ]
+    picture = entry.findtext("image:image/image:loc", None, ns)
+    assert picture is not None and picture.startswith("http") and "/media/" in picture
+    assert picture.isascii()
+
+
 def test_sitemap_hides_an_unavailable_product(
     client: TestClient, db: Session, approved_business_with_items: str
 ) -> None:
