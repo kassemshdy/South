@@ -715,7 +715,7 @@ export const ownerApi = {
     }),
 }
 
-export type ExportDataset = 'businesses' | 'products' | 'users' | 'talent' | 'orders'
+export type ExportDataset = 'businesses' | 'products' | 'users' | 'talent' | 'orders' | 'partners'
 
 /** The admin user list's search, filters and order; empty means "all". */
 export interface AdminUserFilters {

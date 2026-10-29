@@ -29,12 +29,13 @@ from sqlalchemy.orm import class_mapper, joinedload, selectinload
 from app.core.dependencies import AdminUser, DbSession
 from app.models.business import Business, BusinessItem
 from app.models.order import Order
+from app.models.partner import PartnerRequest
 from app.models.talent import TalentProfile
 from app.models.user import User
 
 router = APIRouter(prefix="/admin/export", tags=["admin-export"])
 
-Dataset = Literal["businesses", "products", "users", "talent", "orders"]
+Dataset = Literal["businesses", "products", "users", "talent", "orders", "partners"]
 
 _SKIPPED = frozenset({"password_hash", "token_version", "search_vector"})
 
@@ -127,6 +128,15 @@ def export_dataset(dataset: Dataset, db: DbSession, admin: AdminUser) -> Respons
             .all()
         )
         extra = {"owner_phone": _owner}
+    elif dataset == "partners":
+        # Open and solved alike: a solved request is archived, not gone, and
+        # the owners asked for every one in a sheet (29 Oct 2026). ``solved_at``
+        # says which is which.
+        model = PartnerRequest
+        objects = (
+            db.execute(select(PartnerRequest).order_by(PartnerRequest.created_at)).scalars().all()
+        )
+        extra = {}
     else:
         model = Order
         objects = (

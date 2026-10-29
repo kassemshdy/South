@@ -12,11 +12,12 @@ import io
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
 from app.models.user import User
 from tests.conftest import admin_headers, make_owner, sign_in
 
-DATASETS = ["businesses", "products", "users", "talent", "orders"]
+DATASETS = ["businesses", "products", "users", "talent", "orders", "partners"]
 
 
 def _read(body: bytes) -> list[dict[str, str]]:
@@ -82,3 +83,33 @@ def test_ordinary_values_are_exported_unchanged() -> None:
     # A number is never a formula; a negative one must stay a number.
     assert _cell(-35.2) == "-35.2"
     assert _cell(Decimal("1.50")) == "1.50"
+
+
+def test_partner_requests_export_holds_open_and_solved_alike(
+    client: TestClient, admin: User, db: Session
+) -> None:
+    """The owners asked for every partnership request in a sheet; a solved
+    one is archived rather than gone, so it is in the file too."""
+    import datetime as dt
+
+    from app.models.partner import PartnerRequest
+
+    db.add_all(
+        [
+            PartnerRequest(name="Open", phone="+9613990401", occupation="o", residence="r", offer="x"),
+            PartnerRequest(
+                name="Solved",
+                phone="+9613990402",
+                occupation="o",
+                residence="r",
+                offer="y",
+                solved_at=dt.datetime.now(dt.UTC),
+            ),
+        ]
+    )
+    db.commit()
+
+    response = client.get("/api/admin/export/partners.csv", headers=admin_headers(client))
+    rows = _read(response.content)
+    assert {row["name"] for row in rows} == {"Open", "Solved"}
+    assert {"phone", "offer", "solved_at"} <= set(rows[0])
