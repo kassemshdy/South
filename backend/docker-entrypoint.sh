@@ -18,6 +18,8 @@ exec gosu appuser sh -c '
   python -m scripts.backup_db --reason boot
   alembic upgrade head
   python -m scripts.seed --ensure
+  # The owners' full list of towns, once per database; see the script.
+  python -m scripts.import_locations
   python -m scripts.copy_media_to_bucket
   python -m scripts.backfill_thumbnails
   # Past data to the Telegram archive, only while TELEGRAM_BACKFILL is set.
