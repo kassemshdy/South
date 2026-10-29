@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 Lever = Literal["outcome", "likelihood", "time", "effort"]
 Priority = Literal["high", "medium", "low"]
@@ -67,8 +67,38 @@ class GrowthReportOut(BaseModel):
     )
     shops_without_logo: int
 
+    goal_usd: int = Field(description="The platform's sales goal, in US dollars")
+    order_value_usd: float = Field(
+        description="Every order's USD lines, all time: requested, not confirmed sales"
+    )
+    order_value_usd_30d: float
+    order_value_lbp: float = Field(description="LBP lines, kept apart rather than converted")
+
     weekly: WeeklySeries
     health: SellerHealth
     top_shops: list[ShopLine]
     quiet_shops: list[ShopLine]
     recommendations: list[Recommendation]
+
+
+DEFAULT_GOAL_USD = 100_000_000
+
+
+class GrowthPlanOut(BaseModel):
+    """The goal and the offer the growth page is built around; ``offer`` is
+    null while the site's own default wording stands."""
+
+    goal_usd: int = DEFAULT_GOAL_USD
+    offer: str | None = None
+
+
+class GrowthPlanIn(BaseModel):
+    goal_usd: int = Field(ge=1, le=1_000_000_000_000)
+    offer: str | None = Field(default=None, max_length=5000)
+
+    @field_validator("offer", mode="before")
+    @classmethod
+    def _blank_is_default(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value.strip() if isinstance(value, str) else value

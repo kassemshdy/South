@@ -1107,6 +1107,10 @@ export interface GrowthReport {
   orders_per_1000_views: number | null
   median_approval_hours: number | null
   approved_testimonials: number
+  goal_usd: number
+  order_value_usd: number
+  order_value_usd_30d: number
+  order_value_lbp: number
   thin_catalogue_shops: number
   shops_without_logo: number
   weekly: {
@@ -1120,4 +1124,10 @@ export interface GrowthReport {
   top_shops: GrowthShopLine[]
   quiet_shops: GrowthShopLine[]
   recommendations: GrowthRecommendation[]
+}
+
+export interface GrowthPlan {
+  goal_usd: number
+  /** Null while the site's default wording stands. */
+  offer: string | null
 }

@@ -147,6 +147,8 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     ("DELETE", "/api/admin/users/{user_id}"): frozenset({M}),
     ("PUT", "/api/admin/site-settings"): frozenset({M}),
     ("PUT", "/api/admin/site-settings/credentials-message"): frozenset({M}),
+    # The growth page's sales goal and offer: the owners' strategy.
+    ("PUT", "/api/admin/growth-plan"): frozenset({M}),
     ("POST", "/api/admin/staff"): frozenset({M}),
     ("PATCH", "/api/admin/staff/{user_id}"): frozenset({M}),
     ("POST", "/api/admin/staff/{user_id}/password"): frozenset({M}),

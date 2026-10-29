@@ -26,7 +26,7 @@ from app.schemas.common import (
     PaginatedResponse,
     StatsResponse,
 )
-from app.schemas.growth_report import GrowthReportOut
+from app.schemas.growth_report import GrowthPlanIn, GrowthPlanOut, GrowthReportOut
 from app.schemas.moderation import AdminUserOut
 from app.services.growth_report import GrowthReportService
 
@@ -117,6 +117,17 @@ def platform_growth(
 def growth_report(db: DbSession, admin: AdminUser) -> GrowthReportOut:
     """The value-equation analysis, computed now from the live data."""
     return GrowthReportService(db).build()
+
+
+@router.get("/growth-plan", response_model=GrowthPlanOut)
+def growth_plan(db: DbSession, admin: AdminUser) -> GrowthPlanOut:
+    return GrowthReportService(db).plan()
+
+
+@router.put("/growth-plan", response_model=GrowthPlanOut)
+def set_growth_plan(payload: GrowthPlanIn, db: DbSession, admin: AdminUser) -> GrowthPlanOut:
+    """The sales goal and the offer to sellers, in the owners' own words."""
+    return GrowthReportService(db).set_plan(payload)
 
 
 @router.get("/users", response_model=PaginatedResponse[AdminUserOut])

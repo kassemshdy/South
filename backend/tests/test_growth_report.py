@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.models.analytics import ListingViewDaily
 from app.models.business import Business
-from app.models.enums import BusinessStatus, OrderStatus, ViewSubject
-from app.models.order import Order
+from app.models.enums import BusinessStatus, Currency, OrderStatus, ViewSubject
+from app.models.order import Order, OrderLine
 from app.models.taxonomy import Category, Location
 from app.models.user import User
 from app.schemas.growth_report import GrowthReportOut, SellerHealth, WeeklySeries
@@ -133,6 +134,10 @@ def _report(**changes: object) -> GrowthReportOut:
         "orders_per_1000_views": 90.0,
         "median_approval_hours": 10.0,
         "approved_testimonials": 20,
+        "goal_usd": 100_000_000,
+        "order_value_usd": 0.0,
+        "order_value_usd_30d": 0.0,
+        "order_value_lbp": 0.0,
         "thin_catalogue_shops": 0,
         "shops_without_logo": 0,
         "weekly": WeeklySeries(
@@ -167,3 +172,60 @@ def test_the_most_urgent_steps_come_first() -> None:
         "ordersDown", "reviewBacklog", "slowApproval", "missingLogo",
     ]
     assert steps[0].count == 4 and steps[1].lever == "time"
+
+
+def test_progress_to_the_goal_counts_what_orders_asked_for_by_currency(
+    client: TestClient, db: Session, admin: User, category: Category, location: Location
+) -> None:
+    shop = _shop(client, db, category, location, "03880806", ar("business.first"))
+    order = Order(
+        business_id=shop.id,
+        customer_name=ar("order.customer"),
+        customer_phone=CUSTOMER_PHONE,
+        status=OrderStatus.NEW,
+    )
+    order.lines = [
+        OrderLine(title=ar("business.first"), price=Decimal("12.50"), currency=Currency.USD, quantity=2),
+        OrderLine(title=ar("business.first"), price=Decimal("90000"), currency=Currency.LBP, quantity=1),
+        OrderLine(title=ar("business.first"), price=None, currency=Currency.USD, quantity=3),
+    ]
+    db.add(order)
+    db.commit()
+
+    body = client.get("/api/admin/growth-report", headers=admin_headers(client)).json()
+
+    assert body["goal_usd"] == 100_000_000
+    assert body["order_value_usd"] == 25.0 and body["order_value_usd_30d"] == 25.0
+    assert body["order_value_lbp"] == 90000.0, "pounds are kept apart, never converted"
+
+
+def test_the_manager_sets_the_goal_and_the_offer_and_other_staff_only_read_them(
+    client: TestClient, admin: User
+) -> None:
+    manager = admin_headers(client)
+    assert client.get("/api/admin/growth-plan", headers=manager).json() == {
+        "goal_usd": 100_000_000,
+        "offer": None,
+    }
+
+    saved = client.put(
+        "/api/admin/growth-plan",
+        headers=manager,
+        json={"goal_usd": 5_000_000, "offer": f"  {ar('business.generic_short')}  "},
+    )
+    assert saved.status_code == 200, saved.text
+    assert saved.json() == {"goal_usd": 5_000_000, "offer": ar("business.generic_short")}
+    report = client.get("/api/admin/growth-report", headers=manager).json()
+    assert report["goal_usd"] == 5_000_000
+
+    reviewer = _invite(client, manager, "REVIEWER", "reviewer@example.com")
+    assert client.get("/api/admin/growth-plan", headers=reviewer).status_code == 200
+    refused = client.put(
+        "/api/admin/growth-plan", headers=reviewer, json={"goal_usd": 1, "offer": None}
+    )
+    assert refused.status_code == 403
+
+    reset = client.put(
+        "/api/admin/growth-plan", headers=manager, json={"goal_usd": 100_000_000, "offer": " "}
+    )
+    assert reset.json() == {"goal_usd": 100_000_000, "offer": None}

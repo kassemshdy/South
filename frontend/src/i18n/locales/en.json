@@ -1495,5 +1495,22 @@
   "growth.colViews": "Views",
   "growth.emptyTop": "No shop got an order in the last 30 days.",
   "growth.emptyQuiet": "Every shop was viewed in the last 30 days.",
-  "growth.quietMore": "and {count} more"
+  "growth.quietMore": "and {count} more",
+  "growth.goalHeading": "The goal",
+  "growth.goalLine": "{goal} in sales through Janoubona",
+  "growth.goalProgress": "{value} in orders so far ({percent}% of the goal)",
+  "growth.goal30": "{value} in the last 30 days",
+  "growth.goalLbp": "Plus LBP {value} in pound-priced orders, not converted and not in the percentage.",
+  "growth.goalNote": "What customers asked for on the site, at the prices of the time. Not confirmed sales: the sale happens on WhatsApp and is not recorded here.",
+  "growth.offerHeading": "Our offer to sellers",
+  "growth.offerDefaultNote": "This is the default wording. The manager can change it.",
+  "growth.offerDefault": "The Janoubona offer: your page selling within 48 hours, free\n\nThe outcome\nNew customers from the South and the diaspora that supports it, with orders coming straight to your WhatsApp.\n\nWhat we do for you\n• We build your page from photos you send on WhatsApp. No forms.\n• We write your product descriptions, set the prices and crop the photos.\n• Your page is published within 48 hours of the photos arriving.\n• A \"Share on WhatsApp\" button for your page and every product.\n\nBonuses\n• A spot on the Janoubona channel and in the home page stories.\n• A counter showing how often your page was opened.\n• A place in the Janoubona sellers' group: tips, experience and requests.\n\nThe guarantee\nFree, with no commission and no subscription. If you get no order within 30 days, we improve your product photos and promote your page on the channel at our cost.\n\nWho it is for\nEvery displaced southerner, and every southerner who works or produces in the South.\n\nWhy now\nFree page building by our team is open to the first 100 shops in this phase.",
+  "growth.planEdit": "Edit the goal and the offer",
+  "growth.planGoalLabel": "Goal in US dollars",
+  "growth.planOfferLabel": "The offer",
+  "growth.planOfferHint": "Leave it empty to use the default wording.",
+  "growth.planSave": "Save",
+  "growth.planCancel": "Cancel",
+  "growth.planSaved": "Goal and offer saved.",
+  "growth.planFailed": "Could not save."
 }

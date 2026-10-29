@@ -28,13 +28,17 @@ from sqlalchemy.orm import Session
 
 from app.models.analytics import ListingViewDaily
 from app.models.business import Business, BusinessItem
-from app.models.enums import BusinessStatus, TestimonialStatus, ViewSubject
-from app.models.order import Order
+from app.models.enums import BusinessStatus, Currency, TestimonialStatus, ViewSubject
+from app.models.order import Order, OrderLine
 from app.models.service_request import ServiceRequest
+from app.models.site_setting import SiteSetting
 from app.models.talent import TalentProfile
 from app.models.testimonial import Testimonial
 from app.repositories.item import ItemRepository
 from app.schemas.growth_report import (
+    DEFAULT_GOAL_USD,
+    GrowthPlanIn,
+    GrowthPlanOut,
     GrowthReportOut,
     Recommendation,
     SellerHealth,
@@ -52,6 +56,8 @@ THIN_CATALOGUE = 3
 #: Enough published testimonials that a newcomer sees social proof.
 TESTIMONIAL_TARGET = 10
 SHOWN_SHOPS = 5
+GOAL_KEY = "growth_goal_usd"
+OFFER_KEY = "growth_offer"
 SHOWN_QUIET = 10
 
 _PRIORITY = {"high": 0, "medium": 1, "low": 2}
@@ -136,6 +142,10 @@ class GrowthReportService:
 
         report = GrowthReportOut(
             generated_at=now,
+            goal_usd=self.plan().goal_usd,
+            order_value_usd=self._order_value(Currency.USD),
+            order_value_usd_30d=self._order_value(Currency.USD, since_30),
+            order_value_lbp=self._order_value(Currency.LBP),
             week_starts=week_starts,
             approved_shops=len(approved),
             approved_talents=self._count(
@@ -175,7 +185,45 @@ class GrowthReportService:
         report.recommendations = recommend(report)
         return report
 
+    # --- The goal and the offer ---------------------------------------------
+
+    def plan(self) -> GrowthPlanOut:
+        goal = self.db.get(SiteSetting, GOAL_KEY)
+        offer = self.db.get(SiteSetting, OFFER_KEY)
+        return GrowthPlanOut(
+            goal_usd=int(goal.value) if goal and goal.value.isdigit() else DEFAULT_GOAL_USD,
+            offer=offer.value if offer else None,
+        )
+
+    def set_plan(self, payload: GrowthPlanIn) -> GrowthPlanOut:
+        for key, value in (
+            (GOAL_KEY, None if payload.goal_usd == DEFAULT_GOAL_USD else str(payload.goal_usd)),
+            (OFFER_KEY, payload.offer),
+        ):
+            row = self.db.get(SiteSetting, key)
+            if value is None:
+                if row is not None:
+                    self.db.delete(row)
+            elif row is None:
+                self.db.add(SiteSetting(key=key, value=value))
+            else:
+                row.value = value
+        self.db.commit()
+        return self.plan()
+
     # --- Queries -------------------------------------------------------------
+
+    def _order_value(self, currency: Currency, since: datetime | None = None) -> float:
+        """What customers asked for, priced at the time: an order is a request
+        to be contacted, so this is demand on the site, not money received."""
+        stmt = (
+            select(func.coalesce(func.sum(OrderLine.price * OrderLine.quantity), 0))
+            .join(Order, Order.id == OrderLine.order_id)
+            .where(OrderLine.currency == currency, OrderLine.price.is_not(None))
+        )
+        if since is not None:
+            stmt = stmt.where(Order.created_at >= since)
+        return float(self.db.execute(stmt).scalar_one() or 0)
 
     def _count(self, stmt: Any) -> int:
         return int(self.db.execute(stmt).scalar_one())

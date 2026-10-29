@@ -50,6 +50,7 @@ export const queryKeys = {
   adminCredentials: (userId: string) => ['admin', 'credentials', userId] as const,
   adminGrowth: ['admin', 'stats', 'growth'] as const,
   adminGrowthReport: ['admin', 'growth-report'] as const,
+  adminGrowthPlan: ['admin', 'growth-plan'] as const,
   adminStaff: ['admin', 'staff'] as const,
   adminBusinesses: (status: BusinessStatus | undefined, page: number, q?: string) =>
     ['admin', 'businesses', status ?? 'all', page, q ?? ''] as const,
