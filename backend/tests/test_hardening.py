@@ -77,6 +77,11 @@ def test_every_response_carries_a_content_security_policy(client: TestClient) ->
     # The point of the policy: an injected inline <script> is refused.
     assert "'unsafe-inline'" not in directives["script-src"]
     assert "'unsafe-eval'" not in directives["script-src"]
+    # Clarity's tag only loads the recorder, from a second host; allowing the
+    # tag alone records nothing.
+    assert {"https://www.clarity.ms", "https://scripts.clarity.ms"} <= set(
+        directives["script-src"].split()
+    )
     # A photo picked for upload is previewed from a blob: URL; refusing it
     # left every upload form showing an empty box.
     assert "blob:" in directives["img-src"].split()

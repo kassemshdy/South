@@ -17,7 +17,9 @@ Environment = Literal["development", "test", "staging", "production"]
 # The default Content-Security-Policy. Built from the frontend's actual
 # dependencies rather than a generic template:
 #   - script-src: the SPA bundle (self) and the three tags loaded by URL --
-#     Turnstile, Google Tag Manager, Clarity. No 'unsafe-inline'.
+#     Turnstile, Google Tag Manager, Clarity. Clarity's tag at www.clarity.ms
+#     only loads the recorder, which comes from scripts.clarity.ms; without
+#     that host the tag loaded and recorded nothing. No 'unsafe-inline'.
 #   - connect-src: the API (self) and the beacons those tags talk to, plus the
 #     Sentry ingest host. A blocked beacon degrades analytics, never the site.
 #   - frame-src: Turnstile's challenge iframe, the YouTube/Maps embeds and
@@ -42,7 +44,8 @@ DEFAULT_CONTENT_SECURITY_POLICY = "; ".join(
         "style-src 'self' 'unsafe-inline'",
         (
             "script-src 'self' https://challenges.cloudflare.com "
-            "https://www.googletagmanager.com https://www.clarity.ms"
+            "https://www.googletagmanager.com https://www.clarity.ms "
+            "https://scripts.clarity.ms"
         ),
         (
             "connect-src 'self' https://www.google-analytics.com "

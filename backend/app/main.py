@@ -45,6 +45,8 @@ from app.core.seo import (
 )
 from app.core.validation_messages import field_errors
 from app.database.session import SessionLocal
+from app.models.business import Business
+from app.models.enums import ImageKind
 from app.models.site_setting import SiteSetting
 from app.repositories.business import BusinessRepository
 from app.repositories.item import ItemRepository
@@ -440,6 +442,19 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
         # the page listings render into, so it keeps the strict policy.
         return None if page == index_file else static_page_headers
 
+    def _listing_image(business: Business) -> str | None:
+        """The shop's own best picture, or None when it has none at all."""
+        if business.cover_url or business.logo_url:
+            return business.cover_url or business.logo_url
+        gallery = sorted(business.images, key=lambda image: image.sort_order)
+        for image in gallery:
+            if image.kind is ImageKind.GALLERY and image.url:
+                return image.url
+        for item in sorted(business.items, key=lambda entry: entry.sort_order):
+            if item.image_url and item.is_available:
+                return item.image_url
+        return None
+
     def _absolute(image: str | None) -> str:
         """A stored path is site-relative (``/media/...``); anything else
         (an external URL, or nothing at all) falls back to the share image,
@@ -486,6 +501,10 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
                     if business is not None:
                         url = f"{base_url}/business/{quote(business.slug)}"
                         image = _absolute(business.cover_url or business.logo_url)
+                        # Structured data names only the shop's own picture --
+                        # its cover, logo, a gallery photo or a product photo
+                        # -- never the site's share image standing in for it.
+                        own_image = _listing_image(business)
                         location = business.location.name_ar if business.location else None
                         tags = business_tags(
                             name=business.name,
@@ -502,12 +521,14 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
                                     name=business.name,
                                     description=business.short_description,
                                     url=url,
-                                    image_url=image,
+                                    image_url=_absolute(own_image) if own_image else None,
                                     telephone=business.phone if business.phone_public else None,
                                     location_name=location,
                                     latitude=business.latitude,
                                     longitude=business.longitude,
                                     same_as=[link.url for link in business.social_links],
+                                    rating_average=business.rating_average,
+                                    rating_count=business.rating_count or 0,
                                 ),
                             ),
                         )
@@ -576,6 +597,9 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
                                     available=item.is_available,
                                     business_name=item.business.name,
                                     business_url=f"{base_url}/business/{quote(item.business.slug)}",
+                                    category_name=item.business.category.name_ar
+                                    if item.business.category
+                                    else None,
                                 ),
                             ),
                         )
