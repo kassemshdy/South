@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Field } from '@/components/ui/Field'
-import { Input } from '@/components/ui/Input'
+import { Input, Textarea } from '@/components/ui/Input'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
@@ -168,8 +168,85 @@ export function AdminSiteSettingsPage() {
         </Card>
       )}
 
+      <CredentialsMessage />
+
       <VideoPosters homeVideo={current.data?.home_video ?? null} />
     </div>
+  )
+}
+
+/**
+ * The WhatsApp message a new password is sent in, in the administrator's
+ * own words -- a welcome, a link to the site's channel or group (the owners'
+ * request). It must keep {phone} and {password}; the server refuses one that
+ * drops either. Empty goes back to the site's default, which the box starts
+ * from. Admin-only on the server, since a group link may be private.
+ */
+function CredentialsMessage() {
+  const t = useT()
+  const toast = useToast()
+  const queryClient = useQueryClient()
+  const saved = useQuery({
+    queryKey: queryKeys.adminCredentialsMessage,
+    queryFn: adminApi.credentialsMessage,
+  })
+  const fallback = t('credentials.whatsappMessage')
+  const [text, setText] = useState('')
+  useEffect(() => {
+    if (saved.data) setText(saved.data.message ?? fallback)
+  }, [saved.data, fallback])
+
+  const save = useMutation({
+    mutationFn: (message: string | null) => adminApi.setCredentialsMessage(message),
+    onSuccess: (result) => {
+      queryClient.setQueryData(queryKeys.adminCredentialsMessage, result)
+      toast.success(t('wizard.saved'))
+    },
+    onError: (error) =>
+      toast.error(error instanceof ApiError ? error.message : t('states.errorFallback')),
+  })
+
+  return (
+    <Card>
+      <CardBody className="space-y-3">
+        <h2 className="text-xl font-bold">{t('admin.credentialsMessageHeading')}</h2>
+        <p className="text-sm text-ink-500">{t('admin.credentialsMessageHint')}</p>
+        {saved.isLoading ? (
+          <Skeleton className="h-40 w-full" />
+        ) : saved.isError ? (
+          <ErrorState error={saved.error} onRetry={() => void saved.refetch()} />
+        ) : (
+          <>
+            <Textarea
+              aria-label={t('admin.credentialsMessageHeading')}
+              dir="auto"
+              rows={8}
+              maxLength={2000}
+              value={text}
+              onChange={(event) => setText(event.target.value)}
+            />
+            <div className="flex flex-wrap gap-2">
+              <Button
+                loading={save.isPending}
+                onClick={() => save.mutate(text.trim() === fallback.trim() ? null : text)}
+              >
+                {t('common.save')}
+              </Button>
+              <Button
+                variant="ghost"
+                disabled={save.isPending}
+                onClick={() => {
+                  setText(fallback)
+                  save.mutate(null)
+                }}
+              >
+                {t('admin.credentialsMessageReset')}
+              </Button>
+            </div>
+          </>
+        )}
+      </CardBody>
+    </Card>
   )
 }
 

@@ -143,6 +143,7 @@
   "service_request.not_found": "The service request was not found.",
   "service_request.rate_limited": "Too many service requests have been sent. Please try again later.",
   "service_request.received": "Your request was sent. The provider will contact you.",
+  "site_settings.credentials_placeholders_missing": "The message must contain {phone} and {password}, so the login details are sent.",
   "staff.email_taken": "This email address is already used by another account.",
   "staff.last_manager": "At least one active manager must remain.",
   "staff.not_found": "Staff member not found.",

@@ -132,3 +132,43 @@ def test_the_offer_page_video_is_stored_as_its_id(client: TestClient, admin: Use
     cleared = client.put("/api/admin/site-settings", headers=headers, json=FULL)
     assert cleared.status_code == 200, cleared.text
     assert client.get("/api/site-settings").json()["offer_video"] is None
+
+
+def test_the_credentials_message_is_the_administrator_s_and_not_public(
+    client: TestClient, admin: User
+) -> None:
+    """The owners' wording for the WhatsApp message a password is sent in,
+    which may carry a private group's invite link: an administrator sets it,
+    and the public settings never show it."""
+    headers = admin_headers(client)
+    path = "/api/admin/site-settings/credentials-message"
+    assert client.get(path, headers=headers).json() == {"message": None}
+
+    text = "Welcome {phone} / {password}\nhttps://chat.whatsapp.com/example"
+    saved = client.put(path, headers=headers, json={"message": text})
+    assert saved.status_code == 200, saved.text
+    assert client.get(path, headers=headers).json() == {"message": text}
+    assert "chat.whatsapp.com" not in client.get("/api/site-settings").text
+
+    # Empty goes back to the site's default wording.
+    assert client.put(path, headers=headers, json={"message": "  "}).json() == {"message": None}
+
+
+def test_a_credentials_message_without_the_login_is_refused(
+    client: TestClient, admin: User
+) -> None:
+    path = "/api/admin/site-settings/credentials-message"
+    refused = client.put(
+        path, headers=admin_headers(client), json={"message": "Welcome {phone}"}
+    )
+    assert refused.status_code == 422, refused.text
+
+
+def test_only_an_administrator_reads_or_sets_the_credentials_message(
+    client: TestClient,
+) -> None:
+    path = "/api/admin/site-settings/credentials-message"
+    assert client.get(path).status_code == 401
+    owner = sign_in(client, "03990001")
+    assert client.get(path, headers=owner).status_code == 403
+    assert client.put(path, headers=owner, json={"message": None}).status_code == 403
