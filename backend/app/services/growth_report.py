@@ -40,6 +40,7 @@ from app.schemas.growth_report import (
     GrowthPlanIn,
     GrowthPlanOut,
     GrowthReportOut,
+    OfferPopupOut,
     Recommendation,
     SellerHealth,
     ShopLine,
@@ -58,6 +59,7 @@ TESTIMONIAL_TARGET = 10
 SHOWN_SHOPS = 5
 GOAL_KEY = "growth_goal_usd"
 OFFER_KEY = "growth_offer"
+POPUP_KEY = "growth_offer_popup"
 SHOWN_QUIET = 10
 
 _PRIORITY = {"high": 0, "medium": 1, "low": 2}
@@ -193,12 +195,22 @@ class GrowthReportService:
         return GrowthPlanOut(
             goal_usd=int(goal.value) if goal and goal.value.isdigit() else DEFAULT_GOAL_USD,
             offer=offer.value if offer else None,
+            offer_popup=self.db.get(SiteSetting, POPUP_KEY) is not None,
         )
+
+    def offer_popup(self) -> OfferPopupOut:
+        """The public half: the offer only while the popup is on. The goal
+        stays with the staff."""
+        plan = self.plan()
+        if not plan.offer_popup:
+            return OfferPopupOut()
+        return OfferPopupOut(enabled=True, offer=plan.offer)
 
     def set_plan(self, payload: GrowthPlanIn) -> GrowthPlanOut:
         for key, value in (
             (GOAL_KEY, None if payload.goal_usd == DEFAULT_GOAL_USD else str(payload.goal_usd)),
             (OFFER_KEY, payload.offer),
+            (POPUP_KEY, "1" if payload.offer_popup else None),
         ):
             row = self.db.get(SiteSetting, key)
             if value is None:

@@ -69,6 +69,7 @@ import type {
   PlatformGrowth,
   GrowthReport,
   GrowthPlan,
+  OfferPopup,
   StaffMember,
   StaffPassword,
   StaffRole,
@@ -357,6 +358,7 @@ export const partnerApi = {
 
 export const siteSettingsApi = {
   get: () => apiRequest<SiteSettings>('/api/site-settings'),
+  offerPopup: () => apiRequest<OfferPopup>('/api/site-settings/offer-popup'),
 }
 
 export const homeApi = {
