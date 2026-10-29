@@ -677,6 +677,14 @@ export const ownerApi = {
 
 export type ExportDataset = 'businesses' | 'products' | 'users' | 'talent' | 'orders'
 
+/** The admin user list's search, filters and order; empty means "all". */
+export interface AdminUserFilters {
+  q?: string
+  role?: 'OWNER' | 'ADMIN'
+  active?: boolean
+  sort?: 'newest' | 'oldest' | 'name' | 'listings'
+}
+
 export const adminApi = {
   stats: () => apiRequest<PlatformStats>('/api/admin/stats'),
   growth: (days: number) =>
@@ -852,8 +860,8 @@ export const adminApi = {
   reactivate: (id: string) =>
     apiRequest<AdminBusiness>(`/api/admin/businesses/${id}/reactivate`, { method: 'POST' }),
 
-  users: (page = 1) =>
-    apiRequest<Paginated<AdminUser>>('/api/admin/users', { query: { page } }),
+  users: (page = 1, filters: AdminUserFilters = {}) =>
+    apiRequest<Paginated<AdminUser>>('/api/admin/users', { query: { page, ...filters } }),
   user: (id: string) => apiRequest<AdminUserDetail>(`/api/admin/users/${id}`),
   /** A 30-minute, read-only session on an owner's account. */
   viewAs: (userId: string) =>
