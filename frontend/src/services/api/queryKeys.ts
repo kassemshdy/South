@@ -41,6 +41,7 @@ export const queryKeys = {
   myServiceRequests: ['my-talent', 'requests'] as const,
   adminStats: ['admin', 'stats'] as const,
   homeLayout: ['home', 'layout'] as const,
+  siteMenu: ['menu'] as const,
   homeStories: ['home', 'stories'] as const,
   myBusinessStories: (id: string) => ['my-business', id, 'stories'] as const,
   myTalentStories: ['my-talent', 'stories'] as const,
