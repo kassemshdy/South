@@ -18,6 +18,15 @@
     -webkit-text-size-adjust: 100%;
   }
 
+  /* Text an owner typed is marked dir="auto", so English keeps its own
+     punctuation order -- but a block of it then lines up on the left of an
+     Arabic page, out of line with everything around it. On an Arabic page
+     it stays on the right, whatever language it is in (the owners' request).
+     Not in a field being typed into, where text follows the cursor. */
+  html[dir='rtl'] [dir='auto']:not(input):not(textarea) {
+    text-align: right;
+  }
+
   body {
     @apply bg-sand-50 font-sans text-ink-900 antialiased;
     /* Arabic ascenders/descenders need a little more room than Latin defaults. */
