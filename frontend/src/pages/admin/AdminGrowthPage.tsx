@@ -49,7 +49,28 @@ export function AdminGrowthPage() {
 
   return (
     <div className="space-y-8 print:space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
+      {/* The PDF's letterhead: printed only, in place of the screen header. */}
+      <header className="hidden border-b-4 border-wheat-500 pb-4 print:flex print:items-center print:justify-between print:gap-6">
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-clay-700">{t("app.name")}</p>
+          <h1 className="text-3xl text-brand-900">{t("growth.title")}</h1>
+          <p className="mt-1 text-sm text-ink-500">{t("app.slogan")}</p>
+          {report.data ? (
+            <p className="mt-1 text-sm text-ink-700">
+              {t("growth.generatedAt", {
+                time: formatDateTime(report.data.generated_at, locale),
+              })}
+            </p>
+          ) : null}
+        </div>
+        <img
+          src="/janoubona-logo.webp"
+          alt={t("app.name")}
+          className="h-24 w-auto shrink-0"
+        />
+      </header>
+
+      <header className="flex flex-wrap items-start justify-between gap-4 print:hidden">
         <div className="min-w-0">
           <h1 className="text-3xl">{t("growth.title")}</h1>
           <p className="mt-2 text-ink-500">{t("growth.subtitle")}</p>
@@ -186,7 +207,7 @@ function Report({ data }: { data: GrowthReport }) {
 
       <section className="space-y-4 print:break-inside-avoid">
         <div>
-          <h2 className="text-xl">{t("growth.weeklyHeading")}</h2>
+          <h2 className="border-s-4 border-wheat-500 ps-3 text-xl text-brand-900">{t("growth.weeklyHeading")}</h2>
           <p className="mt-1 text-sm text-ink-500">{t("growth.weeklyHint")}</p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 print:grid-cols-2">
@@ -221,7 +242,7 @@ function Report({ data }: { data: GrowthReport }) {
 
       <section className="space-y-4 print:break-inside-avoid">
         <div>
-          <h2 className="text-xl">{t("growth.equationHeading")}</h2>
+          <h2 className="border-s-4 border-wheat-500 ps-3 text-xl text-brand-900">{t("growth.equationHeading")}</h2>
           <p className="mt-2 rounded-xl border-2 border-dashed border-wheat-300 p-3 text-center font-semibold text-ink-900">
             {t("growth.equation")}
           </p>
@@ -246,7 +267,7 @@ function Report({ data }: { data: GrowthReport }) {
       </section>
 
       <section className="space-y-3 print:break-inside-avoid">
-        <h2 className="text-xl">{t("growth.recsHeading")}</h2>
+        <h2 className="border-s-4 border-wheat-500 ps-3 text-xl text-brand-900">{t("growth.recsHeading")}</h2>
         <ol className="space-y-2">
           {data.recommendations.map((rec) => (
             <li
@@ -363,7 +384,7 @@ function GoalAndOffer({ data }: { data: GrowthReport }) {
         </CardBody>
       </Card>
 
-      <Card className="print:break-inside-avoid">
+      <Card>
         <CardBody className="space-y-3 p-5">
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm font-semibold text-clay-700">
@@ -629,7 +650,7 @@ function HealthBar({
 
   return (
     <section className="space-y-3 print:break-inside-avoid">
-      <h2 className="text-xl">{t("growth.healthHeading")}</h2>
+      <h2 className="border-s-4 border-wheat-500 ps-3 text-xl text-brand-900">{t("growth.healthHeading")}</h2>
       <div className="flex h-6 overflow-hidden rounded-full bg-ink-100">
         {total > 0
           ? parts.map((part) =>
@@ -676,7 +697,7 @@ function ShopTable({
   return (
     <Card className="print:break-inside-avoid">
       <CardBody className="p-4">
-        <h2 className="text-lg">{title}</h2>
+        <h2 className="text-lg text-brand-900">{title}</h2>
         {shops.length === 0 ? (
           <p className="mt-3 text-sm text-ink-500">{empty}</p>
         ) : (

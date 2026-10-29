@@ -33,6 +33,30 @@
     line-height: 1.75;
   }
 
+  /* Printing is how the admin growth report becomes a PDF: keep the site's
+     colours (browsers drop backgrounds by default) and put the address and
+     page number at the foot of every page. */
+  @media print {
+    @page {
+      size: A4;
+      margin: 14mm 12mm 16mm;
+      @bottom-center {
+        content: 'janoubona.net  ·  ' counter(page) ' / ' counter(pages);
+        font-family: Cairo, sans-serif;
+        font-size: 9pt;
+        color: #6b7280;
+      }
+    }
+    html,
+    body {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    body {
+      background: #fff;
+    }
+  }
+
   h1, h2, h3, h4 {
     @apply font-display font-bold leading-snug;
   }
