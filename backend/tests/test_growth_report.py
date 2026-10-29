@@ -229,3 +229,16 @@ def test_the_manager_sets_the_goal_and_the_offer_and_other_staff_only_read_them(
         "/api/admin/growth-plan", headers=manager, json={"goal_usd": 100_000_000, "offer": " "}
     )
     assert reset.json() == {"goal_usd": 100_000_000, "offer": None}
+
+
+def test_a_full_length_offer_is_saved(client: TestClient, admin: User) -> None:
+    """The column once held 500 characters and a real offer failed with a 500."""
+    offer = ar("business.generic_short") * 1000
+    assert len(offer) > 500
+    saved = client.put(
+        "/api/admin/growth-plan",
+        headers=admin_headers(client),
+        json={"goal_usd": 100_000_000, "offer": offer},
+    )
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["offer"] == offer.strip()
