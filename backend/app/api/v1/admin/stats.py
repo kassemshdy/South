@@ -26,7 +26,9 @@ from app.schemas.common import (
     PaginatedResponse,
     StatsResponse,
 )
+from app.schemas.growth_report import GrowthReportOut
 from app.schemas.moderation import AdminUserOut
+from app.services.growth_report import GrowthReportService
 
 router = APIRouter(prefix="/admin", tags=["admin-stats"])
 
@@ -109,6 +111,12 @@ def platform_growth(
             orders=running(Order),
         ),
     )
+
+
+@router.get("/growth-report", response_model=GrowthReportOut)
+def growth_report(db: DbSession, admin: AdminUser) -> GrowthReportOut:
+    """The value-equation analysis, computed now from the live data."""
+    return GrowthReportService(db).build()
 
 
 @router.get("/users", response_model=PaginatedResponse[AdminUserOut])

@@ -24,18 +24,26 @@ export function AppLayout() {
       >
         {t('common.skipToContent')}
       </a>
-      <Header />
+      {/* `contents` keeps the header sticky; the wrappers exist only so a
+          printed page (the admin growth report's PDF) is the content alone. */}
+      <div className="contents print:hidden">
+        <Header />
+      </div>
       <main id="main" className="flex-1">
         <Outlet />
       </main>
-      <Footer />
+      <div className="contents print:hidden">
+        <Footer />
+      </div>
       {/* Anyone signed in, not just admins. The whole reporting pipeline —
           screenshot, ticket, board — existed and was reachable only by the
           people who built it, so an owner whose upload failed had no way to
           say so. Anonymous reporting is a larger change (a nullable reporter
           and rate limiting) and is tracked separately. */}
-      {isAuthenticated ? <FeedbackWidget /> : null}
-      <WhatsAppButton />
+      <div className="contents print:hidden">
+        {isAuthenticated ? <FeedbackWidget /> : null}
+        <WhatsAppButton />
+      </div>
     </div>
   )
 }

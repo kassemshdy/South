@@ -49,6 +49,7 @@ export const queryKeys = {
   adminReels: ['admin', 'reels'] as const,
   adminCredentials: (userId: string) => ['admin', 'credentials', userId] as const,
   adminGrowth: ['admin', 'stats', 'growth'] as const,
+  adminGrowthReport: ['admin', 'growth-report'] as const,
   adminStaff: ['admin', 'staff'] as const,
   adminBusinesses: (status: BusinessStatus | undefined, page: number, q?: string) =>
     ['admin', 'businesses', status ?? 'all', page, q ?? ''] as const,

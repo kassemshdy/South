@@ -67,6 +67,7 @@ import type {
   OwnerViews,
   Paginated,
   PlatformGrowth,
+  GrowthReport,
   StaffMember,
   StaffPassword,
   StaffRole,
@@ -634,6 +635,7 @@ export const adminApi = {
   stats: () => apiRequest<PlatformStats>('/api/admin/stats'),
   growth: (days: number) =>
     apiRequest<PlatformGrowth>('/api/admin/stats/growth', { query: { days } }),
+  growthReport: () => apiRequest<GrowthReport>('/api/admin/growth-report'),
   exportCsv: (dataset: ExportDataset) => apiDownload(`/api/admin/export/${dataset}.csv`),
   staff: () => apiRequest<StaffMember[]>('/api/admin/staff'),
   inviteStaff: (payload: {
