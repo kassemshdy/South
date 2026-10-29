@@ -29,6 +29,7 @@ export const FEEDBACK_STATUS_KEYS: Record<FeedbackStatus, TranslationKey> = {
   BACKLOG: 'feedback.status.BACKLOG',
   TODO: 'feedback.status.TODO',
   IN_PROGRESS: 'feedback.status.IN_PROGRESS',
+  NEEDS_FEEDBACK: 'feedback.status.NEEDS_FEEDBACK',
   DONE: 'feedback.status.DONE',
 }
 

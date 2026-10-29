@@ -96,6 +96,9 @@ class FeedbackStatus(str, enum.Enum):
     BACKLOG = "BACKLOG"
     TODO = "TODO"
     IN_PROGRESS = "IN_PROGRESS"
+    # Waiting on an answer from the owners' side (wording, a file, a
+    # decision) before it can go further (the owners' request, 29 Oct 2026).
+    NEEDS_FEEDBACK = "NEEDS_FEEDBACK"
     DONE = "DONE"
 
 

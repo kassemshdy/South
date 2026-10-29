@@ -101,7 +101,7 @@
   "admin.articleUnpublish": "إلغاء النشر",
   "admin.articlesEmpty": "لا توجد مقالات هنا",
   "admin.articlesHeading": "المقالات",
-  "admin.articlesSubtitle": "محتوى صفحتَي «فرص وأنشطة» و«مدونة التوجيه المهني». يكتبه فريق المنصة فقط.",
+  "admin.articlesSubtitle": "محتوى صفحتَي «إعلانات أنشطة ووظائف» و«مدونة التوجيه المهني». يكتبه فريق المنصة فقط.",
   "admin.backToBusinesses": "العودة إلى النشاطات",
   "admin.backToTalent": "العودة إلى المواهب",
   "admin.backToUsers": "العودة إلى المستخدمين",
@@ -886,7 +886,7 @@
   "nav.mainAria": "التنقل الرئيسي",
   "nav.mobileAria": "قائمة الجوال",
   "nav.myBusinesses": "نشاطاتي",
-  "nav.news": "فرص وأنشطة",
+  "nav.news": "إعلانات أنشطة ووظائف",
   "nav.offer": "أريد أن أعرض خدمة/سلعة/عمل",
   "nav.openMenu": "فتح القائمة",
   "nav.products": "السلع والمنتجات",
@@ -896,7 +896,7 @@
   "nav.switchLanguage": "تغيير لغة الموقع إلى {language}",
   "nav.talent": "الخدمات والمهارات",
   "news.comingSoonBody": "نعمل على تجميع أخبار وأنشطة من أعمال ومجتمع الجنوب. تابعونا قريباً.",
-  "news.title": "فرص وأنشطة",
+  "news.title": "إعلانات أنشطة ووظائف",
   "notFound.body": "قد يكون الرابط قديماً أو أن النشاط لم يعد منشوراً.",
   "notFound.home": "الصفحة الرئيسية",
   "notFound.seoTitle": "الصفحة غير موجودة | جنوبنا",
@@ -1672,5 +1672,6 @@
   "displaced.badge": "نازح من {place}",
   "displaced.filter": "أصحاب نشاط نازحون",
   "account.showDisplacementLabel": "أظهر للزوّار أنني نازح من هذه البلدة",
-  "account.showDisplacementHint": "تظهر عبارة «نازح من …» على صفحاتك وبطاقاتك، ويمكنك إخفاؤها في أي وقت."
+  "account.showDisplacementHint": "تظهر عبارة «نازح من …» على صفحاتك وبطاقاتك، ويمكنك إخفاؤها في أي وقت.",
+  "feedback.status.NEEDS_FEEDBACK": "بانتظار رد الإدارة"
 }
