@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
+from app.core.i18n import translate
 from app.core.phone import normalize_optional_phone
 from app.core.urls import normalize_social_url
 from app.models.enums import SocialPlatform
@@ -59,3 +60,38 @@ class SiteSettingsIn(BaseModel):
     @classmethod
     def _instagram(cls, value: str | None) -> str | None:
         return normalize_social_url(SocialPlatform.INSTAGRAM, value) if value else None
+
+
+#: The placeholders a credentials message is filled with, in the
+#: administrator's browser at the moment a password is issued.
+CREDENTIALS_PLACEHOLDERS = ("{phone}", "{password}")
+
+
+class CredentialsMessageOut(BaseModel):
+    """The WhatsApp message a new password is sent in; null for the
+    site's own default."""
+
+    message: str | None = None
+
+
+class CredentialsMessageIn(BaseModel):
+    """The administrator's own wording, with a channel or group link if they
+    like. It must still carry the username and the password, or the message
+    would hand over nothing to sign in with."""
+
+    message: str | None = Field(default=None, max_length=2000)
+
+    @field_validator("message", mode="before")
+    @classmethod
+    def _blank_is_default(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value.strip() if isinstance(value, str) else value
+
+    @field_validator("message")
+    @classmethod
+    def _carries_the_login(cls, value: str | None) -> str | None:
+        if value is not None and not all(p in value for p in CREDENTIALS_PLACEHOLDERS):
+            raise ValueError(translate("site_settings.credentials_placeholders_missing"))
+        return value
+
