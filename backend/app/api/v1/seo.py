@@ -154,7 +154,15 @@ def robots(settings: AppSettings) -> Response:
         "Disallow: /login\n"
         "Disallow: /cart\n"
         "Disallow: /favourites\n"
-        "Disallow: /api/\n"
+        # The pages are rendered in the browser from the public API, so a
+        # search engine that may not fetch it sees every page empty -- which
+        # is how Google came to index almost nothing (29 Oct 2026). Only the
+        # private API stays closed; crawler fetches are not counted as views
+        # (app.services.analytics.is_crawler).
+        "Disallow: /api/admin\n"
+        "Disallow: /api/my\n"
+        "Disallow: /api/me\n"
+        "Disallow: /api/auth\n"
         f"\nSitemap: {base}/sitemap.xml\n"
     )
     return Response(content=body, media_type="text/plain")

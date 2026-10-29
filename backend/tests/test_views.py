@@ -94,6 +94,30 @@ def test_a_visitor_view_is_counted(
     assert _counts(db, ViewSubject.BUSINESS, approved_business.id) == [1]
 
 
+@pytest.mark.parametrize(
+    "agent",
+    [
+        "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+        "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
+        "WhatsApp/2.23.20.0",
+        "Twitterbot/1.0",
+        "TelegramBot (like TwitterBot)",
+    ],
+)
+def test_a_crawler_or_link_preview_is_not_counted(
+    client: TestClient, db: Session, approved_business: Business, agent: str
+) -> None:
+    """robots.txt lets search engines render the public API, so their
+    fetches -- and the link previews of a shared page -- must not read as
+    people's views. The page itself is still served."""
+    response = client.get(
+        f"/api/businesses/{approved_business.slug}", headers={"User-Agent": agent}
+    )
+
+    assert response.status_code == 200
+    assert _counts(db, ViewSubject.BUSINESS, approved_business.id) == []
+
+
 def test_repeated_views_accumulate_in_one_row_per_day(
     client: TestClient, db: Session, approved_business: Business
 ) -> None:
