@@ -136,7 +136,7 @@
   "admin.correctionSaved": "تم الحفظ",
   "admin.correctionsTitle": "تصحيحات الإدارة",
   "admin.credentialsMessageHeading": "رسالة بيانات الدخول على واتساب",
-  "admin.credentialsMessageHint": "تُرسل هذه الرسالة مع كلمة المرور الجديدة. يمكنك تعديلها وإضافة رابط قناة أو مجموعة واتساب. أبقِ {phone} (اسم المستخدم) و{password} (كلمة المرور)، ويمكنك استخدام {url} لرابط الموقع.",
+  "admin.credentialsMessageHint": "تُرسل هذه الرسالة مع كلمة المرور الجديدة. يمكنك تعديلها وإضافة رابط قناة واتساب. أبقِ {phone} (اسم المستخدم) و{password} (كلمة المرور)، ويمكنك استخدام {url} لرابط الموقع.",
   "admin.credentialsMessageReset": "استعادة الرسالة الأصلية",
   "admin.placeTitle": "الموقع والخريطة",
   "admin.createdAgo": "أُنشئ {date}",
@@ -1426,7 +1426,7 @@
   "stories.approved": "وُوفق على القصة، وستُعرض 24 ساعة.",
   "stories.rejected": "رُفضت القصة.",
   "stories.deleted": "حُذفت القصة.",
-  "admin.navStories": "القصص",
+  "admin.navStories": "الحالات",
   "admin.storiesTitle": "قصص أصحاب النشاطات",
   "admin.storiesHint": "الصور التي يرسلها أصحاب المتاجر والخدمات لتظهر في أعلى الصفحة الرئيسية. الموافقة تعرضها 24 ساعة من لحظتها.",
   "admin.storiesEmpty": "لا توجد قصص هنا.",
@@ -1668,5 +1668,9 @@
   "admin.jobDownloadId": "تنزيل الهوية",
   "admin.jobWorkPlaceLabel": "مكان العمل",
   "admin.jobWorkModeLabel": "طبيعة العمل",
-  "admin.jobWorkModeNone": "غير محدّد"
+  "admin.jobWorkModeNone": "غير محدّد",
+  "displaced.badge": "نازح من {place}",
+  "displaced.filter": "أصحاب نشاط نازحون",
+  "account.showDisplacementLabel": "أظهر للزوّار أنني نازح من هذه البلدة",
+  "account.showDisplacementHint": "تظهر عبارة «نازح من …» على صفحاتك وبطاقاتك، ويمكنك إخفاؤها في أي وقت."
 }

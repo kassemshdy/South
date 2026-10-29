@@ -60,6 +60,9 @@ def search_talent(
         WorkMode | None,
         Query(description="Remotely or in person; a profile that does both matches either"),
     ] = None,
+    displaced: Annotated[
+        bool, Query(description="Only owners who chose to show they are displaced")
+    ] = False,
     sort: Annotated[
         Literal["newest", "name", "oldest", "experience", "nearest", "rating"], Query()
     ] = "newest",
@@ -76,6 +79,7 @@ def search_talent(
         location_slug=location,
         kind=kind,
         work_mode=work_mode,
+        displaced=displaced,
         sort=sort,
         near=point_or_none(near_lat, near_lng),
         page=page,

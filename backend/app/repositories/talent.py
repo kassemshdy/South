@@ -57,6 +57,7 @@ class TalentRepository(BaseRepository[TalentProfile]):
         return stmt.options(
             joinedload(TalentProfile.skill),
             joinedload(TalentProfile.location).joinedload(Location.parent),
+            joinedload(TalentProfile.owner),
             selectinload(TalentProfile.images),
             selectinload(TalentProfile.languages),
             selectinload(TalentProfile.social_links),
@@ -106,7 +107,15 @@ class TalentRepository(BaseRepository[TalentProfile]):
         location_slug: str | None,
         kind: TalentKind | None = None,
         work_mode: WorkMode | None = None,
+        displaced: bool = False,
     ) -> Select[tuple[TalentProfile]]:
+        if displaced:
+            # Only holders who chose to show it: the filter must not reveal
+            # by omission what the badge would not show.
+            stmt = stmt.where(
+                TalentProfile.owner_id.in_(select(User.id).where(User.publishes_displacement()))
+            )
+
         if kind is not None:
             stmt = stmt.where(TalentProfile.kind == kind)
 
@@ -177,6 +186,7 @@ class TalentRepository(BaseRepository[TalentProfile]):
         location_slug: str | None = None,
         kind: TalentKind | None = None,
         work_mode: WorkMode | None = None,
+        displaced: bool = False,
         sort: SortOption = "newest",
         near: Point | None = None,
         page: int = 1,
@@ -190,6 +200,7 @@ class TalentRepository(BaseRepository[TalentProfile]):
             location_slug=location_slug,
             kind=kind,
             work_mode=work_mode,
+            displaced=displaced,
         )
 
         total = int(

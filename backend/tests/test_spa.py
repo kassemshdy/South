@@ -516,3 +516,15 @@ def test_the_spa_shell_stays_strict_however_it_is_reached(spa_client: TestClient
     response = spa_client.get("/index")
     assert response.status_code == 200
     assert "'unsafe-inline'" not in _script_src(response)
+
+
+def test_pages_may_ask_for_the_visitors_position(spa_client: TestClient) -> None:
+    """Geolocation is allowed for the site itself and nobody else.
+
+    An empty allow-list (``geolocation=()``) made the browser refuse without
+    ever showing a prompt, so "nearest first" and the map pin's "use my
+    position" silently never worked.
+    """
+    policy = spa_client.get("/products").headers["permissions-policy"]
+    assert "geolocation=(self)" in policy
+    assert "camera=()" in policy and "microphone=()" in policy

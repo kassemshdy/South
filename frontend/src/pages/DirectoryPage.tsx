@@ -12,6 +12,7 @@ import { BusinessCard } from '@/features/businesses/BusinessCard'
 import { Pagination } from '@/features/businesses/Pagination'
 import { PageBanner } from '@/components/layout/PageBanner'
 import { BrowseSwitcher } from '@/features/onboarding/BrowseSwitcher'
+import { DisplacedFilterButton } from '@/features/directory/DisplacedFilterButton'
 import { useNearestSort } from '@/features/directory/useNearestSort'
 import { SearchBox } from '@/features/search/SearchBox'
 import { useCategories, useLocationGroups } from '@/hooks/useTaxonomy'
@@ -36,6 +37,7 @@ export function DirectoryPage() {
   const q = searchParams.get('q') ?? ''
   const category = searchParams.get('category') ?? ''
   const location = searchParams.get('location') ?? ''
+  const displaced = searchParams.get('displaced') === '1'
   const chosenSort = searchParams.get('sort') as BusinessSortOption | null
   const page = Number(searchParams.get('page') ?? '1')
   const setSort = useCallback(
@@ -67,12 +69,13 @@ export function DirectoryPage() {
   const { groups } = useLocationGroups()
 
   const results = useQuery({
-    queryKey: queryKeys.businesses({ q, category, location, sort, lat: near?.lat, lng: near?.lng, page }),
+    queryKey: queryKeys.businesses({ q, category, location, displaced, sort, lat: near?.lat, lng: near?.lng, page }),
     queryFn: () =>
       publicBusinessApi.search({
         q: q || undefined,
         category: category || undefined,
         location: location || undefined,
+        displaced: displaced || undefined,
         sort,
         lat: near?.lat,
         lng: near?.lng,
@@ -97,7 +100,7 @@ export function DirectoryPage() {
     [searchParams, setSearchParams],
   )
 
-  const hasFilters = Boolean(q || category || location) || chosenSort !== null
+  const hasFilters = Boolean(q || category || location || displaced) || chosenSort !== null
   const resetFilters = () => setSearchParams(new URLSearchParams())
 
   return (
@@ -218,6 +221,10 @@ export function DirectoryPage() {
             <LocateFixed className="h-4 w-4" aria-hidden="true" />
             {t('directory.sortNearest')}
           </Button>
+          <DisplacedFilterButton
+            active={displaced}
+            onToggle={() => updateParams({ displaced: displaced ? '' : '1' })}
+          />
           {hasFilters ? (
             <Button variant="ghost" size="sm" onClick={resetFilters}>
               <X className="h-4 w-4" aria-hidden="true" />

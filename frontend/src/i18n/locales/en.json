@@ -136,7 +136,7 @@
   "admin.correctionSaved": "Saved",
   "admin.correctionsTitle": "Admin corrections",
   "admin.credentialsMessageHeading": "WhatsApp login message",
-  "admin.credentialsMessageHint": "This message is sent with a new password. You can edit it and add a WhatsApp channel or group link. Keep {phone} (the username) and {password} (the password); {url} gives the site's address.",
+  "admin.credentialsMessageHint": "This message is sent with a new password. You can edit it and add a WhatsApp channel link. Keep {phone} (the username) and {password} (the password); {url} gives the site's address.",
   "admin.credentialsMessageReset": "Restore the original message",
   "admin.placeTitle": "Location and map",
   "admin.createdAgo": "Created {date}",
@@ -1426,7 +1426,7 @@
   "stories.approved": "Approved; it shows for 24 hours.",
   "stories.rejected": "The story was rejected.",
   "stories.deleted": "The story was deleted.",
-  "admin.navStories": "Stories",
+  "admin.navStories": "Status",
   "admin.storiesTitle": "Owners' stories",
   "admin.storiesHint": "Photos sent by shop and service owners to appear at the top of the home page. Approval shows one for 24 hours from that moment.",
   "admin.storiesEmpty": "No stories here.",
@@ -1668,5 +1668,9 @@
   "admin.jobDownloadId": "Download ID",
   "admin.jobWorkPlaceLabel": "Place of work",
   "admin.jobWorkModeLabel": "How the work is done",
-  "admin.jobWorkModeNone": "Not set"
+  "admin.jobWorkModeNone": "Not set",
+  "displaced.badge": "Displaced from {place}",
+  "displaced.filter": "Displaced owners",
+  "account.showDisplacementLabel": "Show visitors that I am displaced from this place",
+  "account.showDisplacementHint": "“Displaced from …” appears on your pages and cards. You can hide it at any time."
 }

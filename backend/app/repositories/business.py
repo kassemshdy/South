@@ -34,6 +34,8 @@ class BusinessRepository(BaseRepository[Business]):
         return stmt.options(
             joinedload(Business.category),
             joinedload(Business.location).joinedload(Location.parent),
+            # Read by every card for the displaced-from badge.
+            joinedload(Business.owner),
             selectinload(Business.images),
             selectinload(Business.social_links),
             selectinload(Business.items),
@@ -86,7 +88,15 @@ class BusinessRepository(BaseRepository[Business]):
         location_slug: str | None,
         origin: GoodsOrigin | None = None,
         with_products: bool = False,
+        displaced: bool = False,
     ) -> Select[tuple[Business]]:
+        if displaced:
+            # Only holders who chose to show it: the filter must not reveal
+            # by omission what the badge would not show.
+            stmt = stmt.where(
+                Business.owner_id.in_(select(User.id).where(User.publishes_displacement()))
+            )
+
         if with_products:
             # The products page lists shops (round 3): a shop belongs there
             # once it has something a visitor can buy.
@@ -172,6 +182,7 @@ class BusinessRepository(BaseRepository[Business]):
         location_slug: str | None = None,
         origin: GoodsOrigin | None = None,
         with_products: bool = False,
+        displaced: bool = False,
         sort: SortOption = "newest",
         near: Point | None = None,
         page: int = 1,
@@ -180,7 +191,7 @@ class BusinessRepository(BaseRepository[Business]):
         """Paginated public search. Never returns a non-APPROVED business."""
         filtered = self._apply_filters(
             self.public_query(), q=q, category_slug=category_slug, location_slug=location_slug,
-            origin=origin, with_products=with_products,
+            origin=origin, with_products=with_products, displaced=displaced,
         )
 
         total = int(

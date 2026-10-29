@@ -78,8 +78,12 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         headers.setdefault("X-Content-Type-Options", "nosniff")
         headers.setdefault("X-Frame-Options", "DENY")
         headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        # Geolocation is allowed for the site's own pages and nothing else:
+        # "nearest first" in the directories and "use my position" on the map
+        # pin both ask for it, and an empty allow-list made the browser refuse
+        # before ever showing the visitor a prompt.
         headers.setdefault(
-            "Permissions-Policy", "geolocation=(), microphone=(), camera=(), payment=()"
+            "Permissions-Policy", "geolocation=(self), microphone=(), camera=(), payment=()"
         )
         if self._csp:
             headers.setdefault("Content-Security-Policy", self._csp)

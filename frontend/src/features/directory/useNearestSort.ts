@@ -52,7 +52,8 @@ function locate(onDone: (position: Position | null) => void) {
  * The directories' sort order, with "nearest" as the default for a visitor
  * who has already let the site know where they are.
  *
- * The browser is asked only when someone chooses nearest, never on arrival:
+ * The browser is asked only when someone chooses nearest (by the button, the
+ * sort list, or a link that already says so), never on a plain arrival:
  * a permission prompt on page load is answered "no" out of reflex, and then
  * cannot be asked again. Once granted -- now or on an earlier visit -- the
  * directories open nearest-first, which is what the owners asked for, while
@@ -86,6 +87,21 @@ export function useNearestSort<S extends string>(
       active = false
     }
   }, [position])
+
+  // A link that already says nearest (shared, bookmarked, or this page
+  // reloaded) is someone having chosen it, so ask once; otherwise the list
+  // would claim to be nearest-first while sorted by nothing in particular.
+  const [askedForLink, setAskedForLink] = useState(false)
+  useEffect(() => {
+    if (chosen !== 'nearest' || position || askedForLink) return
+    setAskedForLink(true)
+    setLocating(true)
+    locate((found) => {
+      setLocating(false)
+      setPosition(found)
+      if (!found) toast.error(t('directory.nearestUnavailable'))
+    })
+  }, [chosen, position, askedForLink, t, toast])
 
   const sort: S | 'nearest' = chosen ?? (position ? 'nearest' : fallback)
 

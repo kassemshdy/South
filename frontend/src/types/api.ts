@@ -86,6 +86,11 @@ export type ModerationActionType =
 
 export interface User extends OwnerIdentity {
   id: string
+  /**
+   * The holder's own choice to show buyers where they were displaced from.
+   * The one identity value that can become public, and only through this.
+   */
+  show_displacement?: boolean
   phone_number: string | null
   email: string | null
   display_name: string | null
@@ -266,6 +271,11 @@ export interface BusinessSummary {
   rating_average: number | null
   rating_count: number
   goods_origin: GoodsOrigin
+  /**
+   * Where the owner was displaced from, only when they chose to show it on
+   * their account page; null otherwise.
+   */
+  displaced_from?: string | null
   created_at: string
 }
 
@@ -440,6 +450,11 @@ export interface TalentSummary {
   rating_average: number | null
   rating_count: number
   location: LocationNode | null
+  /**
+   * Where the owner was displaced from, only when they chose to show it on
+   * their account page; null otherwise.
+   */
+  displaced_from?: string | null
   created_at: string
 }
 
@@ -785,6 +800,8 @@ export interface BusinessQuery {
   origin?: GoodsOrigin
   /** Only shops with at least one product on sale -- the products page. */
   with_products?: boolean
+  /** Only owners who chose to show they are displaced. */
+  displaced?: boolean
   sort?: BusinessSortOption
   /** The visitor's position, for `nearest` only. Never put in the page URL. */
   lat?: number
@@ -805,6 +822,8 @@ export interface TalentQuery {
   kind?: TalentKind
   /** Remotely or in person; a profile that does both matches either. */
   work_mode?: Exclude<WorkMode, 'BOTH'>
+  /** Only owners who chose to show they are displaced. */
+  displaced?: boolean
   sort?: TalentSortOption
   /** The visitor's position, for `nearest` only. Never put in the page URL. */
   lat?: number
@@ -821,6 +840,11 @@ export interface ProductBusinessRef {
   whatsapp: string | null
   category: Category | null
   location: LocationNode | null
+  /**
+   * Where the owner was displaced from, only when they chose to show it on
+   * their account page; null otherwise.
+   */
+  displaced_from?: string | null
 }
 
 export interface ProductSummary {

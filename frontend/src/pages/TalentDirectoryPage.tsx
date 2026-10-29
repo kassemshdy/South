@@ -14,6 +14,7 @@ import { WORK_MODE_KEYS } from '@/features/talent/labels'
 import { useLocationGroups, useTalentSkills } from '@/hooks/useTaxonomy'
 import { PageBanner } from '@/components/layout/PageBanner'
 import { BrowseSwitcher } from '@/features/onboarding/BrowseSwitcher'
+import { DisplacedFilterButton } from '@/features/directory/DisplacedFilterButton'
 import { useNearestSort } from '@/features/directory/useNearestSort'
 import { SearchBox } from '@/features/search/SearchBox'
 import { useT, type TranslationKey } from '@/i18n'
@@ -89,6 +90,7 @@ export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
   const q = searchParams.get('q') ?? ''
   const skill = searchParams.get('skill') ?? ''
   const location = searchParams.get('location') ?? ''
+  const displaced = searchParams.get('displaced') === '1'
   // Services only: a job application is not asked how it is delivered.
   const workMode = kind === 'SERVICE' ? workModeFrom(searchParams.get('work_mode')) : undefined
   const chosenSort = searchParams.get('sort') as TalentSortOption | null
@@ -144,6 +146,7 @@ export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
       page,
       kind,
       work_mode: workMode,
+      displaced,
     }),
     queryFn: () =>
       publicTalentApi.search({
@@ -152,6 +155,7 @@ export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
         skill: skill || undefined,
         location: location || undefined,
         work_mode: workMode,
+        displaced: displaced || undefined,
         sort,
         lat: near?.lat,
         lng: near?.lng,
@@ -176,7 +180,7 @@ export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
     [searchParams, setSearchParams],
   )
 
-  const hasFilters = Boolean(q || skill || location || workMode) || chosenSort !== null
+  const hasFilters = Boolean(q || skill || location || workMode || displaced) || chosenSort !== null
   const resetFilters = () => setSearchParams(new URLSearchParams())
 
   return (
@@ -322,6 +326,10 @@ export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
             <LocateFixed className="h-4 w-4" aria-hidden="true" />
             {t('directory.sortNearest')}
           </Button>
+          <DisplacedFilterButton
+            active={displaced}
+            onToggle={() => updateParams({ displaced: displaced ? '' : '1' })}
+          />
           {hasFilters ? (
             <Button variant="ghost" size="sm" onClick={resetFilters}>
               <X className="h-4 w-4" aria-hidden="true" />
