@@ -13,10 +13,10 @@ from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
-from app.core.errors import ConflictError
+from app.core.errors import ConflictError, ValidationError
 from app.core.i18n import LazyText
 from app.models.business import Business, ModerationAction
-from app.models.enums import BusinessStatus, ModerationActionType
+from app.models.enums import BusinessStatus, ImageKind, ModerationActionType
 from app.models.user import User
 
 logger = logging.getLogger(__name__)
@@ -111,6 +111,14 @@ class ModerationService:
         return self._transition(business, A.SUBMIT, actor=owner)
 
     def approve(self, business: Business, admin: User) -> Business:
+        """Publish a shop -- only one with a logo (the owners' decision,
+        29 Oct 2026: 63 of 85 live shops showed a grey icon). An application
+        arrives without one, so the reviewer adds it from /admin first."""
+        has_logo = business.logo_url or any(
+            image.kind is ImageKind.LOGO for image in business.images
+        )
+        if not has_logo:
+            raise ValidationError("moderation.logo_required", code="logo_required")
         return self._transition(business, A.APPROVE, actor=admin)
 
     def reject(self, business: Business, admin: User, reason: str) -> Business:

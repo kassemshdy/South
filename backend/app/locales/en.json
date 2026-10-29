@@ -288,5 +288,6 @@
   "workshop.already_started": "This workshop has started; sign-up is closed.",
   "workshop.ends_before_start": "A workshop must end after it starts.",
   "workshop.deleted": "Workshop deleted.",
-  "telegram.kind.workshop_signup": "New workshop sign-up"
+  "telegram.kind.workshop_signup": "New workshop sign-up",
+  "moderation.logo_required": "A shop cannot be published without its logo. Add the logo on the listing, then approve it."
 }

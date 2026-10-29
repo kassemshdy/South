@@ -1341,7 +1341,7 @@
   "credentials.hasPassword": "This account already has a password. It cannot be shown here because it was created from another browser or the account holder changed it.",
   "credentials.reissueConfirm": "Creating a new password cancels the current one and signs the account holder out. Continue?",
   "home.categoriesTitle": "Browse by category",
-  "home.storiesTitle": "Stories from the South",
+  "home.storiesTitle": "Status from Janoubona",
   "home.statShops": "shops in the directory",
   "home.statProducts": "products on show",
   "home.statTalents": "service providers",

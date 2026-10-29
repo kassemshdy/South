@@ -327,3 +327,34 @@ def test_public_endpoints_never_return_non_approved_businesses(
     # URLs are percent-encoded, so read them back decoded: an encoded leak
     # must not pass for an absent one.
     assert ar("business.hidden_prefix") not in unquote(sitemap.text)
+
+
+def test_a_shop_without_a_logo_is_not_published(
+    client: TestClient, db: Session, admin: User, category: Category, location: Location
+) -> None:
+    """The owners' decision (29 Oct 2026): no shop goes live on a grey icon.
+    An application arrives without a logo, so the reviewer adds one first."""
+    created = client.post(
+        "/api/businesses",
+        headers=sign_in(client, "03991077"),
+        json={
+            "name": ar("business.first"),
+            "category_id": str(category.id),
+            "location_id": str(location.id),
+        },
+    )
+    business = db.get(Business, created.json()["id"])
+    assert business is not None
+    business.status = BusinessStatus.PENDING_REVIEW
+    db.commit()
+    approve = f"/api/admin/businesses/{business.id}/approve"
+
+    refused = client.post(approve, headers=admin_headers(client))
+    assert refused.status_code == 422
+    assert refused.json()["error"]["code"] == "logo_required"
+    db.refresh(business)
+    assert business.status is BusinessStatus.PENDING_REVIEW
+
+    business.logo_url = "/media/test/logo.jpg"
+    db.commit()
+    assert client.post(approve, headers=admin_headers(client)).status_code == 200
