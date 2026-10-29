@@ -278,5 +278,7 @@
   "verification.empty": "The file is empty.",
   "verification.not_found": "Document not found.",
   "verification.too_large": "The file exceeds the {limit} MB limit.",
-  "verification.unsupported_format": "Only PDF, JPG or PNG files are allowed."
+  "verification.unsupported_format": "Only PDF, JPG or PNG files are allowed.",
+  "auth.view_only": "This is a read-only view of the owner's account; nothing can be saved.",
+  "user.view_as_not_for_admin": "An administrator's account cannot be viewed this way."
 }

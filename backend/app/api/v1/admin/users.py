@@ -9,7 +9,9 @@ single-business actions versus the list/pending endpoints.
 
 from __future__ import annotations
 
+import logging
 import uuid
+from datetime import timedelta
 
 from fastapi import APIRouter, Response
 
@@ -18,11 +20,12 @@ from app.core.dependencies import AdminUser, AppSettings, DbSession
 from app.core.downloads import content_disposition
 from app.core.errors import NotFoundError, PermissionDeniedError, ValidationError
 from app.core.i18n import translate
+from app.core.security import create_access_token
 from app.models.enums import UserRole, VerificationDocumentKind
 from app.repositories.business import BusinessRepository
 from app.repositories.talent import TalentRepository
 from app.repositories.user import UserRepository
-from app.schemas.auth import CredentialStateOut, IssuedPasswordOut
+from app.schemas.auth import CredentialStateOut, IssuedPasswordOut, ViewAsOut
 from app.schemas.common import MessageResponse
 from app.schemas.moderation import AdminUserDetailOut
 from app.schemas.verification import VerificationDocumentOut
@@ -32,6 +35,10 @@ from app.services.verification import VerificationDocumentService
 from app.storage.factory import get_storage
 
 router = APIRouter(prefix="/admin", tags=["admin-users"])
+logger = logging.getLogger(__name__)
+
+#: How long a read-only look at an owner's account lasts.
+VIEW_AS_MINUTES = 30
 
 
 def _load_document(
@@ -150,6 +157,43 @@ def issue_credentials(
     password = AuthService(db, settings).issue_password(user)
     return IssuedPasswordOut(
         phone_number=user.phone_number, password=password, version=user.token_version
+    )
+
+
+@router.post("/users/{user_id}/view-as", response_model=ViewAsOut)
+def view_as(user_id: uuid.UUID, admin: AdminUser, db: DbSession) -> ViewAsOut:
+    """Open an owner's account read-only, as the owner sees it.
+
+    The owners' decision (29 Oct 2026): an administrator may see an owner's
+    dashboard to help them, and may change nothing there. The session is the
+    owner's own for 30 minutes, marked with the administrator, and refused
+    for any change by ``_enforce_view_only``; it ends early if either of them
+    signs out everywhere or changes password. Never for an administrator's
+    account. Logged, with both ids and nothing else.
+    """
+    user = UserRepository(db).get_active(user_id)
+    if user is None:
+        raise NotFoundError("user.not_found")
+    if user.role is UserRole.ADMIN:
+        raise PermissionDeniedError("user.view_as_not_for_admin", code="admin_account")
+    token, expires_at = create_access_token(
+        user_id=user.id,
+        role=user.role.value,
+        token_version=user.token_version,
+        expires_delta=timedelta(minutes=VIEW_AS_MINUTES),
+        extra={"va": str(admin.id), "atv": admin.token_version},
+    )
+    logger.info(
+        "Administrator viewing an account read-only",
+        extra={"admin_id": str(admin.id), "user_id": str(user.id)},
+    )
+    return ViewAsOut(
+        access_token=token,
+        expires_at=expires_at,
+        user_id=user.id,
+        # What the banner names the account by: the owner's name, else the
+        # number they sign in with.
+        display_name=user.display_name or user.phone_number,
     )
 
 

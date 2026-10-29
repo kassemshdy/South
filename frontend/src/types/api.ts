@@ -112,6 +112,14 @@ export interface User extends OwnerIdentity {
  * component state that outlives the panel, never persisted, and never sent
  * anywhere by this app — the administrator relays it from their own WhatsApp.
  */
+/** A short read-only session on an owner's account, for an administrator. */
+export interface ViewAsToken {
+  access_token: string
+  expires_at: string
+  user_id: string
+  display_name: string | null
+}
+
 export interface IssuedPassword {
   phone_number: string
   password: string
