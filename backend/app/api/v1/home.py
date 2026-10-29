@@ -43,6 +43,8 @@ SECTIONS: tuple[str, ...] = (
     "reels",
     "stats",
     "products",
+    "top_rated_products",
+    "top_viewed_products",
     "category_products",
     "shops",
     "talents",

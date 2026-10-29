@@ -335,6 +335,8 @@ export const publicItemApi = {
     apiRequest<Paginated<ProductSummary>>('/api/items', { query: { ...query } }),
   bySlug: (slug: string) =>
     apiRequest<ProductDetail>(`/api/items/${encodeURIComponent(slug)}`),
+  topRated: () => apiRequest<ProductSummary[]>('/api/items/top-rated'),
+  topViewed: () => apiRequest<ProductSummary[]>('/api/items/top-viewed'),
 }
 
 /** The partner form (round 3). */
