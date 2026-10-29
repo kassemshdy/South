@@ -136,7 +136,7 @@
   "admin.correctionSaved": "Saved",
   "admin.correctionsTitle": "Admin corrections",
   "admin.credentialsMessageHeading": "WhatsApp login message",
-  "admin.credentialsMessageHint": "This message is sent with a new password. You can edit it and add a WhatsApp channel or group link. Keep {phone} (the username) and {password} (the password); {url} gives the site's address.",
+  "admin.credentialsMessageHint": "This message is sent with a new password. You can edit it and add a WhatsApp channel link. Keep {phone} (the username) and {password} (the password); {url} gives the site's address.",
   "admin.credentialsMessageReset": "Restore the original message",
   "admin.placeTitle": "Location and map",
   "admin.createdAgo": "Created {date}",
