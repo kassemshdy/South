@@ -591,6 +591,7 @@ export type MenuItemId =
   | 'products'
   | 'services'
   | 'jobs'
+  | 'vacancies'
   | 'blog'
   | 'news'
   | 'workshops'
@@ -1234,5 +1235,50 @@ export interface WorkshopRegistration {
   id: string
   full_name: string
   phone_number: string
+  created_at: string
+}
+
+export type JobType = 'FULL_TIME' | 'PART_TIME' | 'REMOTE' | 'FREELANCE' | 'INTERNSHIP'
+
+/** A job opening the platform posts; published and open ones only, publicly. */
+export interface JobOpening {
+  id: string
+  slug: string
+  title: string
+  description: string
+  employer_name: string | null
+  job_type: JobType
+  salary: string | null
+  /** ISO date; the last day applications are taken. */
+  deadline: string | null
+  location: LocationNode | null
+  created_at: string
+}
+
+export interface AdminJobOpening extends JobOpening {
+  is_published: boolean
+  application_count: number
+  updated_at: string
+}
+
+export interface JobOpeningInput {
+  title: string
+  description: string
+  employer_name: string | null
+  job_type: JobType
+  salary: string | null
+  deadline: string | null
+  location_id: string | null
+}
+
+/** An application as staff read it; the CV is downloaded separately. */
+export interface JobApplication {
+  id: string
+  full_name: string
+  email: string
+  phone_number: string
+  original_filename: string | null
+  content_type: string
+  size_bytes: number
   created_at: string
 }

@@ -39,6 +39,7 @@ RESTRICTED_READS: dict[str, frozenset[StaffRole]] = {
         "/api/admin/users/{user_id}/cv-document",
         "/api/admin/users/{user_id}/cv-document/download",
         "/api/admin/businesses/{business_id}/documents/{document_id}/download",
+        "/api/admin/job-openings/{job_id}/applications/{application_id}/cv",
     )
 } | {
     # A spreadsheet of every account's identity and every customer's phone.
@@ -121,6 +122,14 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     ("PUT", "/api/admin/home/layout"): _CONTENT,
     # The site menu's items, order and names (29 Oct 2026).
     ("PUT", "/api/admin/menu"): _CONTENT,
+    # Job openings (29 Oct 2026): written like the editorial pages; an
+    # application -- a stranger's CV -- is deleted by those who may read it.
+    ("POST", "/api/admin/job-openings"): _CONTENT,
+    ("PUT", "/api/admin/job-openings/{job_id}"): _CONTENT,
+    ("DELETE", "/api/admin/job-openings/{job_id}"): _CONTENT,
+    ("POST", "/api/admin/job-openings/{job_id}/publish"): _CONTENT,
+    ("POST", "/api/admin/job-openings/{job_id}/unpublish"): _CONTENT,
+    ("DELETE", "/api/admin/job-openings/{job_id}/applications/{application_id}"): _MODERATE,
     ("PUT", "/api/admin/pages/{key}"): _CONTENT,
     ("PUT", "/api/admin/team/{slot}"): _CONTENT,
     ("POST", "/api/admin/team/{slot}/photo"): _CONTENT,

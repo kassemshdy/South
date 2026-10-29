@@ -289,5 +289,13 @@
   "workshop.ends_before_start": "A workshop must end after it starts.",
   "workshop.deleted": "Workshop deleted.",
   "telegram.kind.workshop_signup": "New workshop sign-up",
-  "moderation.logo_required": "A shop cannot be published without its logo. Add the logo on the listing, then approve it."
+  "moderation.logo_required": "A shop cannot be published without its logo. Add the logo on the listing, then approve it.",
+  "job.not_found": "Job opening not found.",
+  "job.duplicate_slug": "Another job opening already uses this address.",
+  "job.applied": "We received your application; our team will review it and contact you.",
+  "job.rate_limited": "Too many attempts; please try again later.",
+  "job.deleted": "The job opening and every application to it were deleted.",
+  "job.application_not_found": "Application not found.",
+  "job.application_deleted": "The application and its CV were deleted.",
+  "telegram.kind.job_application": "New job application"
 }
