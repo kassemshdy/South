@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { LocateFixed, SlidersHorizontal, X } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/Button'
@@ -18,6 +18,7 @@ import { SearchBox } from '@/features/search/SearchBox'
 import { useCategories, useLocationGroups } from '@/hooks/useTaxonomy'
 import { useT, type TranslationKey } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
+import { trackDirectoryView } from '@/services/analytics'
 import { publicBusinessApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { BusinessSortOption } from '@/types/api'
@@ -40,6 +41,10 @@ export function DirectoryPage() {
   const displaced = searchParams.get('displaced') === '1'
   const chosenSort = searchParams.get('sort') as BusinessSortOption | null
   const page = Number(searchParams.get('page') ?? '1')
+  // The filters on screen, never the search text: see services/analytics.ts.
+  useEffect(() => {
+    trackDirectoryView({ directory: 'shops', category, location, displaced })
+  }, [category, location, displaced])
   const setSort = useCallback(
     (value: BusinessSortOption) => {
       const next = new URLSearchParams(searchParams)

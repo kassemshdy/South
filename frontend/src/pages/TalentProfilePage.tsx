@@ -9,7 +9,7 @@ import {
   Phone,
   UserRound,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
@@ -24,6 +24,7 @@ import { FavouriteButton } from '@/features/favourites/FavouriteButton'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { useSeo } from '@/hooks/useSeo'
+import { trackListingView } from '@/services/analytics'
 import { useI18n, useT } from '@/i18n'
 import { EMPLOYMENT_TYPE_KEYS, PROFICIENCY_KEYS, WORK_MODE_KEYS } from '@/features/talent/labels'
 import { FollowLinks } from '@/features/social/FollowLinks'
@@ -65,6 +66,15 @@ export function TalentProfilePage() {
     image: data?.photo_url ?? null,
     canonicalPath: `/talent/${encodeURIComponent(slug)}`,
   })
+  useEffect(() => {
+    if (!data) return
+    trackListingView({
+      listing_type: data.kind === 'JOB_SEEKER' ? 'job_seeker' : 'service',
+      listing: data.slug,
+      skill: data.skill?.slug,
+      location: data.location?.slug,
+    })
+  }, [data])
 
   if (talent.isLoading) {
     return (

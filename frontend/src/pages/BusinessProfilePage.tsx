@@ -13,7 +13,7 @@ import {
   Store,
   Youtube,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
@@ -36,6 +36,7 @@ import { ErrorState } from '@/components/ui/States'
 import { publicBusinessApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import { useSeo } from '@/hooks/useSeo'
+import { trackListingView } from '@/services/analytics'
 import { useI18n, useT } from '@/i18n'
 import type { SocialPlatform } from '@/types/api'
 import { formatDate, formatPrice, PLATFORM_KEYS, telHref, whatsappHref } from '@/utils/format'
@@ -78,6 +79,15 @@ export function BusinessProfilePage() {
     image: data?.cover_url ?? data?.logo_url ?? null,
     canonicalPath: `/business/${encodeURIComponent(slug)}`,
   })
+  useEffect(() => {
+    if (!data) return
+    trackListingView({
+      listing_type: 'business',
+      listing: data.slug,
+      category: data.category?.slug,
+      location: data.location?.slug,
+    })
+  }, [data])
 
   if (business.isLoading) {
     return (
