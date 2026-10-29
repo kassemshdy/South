@@ -19,7 +19,7 @@ Commands MUST run inside the virtualenv:
 
 ```bash
 cd backend
-./.venv/bin/pytest tests/ -q
+./.venv/bin/pytest tests/ -q -n auto --dist loadfile   # one database per worker
 ./.venv/bin/ruff check .
 ./.venv/bin/mypy app scripts
 ./.venv/bin/alembic upgrade head
