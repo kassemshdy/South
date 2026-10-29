@@ -5,6 +5,7 @@ import { Header } from '@/components/layout/Header'
 import { RouteAnalytics } from '@/components/layout/RouteAnalytics'
 import { ScrollToTop } from '@/components/layout/ScrollToTop'
 import { WhatsAppButton } from '@/components/layout/WhatsAppButton'
+import { ViewAsBanner } from '@/features/admin/ViewAsBanner'
 import { useAuth } from '@/features/auth/AuthContext'
 import { FeedbackWidget } from '@/features/feedback/FeedbackWidget'
 import { OfferPopup } from '@/features/growth/OfferPopup'
@@ -16,6 +17,7 @@ export function AppLayout() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <ViewAsBanner />
       <ScrollToTop />
       <RouteAnalytics />
       {/* Skip link: the first tab stop on every page. */}

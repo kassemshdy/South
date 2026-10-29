@@ -88,6 +88,9 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     ("POST", "/api/admin/testimonials/{testimonial_id}/approve"): _MODERATE,
     ("POST", "/api/admin/testimonials/{testimonial_id}/reject"): _MODERATE,
     ("DELETE", "/api/admin/testimonials/{testimonial_id}"): _MODERATE,
+    # Seeing an owner's account as they do, read-only: the roles that may
+    # already read their documents, so it opens nothing new to anyone.
+    ("POST", "/api/admin/users/{user_id}/view-as"): _MODERATE,
     # Owners' passwords: whoever approves, and whoever answers "I forgot".
     ("POST", "/api/admin/users/{user_id}/credentials"): _CREDENTIALS,
     # Support
@@ -155,6 +158,8 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
 }
 
 ALL_STAFF = frozenset(StaffRole)
+#: Who may open an owner's account read-only (kept beside its WRITES entry).
+VIEW_AS_ROLES = _MODERATE
 MANAGER_ONLY = frozenset({M})
 
 
