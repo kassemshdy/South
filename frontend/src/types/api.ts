@@ -176,6 +176,9 @@ export interface LocationNode {
   sort_order: number
   is_active: boolean
   business_count: number
+  item_count: number
+  service_count: number
+  job_count: number
 }
 
 export interface BusinessImage {
@@ -385,6 +388,8 @@ export interface TalentSkill {
   sort_order: number
   is_active: boolean
   talent_count: number
+  service_count: number
+  job_count: number
 }
 
 export interface TalentImage {
@@ -552,6 +557,8 @@ export type HomeSectionId =
   | 'reels'
   | 'stats'
   | 'products'
+  | 'top_rated_products'
+  | 'top_viewed_products'
   | 'category_products'
   | 'shops'
   | 'talents'

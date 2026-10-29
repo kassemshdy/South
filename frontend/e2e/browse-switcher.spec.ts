@@ -63,7 +63,9 @@ test.describe('Browse switcher', () => {
 
     // The search box on the new page is actually holding the carried term,
     // rather than the URL saying one thing and the form another.
-    await expect(page.getByRole('searchbox')).toHaveValue(fixture.query)
+    await expect(page.getByRole('combobox', { name: t('talent.searchLabel') })).toHaveValue(
+      fixture.query,
+    )
   })
 
   test('both directories carry the strip, each one tap from the other', async ({ page }) => {

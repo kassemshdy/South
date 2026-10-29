@@ -22,6 +22,8 @@ const LABELS: Record<HomeSectionId, TranslationKey> = {
   reels: 'admin.homeSectionReels',
   stats: 'admin.homeSectionStats',
   products: 'admin.homeSectionProducts',
+  top_rated_products: 'admin.homeSectionTopRated',
+  top_viewed_products: 'admin.homeSectionTopViewed',
   category_products: 'admin.homeSectionCategoryProducts',
   shops: 'admin.homeSectionShops',
   talents: 'admin.homeSectionTalents',

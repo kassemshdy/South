@@ -44,7 +44,12 @@ class LocationOut(ORMModel):
     parent_id: uuid.UUID | None = None
     sort_order: int
     is_active: bool
+    # Each directory's own count, a district's including its towns, so a
+    # filter can list the places that have something to show, fullest first.
     business_count: int = 0
+    item_count: int = 0
+    service_count: int = 0
+    job_count: int = 0
 
 
 class LocationIn(BaseModel):

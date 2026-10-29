@@ -3,6 +3,7 @@ import { useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 
 import { useT } from '@/i18n'
 import type { LocationGroup } from '@/hooks/useTaxonomy'
+import type { LocationNode } from '@/types/api'
 import { cn } from '@/utils/cn'
 
 /**
@@ -29,6 +30,8 @@ interface Option {
   /** The district a town belongs to, shown beside it; empty for a district. */
   district: string
   search: string
+  /** What a directory has there, when it counts; absent in a form. */
+  count?: number
 }
 
 interface LocationComboboxProps {
@@ -46,6 +49,11 @@ interface LocationComboboxProps {
   placeholder?: string
   invalid?: boolean
   'aria-describedby'?: string
+  /**
+   * A directory's own count for a place. Given, each place shows it and the
+   * fullest districts, and the fullest towns within them, come first.
+   */
+  countOf?: (node: LocationNode) => number
 }
 
 /**
@@ -65,6 +73,7 @@ export function LocationCombobox({
   placeholder,
   invalid,
   'aria-describedby': describedBy,
+  countOf,
 }: LocationComboboxProps) {
   const t = useT()
   const listId = useId()
@@ -73,21 +82,35 @@ export function LocationCombobox({
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(0)
 
-  const options = useMemo<Option[]>(
-    () => [
+  const options = useMemo<Option[]>(() => {
+    // Fullest first when counting; otherwise the order the API gives.
+    const byCount = (a: LocationNode, b: LocationNode) => (countOf ? countOf(b) - countOf(a) : 0)
+    const ordered = countOf
+      ? [...groups]
+          .sort((a, b) => byCount(a.district, b.district))
+          .map((group) => ({ ...group, towns: [...group.towns].sort(byCount) }))
+      : groups
+    const counted = (node: LocationNode) => (countOf ? { count: countOf(node) } : {})
+    return [
       ...(emptyLabel ? [{ id: '', name: emptyLabel, district: '', search: fold(emptyLabel) }] : []),
-      ...groups.flatMap(({ district, towns }) => [
-        { id: district[by], name: district.name_ar, district: '', search: fold(district.name_ar) },
+      ...ordered.flatMap(({ district, towns }) => [
+        {
+          id: district[by],
+          name: district.name_ar,
+          district: '',
+          search: fold(district.name_ar),
+          ...counted(district),
+        },
         ...towns.map((town) => ({
           id: town[by],
           name: town.name_ar,
           district: district.name_ar,
           search: fold(town.name_ar),
+          ...counted(town),
         })),
       ]),
-    ],
-    [groups, by, emptyLabel],
-  )
+    ]
+  }, [groups, by, emptyLabel, countOf])
 
   const selected = options.find((option) => option.id === value)
 
@@ -205,6 +228,11 @@ export function LocationCombobox({
                     <span className="ms-2 text-sm font-normal text-ink-500">{option.district}</span>
                   ) : null}
                 </span>
+                {option.count !== undefined ? (
+                  <span className="ms-auto text-sm font-normal text-ink-500 ltr-nums">
+                    {option.count}
+                  </span>
+                ) : null}
                 {option.id === value ? (
                   <Check className="h-4 w-4 shrink-0 text-brand-700" aria-hidden="true" />
                 ) : null}

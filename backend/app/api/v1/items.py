@@ -4,6 +4,7 @@ independent public `/items` directory."""
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime, timedelta
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, File, Form, Path, Query, UploadFile, status
@@ -85,6 +86,24 @@ def search_products(
         page_size=page_size,
     )
     return paginate(results, product_summary)
+
+
+#: How far back "most viewed" looks, and how many products a home row holds.
+TOP_VIEWED_DAYS = 30
+TOP_LIMIT = 8
+
+
+@public_router.get("/items/top-rated", response_model=list[ProductSummaryOut])
+def top_rated_products(db: DbSession) -> list[ProductSummaryOut]:
+    """The home page's top-rated row: products of the best-rated shops."""
+    return [product_summary(item) for item in ItemRepository(db).top_rated(TOP_LIMIT)]
+
+
+@public_router.get("/items/top-viewed", response_model=list[ProductSummaryOut])
+def top_viewed_products(db: DbSession) -> list[ProductSummaryOut]:
+    """The home page's most-viewed row, over the last 30 days."""
+    since = datetime.now(UTC).date() - timedelta(days=TOP_VIEWED_DAYS - 1)
+    return [product_summary(item) for item in ItemRepository(db).top_viewed(since, TOP_LIMIT)]
 
 
 @public_router.get("/items/{slug}", response_model=ProductDetailOut)
