@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -57,3 +58,12 @@ class AdminTestimonialOut(OwnerTestimonialOut):
     talent_id: uuid.UUID | None = None
     talent_name: str | None = None
     talent_slug: str | None = None
+
+
+class FeaturedTestimonialOut(TestimonialOut):
+    """A published testimonial on the home page, with the listing it praises
+    -- its public name and address only, like the listing's own page."""
+
+    subject_kind: Literal["business", "talent"]
+    subject_name: str
+    subject_slug: str

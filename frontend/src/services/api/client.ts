@@ -38,8 +38,57 @@ export class ApiError extends Error {
   }
 }
 
+const VIEW_AS_KEY = 'south.viewAs'
+
+/** An administrator's read-only look at an owner's account. */
+export interface ViewAsSession {
+  token: string
+  userId: string
+  name: string | null
+  expiresAt: string
+}
+
+/**
+ * Kept in this tab's session storage, apart from the administrator's own
+ * session: the other tabs stay the administrator's, and closing the tab or
+ * ending the view returns to it. The server refuses any change made with it.
+ */
+export const viewAsStorage = {
+  get(): ViewAsSession | null {
+    try {
+      const raw = window.sessionStorage.getItem(VIEW_AS_KEY)
+      if (!raw) return null
+      const session = JSON.parse(raw) as ViewAsSession
+      if (new Date(session.expiresAt).getTime() <= Date.now()) {
+        window.sessionStorage.removeItem(VIEW_AS_KEY)
+        return null
+      }
+      return session
+    } catch {
+      return null
+    }
+  },
+  start(session: ViewAsSession): boolean {
+    try {
+      window.sessionStorage.setItem(VIEW_AS_KEY, JSON.stringify(session))
+      return true
+    } catch {
+      return false
+    }
+  },
+  end(): void {
+    try {
+      window.sessionStorage.removeItem(VIEW_AS_KEY)
+    } catch {
+      /* ignore */
+    }
+  },
+}
+
 export const tokenStorage = {
   get(): string | null {
+    const viewing = viewAsStorage.get()
+    if (viewing) return viewing.token
     try {
       return window.localStorage.getItem(TOKEN_STORAGE_KEY)
     } catch {
@@ -55,6 +104,12 @@ export const tokenStorage = {
     }
   },
   clear(): void {
+    // Signing out of a read-only view ends the view, not the administrator's
+    // own session.
+    if (viewAsStorage.get()) {
+      viewAsStorage.end()
+      return
+    }
     try {
       window.localStorage.removeItem(TOKEN_STORAGE_KEY)
     } catch {

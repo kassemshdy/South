@@ -12,6 +12,7 @@ import { AddToCartButton } from '@/features/cart/AddToCartButton'
 import { FavouriteButton } from '@/features/favourites/FavouriteButton'
 import { hasProductFacts, ProductFacts } from '@/features/items/ProductFacts'
 import { ProductGallery } from '@/features/items/ProductGallery'
+import { RelatedProducts, TrendingProducts } from '@/features/items/RelatedProducts'
 import { RelatedWorkshops } from '@/features/workshops/RelatedWorkshops'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
@@ -193,9 +194,12 @@ export function ProductProfilePage() {
               ) : null}
             </CardBody>
           </Card>
+
+          <TrendingProducts excludeId={data.id} />
         </aside>
       </div>
 
+      <RelatedProducts slug={data.slug} />
       <RelatedWorkshops
         category={data.business.category?.slug}
         location={data.business.location?.slug}

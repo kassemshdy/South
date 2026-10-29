@@ -68,12 +68,15 @@ import type {
   Paginated,
   PlatformGrowth,
   GrowthReport,
+  FeaturedTestimonial,
   AdminWorkshop,
   Workshop,
   WorkshopInput,
   WorkshopRegistration,
   WorkshopMode,
   GrowthPlan,
+  ViewAsToken,
+  OfferPopup,
   StaffMember,
   StaffPassword,
   StaffRole,
@@ -341,6 +344,9 @@ export const publicItemApi = {
     apiRequest<ProductDetail>(`/api/items/${encodeURIComponent(slug)}`),
   topRated: () => apiRequest<ProductSummary[]>('/api/items/top-rated'),
   topViewed: () => apiRequest<ProductSummary[]>('/api/items/top-viewed'),
+  mostOrdered: () => apiRequest<ProductSummary[]>('/api/items/most-ordered'),
+  related: (slug: string) =>
+    apiRequest<ProductSummary[]>(`/api/items/${encodeURIComponent(slug)}/related`),
 }
 
 /** The partner form (round 3). */
@@ -386,6 +392,7 @@ export const workshopApi = {
 
 export const siteSettingsApi = {
   get: () => apiRequest<SiteSettings>('/api/site-settings'),
+  offerPopup: () => apiRequest<OfferPopup>('/api/site-settings/offer-popup'),
 }
 
 export const homeApi = {
@@ -503,6 +510,8 @@ export const testimonialApi = {
   listMine: (businessId: string) =>
     apiRequest<OwnerTestimonial[]>(`/api/businesses/${businessId}/testimonials`),
   listMyTalent: () => apiRequest<OwnerTestimonial[]>('/api/my/talent/testimonials'),
+  /** The home page's three best published testimonials. */
+  featured: () => apiRequest<FeaturedTestimonial[]>('/api/testimonials/featured'),
 }
 
 export interface OrderPayload {
@@ -840,6 +849,9 @@ export const adminApi = {
   users: (page = 1) =>
     apiRequest<Paginated<AdminUser>>('/api/admin/users', { query: { page } }),
   user: (id: string) => apiRequest<AdminUserDetail>(`/api/admin/users/${id}`),
+  /** A 30-minute, read-only session on an owner's account. */
+  viewAs: (userId: string) =>
+    apiRequest<ViewAsToken>(`/api/admin/users/${userId}/view-as`, { method: 'POST' }),
   /**
    * Generates a password for an account and returns it **once**. There is no
    * route that reads it back, so a second call replaces it rather than

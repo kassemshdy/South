@@ -9,12 +9,14 @@ from sqlalchemy import select
 from app.core.dependencies import AdminUser, DbSession
 from app.core.urls import youtube_video_id
 from app.models.site_setting import SITE_SETTING_KEYS, SiteSetting
+from app.schemas.growth_report import OfferPopupOut
 from app.schemas.site_setting import (
     CredentialsMessageIn,
     CredentialsMessageOut,
     SiteSettingsIn,
     SiteSettingsOut,
 )
+from app.services.growth_report import GrowthReportService
 
 public_router = APIRouter(prefix="/site-settings", tags=["site-settings"])
 admin_router = APIRouter(prefix="/admin/site-settings", tags=["admin-site-settings"])
@@ -28,6 +30,12 @@ def _current(db: DbSession) -> SiteSettingsOut:
 @public_router.get("", response_model=SiteSettingsOut)
 def site_settings(db: DbSession) -> SiteSettingsOut:
     return _current(db)
+
+
+@public_router.get("/offer-popup", response_model=OfferPopupOut)
+def offer_popup(db: DbSession) -> OfferPopupOut:
+    """The offer to sellers, for the visitors' popup, while it is on."""
+    return GrowthReportService(db).offer_popup()
 
 
 @admin_router.get("", response_model=SiteSettingsOut)

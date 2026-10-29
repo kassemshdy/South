@@ -55,6 +55,9 @@ export const queryKeys = {
   adminWorkshopRegistrations: (id: string) => ['admin', 'workshops', id, 'registrations'] as const,
   topRatedProducts: ['products', 'top-rated'] as const,
   topViewedProducts: ['products', 'top-viewed'] as const,
+  mostOrderedProducts: ['products', 'most-ordered'] as const,
+  relatedProducts: (slug: string) => ['products', 'related', slug] as const,
+  featuredTestimonials: ['testimonials', 'featured'] as const,
   adminGrowthReport: ['admin', 'growth-report'] as const,
   adminGrowthPlan: ['admin', 'growth-plan'] as const,
   adminStaff: ['admin', 'staff'] as const,
@@ -79,6 +82,7 @@ export const queryKeys = {
   team: ['team'] as const,
   adminTeam: ['admin', 'team'] as const,
   siteSettings: ['site-settings'] as const,
+  offerPopup: ['site-settings', 'offer-popup'] as const,
   adminSiteSettings: ['admin', 'site-settings'] as const,
   adminCredentialsMessage: ['admin', 'credentials-message'] as const,
   adminDiscardedApplications: (includeDismissed: boolean) =>

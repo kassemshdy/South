@@ -47,6 +47,7 @@ def create_access_token(
     role: str,
     token_version: int,
     expires_delta: timedelta | None = None,
+    extra: dict[str, Any] | None = None,
 ) -> tuple[str, datetime]:
     """Issue a signed access token; returns the token and its expiry."""
     now = datetime.now(UTC)
@@ -61,6 +62,7 @@ def create_access_token(
         "iat": int(now.timestamp()),
         "exp": int(expires_at.timestamp()),
         "jti": secrets.token_urlsafe(16),
+        **(extra or {}),
     }
     token = jwt.encode(payload, _settings.secret_key, algorithm=_settings.jwt_algorithm)
     return token, expires_at

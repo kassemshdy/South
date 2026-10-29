@@ -250,6 +250,17 @@ and the last active manager cannot be demoted or disabled. The frontend
 mirrors the table in `features/admin/staffAccess.ts` only to hide what a
 role cannot use -- the API is the guard.
 
+**An administrator may look at an owner's account, never act in it.**
+`POST /api/admin/users/{id}/view-as` (manager and reviewer only, never an
+administrator's account) issues a 30-minute session that is the owner's own,
+carrying the administrator's id and token version. `_enforce_view_only` in
+`app/core/dependencies.py` refuses every request with it that is not a read,
+before any route runs, and ends it when either side's sessions are revoked
+(the owners' decision, 29 Oct 2026). The frontend keeps it in the tab's
+session storage, apart from the administrator's own session.
+`tests/test_view_as.py` pins it; a write that gets through is a bug in the
+guard, not a missing check in the route.
+
 **Sign-in is one form for everybody.** `POST /api/auth/login` takes an
 `identifier` — a phone number for an owner, an email address for an
 administrator — and a password, and the account's role decides what the token

@@ -1,16 +1,20 @@
-import { useQuery } from '@tanstack/react-query'
-import { ArrowRight, ExternalLink } from 'lucide-react'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { ArrowRight, ExternalLink, Eye } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
+import { Button } from '@/components/ui/Button'
+import { useToast } from '@/components/ui/Toast'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { DeleteForeverButton } from '@/features/admin/DeleteForeverButton'
+import { useStaffCan } from '@/features/admin/staffAccess'
 import { IssueCredentialsCard } from '@/features/admin/IssueCredentialsCard'
 import { OwnerIdentityCard } from '@/features/admin/OwnerIdentityCard'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
 import { useI18n } from '@/i18n'
+import { ApiError, viewAsStorage } from '@/services/api/client'
 import { adminApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { AdminBusiness, AdminTalent } from '@/types/api'
@@ -132,7 +136,8 @@ export function AdminUserDetailPage() {
         {/* Never an administrator: the API refuses it, and the button would
             only offer a way to lock the platform's owners out. */}
         {data.role !== 'ADMIN' ? (
-          <div className="mt-3">
+          <div className="mt-3 flex flex-wrap gap-2">
+            <ViewAsButton userId={data.id} />
             <DeleteForeverButton
               size="sm"
               description={t('admin.deleteUserBody')}
@@ -187,5 +192,39 @@ export function AdminUserDetailPage() {
         )}
       </section>
     </div>
+  )
+}
+
+/**
+ * Opens the owner's account in this tab, read-only, as the owner sees it
+ * (the owners' decision, 29 Oct 2026). For the roles that already read
+ * owners' documents; the API refuses the rest, and refuses every change
+ * made during the view.
+ */
+function ViewAsButton({ userId }: { userId: string }) {
+  const { t } = useI18n()
+  const toast = useToast()
+  const allowed = useStaffCan('moderate')
+  const open = useMutation({
+    mutationFn: () => adminApi.viewAs(userId),
+    onSuccess: (session) => {
+      const started = viewAsStorage.start({
+        token: session.access_token,
+        userId: session.user_id,
+        name: session.display_name,
+        expiresAt: session.expires_at,
+      })
+      if (started) window.location.assign('/dashboard')
+      else toast.error(t('viewAs.failed'))
+    },
+    onError: (error) =>
+      toast.error(t('viewAs.failed'), error instanceof ApiError ? error.message : undefined),
+  })
+  if (!allowed) return null
+  return (
+    <Button variant="outline" size="sm" loading={open.isPending} onClick={() => open.mutate()}>
+      <Eye className="h-4 w-4" aria-hidden="true" />
+      {t('viewAs.open')}
+    </Button>
   )
 }

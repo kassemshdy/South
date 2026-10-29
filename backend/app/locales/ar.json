@@ -279,6 +279,8 @@
   "verification.not_found": "المستند غير موجود.",
   "verification.too_large": "حجم الملف يتجاوز الحد المسموح ({limit} ميغابايت).",
   "verification.unsupported_format": "يُسمح فقط بملفات PDF أو JPG أو PNG.",
+  "auth.view_only": "هذا عرض للقراءة فقط لحساب صاحب النشاط، ولا يمكن حفظ أي تغيير فيه.",
+  "user.view_as_not_for_admin": "لا يمكن عرض حساب مشرف بهذه الطريقة.",
   "workshop.not_found": "لم يُعثر على ورشة العمل.",
   "workshop.duplicate_slug": "يوجد ورشة أخرى بهذا الرابط.",
   "workshop.registered": "وصلنا تسجيلك، وسيتواصل معك فريقنا على واتساب.",
