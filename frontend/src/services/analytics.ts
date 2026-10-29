@@ -29,10 +29,16 @@
  * classification (type, category, town, skill) so it can be used as custom
  * dimensions; a search term never is.
  *
- * And the private areas are not measured at all. `/dashboard` and `/admin`
- * are an owner's own workspace and the team's moderation queue — `robots.txt`
- * already declares them off limits, and counting our own moderation clicks
- * would corrupt the one question this exists to answer.
+ * **An owner's dashboard is not measured at all.** `/dashboard` is an
+ * owner's own workspace, and `robots.txt` already declares it off limits.
+ *
+ * **The admin screens are measured, as staff activity** (the owners'
+ * decision, 29 Oct 2026, reversing the earlier exclusion so they can see
+ * who on the team does what). Their page views carry the path with every id
+ * replaced by `:id` and no page title, because a title or a path there can
+ * name an owner; every button pressed is an `admin_click` with its label
+ * (dropped when it looks like a phone number or an email). Staff are
+ * `user_type` admin, so a report about visitors filters them out by that.
  */
 
 const MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID as string | undefined
@@ -54,7 +60,28 @@ declare global {
 export const analyticsEnabled = Boolean(MEASUREMENT_ID)
 
 /** Paths whose views are never reported. See the note above. */
-const PRIVATE_PREFIXES = ['/dashboard', '/admin'] as const
+const PRIVATE_PREFIXES = ['/dashboard'] as const
+const ADMIN_PREFIX = '/admin'
+
+const ID_SEGMENT = /\/(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\d+)(?=\/|$)/gi
+
+/** A path fit to send: on the admin screens, every id becomes `:id`. */
+function reportedPath(path: string): string {
+  return path.startsWith(ADMIN_PREFIX) ? path.replace(ID_SEGMENT, '/:id') : path
+}
+
+/**
+ * Sent with every hit, because gtag otherwise reports the full address --
+ * query string included -- as `page_location`, and the title as it is.
+ */
+function pageFields(path: string, title?: string): Record<string, string | undefined> {
+  const reported = reportedPath(path)
+  return {
+    page_location: `${window.location.origin}${reported}`,
+    page_path: reported,
+    page_title: reported.startsWith(ADMIN_PREFIX) ? reported : title,
+  }
+}
 
 let started = false
 
@@ -98,7 +125,7 @@ function isPrivatePath(path: string = window.location.pathname): boolean {
 
 function send(name: string, params: Record<string, unknown>): void {
   if (!MEASUREMENT_ID || !window.gtag || isPrivatePath()) return
-  window.gtag('event', name, params)
+  window.gtag('event', name, { ...pageFields(window.location.pathname, document.title), ...params })
 }
 
 /** A listing's classification, as custom-dimension-ready parameters. */
@@ -143,12 +170,17 @@ export function trackDirectoryView(params: {
   send('directory_view', clean({ ...params, displaced: params.displaced ? 'yes' : '' }))
 }
 
-/** Who is signed in, by opaque id and type only; null when signed out. */
-export function setAnalyticsUser(user: { id: string; role: string } | null): void {
+/** Who is signed in, by opaque id, type and staff role only; null when signed out. */
+export function setAnalyticsUser(
+  user: { id: string; role: string; staffRole?: string | null } | null,
+): void {
   if (!MEASUREMENT_ID || !window.gtag) return
   window.gtag('set', {
     user_id: user?.id ?? null,
-    user_properties: { user_type: user ? user.role.toLowerCase() : 'visitor' },
+    user_properties: {
+      user_type: user ? user.role.toLowerCase() : 'visitor',
+      staff_role: user?.staffRole ? user.staffRole.toLowerCase() : null,
+    },
   })
 }
 
@@ -185,11 +217,39 @@ export function contactMethod(href: string): { method: string; domain: string } 
   return { method: 'external', domain: host }
 }
 
+/** A button's label, unless it could identify someone. */
+function buttonLabel(element: Element): string | null {
+  const label = (element.getAttribute('aria-label') || element.textContent || '').replace(/\s+/g, ' ').trim()
+  if (!label || label.includes('@') || /\d{5,}/.test(label.replace(/[\s\-+]/g, ''))) return null
+  return label.slice(0, 60)
+}
+
+/**
+ * A press on the admin screens. A link reports where it goes and never its
+ * text, which there is often an owner's or a shop's name; a contact link
+ * (WhatsApp to an owner) reports only its kind.
+ */
+function onAdminClick(target: Element): void {
+  const control = target.closest('button, a[href], [role="button"], [role="tab"]')
+  if (!control) return
+  const href = control.getAttribute('href')
+  const contact = href ? contactMethod(href) : null
+  send('admin_click', clean({
+    button: href ? undefined : (buttonLabel(control) ?? undefined),
+    target_page: href?.startsWith('/') ? reportedPath(href.split(/[?#]/)[0] ?? href) : undefined,
+    contact_method: contact?.method,
+  }))
+}
+
 function onDocumentClick(event: MouseEvent): void {
   const target = event.target as Element | null
-  const link = target?.closest?.('a[href]') as HTMLAnchorElement | null
-  if (!link) return
-  const kind = contactMethod(link.getAttribute('href') ?? '')
+  if (!target?.closest) return
+  if (window.location.pathname.startsWith(ADMIN_PREFIX)) {
+    onAdminClick(target)
+    return
+  }
+  const link = target.closest('a[href]') as HTMLAnchorElement | null
+  const kind = link ? contactMethod(link.getAttribute('href') ?? '') : null
   if (!kind) return
   const listing = pageContext?.path === window.location.pathname ? pageContext.params : {}
   send('contact_click', clean({ contact_method: kind.method, link_domain: kind.domain, ...listing }))
@@ -208,8 +268,5 @@ export function trackPageView(path: string, title?: string): void {
   const pathOnly = path.split(/[?#]/)[0] ?? path
   if (isPrivatePath(pathOnly)) return
 
-  window.gtag('event', 'page_view', {
-    page_path: pathOnly,
-    page_title: title,
-  })
+  window.gtag('event', 'page_view', pageFields(pathOnly, title))
 }

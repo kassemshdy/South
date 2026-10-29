@@ -448,11 +448,16 @@ Dockerfiles, not just the Railway dashboard.
 | `VITE_CLARITY_PROJECT_ID` | No Clarity tag is injected and no session is recorded (`src/services/clarity.ts`). Gated harder than the rest — see below. |
 | `VITE_SUPPORT_WHATSAPP` | The assisted-listing offer — "contact us and we will list it for you" — is not rendered anywhere (`src/features/onboarding/AssistedListing.tsx`). A number with no digits in it counts as unset, because the guard is `whatsappHref` itself. |
 
-Analytics additionally **drops the query string and skips `/dashboard` and
-`/admin`**: `?q=…` carries whatever someone typed into search, which can be a
-person's or a shop's name, and counting our own moderation clicks would corrupt
-the only question analytics exists to answer. Widen those exclusions rather than
-narrowing them.
+Analytics additionally **drops the query string (from `page_location` too)
+and skips `/dashboard`**: `?q=…` carries whatever someone typed into search,
+which can be a person's or a shop's name. Widen those exclusions rather than
+narrowing them. **`/admin` is measured as staff activity** (the owners'
+decision, 29 Oct 2026): ids in its paths become `:id`, its pages send no title,
+a link there reports where it goes but never its text, and a button's label is
+dropped when it looks like a phone number or an email. A signed-in account is
+sent only as GA's User-ID (the opaque account id) with `user_type` and
+`staff_role` -- never a name, phone or email, which Google's terms forbid
+anyway. Staff are `user_type` admin, so visitor reports filter them out.
 
 **Clarity is not a page counter and is not gated like one.** It records the
 session and replays the page, so the same exclusions applied per page view
