@@ -28,6 +28,10 @@ class ProductBusinessRef(ORMModel):
     whatsapp: str | None = None
     category: CategoryOut | None = None
     location: LocationOut | None = None
+    # Where the owner was displaced from, only when they chose to show it
+    # (User.published_displacement) -- the one identity value a public
+    # payload carries, and test_identity.py pins that it needs the opt-in.
+    displaced_from: str | None = None
 
 
 class ProductSummaryOut(ORMModel):

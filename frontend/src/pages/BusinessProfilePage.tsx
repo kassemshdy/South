@@ -19,6 +19,7 @@ import { Link, useParams } from 'react-router-dom'
 import { Badge } from '@/components/ui/Badge'
 import { BackLink } from '@/components/ui/BackLink'
 import { Button } from '@/components/ui/Button'
+import { DisplacedBadge } from '@/components/ui/DisplacedBadge'
 import { Card, CardBody } from '@/components/ui/Card'
 import { YouTubePlayer } from '@/components/ui/YouTubePlayer'
 import { GalleryLightbox } from '@/components/ui/GalleryLightbox'
@@ -163,6 +164,7 @@ export function BusinessProfilePage() {
                 <BadgeCheck className="h-3.5 w-3.5" aria-hidden="true" />
                 {t('business.verified')}
               </Badge>
+              <DisplacedBadge place={data.displaced_from} />
             </div>
 
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-500">

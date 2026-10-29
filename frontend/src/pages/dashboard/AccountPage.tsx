@@ -133,6 +133,7 @@ function ProfileCard({ user, onSaved }: { user: User; onSaved: () => Promise<voi
       residence_place: user.residence_place ?? '',
       is_displaced: user.is_displaced === null ? '' : user.is_displaced ? 'yes' : 'no',
       pre_displacement_place: user.pre_displacement_place ?? '',
+      show_displacement: user.show_displacement ?? false,
     },
   })
 
@@ -152,6 +153,7 @@ function ProfileCard({ user, onSaved }: { user: User; onSaved: () => Promise<voi
         // team never reads a "before" for someone who was not displaced.
         pre_displacement_place:
           values.is_displaced === 'yes' ? values.pre_displacement_place || null : null,
+        show_displacement: values.is_displaced === 'yes' && values.show_displacement,
       }),
     onSuccess: async () => {
       await onSaved()
@@ -335,6 +337,27 @@ function ProfileCard({ user, onSaved }: { user: User; onSaved: () => Promise<voi
               >
                 {(props) => <Input {...props} {...register('pre_displacement_place')} />}
               </Field>
+            ) : null}
+
+            {/* The holder's own choice, and the only way any of this block
+                reaches a visitor: off unless ticked, and the server shows
+                nothing without a place to show. */}
+            {watch('is_displaced') === 'yes' ? (
+              <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-ink-100 bg-sand-50/60 p-3">
+                <input
+                  type="checkbox"
+                  {...register('show_displacement')}
+                  className="mt-1 h-4 w-4 accent-brand-700"
+                />
+                <span>
+                  <span className="font-semibold text-ink-900">
+                    {t('account.showDisplacementLabel')}
+                  </span>
+                  <span className="mt-0.5 block text-sm text-ink-500">
+                    {t('account.showDisplacementHint')}
+                  </span>
+                </span>
+              </label>
             ) : null}
           </fieldset>
 

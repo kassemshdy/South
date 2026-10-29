@@ -2,6 +2,7 @@ import { MapPin, MessageCircle, Phone, UserRound } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
+import { DisplacedBadge } from '@/components/ui/DisplacedBadge'
 import { Button } from '@/components/ui/Button'
 import { useT } from '@/i18n'
 import type { TalentSummary } from '@/types/api'
@@ -73,6 +74,7 @@ export function TalentCard({ talent }: { talent: TalentSummary }) {
             {talent.location.name_ar}
           </p>
         ) : null}
+        <DisplacedBadge place={talent.displaced_from} className="mt-1.5 self-start" />
 
         <div className="mt-auto flex gap-2 pt-4">
           <Button asChild size="sm" variant="outline" block>
