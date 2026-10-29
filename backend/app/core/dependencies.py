@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import Settings, get_settings
 from app.core.errors import AuthenticationError, NotFoundError, PermissionDeniedError
-from app.core.permissions import allowed_roles
+from app.core.permissions import VIEW_AS_ROLES, allowed_roles
 from app.core.security import decode_access_token
 from app.database.session import get_db
 from app.models.business import Business
@@ -68,6 +68,36 @@ def _bearer_token(request: Request) -> str | None:
     return token.strip()
 
 
+#: Methods a read-only view may use: reading changes nothing.
+_READ_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+
+
+def _enforce_view_only(request: Request, db: DbSession, payload: dict[str, object]) -> None:
+    """An administrator looking at an owner's account, read-only.
+
+    The token is the owner's (so every owner route answers exactly as it
+    would for them) and carries the administrator's id and token version.
+    It stops working the moment either side's sessions are revoked, or the
+    administrator loses a role that may use it, and whatever it asks to
+    change is refused here, before any route runs: the read-only rule lives
+    on the server, not in which buttons the page hides.
+    """
+    try:
+        admin_id = uuid.UUID(str(payload.get("va")))
+    except (TypeError, ValueError) as exc:
+        raise AuthenticationError("auth.session.invalid", code="invalid_token") from exc
+    admin = UserRepository(db).get_active(admin_id)
+    if (
+        admin is None
+        or admin.role is not UserRole.ADMIN
+        or (admin.staff_role or StaffRole.VIEWER) not in VIEW_AS_ROLES
+        or int(str(payload.get("atv", -1))) != admin.token_version
+    ):
+        raise AuthenticationError("auth.session.expired", code="token_revoked")
+    if request.method not in _READ_METHODS:
+        raise PermissionDeniedError("auth.view_only", code="view_only")
+
+
 def get_current_user_optional(request: Request, db: DbSession) -> User | None:
     """Resolve the caller when a valid token is present, else None."""
     token = _bearer_token(request)
@@ -87,6 +117,8 @@ def get_current_user_optional(request: Request, db: DbSession) -> User | None:
     # Token version lets us revoke every session issued to a user.
     if int(payload.get("tv", -1)) != user.token_version:
         raise AuthenticationError("auth.session.expired", code="token_revoked")
+    if payload.get("va") is not None:
+        _enforce_view_only(request, db, payload)
     # Who is saving, for the Telegram archive, which skips administrators.
     db.info[ARCHIVE_ACTOR] = (user.role.value, *archive_person(user))
     return user

@@ -1512,5 +1512,9 @@
   "growth.planSave": "حفظ",
   "growth.planCancel": "إلغاء",
   "growth.planSaved": "حُفظ الهدف والعرض.",
-  "growth.planFailed": "تعذّر الحفظ."
+  "growth.planFailed": "تعذّر الحفظ.",
+  "viewAs.open": "عرض الحساب كما يراه صاحبه",
+  "viewAs.banner": "تعرض حساب {name} للقراءة فقط، ولا يُحفظ أي تغيير.",
+  "viewAs.end": "إنهاء العرض",
+  "viewAs.failed": "تعذّر فتح الحساب للعرض."
 }

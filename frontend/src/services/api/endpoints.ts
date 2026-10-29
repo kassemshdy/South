@@ -69,6 +69,7 @@ import type {
   PlatformGrowth,
   GrowthReport,
   GrowthPlan,
+  ViewAsToken,
   StaffMember,
   StaffPassword,
   StaffRole,
@@ -809,6 +810,9 @@ export const adminApi = {
   users: (page = 1) =>
     apiRequest<Paginated<AdminUser>>('/api/admin/users', { query: { page } }),
   user: (id: string) => apiRequest<AdminUserDetail>(`/api/admin/users/${id}`),
+  /** A 30-minute, read-only session on an owner's account. */
+  viewAs: (userId: string) =>
+    apiRequest<ViewAsToken>(`/api/admin/users/${userId}/view-as`, { method: 'POST' }),
   /**
    * Generates a password for an account and returns it **once**. There is no
    * route that reads it back, so a second call replaces it rather than

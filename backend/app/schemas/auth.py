@@ -131,3 +131,13 @@ class UpdateProfileIn(IdentityFieldsIn):
     @classmethod
     def _normalize_personal_phone(cls, value: str | None) -> str | None:
         return normalize_optional_phone(value)
+
+
+class ViewAsOut(BaseModel):
+    """A short-lived, read-only session on an owner's account, for an
+    administrator to see what the owner sees."""
+
+    access_token: str
+    expires_at: datetime
+    user_id: uuid.UUID
+    display_name: str | None = None
