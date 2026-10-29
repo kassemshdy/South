@@ -110,6 +110,16 @@ class ArticleSeed(TypedDict):
     body: str
 
 
+class WorkshopSeed(TypedDict):
+    """An example online workshop, added as a draft from /admin/workshops."""
+
+    slug: str
+    title: str
+    description: str
+    days_from_now: int
+    duration_minutes: int
+
+
 DATA_DIR = Path(__file__).resolve().parent / "data"
 
 REQUIRED_FIELDS: dict[str, tuple[str, ...]] = {
@@ -120,6 +130,7 @@ REQUIRED_FIELDS: dict[str, tuple[str, ...]] = {
     "talents": ("display_name", "owner_phone", "skill", "location", "status"),
     "articles": ("section", "slug", "title", "body"),
     "demo_owners": ("key", "phone"),
+    "workshops": ("slug", "title", "description", "days_from_now", "duration_minutes"),
 }
 
 
@@ -154,3 +165,4 @@ TALENT_SKILLS: list[TalentSkillSeed] = _load("talent_skills")  # type: ignore[as
 TALENTS: list[TalentSeed] = _load("talents")  # type: ignore[assignment]
 ARTICLES: list[ArticleSeed] = _load("articles")  # type: ignore[assignment]
 DEMO_OWNERS: list[DemoOwnerSeed] = _load("demo_owners")  # type: ignore[assignment]
+WORKSHOPS: list[WorkshopSeed] = _load("workshops")  # type: ignore[assignment]

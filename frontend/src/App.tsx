@@ -15,6 +15,8 @@ import { BrowsePage } from '@/pages/BrowsePage'
 import { BusinessProfilePage } from '@/pages/BusinessProfilePage'
 import { ContactPage } from '@/pages/ContactPage'
 import { PartnerPage } from '@/pages/PartnerPage'
+import { WorkshopPage } from '@/pages/WorkshopPage'
+import { WorkshopsPage } from '@/pages/WorkshopsPage'
 import { DirectoryPage } from '@/pages/DirectoryPage'
 import { HomePage } from '@/pages/HomePage'
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
@@ -100,6 +102,9 @@ const AdminTestimonialsPage = lazy(() =>
   import('@/pages/admin/AdminTestimonialsPage').then((m) => ({
     default: m.AdminTestimonialsPage,
   })),
+)
+const AdminWorkshopsPage = lazy(() =>
+  import('@/pages/admin/AdminWorkshopsPage').then((m) => ({ default: m.AdminWorkshopsPage })),
 )
 const AdminArticlesPage = lazy(() =>
   import('@/pages/admin/AdminArticlesPage').then((m) => ({ default: m.AdminArticlesPage })),
@@ -203,6 +208,8 @@ export function App() {
           <Route path="about" element={<AboutPage />} />
           <Route path="contact" element={<ContactPage />} />
           <Route path="partner" element={<PartnerPage />} />
+          <Route path="workshops" element={<WorkshopsPage />} />
+          <Route path="workshops/:slug" element={<WorkshopPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="forgot-password" element={<ForgotPasswordPage />} />
           <Route path="admin/login" element={<AdminLoginPage />} />
@@ -312,6 +319,7 @@ export function App() {
             <Route path="feedback" element={<AdminFeedbackPage />} />
             <Route path="testimonials" element={<AdminTestimonialsPage />} />
             <Route path="articles" element={<AdminArticlesPage />} />
+            <Route path="workshops" element={<AdminWorkshopsPage />} />
           </Route>
 
           <Route path="*" element={<NotFoundPage />} />
