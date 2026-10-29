@@ -50,6 +50,8 @@ class FakeTelegram:
         if request.url.path.endswith("/sendMessage"):
             form = dict(httpx.QueryParams(request.content.decode()))
             assert form["parse_mode"] == "HTML"
+            # No preview card under the admin link (the owners' request).
+            assert json.loads(form["link_preview_options"]) == {"is_disabled": True}
             self.messages.append(form["text"])
         elif request.url.path.endswith("/sendPhoto"):
             self.photos.append(request.content)

@@ -128,6 +128,9 @@ FILE_COLUMNS = frozenset(
     }
 )
 
+#: Bot API ``link_preview_options``, form-encoded as JSON.
+NO_LINK_PREVIEW = '{"is_disabled": true}'
+
 MAX_VALUE = 600
 MAX_FILE_BYTES = 45 * 1024 * 1024  # sendDocument accepts up to 50 MB.
 SEND_INTERVAL_SECONDS = 3.1  # About 20 messages a minute, a group's limit.
@@ -629,7 +632,15 @@ class TelegramArchive:
             return
         self._post(
             "sendMessage",
-            data={"chat_id": self._chat_id, "text": message.text, "parse_mode": "HTML"},
+            data={
+                "chat_id": self._chat_id,
+                "text": message.text,
+                "parse_mode": "HTML",
+                # Every message ends with an admin link; Telegram's preview of
+                # it is the site's own share card, the same on every message
+                # (the owners asked for it gone, 29 Oct 2026).
+                "link_preview_options": NO_LINK_PREVIEW,
+            },
         )
 
     def _post(
