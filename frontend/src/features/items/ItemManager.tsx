@@ -1,11 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertCircle, ArrowLeft, ArrowRight, ImagePlus, Package, Pencil, Plus, Trash2 } from 'lucide-react'
+import { AlertCircle, ArrowLeft, ArrowRight, ImagePlus, MessageCircle, Package, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/Button'
+import { ShareButton } from '@/components/ui/ShareButton'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Field } from '@/components/ui/Field'
 import { Input, Textarea } from '@/components/ui/Input'
@@ -20,7 +21,7 @@ import { ApiError } from '@/services/api/client'
 import { ownerApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { BusinessItem, GoodsOrigin } from '@/types/api'
-import { formatPrice } from '@/utils/format'
+import { formatPrice, whatsappShareHref } from '@/utils/format'
 import { itemSchema, type ItemValues } from '@/utils/validation'
 
 /**
@@ -166,6 +167,7 @@ export function ItemManager({ businessId }: { businessId: string }) {
             <li key={item.id}>
               <ItemRow
                 item={item}
+                businessName={business.data?.status === 'APPROVED' ? business.data.name : null}
                 onEdit={() => setOpen(item.id)}
                 onDelete={() => remove.mutate(item.id)}
                 onUploadImage={(file) => uploadImage.mutate({ itemId: item.id, file })}
@@ -188,12 +190,16 @@ export function ItemManager({ businessId }: { businessId: string }) {
 
 function ItemRow({
   item,
+  businessName,
   onEdit,
   onDelete,
   onUploadImage,
   uploading,
 }: {
   item: BusinessItem
+  /** The shop's name while it is published, else null: a product of an
+   * unpublished shop has no public page to share. */
+  businessName: string | null
   onEdit: () => void
   onDelete: () => void
   onUploadImage: (file: File) => void
@@ -202,6 +208,17 @@ function ItemRow({
   const inputRef = useRef<HTMLInputElement>(null)
   const t = useT()
   const photoCrop = useCropStep('product')
+
+  // The same rule as the public catalogue (`public_query`): a link to
+  // anything else would open a "not found" page for whoever receives it.
+  const shareable = businessName !== null && item.is_available && item.image_url !== null
+  const url = `${window.location.origin}/product/${encodeURIComponent(item.slug)}`
+  const price = formatPrice(item.price, item.currency)
+  const shareText = businessName
+    ? price
+      ? t('products.shareText', { name: item.title, price, business: businessName })
+      : t('products.shareTextNoPrice', { name: item.title, business: businessName })
+    : ''
 
   return (
     <Card className={item.is_available ? '' : 'opacity-70'}>
@@ -254,7 +271,7 @@ function ItemRow({
             <p className="mt-1 text-xs text-ink-500">{t('items.unavailable')}</p>
           ) : null}
 
-          <div className="mt-2 flex gap-1">
+          <div className="mt-2 flex flex-wrap gap-1">
             <Button variant="ghost" size="sm" onClick={onEdit}>
               <Pencil className="h-4 w-4" aria-hidden="true" />
               {t('common.edit')}
@@ -264,6 +281,24 @@ function ItemRow({
               {t('common.delete')}
             </Button>
           </div>
+
+          {/* Owners pass single products around on WhatsApp far more than
+              whole shop pages, so each published one gets its own share. */}
+          {shareable ? (
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Button asChild size="sm">
+                <a
+                  href={whatsappShareHref(`${shareText}\n${url}`)}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                >
+                  <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                  {t('dashboard.shareOnWhatsapp')}
+                </a>
+              </Button>
+              <ShareButton title={item.title} text={shareText} url={url} variant="outline" />
+            </div>
+          ) : null}
         </div>
       </CardBody>
     </Card>
