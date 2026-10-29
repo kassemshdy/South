@@ -91,7 +91,11 @@ jobs:
           DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/south_test
           SECRET_KEY: ci-test-secret-key
           STORAGE_LOCAL_DIR: var/test-media
-        run: ../.github/scripts/run-pytest.sh ./.venv/bin/pytest tests/
+        # Spread over every CPU the runner has (pytest-xdist): about 10
+        # minutes one test at a time, about 3 this way. Each worker gets its
+        # own database (tests/conftest.py), and a file's tests stay on one
+        # worker, so module-level setup is never shared across processes.
+        run: ../.github/scripts/run-pytest.sh ./.venv/bin/pytest tests/ -n auto --dist loadfile
 
       - name: ruff
         if: always()

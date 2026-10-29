@@ -37,7 +37,7 @@ database, not SQLite.
 ## 2. Backend, from `backend/`
 
 ```bash
-./.venv/bin/pytest tests/ -q      # includes the no-Arabic guard
+./.venv/bin/pytest tests/ -q -n auto --dist loadfile   # parallel, ~3 min; includes the no-Arabic guard
 ./.venv/bin/ruff check .
 ./.venv/bin/mypy app scripts
 ```

@@ -20,6 +20,9 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["E501"]
+# The per-worker database is chosen before the app is imported, because
+# the engine reads DATABASE_URL once (see _own_database_per_worker).
+"tests/conftest.py" = ["E501", "E402"]
 "scripts/*" = ["E501"]
 
 [tool.mypy]

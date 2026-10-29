@@ -703,6 +703,13 @@ export const adminApi = {
   updatePage: (key: PageKey, values: PageTextInput) =>
     apiRequest<PageText>(`/api/admin/pages/${key}`, { method: 'PUT', body: values }),
   siteSettings: () => apiRequest<SiteSettings>('/api/admin/site-settings'),
+  credentialsMessage: () =>
+    apiRequest<{ message: string | null }>('/api/admin/site-settings/credentials-message'),
+  setCredentialsMessage: (message: string | null) =>
+    apiRequest<{ message: string | null }>('/api/admin/site-settings/credentials-message', {
+      method: 'PUT',
+      body: { message },
+    }),
   updateSiteSettings: (values: SiteSettings) =>
     apiRequest<SiteSettings>('/api/admin/site-settings', { method: 'PUT', body: values }),
   dismissApplication: (id: string) =>

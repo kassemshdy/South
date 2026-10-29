@@ -19,7 +19,7 @@ Commands MUST run inside the virtualenv:
 
 ```bash
 cd backend
-./.venv/bin/pytest tests/ -q
+./.venv/bin/pytest tests/ -q -n auto --dist loadfile   # one database per worker
 ./.venv/bin/ruff check .
 ./.venv/bin/mypy app scripts
 ./.venv/bin/alembic upgrade head
@@ -204,6 +204,10 @@ Five things about it are load-bearing rather than incidental:
   `GET .../credentials` reports that version unchanged (the owners' request,
   27 Oct 2026); the server still never holds the plaintext, and another
   browser never sees it.
+  The WhatsApp message it travels in is the owners' to word (with a channel
+  or group link if they like) at `/admin/site-settings`: only the template is
+  stored, under an admin-only route because a group link may be private, and
+  it is filled with the password in the issuing browser (28 Oct 2026).
 - **An issued password is the owner's to keep** (the owners' decision,
   replacing a forced change on first sign-in). The WhatsApp message it
   arrived in is their record of it; a lost one is replaced by issuing another.

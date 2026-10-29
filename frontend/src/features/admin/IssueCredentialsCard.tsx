@@ -63,6 +63,15 @@ function remember(userId: string, issued: IssuedPassword | null) {
   }
 }
 
+/** Fills `{phone}`, `{password}` and `{url}` in the administrator's own
+ * wording; anything else in braces is left as typed. */
+export function fillCredentialsMessage(
+  template: string,
+  values: { phone: string; password: string; url: string },
+): string {
+  return template.replace(/\{(phone|password|url)\}/g, (_match, name: keyof typeof values) => values[name])
+}
+
 export function IssueCredentialsCard({
   userId,
   phoneNumber,
@@ -75,6 +84,11 @@ export function IssueCredentialsCard({
   const [issued, setIssued] = useState<IssuedPassword | null>(null)
   const [copied, setCopied] = useState(false)
 
+  const template = useQuery({
+    queryKey: queryKeys.adminCredentialsMessage,
+    queryFn: adminApi.credentialsMessage,
+    enabled: allowed && !isAdmin,
+  })
   const state = useQuery({
     queryKey: queryKeys.adminCredentials(userId),
     queryFn: () => adminApi.credentialState(userId),
@@ -115,12 +129,15 @@ export function IssueCredentialsCard({
     issue.mutate()
   }
 
-  const message = issued
-    ? t('credentials.whatsappMessage', {
-        phone: issued.phone_number,
-        password: issued.password,
-        url: window.location.origin,
-      })
+  // The administrator's own wording when one is set (site settings), else
+  // the site's; filled here, so the password never goes to the server.
+  const values = issued
+    ? { phone: issued.phone_number, password: issued.password, url: window.location.origin }
+    : null
+  const message = values
+    ? template.data?.message
+      ? fillCredentialsMessage(template.data.message, values)
+      : t('credentials.whatsappMessage', values)
     : ''
   const href = issued ? whatsappHref(issued.phone_number, message) : null
 

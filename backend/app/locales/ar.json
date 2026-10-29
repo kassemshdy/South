@@ -143,6 +143,7 @@
   "service_request.not_found": "طلب الخدمة غير موجود.",
   "service_request.rate_limited": "تم إرسال عدد كبير من طلبات الخدمة. يرجى المحاولة لاحقاً.",
   "service_request.received": "تم إرسال طلبك. سيتواصل معك مقدّم الخدمة.",
+  "site_settings.credentials_placeholders_missing": "يجب أن تحتوي الرسالة على {phone} و{password} حتى تصل بيانات الدخول.",
   "staff.email_taken": "هذا البريد الإلكتروني مستخدم لحساب آخر.",
   "staff.last_manager": "يجب أن يبقى مدير واحد فعّال على الأقل.",
   "staff.not_found": "لم يتم العثور على عضو الفريق.",

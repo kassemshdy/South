@@ -20,6 +20,37 @@ os.environ.setdefault(
 os.environ.setdefault("SECRET_KEY", "test-secret-key")
 os.environ.setdefault("STORAGE_LOCAL_DIR", "var/test-media")
 
+
+def _own_database_per_worker() -> None:
+    """Under ``pytest -n``, give each worker its own database and media folder.
+
+    The suite truncates every table between tests, so two workers sharing
+    one database would wipe each other's rows mid-test. Each worker
+    (``gw0``, ``gw1``...) gets ``south_test_gw0`` and so on, created on first
+    use; a plain ``pytest`` run is unchanged. Done before the app is
+    imported, because the engine reads ``DATABASE_URL`` once.
+    """
+    worker = os.environ.get("PYTEST_XDIST_WORKER")
+    if not worker:
+        return
+    from sqlalchemy.engine import make_url
+
+    url = make_url(os.environ["DATABASE_URL"])
+    name = f"{url.database}_{worker}"
+    os.environ["DATABASE_URL"] = url.set(database=name).render_as_string(hide_password=False)
+    os.environ["STORAGE_LOCAL_DIR"] = f"{os.environ['STORAGE_LOCAL_DIR']}-{worker}"
+
+    import psycopg
+
+    admin = url.set(drivername="postgresql", database="postgres")
+    with psycopg.connect(admin.render_as_string(hide_password=False), autocommit=True) as conn:
+        exists = conn.execute("SELECT 1 FROM pg_database WHERE datname = %s", (name,)).fetchone()
+        if not exists:
+            conn.execute(f'CREATE DATABASE "{name}"')
+
+
+_own_database_per_worker()
+
 import httpx
 from fastapi.testclient import TestClient
 from sqlalchemy import text
