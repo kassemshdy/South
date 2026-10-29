@@ -1585,5 +1585,10 @@
   "workshops.onlineTitle": "Online workshops",
   "admin.workshopExamples": "Add example workshops",
   "admin.workshopExamplesAdded": "{count} example workshops added as drafts. Set the date and trainer, then publish.",
-  "admin.homeSectionOnlineWorkshops": "Online workshops"
+  "admin.homeSectionOnlineWorkshops": "Online workshops",
+  "admin.navMenu": "Site menu",
+  "admin.menuTitle": "Site menu",
+  "admin.menuHint": "Order the items of the header and footer menu, show or hide each one, and rename them if you like. Leave a name empty to keep the default.",
+  "admin.menuLabelAr": "Arabic name",
+  "admin.menuLabelEn": "English name"
 }

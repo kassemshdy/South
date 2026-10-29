@@ -1,5 +1,10 @@
+import { useQuery } from '@tanstack/react-query'
+
 import { useSiteSettings } from '@/hooks/useSiteSettings'
-import type { TranslationKey } from '@/i18n'
+import { useI18n, type TranslationKey } from '@/i18n'
+import { menuApi } from '@/services/api/endpoints'
+import { queryKeys } from '@/services/api/queryKeys'
+import type { MenuItemId } from '@/types/api'
 
 /**
  * The site's public sections, in the order the directory's owner asked for.
@@ -17,6 +22,7 @@ import type { TranslationKey } from '@/i18n'
  * links already shared, but nothing on the site points to it.
  */
 export interface SiteSection {
+  id: MenuItemId
   href: string
   labelKey: TranslationKey
   /** Shown only once an administrator has entered a way to reach the team. */
@@ -26,24 +32,53 @@ export interface SiteSection {
 export const SITE_SECTIONS: SiteSection[] = [
   // Back at the CEO's request, first in the row: a way home that is a word,
   // for visitors who do not know the logo is one.
-  { href: '/', labelKey: 'nav.home' },
-  { href: '/products', labelKey: 'nav.products' },
+  { id: 'home', href: '/', labelKey: 'nav.home' },
+  { id: 'products', href: '/products', labelKey: 'nav.products' },
   // Services and job applications: one directory until the owners split it.
-  { href: '/services', labelKey: 'nav.services' },
-  { href: '/jobs', labelKey: 'nav.jobs' },
+  { id: 'services', href: '/services', labelKey: 'nav.services' },
+  { id: 'jobs', href: '/jobs', labelKey: 'nav.jobs' },
   // The blog before the news, in the CEO's order.
-  { href: '/blog', labelKey: 'nav.blog' },
-  { href: '/news', labelKey: 'nav.news' },
+  { id: 'blog', href: '/blog', labelKey: 'nav.blog' },
+  { id: 'news', href: '/news', labelKey: 'nav.news' },
   // The platform's own training (29 Oct 2026).
-  { href: '/workshops', labelKey: 'nav.workshops' },
-  { href: '/about', labelKey: 'nav.about' },
+  { id: 'workshops', href: '/workshops', labelKey: 'nav.workshops' },
+  { id: 'about', href: '/about', labelKey: 'nav.about' },
   // Last, and only once the admin has filled in at least one contact detail
   // or social account: a contact page with nothing on it is worse than none.
-  { href: '/contact', labelKey: 'nav.contact', needsContact: true },
+  { id: 'contact', href: '/contact', labelKey: 'nav.contact', needsContact: true },
 ]
 
-/** The sections to show right now; read this rather than the list itself. */
-export function useSiteSections(): SiteSection[] {
+/** A section as the menu shows it: in its saved place, under its name. */
+export interface ShownSection extends SiteSection {
+  label: string
+}
+
+/**
+ * The sections to show right now; read this rather than the list itself.
+ *
+ * An administrator orders, hides and renames them at /admin/menu (the owners'
+ * request, 29 Oct 2026). Until that answer arrives -- or if it never does --
+ * the menu is the list above under its catalog names, so it never renders
+ * empty and never waits on the network.
+ */
+export function useSiteSections(): ShownSection[] {
   const { hasContact } = useSiteSettings()
-  return SITE_SECTIONS.filter((section) => !section.needsContact || hasContact)
+  const { t, locale } = useI18n()
+  const menu = useQuery({ queryKey: queryKeys.siteMenu, queryFn: menuApi.get, staleTime: 5 * 60_000 })
+  const byId = new Map(SITE_SECTIONS.map((section) => [section.id, section]))
+  const saved = menu.data?.items ?? SITE_SECTIONS.map((section) => ({
+    id: section.id,
+    visible: true,
+    label_ar: null,
+    label_en: null,
+  }))
+  const shown: ShownSection[] = []
+  for (const item of saved) {
+    const section = byId.get(item.id)
+    if (!section || !item.visible) continue
+    if (section.needsContact && !hasContact) continue
+    const custom = locale === 'en' ? item.label_en : item.label_ar
+    shown.push({ ...section, label: custom || t(section.labelKey) })
+  }
+  return shown
 }

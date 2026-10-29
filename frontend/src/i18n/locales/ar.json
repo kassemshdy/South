@@ -1585,5 +1585,10 @@
   "workshops.onlineTitle": "ورش عمل عبر الإنترنت",
   "admin.workshopExamples": "إضافة ورش نموذجية",
   "admin.workshopExamplesAdded": "أُضيفت {count} ورش نموذجية كمسودّات. حدّد الموعد والمدرّب ثم انشرها.",
-  "admin.homeSectionOnlineWorkshops": "ورش عمل عبر الإنترنت"
+  "admin.homeSectionOnlineWorkshops": "ورش عمل عبر الإنترنت",
+  "admin.navMenu": "قائمة الموقع",
+  "admin.menuTitle": "قائمة الموقع",
+  "admin.menuHint": "رتّب عناصر القائمة في رأس الصفحة وتذييلها، وأظهِر ما تريد أو أخفِه، وغيّر أسماءها إن شئت. اترك الاسم فارغًا لاستعمال الاسم الافتراضي.",
+  "admin.menuLabelAr": "الاسم بالعربية",
+  "admin.menuLabelEn": "الاسم بالإنكليزية"
 }

@@ -48,6 +48,7 @@ import type {
   Gender,
   ImageKind,
   CredentialState,
+  SiteMenu,
   HomeLayout,
   AdminStory,
   Story,
@@ -393,6 +394,10 @@ export const workshopApi = {
 export const siteSettingsApi = {
   get: () => apiRequest<SiteSettings>('/api/site-settings'),
   offerPopup: () => apiRequest<OfferPopup>('/api/site-settings/offer-popup'),
+}
+
+export const menuApi = {
+  get: () => apiRequest<SiteMenu>('/api/menu'),
 }
 
 export const homeApi = {
@@ -783,6 +788,7 @@ export const adminApi = {
       method: 'POST',
       body: { category_id },
     }),
+  saveMenu: (menu: SiteMenu) => apiRequest<SiteMenu>('/api/admin/menu', { method: 'PUT', body: menu }),
   saveHomeLayout: (layout: HomeLayout) =>
     apiRequest<HomeLayout>('/api/admin/home/layout', { method: 'PUT', body: layout }),
   setTalentSkill: (profileId: string, skill_id: string, custom_skill_text: string | null) =>

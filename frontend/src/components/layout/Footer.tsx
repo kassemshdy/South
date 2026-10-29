@@ -41,7 +41,7 @@ export function Footer() {
             {sections.map((section) => (
               <li key={section.href}>
                 <Link to={section.href} className="hover:text-brand-700">
-                  {t(section.labelKey)}
+                  {section.label}
                 </Link>
               </li>
             ))}

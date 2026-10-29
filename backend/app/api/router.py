@@ -14,6 +14,7 @@ from app.api.v1 import (
     home,
     images,
     items,
+    menu,
     orders,
     page_covers,
     pages,
@@ -67,6 +68,7 @@ api_router.include_router(stories.admin_router)
 api_router.include_router(pages.admin_router)
 api_router.include_router(site_settings.admin_router)
 api_router.include_router(home.admin_router)
+api_router.include_router(menu.admin_router)
 api_router.include_router(testimonials.admin_router)
 
 api_router.include_router(feedback.router)
@@ -104,5 +106,6 @@ api_router.include_router(reels.public_router)
 api_router.include_router(pages.public_router)
 api_router.include_router(site_settings.public_router)
 api_router.include_router(home.public_router)
+api_router.include_router(menu.public_router)
 
 __all__ = ["api_router"]
