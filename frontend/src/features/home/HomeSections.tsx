@@ -31,7 +31,7 @@ import {
   taxonomyApi,
 } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import type { ArticleSection, Category, GoodsOrigin, ProductQuery } from '@/types/api'
+import type { ArticleSection, Category, GoodsOrigin, ProductQuery, ProductSummary } from '@/types/api'
 import { cn } from '@/utils/cn'
 import { formatDate } from '@/utils/format'
 
@@ -327,6 +327,60 @@ export function ProductsSection() {
         ))}
       </div>
     </Band>
+  )
+}
+
+/**
+ * A home row of products from one ready-made list. Nothing at all while the
+ * list is empty -- no rated shop yet, no views yet -- rather than a heading
+ * over nothing.
+ */
+function ProductRow({
+  title,
+  queryKey,
+  queryFn,
+}: {
+  title: string
+  queryKey: readonly string[]
+  queryFn: () => Promise<ProductSummary[]>
+}) {
+  const t = useT()
+  const products = useQuery({ queryKey, queryFn })
+  const items = products.data ?? []
+  if (items.length === 0) return null
+  return (
+    <Band>
+      <SectionHeading title={title} to="/products" more={t('home.viewAll')} />
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+        {items.map((product) => (
+          <ProductCard key={product.id} product={product} />
+        ))}
+      </div>
+    </Band>
+  )
+}
+
+/** Products of the best-rated shops: a product is rated as its shop is. */
+export function TopRatedProductsSection() {
+  const t = useT()
+  return (
+    <ProductRow
+      title={t('home.topRatedTitle')}
+      queryKey={queryKeys.topRatedProducts}
+      queryFn={publicItemApi.topRated}
+    />
+  )
+}
+
+/** The products opened most often in the last 30 days. */
+export function TopViewedProductsSection() {
+  const t = useT()
+  return (
+    <ProductRow
+      title={t('home.topViewedTitle')}
+      queryKey={queryKeys.topViewedProducts}
+      queryFn={publicItemApi.topViewed}
+    />
   )
 }
 

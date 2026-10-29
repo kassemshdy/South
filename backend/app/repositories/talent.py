@@ -8,7 +8,7 @@ is the single place that decides what an anonymous visitor may see, so the
 from __future__ import annotations
 
 import uuid
-from typing import Literal
+from typing import Any, Literal
 
 from sqlalchemy import Select, func, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
@@ -282,6 +282,18 @@ class TalentRepository(BaseRepository[TalentProfile]):
             select(TalentProfile.skill_id, func.count())
             .where(TalentProfile.status == BusinessStatus.APPROVED)
             .group_by(TalentProfile.skill_id)
+        ).all()
+        return {row[0]: row[1] for row in rows if row[0] is not None}
+
+    def public_counts_by_kind(
+        self, column: Any, kind: TalentKind
+    ) -> dict[uuid.UUID, int]:
+        """Approved profiles of one kind, per value of ``column`` (a skill
+        or a place)."""
+        rows = self.db.execute(
+            select(column, func.count())
+            .where(TalentProfile.status == BusinessStatus.APPROVED, TalentProfile.kind == kind)
+            .group_by(column)
         ).all()
         return {row[0]: row[1] for row in rows if row[0] is not None}
 

@@ -1512,5 +1512,9 @@
   "growth.planSave": "حفظ",
   "growth.planCancel": "إلغاء",
   "growth.planSaved": "حُفظ الهدف والعرض.",
-  "growth.planFailed": "تعذّر الحفظ."
+  "growth.planFailed": "تعذّر الحفظ.",
+  "home.topRatedTitle": "الأعلى تقييمًا",
+  "home.topViewedTitle": "الأكثر مشاهدة",
+  "admin.homeSectionTopRated": "المنتجات الأعلى تقييمًا",
+  "admin.homeSectionTopViewed": "المنتجات الأكثر مشاهدة"
 }

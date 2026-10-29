@@ -42,6 +42,10 @@ class TalentSkillOut(ORMModel):
     sort_order: int
     is_active: bool
     talent_count: int = 0
+    # The services directory and the jobs directory filter by the same
+    # skills; each counts only its own kind.
+    service_count: int = 0
+    job_count: int = 0
 
 
 class TalentSkillIn(BaseModel):
