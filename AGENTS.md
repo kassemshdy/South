@@ -501,6 +501,12 @@ login.
   container — seeding images there silently discards them. Migrations and seeding both
   run from the API image's own start command (`backend/Dockerfile` →
   `docker-entrypoint.sh`) for this reason.
+- **No apostrophe anywhere inside the `gosu appuser sh -c '...'` block of
+  `docker-entrypoint.sh`, comments included.** It closes the quote: the rest
+  of the script is dropped, the shell exits 0, uvicorn never starts and the
+  deploy fails its healthcheck with nothing in the log. Two releases failed
+  this way on 29 Oct 2026 («The owners' full list»).
+  `tests/test_entrypoint.py` runs the real file with stubbed commands.
 - **A Railway volume is mounted with root ownership regardless of the image's `USER`.**
   The API container starts as root, `chown`s the mounted volume, then drops to `appuser`
   via `gosu` before running anything — see `backend/docker-entrypoint.sh`.
