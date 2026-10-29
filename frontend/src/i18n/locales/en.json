@@ -1512,5 +1512,9 @@
   "growth.planSave": "Save",
   "growth.planCancel": "Cancel",
   "growth.planSaved": "Goal and offer saved.",
-  "growth.planFailed": "Could not save."
+  "growth.planFailed": "Could not save.",
+  "home.topRatedTitle": "Top rated",
+  "home.topViewedTitle": "Most viewed",
+  "admin.homeSectionTopRated": "Top rated products",
+  "admin.homeSectionTopViewed": "Most viewed products"
 }

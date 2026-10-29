@@ -10,6 +10,8 @@ from fastapi import APIRouter
 
 from app.api.serializers import category_out, location_out, talent_skill_out
 from app.core.dependencies import DbSession
+from app.models.enums import TalentKind
+from app.models.talent import TalentProfile
 from app.repositories.business import BusinessRepository
 from app.repositories.item import ItemRepository
 from app.repositories.talent import TalentRepository, TalentSkillRepository
@@ -43,31 +45,60 @@ def list_categories(db: DbSession) -> list[CategoryOut]:
 @router.get("/locations", response_model=list[LocationOut])
 def list_locations(db: DbSession) -> list[LocationOut]:
     """The full location tree; the client groups it by ``type``/``parent_id``."""
-    counts = BusinessRepository(db).public_counts_by_location()
+    talents = TalentRepository(db)
+    counted = {
+        "business_count": BusinessRepository(db).public_counts_by_location(),
+        "item_count": ItemRepository(db).public_counts_by_location(),
+        "service_count": talents.public_counts_by_kind(
+            TalentProfile.location_id, TalentKind.SERVICE
+        ),
+        "job_count": talents.public_counts_by_kind(
+            TalentProfile.location_id, TalentKind.JOB_SEEKER
+        ),
+    }
     locations = LocationRepository(db).list_all()
 
     # A district's count includes the towns beneath it, matching how the search
     # filter behaves.
-    rollup: dict = dict(counts)
-    for location in locations:
-        if location.parent_id is not None:
-            rollup[location.parent_id] = rollup.get(location.parent_id, 0) + counts.get(
-                location.id, 0
-            )
+    rollups: dict[str, dict] = {}
+    for name, counts in counted.items():
+        rollup: dict = dict(counts)
+        for location in locations:
+            if location.parent_id is not None:
+                rollup[location.parent_id] = rollup.get(location.parent_id, 0) + counts.get(
+                    location.id, 0
+                )
+        rollups[name] = rollup
 
     return [
         out
         for location in locations
-        if (out := location_out(location, business_count=rollup.get(location.id, 0))) is not None
+        if (
+            out := location_out(
+                location, **{name: rollup.get(location.id, 0) for name, rollup in rollups.items()}
+            )
+        )
+        is not None
     ]
 
 
 @router.get("/talent-skills", response_model=list[TalentSkillOut])
 def list_talent_skills(db: DbSession) -> list[TalentSkillOut]:
     """Active talent skills with the number of approved profiles in each."""
-    counts = TalentRepository(db).public_counts_by_skill()
+    talents = TalentRepository(db)
+    counts = talents.public_counts_by_skill()
+    services = talents.public_counts_by_kind(TalentProfile.skill_id, TalentKind.SERVICE)
+    jobs = talents.public_counts_by_kind(TalentProfile.skill_id, TalentKind.JOB_SEEKER)
     return [
         out
         for skill in TalentSkillRepository(db).list_all()
-        if (out := talent_skill_out(skill, talent_count=counts.get(skill.id, 0))) is not None
+        if (
+            out := talent_skill_out(
+                skill,
+                talent_count=counts.get(skill.id, 0),
+                service_count=services.get(skill.id, 0),
+                job_count=jobs.get(skill.id, 0),
+            )
+        )
+        is not None
     ]

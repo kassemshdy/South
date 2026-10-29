@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { LocateFixed, Search, SlidersHorizontal, X } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { LocateFixed, SlidersHorizontal, X } from 'lucide-react'
+import { useCallback, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/Button'
@@ -14,6 +14,7 @@ import { PageBanner } from '@/components/layout/PageBanner'
 import { BrowseSwitcher } from '@/features/onboarding/BrowseSwitcher'
 import { originFromParams } from '@/features/onboarding/destinations'
 import { useNearestSort } from '@/features/directory/useNearestSort'
+import { SearchBox } from '@/features/search/SearchBox'
 import { useCategories, useLocationGroups } from '@/hooks/useTaxonomy'
 import { useT, type TranslationKey } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
@@ -85,18 +86,13 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
     choose: chooseSort,
     locating,
     near,
-  } = useNearestSort<ProductSortOption>(chosenSort, setSort, 'newest')
+  } = useNearestSort<ProductSortOption>(chosenSort, setSort, 'rating')
 
-  // Local mirror so typing feels instant; the URL updates on submit, which
-  // keeps searches shareable and back/forward working.
-  const [searchInput, setSearchInput] = useState(q)
   // Open from the start when a query-string origin narrowed the list: on a
   // phone the filters are folded away, and a narrowing nobody can see is a
   // silent one. The origin pages say it in their heading instead.
   const [filtersOpen, setFiltersOpen] = useState(() => Boolean(originFromParams(searchParams)))
   const t = useT()
-
-  useEffect(() => setSearchInput(q), [q])
 
   const heading = originPage ? t(originPage.titleKey) : t('products.heading')
 
@@ -125,7 +121,7 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
         lat: near?.lat,
         lng: near?.lng,
         page,
-        page_size: 12,
+        page_size: 24,
       }),
     placeholderData: keepPreviousData,
   })
@@ -173,41 +169,28 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
             the browser's back button as the only way across. */}
         <BrowseSwitcher current="products" />
 
-        <form
-          role="search"
-          onSubmit={(event) => {
-            event.preventDefault()
-            updateParams({ q: searchInput.trim() })
-          }}
-          className="mb-4 flex gap-2"
-        >
-          <label htmlFor="products-search" className="sr-only">
-            {t('products.searchLabel')}
-          </label>
-          <div className="relative flex-1">
-            <Search className="pointer-events-none absolute inset-y-0 start-4 my-auto h-5 w-5 text-ink-300" aria-hidden="true" />
-            <input
-              id="products-search"
-              type="search"
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              placeholder={t('products.searchLabel')}
-              className="h-12 w-full rounded-xl border-2 border-ink-100 bg-white ps-12 pe-4 text-[15px] placeholder:text-ink-300 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-            />
-          </div>
-          <Button type="submit">{t('common.search')}</Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="sm:hidden"
-            onClick={() => setFiltersOpen((open) => !open)}
-            aria-expanded={filtersOpen}
-            aria-label={t('directory.filtersAria')}
+        {/* The home page's box, suggesting as someone types; a plain search
+            narrows this directory rather than leaving it. */}
+        <div className="mb-4">
+          <SearchBox
+            appearance="page"
+            value={q}
+            label={t('products.searchLabel')}
+            onSearch={(query) => updateParams({ q: query })}
           >
-            <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
-          </Button>
-        </form>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-12 w-12 shrink-0 sm:hidden"
+              onClick={() => setFiltersOpen((open) => !open)}
+              aria-expanded={filtersOpen}
+              aria-label={t('directory.filtersAria')}
+            >
+              <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
+            </Button>
+          </SearchBox>
+        </div>
 
         <div className={`mb-6 grid gap-3 ${fixedOrigin ? 'sm:grid-cols-3' : 'sm:grid-cols-2 lg:grid-cols-4'} ${filtersOpen ? 'grid' : 'hidden sm:grid'}`}>
           <div>
@@ -223,9 +206,12 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL}>{t('directory.allCategories')}</SelectItem>
-                {categories.data?.map((item) => (
+                {/* The fullest categories first, each with its count. */}
+                {[...(categories.data ?? [])]
+                  .sort((a, b) => b.item_count - a.item_count)
+                  .map((item) => (
                   <SelectItem key={item.id} value={item.slug}>
-                    {item.name_ar}
+                    {t('directory.categoryWithCount', { name: item.name_ar, count: item.item_count })}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -245,6 +231,7 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
               onChange={(value) => updateParams({ location: value })}
               groups={groups}
               placeholder={t('directory.allLocations')}
+              countOf={(node) => node.item_count}
             />
           </div>
 

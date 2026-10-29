@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { FolderTree, Package, Search, Store, UserRound } from 'lucide-react'
-import { useEffect, useId, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { useEffect, useId, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { useT, type TranslationKey } from '@/i18n'
@@ -35,18 +35,38 @@ function hrefOf(suggestion: SearchSuggestion): string {
   }
 }
 
+interface SearchBoxProps {
+  /** What the box opens with, and follows when the page's query changes. */
+  value?: string
+  /** Searching for the typed text. Unset, it searches the products page. */
+  onSearch?: (query: string) => void
+  /** The label and placeholder; the products search by default. */
+  label?: string
+  /** `band` on the home page's coloured strip, `page` on a directory. */
+  appearance?: 'band' | 'page'
+  /** Extra controls after the search button, such as a filters toggle. */
+  children?: ReactNode
+}
+
 /**
- * The home page's search box, suggesting as someone types: categories,
+ * The site's search box, suggesting as someone types: categories,
  * products, shops and services, each opening its page, and a last row that
- * searches products for exactly what was typed. A combobox in the ARIA
+ * searches for exactly what was typed. A combobox in the ARIA
  * sense -- arrow keys move through the suggestions, Enter opens one,
- * Escape closes the list.
+ * Escape closes the list. The home page and the directories share it, so
+ * suggesting works the same everywhere.
  */
-export function SearchBox() {
+export function SearchBox({
+  value = '',
+  onSearch,
+  label,
+  appearance = 'band',
+  children,
+}: SearchBoxProps = {}) {
   const t = useT()
   const navigate = useNavigate()
   const listId = useId()
-  const [text, setText] = useState('')
+  const [text, setText] = useState(value)
   const [term, setTerm] = useState('')
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(-1)
@@ -69,11 +89,13 @@ export function SearchBox() {
   const showing = open && rows > 0
 
   useEffect(() => setActive(-1), [term])
+  useEffect(() => setText(value), [value])
 
-  const searchFor = (value: string) => {
+  const searchFor = (typed: string) => {
     setOpen(false)
-    const q = value.trim()
-    navigate(q ? `/products?q=${encodeURIComponent(q)}` : '/products')
+    const q = typed.trim()
+    if (onSearch) onSearch(q)
+    else navigate(q ? `/products?q=${encodeURIComponent(q)}` : '/products')
   }
   const go = (index: number) => {
     const suggestion = items[index]
@@ -106,36 +128,52 @@ export function SearchBox() {
   return (
     <form onSubmit={submit} className="relative flex gap-2" role="search">
       <label htmlFor={`${listId}-input`} className="sr-only">
-        {t('products.searchLabel')}
+        {label ?? t('products.searchLabel')}
       </label>
-      <input
-        id={`${listId}-input`}
-        type="search"
-        role="combobox"
-        aria-expanded={showing}
-        aria-controls={listId}
-        aria-autocomplete="list"
-        aria-activedescendant={showing && active >= 0 ? optionId(active) : undefined}
-        autoComplete="off"
-        value={text}
-        onChange={(event) => {
-          setText(event.target.value)
-          setOpen(true)
-        }}
-        onFocus={() => setOpen(true)}
-        // Long enough for a tap on a suggestion to land before the list goes.
-        onBlur={() => window.setTimeout(() => setOpen(false), 150)}
-        onKeyDown={onKeyDown}
-        placeholder={t('products.searchLabel')}
-        className="h-12 min-w-0 flex-1 rounded-xl border-0 bg-white px-4 text-base text-ink-900 shadow-card focus:outline-none focus:ring-2 focus:ring-wheat-500"
-      />
+      <div className="relative min-w-0 flex-1">
+        {appearance === 'page' ? (
+          <Search
+            className="pointer-events-none absolute inset-y-0 start-4 my-auto h-5 w-5 text-ink-300"
+            aria-hidden="true"
+          />
+        ) : null}
+        <input
+          id={`${listId}-input`}
+          type="search"
+          role="combobox"
+          aria-expanded={showing}
+          aria-controls={listId}
+          aria-autocomplete="list"
+          aria-activedescendant={showing && active >= 0 ? optionId(active) : undefined}
+          autoComplete="off"
+          value={text}
+          onChange={(event) => {
+            setText(event.target.value)
+            setOpen(true)
+          }}
+          onFocus={() => setOpen(true)}
+          // Long enough for a tap on a suggestion to land before the list goes.
+          onBlur={() => window.setTimeout(() => setOpen(false), 150)}
+          onKeyDown={onKeyDown}
+          placeholder={label ?? t('products.searchLabel')}
+          className={
+            appearance === 'page'
+              ? 'h-12 w-full rounded-xl border-2 border-ink-100 bg-white ps-12 pe-4 text-[15px] placeholder:text-ink-300 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20'
+              : 'h-12 w-full rounded-xl border-0 bg-white px-4 text-base text-ink-900 shadow-card focus:outline-none focus:ring-2 focus:ring-wheat-500'
+          }
+        />
+      </div>
       <button
         type="submit"
-        className="flex h-12 items-center gap-2 rounded-xl bg-clay-500 px-5 font-semibold text-white hover:bg-clay-600"
+        className={cn(
+          'flex h-12 items-center gap-2 rounded-xl px-5 font-semibold text-white',
+          appearance === 'page' ? 'bg-brand-700 hover:bg-brand-800' : 'bg-clay-500 hover:bg-clay-600',
+        )}
       >
         <Search className="h-5 w-5" aria-hidden="true" />
         <span className="hidden sm:inline">{t('common.search')}</span>
       </button>
+      {children}
 
       {showing ? (
         <ul
