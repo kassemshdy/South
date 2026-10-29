@@ -41,6 +41,7 @@ export const queryKeys = {
   myServiceRequests: ['my-talent', 'requests'] as const,
   adminStats: ['admin', 'stats'] as const,
   homeLayout: ['home', 'layout'] as const,
+  siteMenu: ['menu'] as const,
   homeStories: ['home', 'stories'] as const,
   myBusinessStories: (id: string) => ['my-business', id, 'stories'] as const,
   myTalentStories: ['my-talent', 'stories'] as const,
@@ -64,7 +65,8 @@ export const queryKeys = {
   adminBusinesses: (status: BusinessStatus | undefined, page: number, q?: string) =>
     ['admin', 'businesses', status ?? 'all', page, q ?? ''] as const,
   adminBusiness: (id: string) => ['admin', 'business', id] as const,
-  adminUsers: (page: number) => ['admin', 'users', page] as const,
+  adminUsers: (page: number, filters: Record<string, unknown> = {}) =>
+    ['admin', 'users', page, filters] as const,
   adminUser: (id: string) => ['admin', 'user', id] as const,
   adminCategories: ['admin', 'categories'] as const,
   adminTalents: (status: BusinessStatus | undefined, page: number, q?: string) =>

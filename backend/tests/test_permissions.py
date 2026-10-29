@@ -71,6 +71,7 @@ def _pending_business(
     entity = db.get(Business, created.json()["id"])
     assert entity is not None
     entity.status = BusinessStatus.PENDING_REVIEW
+    entity.logo_url = "/media/test/logo.jpg"  # approval needs one
     db.commit()
     return str(entity.id)
 

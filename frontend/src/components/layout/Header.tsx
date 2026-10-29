@@ -210,7 +210,7 @@ export function Header() {
         <nav className="hidden items-center gap-1 xl:flex" aria-label={t('nav.mainAria')}>
           {sections.map((section) => (
             <Link key={section.href} to={section.href} className={NAV_LINK}>
-              {t(section.labelKey)}
+              {section.label}
             </Link>
           ))}
 
@@ -339,7 +339,7 @@ export function Header() {
               onClick={() => setMenuOpen(false)}
               className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100"
             >
-              {t(section.labelKey)}
+              {section.label}
             </Link>
           ))}
 

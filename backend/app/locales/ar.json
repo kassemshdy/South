@@ -288,5 +288,6 @@
   "workshop.already_started": "بدأت هذه الورشة، ولم يعد التسجيل متاحًا.",
   "workshop.ends_before_start": "يجب أن ينتهي موعد الورشة بعد بدايتها.",
   "workshop.deleted": "حُذفت ورشة العمل.",
-  "telegram.kind.workshop_signup": "تسجيل جديد في ورشة عمل"
+  "telegram.kind.workshop_signup": "تسجيل جديد في ورشة عمل",
+  "moderation.logo_required": "لا يمكن نشر النشاط قبل إضافة شعاره. أضف الشعار من صفحة النشاط ثم وافق عليه."
 }

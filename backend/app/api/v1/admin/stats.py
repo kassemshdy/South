@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, date, datetime, time, timedelta
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Query
 from sqlalchemy import Date, cast, func, select
@@ -136,9 +136,20 @@ def list_users(
     admin: AdminUser,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 25,
+    q: Annotated[str | None, Query(max_length=100)] = None,
+    role: Annotated[UserRole | None, Query()] = None,
+    active: Annotated[bool | None, Query()] = None,
+    sort: Annotated[Literal["newest", "oldest", "name", "listings"], Query()] = "newest",
 ) -> PaginatedResponse[AdminUserOut]:
+    """Every account, searched by phone or name, filtered by role and
+    status, newest first unless asked otherwise."""
     users, total = UserRepository(db).list_users(
-        limit=page_size, offset=(page - 1) * page_size
+        limit=page_size,
+        offset=(page - 1) * page_size,
+        query=q,
+        role=role,
+        active=active,
+        sort=sort,
     )
 
     counts: dict[uuid.UUID, int] = {

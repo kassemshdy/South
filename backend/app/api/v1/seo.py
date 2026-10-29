@@ -17,7 +17,7 @@ from fastapi import APIRouter, Response
 from app.core.dependencies import AppSettings, DbSession
 from app.repositories.business import BusinessRepository
 from app.repositories.item import ItemRepository
-from app.repositories.talent import TalentRepository, TalentSkillRepository
+from app.repositories.talent import TalentRepository
 
 router = APIRouter(include_in_schema=False)
 
@@ -68,8 +68,11 @@ def sitemap(db: DbSession, settings: AppSettings) -> Response:
     add("/services", changefreq="daily", priority="0.9")
     add("/jobs", changefreq="daily", priority="0.8")
 
-    for skill in TalentSkillRepository(db).list_all():
-        add(f"/services?skill={skill.slug}", changefreq="weekly", priority="0.7")
+    # No `/services?skill=...` entries: those pages declare `/services` as
+    # their canonical, and a sitemap listing URLs whose canonical points
+    # elsewhere is what Search Console reports as "Alternate page with proper
+    # canonical tag" -- every entry flagged rather than indexed. A sitemap
+    # lists canonical URLs only.
 
     for slug, updated_at in TalentRepository(db).approved_slugs():
         add(f"/talent/{slug}", changefreq="weekly", priority="0.8", lastmod=updated_at)

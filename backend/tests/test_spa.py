@@ -423,6 +423,8 @@ def test_a_product_page_carries_product_structured_data(
     seller = offer["seller"]
     assert isinstance(seller, dict)
     assert seller["url"] == f"https://example.test/business/{quote(approved_slug)}"
+    assert isinstance(product["image"], str) and product["image"].startswith("https://")
+    assert product["category"], "the shop's category says what kind of product it is"
 
 
 def test_a_shop_page_carries_local_business_structured_data(
@@ -434,6 +436,37 @@ def test_a_shop_page_carries_local_business_structured_data(
     address = shop["address"]
     assert isinstance(address, dict)
     assert address["addressCountry"] == "LB"
+
+
+def test_a_shop_without_a_logo_is_pictured_by_its_own_photos_and_stars(
+    spa_client: TestClient, db: Session, approved_slug: str, product_slug: str
+) -> None:
+    """Never the site's share image standing in for the shop, and the stars
+    the page shows -- the published testimonials -- as its rating."""
+    business = db.query(Business).filter(Business.slug == approved_slug).one()
+    item = db.query(BusinessItem).filter(BusinessItem.slug == product_slug).one()
+    assert business.logo_url is None and business.cover_url is None
+    business.rating_average = 4.5
+    business.rating_count = 2
+    db.commit()
+
+    [shop] = _json_ld(spa_client.get(f"/business/{approved_slug}").text)
+    assert shop["image"] == f"https://example.test{item.image_url}"
+    assert shop["aggregateRating"] == {
+        "@type": "AggregateRating",
+        "ratingValue": 4.5,
+        "reviewCount": 2,
+        "bestRating": 5,
+        "worstRating": 1,
+    }
+
+
+def test_a_shop_with_no_picture_at_all_names_none(
+    spa_client: TestClient, approved_slug: str
+) -> None:
+    [shop] = _json_ld(spa_client.get(f"/business/{approved_slug}").text)
+    assert "image" not in shop
+    assert "aggregateRating" not in shop, "no rating until a testimonial is published"
 
 
 def test_the_homepage_says_who_publishes_the_site_and_how_to_search_it(

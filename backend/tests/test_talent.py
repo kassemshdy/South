@@ -811,6 +811,15 @@ def test_the_sitemap_lists_both_directories(client: TestClient) -> None:
     assert "/jobs</loc>" in sitemap
 
 
+def test_the_sitemap_lists_canonical_urls_only(
+    client: TestClient, skill: TalentSkill
+) -> None:
+    """A filtered directory page declares the unfiltered one as its canonical,
+    so listing it is what Search Console flags instead of indexing."""
+    sitemap = client.get("/sitemap.xml").text
+    assert "?" not in sitemap.split("?>", 1)[1], "no query-string URL is canonical"
+
+
 # --- The owner's choice to keep their numbers private --------------------
 
 

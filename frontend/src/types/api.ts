@@ -586,6 +586,29 @@ export interface HomeLayout {
   sections: HomeSection[]
 }
 
+export type MenuItemId =
+  | 'home'
+  | 'products'
+  | 'services'
+  | 'jobs'
+  | 'blog'
+  | 'news'
+  | 'workshops'
+  | 'about'
+  | 'contact'
+
+/** One entry of the site menu; a null label means the catalog's own. */
+export interface MenuItem {
+  id: MenuItemId
+  visible: boolean
+  label_ar: string | null
+  label_en: string | null
+}
+
+export interface SiteMenu {
+  items: MenuItem[]
+}
+
 /**
  * A YouTube Short or an Instagram post on the home page. `url` and
  * `embed_url` are rebuilt by the server from the video's id, never the

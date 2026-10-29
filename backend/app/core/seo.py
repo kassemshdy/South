@@ -19,6 +19,21 @@ from typing import Any
 
 from app.core.i18n import translate
 
+#: Invisible direction and zero-width marks. Owners paste names from phones
+#: that prepend them (a shop listed as "\u200fdessert delights"); in a search
+#: result or a structured-data name they are noise at best, and a name that
+#: starts with one does not match the same name typed by someone searching.
+_INVISIBLE_RE = re.compile("[\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]")
+
+
+def clean_text(value: str | None) -> str | None:
+    """``value`` without invisible marks or surrounding space; None if empty."""
+    if value is None:
+        return None
+    cleaned = _INVISIBLE_RE.sub("", value).strip()
+    return cleaned or None
+
+
 _TITLE_RE = re.compile(r"<title>.*?</title>", re.IGNORECASE | re.DOTALL)
 _META_RE_TEMPLATE = r'<meta\s+(?:name|property)=["\']{key}["\'][^>]*>'
 
@@ -185,8 +200,15 @@ def business_json_ld(
     latitude: float | None,
     longitude: float | None,
     same_as: Sequence[str] = (),
+    rating_average: float | None = None,
+    rating_count: int = 0,
 ) -> dict[str, Any]:
-    """A shop as a LocalBusiness: only what its public page already shows."""
+    """A shop as a LocalBusiness: only what its public page already shows.
+
+    ``aggregateRating`` is the stars the page itself displays -- the average
+    of the published testimonials (see "Maps and Stars" in AGENTS.md) -- and
+    is left out while there are none, since a rating of nothing is invalid.
+    """
     geo = (
         {"@type": "GeoCoordinates", "latitude": float(latitude), "longitude": float(longitude)}
         if latitude is not None and longitude is not None
@@ -197,16 +219,29 @@ def business_json_ld(
             "@context": "https://schema.org",
             "@type": "LocalBusiness",
             "@id": f"{url}#business",
-            "name": name,
-            "description": description,
+            "name": clean_text(name),
+            "description": clean_text(description),
             "url": url,
             "image": image_url,
             "telephone": telephone,
             "address": _place(location_name),
             "geo": geo,
             "sameAs": list(same_as),
+            "aggregateRating": _rating(rating_average, rating_count),
         }
     )
+
+
+def _rating(average: float | None, count: int) -> dict[str, Any] | None:
+    if average is None or count < 1:
+        return None
+    return {
+        "@type": "AggregateRating",
+        "ratingValue": round(float(average), 1),
+        "reviewCount": count,
+        "bestRating": 5,
+        "worstRating": 1,
+    }
 
 
 def product_json_ld(
@@ -220,6 +255,7 @@ def product_json_ld(
     available: bool,
     business_name: str,
     business_url: str,
+    category_name: str | None = None,
 ) -> dict[str, Any]:
     """A product, with an Offer only when it has a price -- an offer with no
     price is invalid, and a made-up one would be worse."""
@@ -232,7 +268,11 @@ def product_json_ld(
             "availability": "https://schema.org/InStock"
             if available
             else "https://schema.org/OutOfStock",
-            "seller": {"@type": "LocalBusiness", "name": business_name, "url": business_url},
+            "seller": {
+                "@type": "LocalBusiness",
+                "name": clean_text(business_name),
+                "url": business_url,
+            },
         }
         if price is not None
         else None
@@ -241,11 +281,12 @@ def product_json_ld(
         {
             "@context": "https://schema.org",
             "@type": "Product",
-            "name": name,
-            "description": description,
+            "name": clean_text(name),
+            "description": clean_text(description),
             "url": url,
             "image": image_url,
-            "brand": {"@type": "Brand", "name": business_name},
+            "category": category_name,
+            "brand": {"@type": "Brand", "name": clean_text(business_name)},
             "offers": offer,
         }
     )
@@ -266,9 +307,9 @@ def talent_json_ld(
         {
             "@context": "https://schema.org",
             "@type": "Person",
-            "name": name,
+            "name": clean_text(name),
             "jobTitle": job_title,
-            "description": description,
+            "description": clean_text(description),
             "url": url,
             "image": image_url,
             "address": _place(location_name),
@@ -286,6 +327,7 @@ def business_tags(
     canonical_url: str,
 ) -> SeoTags:
     site = translate("app.name")
+    name = clean_text(name) or name
     if location_name:
         title = translate(
             "seo.business.title_with_location", name=name, location=location_name, site=site
@@ -315,6 +357,7 @@ def talent_tags(
     canonical_url: str,
 ) -> SeoTags:
     site = translate("app.name")
+    display_name = clean_text(display_name) or display_name
     title = (
         translate("seo.talent.title_with_skill", name=display_name, skill=skill_name, site=site)
         if skill_name
@@ -375,8 +418,10 @@ def product_tags(
     stands in, so the preview still says whose it is.
     """
     return SeoTags(
-        title=translate("seo.page.title", name=title, site=translate("app.name")),
-        description=format_price(price, currency) or business_name,
+        title=translate(
+            "seo.page.title", name=clean_text(title) or title, site=translate("app.name")
+        ),
+        description=format_price(price, currency) or clean_text(business_name) or business_name,
         canonical_url=canonical_url,
         image_url=image_url,
         og_type="product",

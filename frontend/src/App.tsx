@@ -136,6 +136,9 @@ const AdminStoriesPage = lazy(() =>
 const AdminReelsPage = lazy(() =>
   import('@/pages/admin/AdminReelsPage').then((m) => ({ default: m.AdminReelsPage })),
 )
+const AdminMenuPage = lazy(() =>
+  import('@/pages/admin/AdminMenuPage').then((m) => ({ default: m.AdminMenuPage })),
+)
 const AdminHomeLayoutPage = lazy(() =>
   import('@/pages/admin/AdminHomeLayoutPage').then((m) => ({ default: m.AdminHomeLayoutPage })),
 )
@@ -309,6 +312,7 @@ export function App() {
             <Route path="export" element={<AdminExportPage />} />
             <Route path="staff" element={<AdminStaffPage />} />
             <Route path="home-layout" element={<AdminHomeLayoutPage />} />
+            <Route path="menu" element={<AdminMenuPage />} />
             <Route path="reels" element={<AdminReelsPage />} />
             <Route path="stories" element={<AdminStoriesPage />} />
             <Route path="page-covers" element={<AdminPageCoversPage />} />
