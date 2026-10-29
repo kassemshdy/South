@@ -701,7 +701,7 @@ export interface PublicStats {
   total_talents: number
 }
 
-export type FeedbackStatus = 'BACKLOG' | 'TODO' | 'IN_PROGRESS' | 'DONE'
+export type FeedbackStatus = 'BACKLOG' | 'TODO' | 'IN_PROGRESS' | 'NEEDS_FEEDBACK' | 'DONE'
 
 export type FeedbackPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
 

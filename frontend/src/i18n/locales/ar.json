@@ -1672,5 +1672,6 @@
   "displaced.badge": "نازح من {place}",
   "displaced.filter": "أصحاب نشاط نازحون",
   "account.showDisplacementLabel": "أظهر للزوّار أنني نازح من هذه البلدة",
-  "account.showDisplacementHint": "تظهر عبارة «نازح من …» على صفحاتك وبطاقاتك، ويمكنك إخفاؤها في أي وقت."
+  "account.showDisplacementHint": "تظهر عبارة «نازح من …» على صفحاتك وبطاقاتك، ويمكنك إخفاؤها في أي وقت.",
+  "feedback.status.NEEDS_FEEDBACK": "بانتظار رد الإدارة"
 }
