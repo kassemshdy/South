@@ -37,7 +37,7 @@ import type { FeedbackPriority, FeedbackStatus, FeedbackTicketSummary } from '@/
 import { FEEDBACK_PRIORITY_KEYS, FEEDBACK_STATUS_KEYS, formatRelativeDate } from '@/utils/format'
 import { commentSchema, type CommentValues } from '@/utils/validation'
 
-const STATUSES: FeedbackStatus[] = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'DONE']
+const STATUSES: FeedbackStatus[] = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'NEEDS_FEEDBACK', 'DONE']
 
 const PRIORITY_TONES: Record<FeedbackPriority, string> = {
   LOW: 'bg-sand-100 text-ink-600',
@@ -53,6 +53,7 @@ function groupByStatus(
     BACKLOG: [],
     TODO: [],
     IN_PROGRESS: [],
+    NEEDS_FEEDBACK: [],
     DONE: [],
   }
   for (const ticket of [...tickets].sort((a, b) => a.sort_order - b.sort_order)) {
@@ -174,7 +175,7 @@ export function AdminFeedbackPage() {
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
         >
-          <div className="grid gap-4 overflow-x-auto pb-2 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 overflow-x-auto pb-2 sm:grid-cols-2 lg:grid-cols-5">
             {STATUSES.map((status) => (
               <BoardColumn
                 key={status}

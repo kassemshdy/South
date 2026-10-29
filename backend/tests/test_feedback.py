@@ -596,3 +596,22 @@ def test_a_reporter_cannot_link_an_issue(client: TestClient) -> None:
 
     assert response.status_code == 201
     assert "github_issue_number" not in response.json()
+
+
+def test_a_ticket_can_wait_on_the_admin_without_counting_as_resolved(
+    client: TestClient, admin: User
+) -> None:
+    """The «needs feedback from the admin» column: a ticket parked there is
+    still open, and the board lists it in its own column."""
+    headers = admin_headers(client)
+    ticket = _create(client, headers)
+
+    moved = client.post(
+        f"/api/admin/feedback/tickets/{ticket['id']}/move",
+        headers=headers,
+        json={"status": "NEEDS_FEEDBACK", "index": 0},
+    )
+    assert moved.status_code == 200, moved.text
+    detail = client.get(f"/api/admin/feedback/tickets/{ticket['id']}", headers=headers).json()
+    assert detail["status"] == "NEEDS_FEEDBACK"
+    assert detail["resolved_at"] is None

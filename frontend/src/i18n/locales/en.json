@@ -1672,5 +1672,6 @@
   "displaced.badge": "Displaced from {place}",
   "displaced.filter": "Displaced owners",
   "account.showDisplacementLabel": "Show visitors that I am displaced from this place",
-  "account.showDisplacementHint": "“Displaced from …” appears on your pages and cards. You can hide it at any time."
+  "account.showDisplacementHint": "“Displaced from …” appears on your pages and cards. You can hide it at any time.",
+  "feedback.status.NEEDS_FEEDBACK": "Needs admin feedback"
 }
