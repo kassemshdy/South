@@ -11,6 +11,7 @@ from fastapi import APIRouter, File, Form, Path, Query, UploadFile, status
 from sqlalchemy import func, select
 
 from app.api.serializers import item_out, paginate, product_detail, product_summary
+from app.core.cache import cached
 from app.core.dependencies import AppSettings, DbSession, OwnedBusiness, Viewer
 from app.core.errors import NotFoundError, PayloadTooLargeError, ValidationError
 from app.core.i18n import translate
@@ -138,7 +139,7 @@ def get_product(
     item = ItemRepository(db).get_by_slug(slug)
     if item is None:
         raise NotFoundError("item.not_found")
-    payload = product_detail(item)
+    payload = cached(f"item:{slug}", lambda: product_detail(item))
     # Nothing surfaces product views yet. They are counted anyway because a
     # view cannot be backfilled: the history has to start before the screen
     # that reads it exists.

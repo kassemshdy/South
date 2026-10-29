@@ -7,6 +7,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Path, Query, status
 
 from app.api.serializers import business_detail, business_summary, owner_business, paginate
+from app.core.cache import cached
 from app.core.dependencies import (
     AppSettings,
     CurrentUser,
@@ -110,15 +111,21 @@ def get_business(
     business = BusinessRepository(db).get_by_slug(slug, public_only=True)
     if business is None:
         raise NotFoundError("business.not_public")
-    # Serialised before the counter is touched, so nothing about counting a
-    # view can change or delay what the visitor gets back.
-    # Approved only, and fetched through the service rather than read off the
-    # relationship -- see business_detail's docstring.
-    payload = business_detail(business, TestimonialService(db, settings).public_for(business))
-    # A product with no photo stays with its owner until it has one (the
-    # photo is mandatory) -- the same rule ItemRepository.public_query keeps
-    # for the catalogue. The owner's and the admin's views list every item.
-    payload.items = [item for item in payload.items if item.image_url]
+
+    def build() -> BusinessDetailOut:
+        # Approved only, and fetched through the service rather than read off
+        # the relationship -- see business_detail's docstring.
+        payload = business_detail(business, TestimonialService(db, settings).public_for(business))
+        # A product with no photo stays with its owner until it has one (the
+        # photo is mandatory) -- the same rule ItemRepository.public_query
+        # keeps for the catalogue. The owner's and the admin's views list
+        # every item.
+        payload.items = [item for item in payload.items if item.image_url]
+        return payload
+
+    # The payload may come from memory (app.core.cache); the view is counted
+    # every time, after it is built, so counting never delays the answer.
+    payload = cached(f"business:{slug}", build)
     ViewCounterService(db).record(
         ViewSubject.BUSINESS,
         business.id,

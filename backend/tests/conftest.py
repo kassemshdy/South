@@ -14,6 +14,9 @@ from collections.abc import Iterator
 import pytest
 
 os.environ.setdefault("APP_ENV", "development")
+# Tests write rows straight through the session, past the API writes that
+# empty the public cache; it is exercised on its own in test_public_cache.py.
+os.environ.setdefault("PUBLIC_CACHE_SECONDS", "0")
 os.environ.setdefault(
     "DATABASE_URL", "postgresql+psycopg://postgres:postgres@localhost:5432/south_test"
 )
