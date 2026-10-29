@@ -612,7 +612,10 @@ export function TalentsSection() {
       <div className="container-page">
         <div className="rounded-3xl bg-brand-50 p-5 sm:p-7">
           <SectionHeading title={t('home.talentsTitle')} to="/services" more={t('home.viewAll')} />
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {/* grid-cols-1, not the implicit column: an implicit track sizes to its
+              content, so one long name or trade widened the whole page on a
+              phone and the home page scrolled sideways. */}
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {talents.data.map((talent) => {
               const skill =
                 talent.skill?.slug === 'other' && talent.custom_skill_text
@@ -624,7 +627,7 @@ export function TalentsSection() {
               ].filter(Boolean)
               const page = `/talent/${encodeURIComponent(talent.slug)}`
               return (
-                <li key={talent.id} className="flex flex-col gap-3 rounded-2xl bg-white p-4" dir="auto">
+                <li key={talent.id} className="flex min-w-0 flex-col gap-3 rounded-2xl bg-white p-4">
                   <div className="flex items-center gap-3">
                     <span
                       aria-hidden="true"
@@ -632,11 +635,11 @@ export function TalentsSection() {
                     >
                       {talent.display_name.trim().slice(0, 1)}
                     </span>
-                    <span className="flex min-w-0 flex-col">
-                      <Link to={page} className="truncate font-bold text-ink-900 hover:text-brand-700">
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <Link to={page} dir="auto" className="truncate font-bold text-ink-900 hover:text-brand-700">
                         {talent.display_name}
                       </Link>
-                      {skill ? <span className="truncate text-sm font-semibold text-brand-600">{skill}</span> : null}
+                      {skill ? <span dir="auto" className="truncate text-sm font-semibold text-brand-600">{skill}</span> : null}
                     </span>
                   </div>
                   {where.length > 0 ? <span className="text-sm text-ink-500">{where.join(' · ')}</span> : null}
