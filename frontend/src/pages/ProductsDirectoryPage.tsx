@@ -20,7 +20,7 @@ import { useCategories, useLocationGroups } from '@/hooks/useTaxonomy'
 import { useT, type TranslationKey } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
 import { trackDirectoryView } from '@/services/analytics'
-import { publicItemApi } from '@/services/api/endpoints'
+import { publicBusinessApi, publicItemApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { GoodsOrigin, ProductSortOption } from '@/types/api'
 
@@ -116,6 +116,8 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
   const categories = useCategories()
   const { groups } = useLocationGroups()
 
+  // The shops behind the products, beside their count (the owners' ticket).
+  const stats = useQuery({ queryKey: queryKeys.publicStats, queryFn: publicBusinessApi.stats })
   const results = useQuery({
     queryKey: queryKeys.products({ q, category, location, origin, displaced, sort, lat: near?.lat, lng: near?.lng, page }),
     queryFn: () =>
@@ -167,7 +169,12 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
         title={heading}
         subtitle={
           results.data
-            ? t('products.resultCount', { count: results.data.meta.total })
+            ? stats.data
+              ? t('products.resultCounts', {
+                  shops: stats.data.total_businesses,
+                  count: results.data.meta.total,
+                })
+              : t('products.resultCount', { count: results.data.meta.total })
             : t('products.introFallback')
         }
       />

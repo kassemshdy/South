@@ -1011,6 +1011,16 @@ export const adminApi = {
     apiRequest<AdminJobOpening>(`/api/admin/job-openings/${id}/unpublish`, { method: 'POST' }),
   deleteJobOpening: (id: string) =>
     apiRequest<{ message: string }>(`/api/admin/job-openings/${id}`, { method: 'DELETE' }),
+  uploadJobOpeningCover: (id: string, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return apiRequest<AdminJobOpening>(`/api/admin/job-openings/${id}/image`, {
+      method: 'POST',
+      formData: form,
+    })
+  },
+  deleteJobOpeningCover: (id: string) =>
+    apiRequest<AdminJobOpening>(`/api/admin/job-openings/${id}/image`, { method: 'DELETE' }),
   jobApplications: (id: string) =>
     apiRequest<JobApplication[]>(`/api/admin/job-openings/${id}/applications`),
   downloadJobApplicationCv: (jobId: string, applicationId: string) =>

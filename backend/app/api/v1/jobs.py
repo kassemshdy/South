@@ -27,6 +27,7 @@ from app.core.errors import ConflictError, NotFoundError, RateLimitedError
 from app.core.i18n import translate
 from app.core.rate_limit import DatabaseRateLimiter, RateLimitRule
 from app.core.uploads import read_at_most
+from app.models.enums import ImageKind
 from app.models.job import JobApplication, JobOpening
 from app.models.taxonomy import Location
 from app.schemas.common import MessageResponse
@@ -39,6 +40,7 @@ from app.schemas.job import (
     JobOpeningOut,
     JobOpeningUpdateIn,
 )
+from app.services.images import ImageService
 from app.services.job_applications import EMPLOYER_ID_FOLDER, JobCvService
 from app.services.slug import slugify_name, unique_slug
 from app.storage.factory import get_storage
@@ -351,12 +353,49 @@ def delete_job_opening(
     keys = [application.storage_key for application in job.applications]
     if job.id_document_storage_key:
         keys.append(job.id_document_storage_key)
+    cover_key = job.cover_storage_key
     db.delete(job)
     db.commit()
     cvs = JobCvService(get_storage(), settings)
     for key in keys:
         cvs.delete(key)
+    ImageService(get_storage(), settings).delete(cover_key)
     return MessageResponse(message=translate("job.deleted"))
+
+
+@admin_router.post("/{job_id}/image", response_model=AdminJobOpeningOut)
+def upload_job_opening_cover(
+    job_id: uuid.UUID,
+    db: DbSession,
+    admin: AdminUser,
+    settings: AppSettings,
+    file: Annotated[UploadFile, File(description="Thumbnail image")],
+) -> AdminJobOpeningOut:
+    """Set or replace the opening's thumbnail; the old file is removed."""
+    job = _get_or_404(db, job_id)
+    service = ImageService(get_storage(), settings)
+    service.delete(job.cover_storage_key)
+    stored = service.process_and_store(
+        data=read_at_most(file.file, settings.max_upload_bytes),
+        content_type=file.content_type,
+        owner_id=job.id,
+        kind=ImageKind.COVER,
+        prefix="jobs",
+    )
+    job.cover_url, job.cover_storage_key = stored.url, stored.key
+    db.commit()
+    return _admin_out(db, job)
+
+
+@admin_router.delete("/{job_id}/image", response_model=AdminJobOpeningOut)
+def delete_job_opening_cover(
+    job_id: uuid.UUID, db: DbSession, admin: AdminUser, settings: AppSettings
+) -> AdminJobOpeningOut:
+    job = _get_or_404(db, job_id)
+    ImageService(get_storage(), settings).delete(job.cover_storage_key)
+    job.cover_url, job.cover_storage_key = None, None
+    db.commit()
+    return _admin_out(db, job)
 
 
 @admin_router.get("/{job_id}/applications", response_model=list[JobApplicationOut])

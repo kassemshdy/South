@@ -130,6 +130,8 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     ("DELETE", "/api/admin/job-openings/{job_id}"): _CONTENT,
     ("POST", "/api/admin/job-openings/{job_id}/publish"): _CONTENT,
     ("POST", "/api/admin/job-openings/{job_id}/unpublish"): _CONTENT,
+    ("POST", "/api/admin/job-openings/{job_id}/image"): _CONTENT,
+    ("DELETE", "/api/admin/job-openings/{job_id}/image"): _CONTENT,
     ("DELETE", "/api/admin/job-openings/{job_id}/applications/{application_id}"): _MODERATE,
     ("PUT", "/api/admin/pages/{key}"): _CONTENT,
     ("PUT", "/api/admin/team/{slot}"): _CONTENT,

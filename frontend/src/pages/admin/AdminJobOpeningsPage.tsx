@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Briefcase, Download, Pencil, Plus, Trash2, Users } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import { Briefcase, Download, ImageOff, ImagePlus, Pencil, Plus, Trash2, Users } from 'lucide-react'
+import { useRef, useState, type FormEvent } from 'react'
 
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
 import { useStaffCan } from '@/features/admin/staffAccess'
+import { useCropStep } from '@/features/images/ImageCropDialog'
 import { JOB_TYPE_LABELS } from '@/features/jobs/JobCard'
 import { useLocationGroups } from '@/hooks/useTaxonomy'
 import { useI18n } from '@/i18n'
@@ -83,6 +84,9 @@ export function AdminJobOpeningsPage() {
   const canEdit = useStaffCan('content')
   const [editing, setEditing] = useState<AdminJobOpening | 'new' | null>(null)
   const [openApplications, setOpenApplications] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [uploadingId, setUploadingId] = useState<string | null>(null)
+  const coverCrop = useCropStep('gallery')
 
   const jobs = useQuery({ queryKey: queryKeys.adminJobOpenings, queryFn: adminApi.jobOpenings })
   const refresh = () => void queryClient.invalidateQueries({ queryKey: queryKeys.adminJobOpenings })
@@ -100,9 +104,21 @@ export function AdminJobOpeningsPage() {
     onSuccess: refresh,
     onError: fail,
   })
+  const uploadCover = useMutation({
+    mutationFn: ({ id, file }: { id: string; file: File }) => adminApi.uploadJobOpeningCover(id, file),
+    onSuccess: refresh,
+    onError: fail,
+    onSettled: () => setUploadingId(null),
+  })
+  const removeCover = useMutation({
+    mutationFn: (id: string) => adminApi.deleteJobOpeningCover(id),
+    onSuccess: refresh,
+    onError: fail,
+  })
 
   return (
     <div className="space-y-6">
+      {coverCrop.dialog}
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl">{t('admin.jobsTitle')}</h1>
@@ -139,7 +155,14 @@ export function AdminJobOpeningsPage() {
               <Card>
                 <CardBody className="space-y-3 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
+                    {job.cover_url ? (
+                      <img
+                        src={job.cover_url}
+                        alt=""
+                        className="aspect-[16/9] w-28 shrink-0 rounded-lg object-cover"
+                      />
+                    ) : null}
+                    <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <h2 className="text-lg font-bold" dir="auto">
                           {job.title}
@@ -192,6 +215,29 @@ export function AdminJobOpeningsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            loading={uploadingId === job.id && uploadCover.isPending}
+                            onClick={() => {
+                              setUploadingId(job.id)
+                              fileRef.current?.click()
+                            }}
+                          >
+                            <ImagePlus className="h-4 w-4" aria-hidden="true" />
+                            {t('admin.workshopCover')}
+                          </Button>
+                          {job.cover_url ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              loading={removeCover.isPending && removeCover.variables === job.id}
+                              onClick={() => removeCover.mutate(job.id)}
+                            >
+                              <ImageOff className="h-4 w-4" aria-hidden="true" />
+                              {t('admin.videoPosterRemove')}
+                            </Button>
+                          ) : null}
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             aria-label={t('common.delete')}
                             onClick={() => {
                               if (window.confirm(t('admin.jobDeleteConfirm'))) remove.mutate(job.id)
@@ -211,6 +257,24 @@ export function AdminJobOpeningsPage() {
           ))}
         </ul>
       )}
+
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="sr-only"
+        onChange={(event) => {
+          const file = event.target.files?.[0]
+          event.target.value = ''
+          const id = uploadingId
+          if (file && id) {
+            void coverCrop.crop(file).then((cropped) => {
+              if (cropped) uploadCover.mutate({ id, file: cropped })
+              else setUploadingId(null)
+            })
+          }
+        }}
+      />
     </div>
   )
 }
