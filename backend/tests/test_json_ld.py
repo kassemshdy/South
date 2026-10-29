@@ -8,6 +8,7 @@ from decimal import Decimal
 from app.core.seo import (
     SeoTags,
     business_json_ld,
+    clean_text,
     inject,
     json_ld_script,
     product_json_ld,
@@ -111,3 +112,46 @@ def test_inject_writes_each_block_into_the_head() -> None:
     result = inject(document, tags)
     head = result.split("</head>")[0]
     assert head.count('type="application/ld+json"') == 2
+
+
+def test_invisible_direction_marks_are_dropped_from_names() -> None:
+    """A name pasted from a phone often starts with a right-to-left mark."""
+    assert clean_text("\u200fdessert delights ") == "dessert delights"
+    assert clean_text("\u202b\u2067x\u2069\u202c\ufeff") == "x"
+    assert clean_text("\u200f") is None
+    data = business_json_ld(
+        name="\u200fshop",
+        description="\u200e",
+        url="https://x/b",
+        image_url=None,
+        telephone=None,
+        location_name=None,
+        latitude=None,
+        longitude=None,
+    )
+    assert data["name"] == "shop" and "description" not in data
+
+
+def test_a_rating_appears_only_once_there_is_one() -> None:
+    def shop(average: float | None, count: int) -> dict[str, object]:
+        return business_json_ld(
+            name="n",
+            description=None,
+            url="https://x/b",
+            image_url=None,
+            telephone=None,
+            location_name=None,
+            latitude=None,
+            longitude=None,
+            rating_average=average,
+            rating_count=count,
+        )
+
+    assert "aggregateRating" not in shop(None, 0)
+    assert shop(4.666, 3)["aggregateRating"] == {
+        "@type": "AggregateRating",
+        "ratingValue": 4.7,
+        "reviewCount": 3,
+        "bestRating": 5,
+        "worstRating": 1,
+    }
