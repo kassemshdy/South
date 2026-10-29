@@ -201,8 +201,8 @@ class ItemRepository(BaseRepository[BusinessItem]):
             select(func.count()).select_from(self.public_query().subquery())
         ).scalar_one()
 
-    def public_slugs(self) -> list[tuple[str, object]]:
-        """(slug, updated_at) pairs for the sitemap.
+    def public_slugs(self) -> list[tuple[str, object, str | None]]:
+        """(slug, updated_at, photo) for the sitemap.
 
         Built on ``public_query`` rather than its own WHERE clause: the rule
         for what a visitor may see lives in one place, so a product that is
@@ -215,9 +215,11 @@ class ItemRepository(BaseRepository[BusinessItem]):
         # multiplied every product by every other one.
         public = self.public_query().subquery()
         rows = self.db.execute(
-            select(public.c.slug, public.c.updated_at).order_by(public.c.updated_at.desc())
+            select(public.c.slug, public.c.updated_at, public.c.image_url).order_by(
+                public.c.updated_at.desc()
+            )
         ).all()
-        return [(row[0], row[1]) for row in rows]
+        return [(row[0], row[1], row[2]) for row in rows]
 
     def _apply_filters(
         self,

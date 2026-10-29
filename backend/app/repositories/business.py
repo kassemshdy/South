@@ -258,14 +258,21 @@ class BusinessRepository(BaseRepository[Business]):
         ).all()
         return {row[0]: row[1] for row in rows}
 
-    def approved_slugs(self) -> list[tuple[str, object]]:
-        """(slug, updated_at) pairs for the sitemap — APPROVED only."""
+    def approved_slugs(self) -> list[tuple[str, object, str | None]]:
+        """(slug, updated_at, picture) for the sitemap — APPROVED only.
+
+        The picture is the shop's cover, else its logo, so Google Images can
+        find the shop by what it looks like."""
         rows = self.db.execute(
-            select(Business.slug, Business.updated_at)
+            select(
+                Business.slug,
+                Business.updated_at,
+                func.coalesce(Business.cover_url, Business.logo_url),
+            )
             .where(Business.status == BusinessStatus.APPROVED)
             .order_by(Business.updated_at.desc())
         ).all()
-        return [(row[0], row[1]) for row in rows]
+        return [(row[0], row[1], row[2]) for row in rows]
 
     def recently_approved(self, limit: int = 8) -> list[Business]:
         stmt = self._with_relations(

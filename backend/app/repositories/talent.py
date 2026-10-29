@@ -260,14 +260,14 @@ class TalentRepository(BaseRepository[TalentProfile]):
         ).all()
         return {row[0]: row[1] for row in rows}
 
-    def approved_slugs(self) -> list[tuple[str, object]]:
-        """(slug, updated_at) pairs for the sitemap — APPROVED only."""
+    def approved_slugs(self) -> list[tuple[str, object, str | None]]:
+        """(slug, updated_at, photo) for the sitemap — APPROVED only."""
         rows = self.db.execute(
-            select(TalentProfile.slug, TalentProfile.updated_at)
+            select(TalentProfile.slug, TalentProfile.updated_at, TalentProfile.photo_url)
             .where(TalentProfile.status == BusinessStatus.APPROVED)
             .order_by(TalentProfile.updated_at.desc())
         ).all()
-        return [(row[0], row[1]) for row in rows]
+        return [(row[0], row[1], row[2]) for row in rows]
 
     def recently_approved(self, limit: int = 8) -> list[TalentProfile]:
         stmt = self._with_relations(
