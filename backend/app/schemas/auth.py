@@ -47,6 +47,8 @@ class UserOut(ORMModel):
     residence_place: str | None = None
     is_displaced: bool | None = None
     pre_displacement_place: str | None = None
+    # Whether the place above is shown to buyers. See User.show_displacement.
+    show_displacement: bool = False
     # The account holder's own photo, on the same footing as the fields above:
     # returned to the account itself and to an administrator, and to nobody
     # else.
@@ -126,6 +128,9 @@ class TokenOut(BaseModel):
 class UpdateProfileIn(IdentityFieldsIn):
     display_name: str | None = Field(default=None, max_length=120)
     personal_phone_number: str | None = Field(default=None, max_length=25)
+    # The holder's own choice to show where they were displaced from; not an
+    # identity field, so it is not part of the application form.
+    show_displacement: bool | None = None
 
     @field_validator("personal_phone_number")
     @classmethod

@@ -13,6 +13,7 @@ import { ProductCard } from '@/features/items/ProductCard'
 import { PageBanner } from '@/components/layout/PageBanner'
 import { BrowseSwitcher } from '@/features/onboarding/BrowseSwitcher'
 import { originFromParams } from '@/features/onboarding/destinations'
+import { DisplacedFilterButton } from '@/features/directory/DisplacedFilterButton'
 import { useNearestSort } from '@/features/directory/useNearestSort'
 import { SearchBox } from '@/features/search/SearchBox'
 import { useCategories, useLocationGroups } from '@/hooks/useTaxonomy'
@@ -68,6 +69,7 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
   const q = searchParams.get('q') ?? ''
   const category = searchParams.get('category') ?? ''
   const location = searchParams.get('location') ?? ''
+  const displaced = searchParams.get('displaced') === '1'
   // Fixed by the page on the two origin pages; otherwise an optional filter.
   const origin = fixedOrigin ?? originFromParams(searchParams)
   const chosenSort = searchParams.get('sort') as ProductSortOption | null
@@ -110,13 +112,14 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
   const { groups } = useLocationGroups()
 
   const results = useQuery({
-    queryKey: queryKeys.products({ q, category, location, origin, sort, lat: near?.lat, lng: near?.lng, page }),
+    queryKey: queryKeys.products({ q, category, location, origin, displaced, sort, lat: near?.lat, lng: near?.lng, page }),
     queryFn: () =>
       publicItemApi.search({
         q: q || undefined,
         category: category || undefined,
         location: location || undefined,
         origin,
+        displaced: displaced || undefined,
         sort,
         lat: near?.lat,
         lng: near?.lng,
@@ -143,7 +146,7 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
 
   // The page's own origin is not a filter anyone set, so it cannot be cleared.
   const hasFilters =
-    Boolean(q || category || location || (origin && !fixedOrigin)) || chosenSort !== null
+    Boolean(q || category || location || displaced || (origin && !fixedOrigin)) || chosenSort !== null
   const resetFilters = () => setSearchParams(new URLSearchParams())
 
   return (
@@ -289,6 +292,10 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
             <LocateFixed className="h-4 w-4" aria-hidden="true" />
             {t('directory.sortNearest')}
           </Button>
+          <DisplacedFilterButton
+            active={displaced}
+            onToggle={() => updateParams({ displaced: displaced ? '' : '1' })}
+          />
           {hasFilters ? (
             <Button variant="ghost" size="sm" onClick={resetFilters}>
               <X className="h-4 w-4" aria-hidden="true" />

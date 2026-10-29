@@ -1668,5 +1668,9 @@
   "admin.jobDownloadId": "Download ID",
   "admin.jobWorkPlaceLabel": "Place of work",
   "admin.jobWorkModeLabel": "How the work is done",
-  "admin.jobWorkModeNone": "Not set"
+  "admin.jobWorkModeNone": "Not set",
+  "displaced.badge": "Displaced from {place}",
+  "displaced.filter": "Displaced owners",
+  "account.showDisplacementLabel": "Show visitors that I am displaced from this place",
+  "account.showDisplacementHint": "“Displaced from …” appears on your pages and cards. You can hide it at any time."
 }

@@ -3,8 +3,9 @@ from __future__ import annotations
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, Integer, String
+from sqlalchemy import Boolean, ColumnElement, Integer, String, and_
 from sqlalchemy import Enum as SAEnum
+from sqlalchemy import false as sa_false
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base, TimestampMixin, pg_enum, uuid_pk
@@ -79,6 +80,15 @@ class User(Base, TimestampMixin):
     # Where a displaced holder lived before; ``residence_place`` is where they
     # live now. Asked only of someone who says they are displaced.
     pre_displacement_place: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # The one exception to "never published", and only by the holder's own
+    # choice: with this on, the place above is shown to buyers on this
+    # account's listings ("displaced from ..."). Off by default, because the
+    # account page promised none of this would be shown, and every account
+    # created before the choice existed answered under that promise. Read it
+    # through ``published_displacement`` -- never the column on its own.
+    show_displacement: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=sa_false(), nullable=False
+    )
 
     role: Mapped[UserRole] = mapped_column(
         SAEnum(UserRole, name="user_role", values_callable=lambda e: [m.value for m in e]),
@@ -153,3 +163,23 @@ class User(Base, TimestampMixin):
     @property
     def is_admin(self) -> bool:
         return self.role is UserRole.ADMIN
+
+    @property
+    def published_displacement(self) -> str | None:
+        """Where this holder was displaced from, if they chose to show it.
+
+        The only identity value a public payload may carry, and only through
+        here: displaced, a place given, and the holder's own opt-in.
+        """
+        if self.is_displaced and self.show_displacement and self.pre_displacement_place:
+            return self.pre_displacement_place
+        return None
+
+    @classmethod
+    def publishes_displacement(cls) -> ColumnElement[bool]:
+        """``published_displacement`` as a query condition, for the filter."""
+        return and_(
+            cls.is_displaced.is_(True),
+            cls.show_displacement.is_(True),
+            cls.pre_displacement_place.is_not(None),
+        )

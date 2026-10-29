@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { DisplacedBadge } from '@/components/ui/DisplacedBadge'
 import { useT } from '@/i18n'
 import type { ProductSummary } from '@/types/api'
 import { formatPrice } from '@/utils/format'
@@ -65,6 +66,7 @@ export function ProductCard({ product }: { product: ProductSummary }) {
             </span>
           ) : null}
         </p>
+        <DisplacedBadge place={product.business.displaced_from} className="mt-1.5 self-start" />
 
         <div className="mt-auto pt-4">
           <Button asChild size="sm" variant="outline" block>

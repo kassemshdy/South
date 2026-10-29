@@ -51,6 +51,9 @@ def search_products(
     origin: Annotated[
         GoodsOrigin | None, Query(description="Made in the South, or imported")
     ] = None,
+    displaced: Annotated[
+        bool, Query(description="Only owners who chose to show they are displaced")
+    ] = False,
     sort: Annotated[
         Literal["newest", "name", "oldest", "price_asc", "price_desc", "nearest", "rating"],
         Query(),
@@ -81,6 +84,7 @@ def search_products(
         category_slug=category,
         location_slug=location,
         origin=origin,
+        displaced=displaced,
         sort=sort,
         near=point_or_none(near_lat, near_lng),
         page=page,
