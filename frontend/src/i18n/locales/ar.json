@@ -1516,5 +1516,11 @@
   "home.topRatedTitle": "الأعلى تقييمًا",
   "home.topViewedTitle": "الأكثر مشاهدة",
   "admin.homeSectionTopRated": "المنتجات الأعلى تقييمًا",
-  "admin.homeSectionTopViewed": "المنتجات الأكثر مشاهدة"
+  "admin.homeSectionTopViewed": "المنتجات الأكثر مشاهدة",
+  "home.mostOrderedTitle": "الأكثر طلبًا",
+  "home.testimonialsTitle": "ماذا يقول زبائننا",
+  "admin.homeSectionMostOrdered": "المنتجات الأكثر طلبًا",
+  "admin.homeSectionTestimonials": "آراء الزبائن",
+  "products.relatedTitle": "قد يعجبك أيضًا",
+  "products.trendingTitle": "الأكثر رواجًا"
 }

@@ -106,6 +106,31 @@ def top_viewed_products(db: DbSession) -> list[ProductSummaryOut]:
     return [product_summary(item) for item in ItemRepository(db).top_viewed(since, TOP_LIMIT)]
 
 
+#: How far back "most ordered" looks: orders are rarer than views.
+MOST_ORDERED_DAYS = 90
+
+
+@public_router.get("/items/most-ordered", response_model=list[ProductSummaryOut])
+def most_ordered_products(db: DbSession) -> list[ProductSummaryOut]:
+    """The home page's most-ordered row, over the last 90 days."""
+    since = datetime.now(UTC).date() - timedelta(days=MOST_ORDERED_DAYS - 1)
+    return [product_summary(item) for item in ItemRepository(db).most_ordered(since, TOP_LIMIT)]
+
+
+@public_router.get("/items/{slug}/related", response_model=list[ProductSummaryOut])
+def related_products(
+    slug: Annotated[str, Path(max_length=200)], db: DbSession
+) -> list[ProductSummaryOut]:
+    """Other products for the product page: the same shop, then its category.
+
+    Reads without counting a view, unlike the product itself."""
+    repository = ItemRepository(db)
+    item = repository.get_by_slug(slug)
+    if item is None:
+        raise NotFoundError("item.not_found")
+    return [product_summary(other) for other in repository.related(item, TOP_LIMIT)]
+
+
 @public_router.get("/items/{slug}", response_model=ProductDetailOut)
 def get_product(
     slug: Annotated[str, Path(max_length=200)], db: DbSession, viewer: Viewer

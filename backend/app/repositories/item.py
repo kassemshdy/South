@@ -12,7 +12,7 @@ from collections.abc import Sequence
 from datetime import date
 from typing import Literal
 
-from sqlalchemy import Select, func, nullslast, or_, select
+from sqlalchemy import Select, case, func, nullslast, or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.arabic import normalize_arabic
@@ -20,6 +20,7 @@ from app.core.pagination import Page
 from app.models.analytics import ListingViewDaily
 from app.models.business import Business, BusinessItem
 from app.models.enums import BusinessStatus, GoodsOrigin, ViewSubject
+from app.models.order import Order, OrderLine
 from app.models.taxonomy import Category, Location
 from app.repositories.base import BaseRepository
 from app.repositories.geo import Point, nearest_first
@@ -112,6 +113,48 @@ class ItemRepository(BaseRepository[BusinessItem]):
             self.public_query()
             .join(views, views.c.item_id == BusinessItem.id)
             .order_by(views.c.views.desc(), BusinessItem.created_at.desc())
+            .limit(limit)
+        )
+        return list(self.db.execute(stmt).unique().scalars().all())
+
+    def related(self, item: BusinessItem, limit: int) -> list[BusinessItem]:
+        """What else a visitor looking at ``item`` might add to the order:
+        the same shop's other products first, then products in the same
+        category from other shops, the best-rated sellers first."""
+        same_shop = BusinessItem.business_id == item.business_id
+        stmt = self._with_relations(
+            self.public_query()
+            .where(
+                BusinessItem.id != item.id,
+                or_(same_shop, Business.category_id == item.business.category_id),
+            )
+            .order_by(
+                case((same_shop, 0), else_=1),
+                nullslast(Business.rating_average.desc()),
+                BusinessItem.created_at.desc(),
+            )
+            .limit(limit)
+        )
+        return list(self.db.execute(stmt).unique().scalars().all())
+
+    def most_ordered(self, since: date, limit: int) -> list[BusinessItem]:
+        """The products ordered most since ``since``, by units asked for.
+        An order line keeps its product only while the product exists, and a
+        product a visitor cannot see is left out like everywhere else."""
+        ordered = (
+            select(
+                OrderLine.item_id.label("item_id"),
+                func.sum(OrderLine.quantity).label("units"),
+            )
+            .join(Order, Order.id == OrderLine.order_id)
+            .where(OrderLine.item_id.is_not(None), func.date(Order.created_at) >= since)
+            .group_by(OrderLine.item_id)
+            .subquery()
+        )
+        stmt = self._with_relations(
+            self.public_query()
+            .join(ordered, ordered.c.item_id == BusinessItem.id)
+            .order_by(ordered.c.units.desc(), BusinessItem.created_at.desc())
             .limit(limit)
         )
         return list(self.db.execute(stmt).unique().scalars().all())

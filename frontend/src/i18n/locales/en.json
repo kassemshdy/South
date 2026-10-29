@@ -1516,5 +1516,11 @@
   "home.topRatedTitle": "Top rated",
   "home.topViewedTitle": "Most viewed",
   "admin.homeSectionTopRated": "Top rated products",
-  "admin.homeSectionTopViewed": "Most viewed products"
+  "admin.homeSectionTopViewed": "Most viewed products",
+  "home.mostOrderedTitle": "Most ordered",
+  "home.testimonialsTitle": "What our customers say",
+  "admin.homeSectionMostOrdered": "Most ordered products",
+  "admin.homeSectionTestimonials": "Customer testimonials",
+  "products.relatedTitle": "You may also like",
+  "products.trendingTitle": "Trending now"
 }
