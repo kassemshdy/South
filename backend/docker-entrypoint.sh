@@ -24,7 +24,7 @@ exec gosu appuser sh -c '
   # In the background: Telegram allows ~20 messages a minute, and the site
   # must not wait on that to start serving.
   if [ -n "$TELEGRAM_BACKFILL" ]; then python -m scripts.telegram_backfill & fi
-  # The owners' full list of towns, once per database; see the script. In
+  # The full list of towns from the owners, once per database; see the script. In
   # the background, like the backfill: on 29 Oct 2026 it ran past the
   # 180-second healthcheck in front of uvicorn and the deploy was refused.
   python -m scripts.import_locations &
