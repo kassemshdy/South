@@ -112,6 +112,14 @@ export interface User extends OwnerIdentity {
  * component state that outlives the panel, never persisted, and never sent
  * anywhere by this app — the administrator relays it from their own WhatsApp.
  */
+/** A short read-only session on an owner's account, for an administrator. */
+export interface ViewAsToken {
+  access_token: string
+  expires_at: string
+  user_id: string
+  display_name: string | null
+}
+
 export interface IssuedPassword {
   phone_number: string
   password: string
@@ -176,6 +184,9 @@ export interface LocationNode {
   sort_order: number
   is_active: boolean
   business_count: number
+  item_count: number
+  service_count: number
+  job_count: number
 }
 
 export interface BusinessImage {
@@ -385,6 +396,8 @@ export interface TalentSkill {
   sort_order: number
   is_active: boolean
   talent_count: number
+  service_count: number
+  job_count: number
 }
 
 export interface TalentImage {
@@ -552,6 +565,10 @@ export type HomeSectionId =
   | 'reels'
   | 'stats'
   | 'products'
+  | 'top_rated_products'
+  | 'top_viewed_products'
+  | 'most_ordered_products'
+  | 'testimonials'
   | 'category_products'
   | 'shops'
   | 'talents'
@@ -849,6 +866,13 @@ export interface Testimonial {
   created_at: string
 }
 
+/** A published testimonial on the home page, with the listing it praises. */
+export interface FeaturedTestimonial extends Testimonial {
+  subject_kind: 'business' | 'talent'
+  subject_name: string
+  subject_slug: string
+}
+
 export interface OwnerTestimonial extends Testimonial {
   status: TestimonialStatus
   approved_at: string | null
@@ -1129,5 +1153,12 @@ export interface GrowthReport {
 export interface GrowthPlan {
   goal_usd: number
   /** Null while the site's default wording stands. */
+  offer: string | null
+  /** Whether visitors are shown the offer in a popup. */
+  offer_popup: boolean
+}
+
+export interface OfferPopup {
+  enabled: boolean
   offer: string | null
 }

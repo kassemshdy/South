@@ -78,11 +78,14 @@ def category_out(
     return data.model_copy(update={"business_count": business_count, "item_count": item_count})
 
 
-def location_out(location: Location | None, *, business_count: int = 0) -> LocationOut | None:
+def location_out(
+    location: Location | None, *, business_count: int = 0, **counts: int
+) -> LocationOut | None:
+    """``counts`` takes ``item_count``, ``service_count`` and ``job_count``."""
     if location is None:
         return None
     data = LocationOut.model_validate(location)
-    return data.model_copy(update={"business_count": business_count})
+    return data.model_copy(update={"business_count": business_count, **counts})
 
 
 def item_out(item: BusinessItem) -> BusinessItemOut:
@@ -276,11 +279,14 @@ def product_detail(item: BusinessItem) -> ProductDetailOut:
     )
 
 
-def talent_skill_out(skill: TalentSkill | None, *, talent_count: int = 0) -> TalentSkillOut | None:
+def talent_skill_out(
+    skill: TalentSkill | None, *, talent_count: int = 0, **counts: int
+) -> TalentSkillOut | None:
+    """``counts`` takes ``service_count`` and ``job_count``."""
     if skill is None:
         return None
     data = TalentSkillOut.model_validate(skill)
-    return data.model_copy(update={"talent_count": talent_count})
+    return data.model_copy(update={"talent_count": talent_count, **counts})
 
 
 def _talent_gallery(profile: TalentProfile) -> list[TalentImageOut]:

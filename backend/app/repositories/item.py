@@ -9,15 +9,18 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Sequence
+from datetime import date
 from typing import Literal
 
-from sqlalchemy import Select, func, nullslast, or_, select
+from sqlalchemy import Select, case, func, nullslast, or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.arabic import normalize_arabic
 from app.core.pagination import Page
+from app.models.analytics import ListingViewDaily
 from app.models.business import Business, BusinessItem
-from app.models.enums import BusinessStatus, GoodsOrigin
+from app.models.enums import BusinessStatus, GoodsOrigin, ViewSubject
+from app.models.order import Order, OrderLine
 from app.models.taxonomy import Category, Location
 from app.repositories.base import BaseRepository
 from app.repositories.geo import Point, nearest_first
@@ -73,6 +76,94 @@ class ItemRepository(BaseRepository[BusinessItem]):
         visible = self.public_query().with_only_columns(
             Business.category_id, func.count(BusinessItem.id)
         ).group_by(Business.category_id)
+        return {row[0]: row[1] for row in self.db.execute(visible).all() if row[0] is not None}
+
+    def top_rated(self, limit: int) -> list[BusinessItem]:
+        """Products of the best-rated shops: a product is rated as its shop
+        is (the owners' decision, 29 Oct 2026), so only rated shops count,
+        the busier of two equal averages first, then the newest product."""
+        stmt = self._with_relations(
+            self.public_query()
+            .where(Business.rating_count > 0)
+            .order_by(
+                Business.rating_average.desc(),
+                Business.rating_count.desc(),
+                BusinessItem.created_at.desc(),
+            )
+            .limit(limit)
+        )
+        return list(self.db.execute(stmt).unique().scalars().all())
+
+    def top_viewed(self, since: date, limit: int) -> list[BusinessItem]:
+        """The products opened most often since ``since``. Views, never
+        people: the counter stores nothing about who looked."""
+        views = (
+            select(
+                ListingViewDaily.subject_id.label("item_id"),
+                func.sum(ListingViewDaily.views).label("views"),
+            )
+            .where(
+                ListingViewDaily.subject_type == ViewSubject.PRODUCT,
+                ListingViewDaily.day >= since,
+            )
+            .group_by(ListingViewDaily.subject_id)
+            .subquery()
+        )
+        stmt = self._with_relations(
+            self.public_query()
+            .join(views, views.c.item_id == BusinessItem.id)
+            .order_by(views.c.views.desc(), BusinessItem.created_at.desc())
+            .limit(limit)
+        )
+        return list(self.db.execute(stmt).unique().scalars().all())
+
+    def related(self, item: BusinessItem, limit: int) -> list[BusinessItem]:
+        """What else a visitor looking at ``item`` might add to the order:
+        the same shop's other products first, then products in the same
+        category from other shops, the best-rated sellers first."""
+        same_shop = BusinessItem.business_id == item.business_id
+        stmt = self._with_relations(
+            self.public_query()
+            .where(
+                BusinessItem.id != item.id,
+                or_(same_shop, Business.category_id == item.business.category_id),
+            )
+            .order_by(
+                case((same_shop, 0), else_=1),
+                nullslast(Business.rating_average.desc()),
+                BusinessItem.created_at.desc(),
+            )
+            .limit(limit)
+        )
+        return list(self.db.execute(stmt).unique().scalars().all())
+
+    def most_ordered(self, since: date, limit: int) -> list[BusinessItem]:
+        """The products ordered most since ``since``, by units asked for.
+        An order line keeps its product only while the product exists, and a
+        product a visitor cannot see is left out like everywhere else."""
+        ordered = (
+            select(
+                OrderLine.item_id.label("item_id"),
+                func.sum(OrderLine.quantity).label("units"),
+            )
+            .join(Order, Order.id == OrderLine.order_id)
+            .where(OrderLine.item_id.is_not(None), func.date(Order.created_at) >= since)
+            .group_by(OrderLine.item_id)
+            .subquery()
+        )
+        stmt = self._with_relations(
+            self.public_query()
+            .join(ordered, ordered.c.item_id == BusinessItem.id)
+            .order_by(ordered.c.units.desc(), BusinessItem.created_at.desc())
+            .limit(limit)
+        )
+        return list(self.db.execute(stmt).unique().scalars().all())
+
+    def public_counts_by_location(self) -> dict[uuid.UUID, int]:
+        """Products a visitor can see, per place of their shop."""
+        visible = self.public_query().with_only_columns(
+            Business.location_id, func.count(BusinessItem.id)
+        ).group_by(Business.location_id)
         return {row[0]: row[1] for row in self.db.execute(visible).all() if row[0] is not None}
 
     def get_by_slug(self, slug: str) -> BusinessItem | None:

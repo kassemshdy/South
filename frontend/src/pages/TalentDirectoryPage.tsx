@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { LocateFixed, Search, SlidersHorizontal, X } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { LocateFixed, SlidersHorizontal, X } from 'lucide-react'
+import { useCallback, useState } from 'react'
 import { Navigate, useLocation, useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/Button'
@@ -15,6 +15,7 @@ import { useLocationGroups, useTalentSkills } from '@/hooks/useTaxonomy'
 import { PageBanner } from '@/components/layout/PageBanner'
 import { BrowseSwitcher } from '@/features/onboarding/BrowseSwitcher'
 import { useNearestSort } from '@/features/directory/useNearestSort'
+import { SearchBox } from '@/features/search/SearchBox'
 import { useT, type TranslationKey } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
 import { publicTalentApi } from '@/services/api/endpoints'
@@ -106,15 +107,15 @@ export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
     choose: chooseSort,
     locating,
     near,
-  } = useNearestSort<TalentSortOption>(chosenSort, setSort, 'newest')
+  } = useNearestSort<TalentSortOption>(
+    chosenSort,
+    setSort,
+    // Job seekers are not rated, so their page keeps newest first.
+    kind === 'SERVICE' ? 'rating' : 'newest',
+  )
 
-  // Local mirror so typing feels instant; the URL updates on submit, which
-  // keeps searches shareable and back/forward working.
-  const [searchInput, setSearchInput] = useState(q)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const t = useT()
-
-  useEffect(() => setSearchInput(q), [q])
 
   useSeo({
     title: q ? t('talent.seoSearchTitle', { query: q }) : t(page_.seoTitleKey),
@@ -123,6 +124,13 @@ export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
   })
 
   const skills = useTalentSkills()
+  // Services and job seekers share the skills and the places; each page
+  // counts only its own kind.
+  const countOfKind = useCallback(
+    (row: { service_count: number; job_count: number }) =>
+      kind === 'SERVICE' ? row.service_count : row.job_count,
+    [kind],
+  )
   const { groups } = useLocationGroups()
 
   const results = useQuery({
@@ -148,7 +156,7 @@ export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
         lat: near?.lat,
         lng: near?.lng,
         page,
-        page_size: 12,
+        page_size: 24,
       }),
     placeholderData: keepPreviousData,
   })
@@ -188,41 +196,28 @@ export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
             the browser's back button as the only way across. */}
         <BrowseSwitcher current={page_.browseKey} />
 
-        <form
-          role="search"
-          onSubmit={(event) => {
-            event.preventDefault()
-            updateParams({ q: searchInput.trim() })
-          }}
-          className="mb-4 flex gap-2"
-        >
-          <label htmlFor="talent-search" className="sr-only">
-            {t('talent.searchLabel')}
-          </label>
-          <div className="relative flex-1">
-            <Search className="pointer-events-none absolute inset-y-0 start-4 my-auto h-5 w-5 text-ink-300" aria-hidden="true" />
-            <input
-              id="talent-search"
-              type="search"
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              placeholder={t('talent.searchLabel')}
-              className="h-12 w-full rounded-xl border-2 border-ink-100 bg-white ps-12 pe-4 text-[15px] placeholder:text-ink-300 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-            />
-          </div>
-          <Button type="submit">{t('common.search')}</Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="sm:hidden"
-            onClick={() => setFiltersOpen((open) => !open)}
-            aria-expanded={filtersOpen}
-            aria-label={t('directory.filtersAria')}
+        {/* The home page's box, suggesting as someone types; a plain search
+            narrows this directory rather than leaving it. */}
+        <div className="mb-4">
+          <SearchBox
+            appearance="page"
+            value={q}
+            label={t('talent.searchLabel')}
+            onSearch={(query) => updateParams({ q: query })}
           >
-            <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
-          </Button>
-        </form>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-12 w-12 shrink-0 sm:hidden"
+              onClick={() => setFiltersOpen((open) => !open)}
+              aria-expanded={filtersOpen}
+              aria-label={t('directory.filtersAria')}
+            >
+              <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
+            </Button>
+          </SearchBox>
+        </div>
 
         <div
           className={`mb-6 grid gap-3 ${kind === 'SERVICE' ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-3'} ${filtersOpen ? 'grid' : 'hidden sm:grid'}`}
@@ -240,9 +235,12 @@ export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL}>{t('talent.allSkills')}</SelectItem>
-                {skills.data?.map((item) => (
+                {/* This directory's own count, the fullest skills first. */}
+                {[...(skills.data ?? [])]
+                  .sort((a, b) => countOfKind(b) - countOfKind(a))
+                  .map((item) => (
                   <SelectItem key={item.id} value={item.slug}>
-                    {item.name_ar}
+                    {t('directory.categoryWithCount', { name: item.name_ar, count: countOfKind(item) })}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -262,6 +260,7 @@ export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
               onChange={(value) => updateParams({ location: value })}
               groups={groups}
               placeholder={t('directory.allLocations')}
+              countOf={countOfKind}
             />
           </div>
 

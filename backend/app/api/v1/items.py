@@ -4,6 +4,7 @@ independent public `/items` directory."""
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime, timedelta
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, File, Form, Path, Query, UploadFile, status
@@ -85,6 +86,49 @@ def search_products(
         page_size=page_size,
     )
     return paginate(results, product_summary)
+
+
+#: How far back "most viewed" looks, and how many products a home row holds.
+TOP_VIEWED_DAYS = 30
+TOP_LIMIT = 8
+
+
+@public_router.get("/items/top-rated", response_model=list[ProductSummaryOut])
+def top_rated_products(db: DbSession) -> list[ProductSummaryOut]:
+    """The home page's top-rated row: products of the best-rated shops."""
+    return [product_summary(item) for item in ItemRepository(db).top_rated(TOP_LIMIT)]
+
+
+@public_router.get("/items/top-viewed", response_model=list[ProductSummaryOut])
+def top_viewed_products(db: DbSession) -> list[ProductSummaryOut]:
+    """The home page's most-viewed row, over the last 30 days."""
+    since = datetime.now(UTC).date() - timedelta(days=TOP_VIEWED_DAYS - 1)
+    return [product_summary(item) for item in ItemRepository(db).top_viewed(since, TOP_LIMIT)]
+
+
+#: How far back "most ordered" looks: orders are rarer than views.
+MOST_ORDERED_DAYS = 90
+
+
+@public_router.get("/items/most-ordered", response_model=list[ProductSummaryOut])
+def most_ordered_products(db: DbSession) -> list[ProductSummaryOut]:
+    """The home page's most-ordered row, over the last 90 days."""
+    since = datetime.now(UTC).date() - timedelta(days=MOST_ORDERED_DAYS - 1)
+    return [product_summary(item) for item in ItemRepository(db).most_ordered(since, TOP_LIMIT)]
+
+
+@public_router.get("/items/{slug}/related", response_model=list[ProductSummaryOut])
+def related_products(
+    slug: Annotated[str, Path(max_length=200)], db: DbSession
+) -> list[ProductSummaryOut]:
+    """Other products for the product page: the same shop, then its category.
+
+    Reads without counting a view, unlike the product itself."""
+    repository = ItemRepository(db)
+    item = repository.get_by_slug(slug)
+    if item is None:
+        raise NotFoundError("item.not_found")
+    return [product_summary(other) for other in repository.related(item, TOP_LIMIT)]
 
 
 @public_router.get("/items/{slug}", response_model=ProductDetailOut)

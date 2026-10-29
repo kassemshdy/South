@@ -20,6 +20,7 @@ import { EmptyState, ErrorState } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
 import { useAuth } from '@/features/auth/AuthContext'
+import { AiToolsSoon } from '@/features/growth/AiToolsSoon'
 import { LiveSharePanel } from '@/features/insights/LiveSharePanel'
 import { ViewsPanel } from '@/features/insights/ViewsPanel'
 import { useSeo } from '@/hooks/useSeo'
@@ -153,6 +154,8 @@ export function DashboardPage() {
           }
         />
       )}
+
+      <AiToolsSoon />
     </div>
   )
 }
