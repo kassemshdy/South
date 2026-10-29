@@ -234,7 +234,7 @@ function HeroSection() {
             for the reason given above the green band below. */}
         <Link
           to="/partner"
-          className="order-4 flex w-full items-center gap-4 rounded-2xl border-2 border-olive-200 bg-white p-5 shadow-card transition-colors hover:border-olive-400 lg:col-span-2"
+          className="order-4 flex w-full flex-col items-center justify-center gap-3 rounded-2xl border-2 border-olive-200 bg-white p-5 text-center shadow-card transition-colors hover:border-olive-400 sm:flex-row sm:gap-4 lg:col-span-2"
         >
           <span
             className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-olive-100 text-olive-700"
@@ -242,7 +242,7 @@ function HeroSection() {
           >
             <Handshake className="h-6 w-6" />
           </span>
-          <span className="flex-1">
+          <span>
             <span className="block text-lg font-bold text-ink-900">{t('partner.title')}</span>
             <span className="mt-0.5 block text-sm font-semibold text-brand-700">
               {t('partner.cardCta')}
