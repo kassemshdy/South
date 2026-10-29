@@ -6,6 +6,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 
 import { App } from '@/App'
+import { AppErrorBoundary } from '@/components/AppErrorBoundary'
 import { ToastProvider } from '@/components/ui/Toast'
 import { AuthProvider } from '@/features/auth/AuthContext'
 import { CartProvider } from '@/features/cart/CartContext'
@@ -14,6 +15,7 @@ import { activeLocale, I18nProvider, loadLocale, useI18n } from '@/i18n'
 import { initAnalytics } from '@/services/analytics'
 import { initClarity } from '@/services/clarity'
 import { ApiError } from '@/services/api/client'
+import { installStaleBuildRecovery } from '@/utils/staleBuild'
 import '@/index.css'
 
 // Inert in local dev unless VITE_SENTRY_DSN is set. Owner phone numbers, OTP
@@ -38,6 +40,10 @@ initAnalytics()
 // load at all for anyone signed in or already on a private path — see
 // services/clarity.ts for why that is the only place the decision can be made.
 initClarity()
+
+// A tab left open across a release asks for chunks that no longer exist;
+// reload it once rather than leave a white page.
+installStaleBuildRecovery()
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -88,7 +94,9 @@ void loadLocale(activeLocale())
                           that did not survive navigation would not be a saved
                           list. Inside ToastProvider so saving can confirm. */}
                       <FavouritesProvider>
-                        <App />
+                        <AppErrorBoundary>
+                          <App />
+                        </AppErrorBoundary>
                       </FavouritesProvider>
                     </CartProvider>
                   </ToastProvider>
