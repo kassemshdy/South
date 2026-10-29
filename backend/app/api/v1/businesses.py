@@ -10,6 +10,7 @@ from app.api.serializers import business_detail, business_summary, owner_busines
 from app.core.cache import cached
 from app.core.dependencies import (
     AppSettings,
+    Crawler,
     CurrentUser,
     DbSession,
     ListingOwner,
@@ -110,6 +111,7 @@ def get_business(
     slug: Annotated[str, Path(max_length=200)],
     db: DbSession,
     viewer: Viewer,
+    crawler: Crawler,
     settings: AppSettings,
 ) -> BusinessDetailOut:
     business = BusinessRepository(db).get_by_slug(slug, public_only=True)
@@ -135,6 +137,7 @@ def get_business(
         business.id,
         owner_id=business.owner_id,
         viewer=viewer,
+        crawler=crawler,
     )
     return payload
 

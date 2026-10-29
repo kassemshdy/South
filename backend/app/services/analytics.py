@@ -64,6 +64,33 @@ def _today() -> date:
     return datetime.now(UTC).date()
 
 
+#: Words a crawler or link-preview fetcher puts in its user agent. Matched
+#: case-insensitively and never stored: the counter keeps no trace of who
+#: asked, only whether to count. Once search engines may render the public
+#: API (robots.txt), a crawler's fetch would otherwise read as a person's view.
+CRAWLER_MARKERS = (
+    "bot",
+    "crawler",
+    "spider",
+    "slurp",
+    "crawl",
+    "preview",
+    "facebookexternalhit",
+    "whatsapp",
+    "google-inspectiontool",
+    "lighthouse",
+    "headlesschrome",
+)
+
+
+def is_crawler(user_agent: str | None) -> bool:
+    """Whether a request's user agent belongs to a crawler, not a person."""
+    if not user_agent:
+        return False
+    agent = user_agent.lower()
+    return any(marker in agent for marker in CRAWLER_MARKERS)
+
+
 class ViewCounterService:
     def __init__(self, db: Session) -> None:
         self._db = db
@@ -78,9 +105,11 @@ class ViewCounterService:
         *,
         owner_id: uuid.UUID,
         viewer: User | None,
+        crawler: bool = False,
     ) -> None:
-        """Count one view, unless the viewer is the listing's own owner."""
-        if viewer is not None and viewer.id == owner_id:
+        """Count one view, unless the viewer is the listing's own owner or a
+        crawler fetching the page for a search index or a link preview."""
+        if crawler or (viewer is not None and viewer.id == owner_id):
             return
         try:
             self._repo.record(subject_type, subject_id, _today())

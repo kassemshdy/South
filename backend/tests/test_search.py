@@ -206,6 +206,11 @@ def test_robots_disallows_private_areas(client: TestClient) -> None:
     assert "Disallow: /cart" in robots
     assert "Disallow: /favourites" in robots
     assert "Sitemap:" in robots
+    # The public API is open to crawlers, or the pages render empty for them;
+    # the private API is not.
+    assert "Disallow: /api/\n" not in robots
+    for private in ("/api/admin", "/api/my", "/api/me", "/api/auth"):
+        assert f"Disallow: {private}" in robots
 
 
 @pytest.mark.parametrize(

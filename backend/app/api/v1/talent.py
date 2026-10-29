@@ -15,6 +15,7 @@ from app.api.serializers import owner_talent, paginate, talent_detail, talent_su
 from app.core.cache import cached
 from app.core.dependencies import (
     AppSettings,
+    Crawler,
     CurrentUser,
     DbSession,
     ListingOwner,
@@ -105,6 +106,7 @@ def get_talent(
     db: DbSession,
     settings: AppSettings,
     viewer: Viewer,
+    crawler: Crawler,
 ) -> TalentDetailOut:
     profile = TalentRepository(db).get_by_slug(slug, public_only=True)
     if profile is None:
@@ -114,7 +116,7 @@ def get_talent(
         lambda: talent_detail(profile, TestimonialService(db, settings).public_for(profile)),
     )
     ViewCounterService(db).record(
-        ViewSubject.TALENT, profile.id, owner_id=profile.owner_id, viewer=viewer
+        ViewSubject.TALENT, profile.id, owner_id=profile.owner_id, viewer=viewer, crawler=crawler
     )
     return payload
 
