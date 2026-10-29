@@ -94,6 +94,7 @@ export const queryKeys = {
   adminDiscardedApplications: (includeDismissed: boolean) =>
     ['admin', 'discarded-applications', includeDismissed] as const,
   adminPartners: (solved: boolean) => ['admin', 'partners', solved] as const,
+  adminContactMessages: (solved: boolean) => ['admin', 'contact-messages', solved] as const,
   adminTestimonials: (status: TestimonialStatus | 'ALL') =>
     ['admin', 'testimonials', status] as const,
   articles: (section: ArticleSection) => ['articles', section] as const,

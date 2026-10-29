@@ -13,6 +13,7 @@ from app.models.business import (
     BusinessSocialLink,
     ModerationAction,
 )
+from app.models.contact import ContactMessage
 from app.models.enums import (
     ArticleSection,
     BusinessStatus,
@@ -64,6 +65,7 @@ __all__ = [
     "BusinessSocialLink",
     "BusinessStatus",
     "Category",
+    "ContactMessage",
     "Currency",
     "DiscardedApplication",
     "FeedbackAttachment",

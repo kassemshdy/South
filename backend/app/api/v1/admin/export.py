@@ -28,6 +28,7 @@ from sqlalchemy.orm import class_mapper, joinedload, selectinload
 
 from app.core.dependencies import AdminUser, DbSession
 from app.models.business import Business, BusinessItem
+from app.models.contact import ContactMessage
 from app.models.order import Order
 from app.models.partner import PartnerRequest
 from app.models.talent import TalentProfile
@@ -35,7 +36,9 @@ from app.models.user import User
 
 router = APIRouter(prefix="/admin/export", tags=["admin-export"])
 
-Dataset = Literal["businesses", "products", "users", "talent", "orders", "partners"]
+Dataset = Literal[
+    "businesses", "products", "users", "talent", "orders", "partners", "contact_messages"
+]
 
 _SKIPPED = frozenset({"password_hash", "token_version", "search_vector"})
 
@@ -135,6 +138,13 @@ def export_dataset(dataset: Dataset, db: DbSession, admin: AdminUser) -> Respons
         model = PartnerRequest
         objects = (
             db.execute(select(PartnerRequest).order_by(PartnerRequest.created_at)).scalars().all()
+        )
+        extra = {}
+    elif dataset == "contact_messages":
+        # Open and solved alike, like the partner requests.
+        model = ContactMessage
+        objects = (
+            db.execute(select(ContactMessage).order_by(ContactMessage.created_at)).scalars().all()
         )
         extra = {}
     else:

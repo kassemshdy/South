@@ -172,6 +172,12 @@ class Settings(BaseSettings):
     partner_per_ip_window_seconds: int = 3600
     partner_per_day_limit: int = 100
 
+    # The floating contact form: open to every visitor on every page, so a
+    # few per hour from one address and a ceiling for the whole site.
+    contact_per_ip_limit: int = 5
+    contact_per_ip_window_seconds: int = 3600
+    contact_per_day_limit: int = 200
+
     # Password sign-in: the guess budget for one identifier — the phone
     # number or the email address as typed. Low, because a person signing in
     # knows their password and a person who does not is guessing. Keyed on the

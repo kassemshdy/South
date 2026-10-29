@@ -956,6 +956,20 @@ export interface AdminPartnerRequest {
   solved_at: string | null
 }
 
+/** A message from the floating "ask us" form; administrators only. */
+export interface AdminContactMessage {
+  id: string
+  name: string
+  phone: string | null
+  email: string | null
+  topic: 'feedback' | 'question' | 'other'
+  message: string
+  page_path: string | null
+  created_at: string
+  /** Set once marked solved: the message is then in the archive. */
+  solved_at: string | null
+}
+
 export type ArticleSection = 'BLOG' | 'NEWS'
 
 /**

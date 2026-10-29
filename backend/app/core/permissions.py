@@ -109,6 +109,9 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     ("DELETE", "/api/admin/partners/{request_id}"): _SUPPORT,
     ("POST", "/api/admin/partners/{request_id}/solve"): _SUPPORT,
     ("POST", "/api/admin/partners/{request_id}/reopen"): _SUPPORT,
+    ("DELETE", "/api/admin/contact-messages/{message_id}"): _SUPPORT,
+    ("POST", "/api/admin/contact-messages/{message_id}/solve"): _SUPPORT,
+    ("POST", "/api/admin/contact-messages/{message_id}/reopen"): _SUPPORT,
     # Content
     ("POST", "/api/admin/articles"): _CONTENT,
     ("PUT", "/api/admin/articles/{article_id}"): _CONTENT,

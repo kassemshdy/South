@@ -10,6 +10,7 @@ from app.api.v1 import (
     auth,
     business_documents,
     businesses,
+    contact,
     feedback,
     home,
     images,
@@ -97,6 +98,8 @@ api_router.include_router(registration.router)
 api_router.include_router(search.router)
 api_router.include_router(partners.public_router)
 api_router.include_router(partners.admin_router)
+api_router.include_router(contact.public_router)
+api_router.include_router(contact.admin_router)
 api_router.include_router(workshops.public_router)
 api_router.include_router(workshops.admin_router)
 api_router.include_router(items.public_router)

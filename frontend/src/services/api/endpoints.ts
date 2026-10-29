@@ -29,6 +29,7 @@ import type {
   AdminPlace,
   AdminTalent,
   AdminTestimonial,
+  AdminContactMessage,
   AdminPartnerRequest,
   AdminUser,
   AdminUserDetail,
@@ -370,6 +371,31 @@ export const partnerApi = {
     apiRequest<{ message: string }>('/api/partners', {
       method: 'POST',
       body: { ...payload, captcha_token: captchaToken },
+    }),
+}
+
+/** The floating "ask us" form: anyone writes, staff read. */
+export type ContactTopic = 'feedback' | 'question' | 'other'
+
+export interface ContactPayload {
+  name: string
+  phone: string
+  email: string
+  topic: ContactTopic
+  message: string
+}
+
+export const contactApi = {
+  send: (payload: ContactPayload, pagePath: string, captchaToken: string | null) =>
+    apiRequest<{ message: string }>('/api/contact-messages', {
+      method: 'POST',
+      body: {
+        ...payload,
+        phone: payload.phone.trim() || null,
+        email: payload.email.trim() || null,
+        page_path: pagePath,
+        captcha_token: captchaToken,
+      },
     }),
 }
 
@@ -715,7 +741,14 @@ export const ownerApi = {
     }),
 }
 
-export type ExportDataset = 'businesses' | 'products' | 'users' | 'talent' | 'orders' | 'partners'
+export type ExportDataset =
+  | 'businesses'
+  | 'products'
+  | 'users'
+  | 'talent'
+  | 'orders'
+  | 'partners'
+  | 'contact_messages'
 
 /** The admin user list's search, filters and order; empty means "all". */
 export interface AdminUserFilters {
@@ -885,6 +918,14 @@ export const adminApi = {
     apiRequest<AdminPartnerRequest>(`/api/admin/partners/${id}/reopen`, { method: 'POST' }),
   deletePartner: (id: string) =>
     apiRequest<{ message: string }>(`/api/admin/partners/${id}`, { method: 'DELETE' }),
+  contactMessages: (solved = false) =>
+    apiRequest<AdminContactMessage[]>('/api/admin/contact-messages', { query: { solved } }),
+  solveContactMessage: (id: string) =>
+    apiRequest<AdminContactMessage>(`/api/admin/contact-messages/${id}/solve`, { method: 'POST' }),
+  reopenContactMessage: (id: string) =>
+    apiRequest<AdminContactMessage>(`/api/admin/contact-messages/${id}/reopen`, { method: 'POST' }),
+  deleteContactMessage: (id: string) =>
+    apiRequest<{ message: string }>(`/api/admin/contact-messages/${id}`, { method: 'DELETE' }),
   approve: (id: string) =>
     apiRequest<AdminBusiness>(`/api/admin/businesses/${id}/approve`, { method: 'POST' }),
   reject: (id: string, reason: string) =>

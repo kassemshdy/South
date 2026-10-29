@@ -97,6 +97,7 @@ ARCHIVED_TABLES = frozenset(
         "feedback_attachments",
         "discarded_applications",
         "partner_requests",
+        "contact_messages",
         "story_images",
         "workshop_registrations",
         "job_applications",
@@ -229,8 +230,9 @@ def _who(changes: list[Change]) -> tuple[str | None, str | None]:
     ordered = sorted(changes, key=lambda change: change.table != "users")
     for change in ordered:
         fields = change.fields
-        names = NAME_COLUMNS + (("name",) if change.table == "partner_requests" else ())
-        phones = PHONE_COLUMNS + (("phone",) if change.table == "partner_requests" else ())
+        own = change.table in ("partner_requests", "contact_messages")
+        names = NAME_COLUMNS + (("name",) if own else ())
+        phones = PHONE_COLUMNS + (("phone", "email") if own else ())
         name = name or next((fields[key] for key in names if key in fields), None)
         phone = phone or next((fields[key] for key in phones if key in fields), None)
     return name, phone
@@ -245,6 +247,8 @@ def admin_path(change: Change, business_of_item: Callable[[str], str | None]) ->
         return "/admin/testimonials"
     if table == "partner_requests":
         return "/admin/partners"
+    if table == "contact_messages":
+        return "/admin/contact-messages"
     if table.startswith("feedback_"):
         return "/admin/feedback"
     if table == "discarded_applications":
@@ -277,6 +281,7 @@ _PATH_RANK = (
     "/admin/orders",
     "/admin/testimonials",
     "/admin/partners",
+    "/admin/contact-messages",
     "/admin/feedback",
     "/admin/applications",
     "/admin/stories",
@@ -304,6 +309,7 @@ _KINDS = (
         "service_media",
     ),
     (("partner_requests",), "partner"),
+    (("contact_messages",), "contact"),
     (("feedback_tickets", "feedback_comments", "feedback_attachments"), "ticket"),
     (("discarded_applications",), "set_aside"),
     (("story_images",), "story"),
@@ -381,6 +387,13 @@ def _details(kind: str, changes: list[Change]) -> list[tuple[str, str | None]]:
             ("occupation", _first(changes, "partner_requests", "occupation")),
             ("residence", _first(changes, "partner_requests", "residence")),
             ("offer", _first(changes, "partner_requests", "offer")),
+        ]
+    if kind == "contact":
+        topic = _first(changes, "contact_messages", "topic")
+        return [
+            ("topic", _t(f"contact.topic.{topic}") if topic else None),
+            ("text", _first(changes, "contact_messages", "message")),
+            ("page", _first(changes, "contact_messages", "page_path")),
         ]
     if kind == "story":
         return [("text", _first(changes, "story_images", "caption"))]
