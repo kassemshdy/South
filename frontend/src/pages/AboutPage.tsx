@@ -1,16 +1,20 @@
 import { ClipboardCheck, HandHeart, MapPin } from 'lucide-react'
 
+import { ContactDetails } from '@/components/layout/ContactDetails'
+import { SocialIcons } from '@/components/layout/SocialLinks'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { TeamSection } from '@/features/about/TeamSection'
 import { ArticleBody } from '@/features/articles/ArticleBody'
 import { usePageText } from '@/hooks/usePageText'
+import { useSiteSettings } from '@/hooks/useSiteSettings'
 import { useSeo } from '@/hooks/useSeo'
 import { useT } from '@/i18n'
 
 export function AboutPage() {
   const t = useT()
   const page = usePageText('about')
+  const { hasContact } = useSiteSettings()
   const title = page.title ?? t('about.title')
   useSeo({
     title: `${title} | ${t('app.name')}`,
@@ -71,6 +75,18 @@ export function AboutPage() {
       </p>
 
       <TeamSection />
+
+      {/* What was the "Contact us" page, at the foot of this one now that the
+          menu no longer links it (the owners' ticket, 29 Oct 2026). */}
+      {hasContact ? (
+        <section id="contact" aria-labelledby="about-contact" className="mx-auto mt-14 max-w-4xl space-y-6">
+          <h2 id="about-contact" className="text-center text-2xl">
+            {t('nav.contact')}
+          </h2>
+          <ContactDetails large />
+          <SocialIcons />
+        </section>
+      ) : null}
     </div>
   )
 }

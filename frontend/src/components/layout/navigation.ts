@@ -45,9 +45,8 @@ export const SITE_SECTIONS: SiteSection[] = [
   // The platform's own training (29 Oct 2026).
   { id: 'workshops', href: '/workshops', labelKey: 'nav.workshops' },
   { id: 'about', href: '/about', labelKey: 'nav.about' },
-  // Last, and only once the admin has filled in at least one contact detail
-  // or social account: a contact page with nothing on it is worse than none.
-  { id: 'contact', href: '/contact', labelKey: 'nav.contact', needsContact: true },
+  // "Contact us" left the menu (the owners' ticket, 29 Oct 2026): its details
+  // are at the foot of the About page and in the footer; /contact still answers.
 ]
 
 /** A section as the menu shows it: in its saved place, under its name. */
