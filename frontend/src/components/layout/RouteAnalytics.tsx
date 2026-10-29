@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 
-import { trackPageView } from '@/services/analytics'
+import { useAuth } from '@/features/auth/AuthContext'
+import { setAnalyticsUser, trackPageView } from '@/services/analytics'
 
 /**
  * Reports one page view per route, including the first.
@@ -17,6 +18,16 @@ import { trackPageView } from '@/services/analytics'
  */
 export function RouteAnalytics() {
   const { pathname } = useLocation()
+  const { user } = useAuth()
+  const userId = user?.id ?? null
+  const role = user?.role ?? null
+  const staffRole = user?.staff_role ?? null
+
+  // Set before the page view below, which runs a frame later, so the first
+  // view after signing in is already attributed.
+  useEffect(() => {
+    setAnalyticsUser(userId && role ? { id: userId, role, staffRole } : null)
+  }, [userId, role, staffRole])
 
   useEffect(() => {
     // The title is set by `useSeo` in an effect too, and effects run child

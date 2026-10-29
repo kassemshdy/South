@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { LocateFixed, SlidersHorizontal, X } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/Button'
@@ -19,6 +19,7 @@ import { SearchBox } from '@/features/search/SearchBox'
 import { useCategories, useLocationGroups } from '@/hooks/useTaxonomy'
 import { useT, type TranslationKey } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
+import { trackDirectoryView } from '@/services/analytics'
 import { publicItemApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { GoodsOrigin, ProductSortOption } from '@/types/api'
@@ -74,6 +75,10 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
   const origin = fixedOrigin ?? originFromParams(searchParams)
   const chosenSort = searchParams.get('sort') as ProductSortOption | null
   const page = Number(searchParams.get('page') ?? '1')
+  // The filters on screen, never the search text: see services/analytics.ts.
+  useEffect(() => {
+    trackDirectoryView({ directory: 'products', category, location, origin: origin ?? undefined, displaced })
+  }, [category, location, origin, displaced])
   const setSort = useCallback(
     (value: ProductSortOption) => {
       const next = new URLSearchParams(searchParams)
