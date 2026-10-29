@@ -68,6 +68,7 @@ import type {
   Paginated,
   PlatformGrowth,
   GrowthReport,
+  FeaturedTestimonial,
   GrowthPlan,
   ViewAsToken,
   OfferPopup,
@@ -338,6 +339,9 @@ export const publicItemApi = {
     apiRequest<ProductDetail>(`/api/items/${encodeURIComponent(slug)}`),
   topRated: () => apiRequest<ProductSummary[]>('/api/items/top-rated'),
   topViewed: () => apiRequest<ProductSummary[]>('/api/items/top-viewed'),
+  mostOrdered: () => apiRequest<ProductSummary[]>('/api/items/most-ordered'),
+  related: (slug: string) =>
+    apiRequest<ProductSummary[]>(`/api/items/${encodeURIComponent(slug)}/related`),
 }
 
 /** The partner form (round 3). */
@@ -477,6 +481,8 @@ export const testimonialApi = {
   listMine: (businessId: string) =>
     apiRequest<OwnerTestimonial[]>(`/api/businesses/${businessId}/testimonials`),
   listMyTalent: () => apiRequest<OwnerTestimonial[]>('/api/my/talent/testimonials'),
+  /** The home page's three best published testimonials. */
+  featured: () => apiRequest<FeaturedTestimonial[]>('/api/testimonials/featured'),
 }
 
 export interface OrderPayload {

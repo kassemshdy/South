@@ -567,6 +567,8 @@ export type HomeSectionId =
   | 'products'
   | 'top_rated_products'
   | 'top_viewed_products'
+  | 'most_ordered_products'
+  | 'testimonials'
   | 'category_products'
   | 'shops'
   | 'talents'
@@ -862,6 +864,13 @@ export interface Testimonial {
   /** One to five stars, when the visitor gave any. */
   rating: number | null
   created_at: string
+}
+
+/** A published testimonial on the home page, with the listing it praises. */
+export interface FeaturedTestimonial extends Testimonial {
+  subject_kind: 'business' | 'talent'
+  subject_name: string
+  subject_slug: string
 }
 
 export interface OwnerTestimonial extends Testimonial {

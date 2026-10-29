@@ -20,6 +20,7 @@ import { StoryViewer } from '@/features/home/StoryViewer'
 import { SearchBox } from '@/features/search/SearchBox'
 import { ProductCard } from '@/features/items/ProductCard'
 import { WORK_MODE_KEYS } from '@/features/talent/labels'
+import { Stars } from '@/features/testimonials/Stars'
 import { useI18n, useT } from '@/i18n'
 import {
   homeApi,
@@ -29,6 +30,7 @@ import {
   publicTalentApi,
   reelApi,
   taxonomyApi,
+  testimonialApi,
 } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { ArticleSection, Category, GoodsOrigin, ProductQuery, ProductSummary } from '@/types/api'
@@ -381,6 +383,58 @@ export function TopViewedProductsSection() {
       queryKey={queryKeys.topViewedProducts}
       queryFn={publicItemApi.topViewed}
     />
+  )
+}
+
+/** The products ordered most in the last 90 days. */
+export function MostOrderedProductsSection() {
+  const t = useT()
+  return (
+    <ProductRow
+      title={t('home.mostOrderedTitle')}
+      queryKey={queryKeys.mostOrderedProducts}
+      queryFn={publicItemApi.mostOrdered}
+    />
+  )
+}
+
+/**
+ * The three best published testimonials, each linking to the shop or the
+ * service it praises. What a stranger trusts before a first order: other
+ * customers, in their own words. Nothing at all until one is published.
+ */
+export function TestimonialsSection() {
+  const t = useT()
+  const testimonials = useQuery({
+    queryKey: queryKeys.featuredTestimonials,
+    queryFn: testimonialApi.featured,
+  })
+  const items = testimonials.data ?? []
+  if (items.length === 0) return null
+  return (
+    <Band tone="sand">
+      <SectionHeading title={t('home.testimonialsTitle')} />
+      <ul className="grid gap-4 md:grid-cols-3">
+        {items.map((entry) => (
+          <li key={entry.id} className="flex flex-col rounded-2xl bg-white p-5 shadow-card">
+            {entry.rating ? <Stars value={entry.rating} /> : null}
+            <p className="mt-3 line-clamp-6 flex-1 leading-relaxed text-ink-700" dir="auto">
+              {entry.body}
+            </p>
+            <p className="mt-4 font-semibold text-ink-900" dir="auto">
+              {entry.author_name}
+            </p>
+            <Link
+              to={`/${entry.subject_kind === 'business' ? 'business' : 'talent'}/${encodeURIComponent(entry.subject_slug)}`}
+              className="mt-1 text-sm font-semibold text-brand-700 hover:underline"
+              dir="auto"
+            >
+              {entry.subject_name}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </Band>
   )
 }
 

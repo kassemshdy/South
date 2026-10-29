@@ -12,9 +12,18 @@ from sqlalchemy.orm import Session
 
 from app.models.analytics import ListingViewDaily
 from app.models.business import Business, BusinessItem
-from app.models.enums import BusinessStatus, TalentKind, ViewSubject
+from app.models.enums import (
+    BusinessStatus,
+    Currency,
+    OrderStatus,
+    TalentKind,
+    TestimonialStatus,
+    ViewSubject,
+)
+from app.models.order import Order, OrderLine
 from app.models.talent import TalentProfile, TalentSkill
 from app.models.taxonomy import Category, Location
+from app.models.testimonial import Testimonial
 from tests.conftest import make_owner, post_item, sign_in
 from tests.samples import ar
 
@@ -151,3 +160,99 @@ def test_locations_and_skills_count_each_directory_separately(
     )
     assert counted["talent_count"] == 1
     assert counted["service_count"] == 1 and counted["job_count"] == 0
+
+
+def test_related_puts_the_same_shop_first_then_its_category(
+    client: TestClient, db: Session, category: Category, location: Location
+) -> None:
+    shop, item = _shop_with_item(
+        client, db, category, location, "03770709", ar("business.first"), ar("item.zaatar_local")
+    )
+    sibling = BusinessItem(
+        business_id=shop.id,
+        title=ar("item.generic"),
+        slug="sibling-item",
+        image_url="/media/x.jpg",
+        is_available=True,
+    )
+    db.add(sibling)
+    db.commit()
+    _, neighbour = _shop_with_item(
+        client, db, category, location, "03770710", ar("business.second"), ar("item.generic")
+    )
+
+    rows = client.get(f"/api/items/{item.slug}/related").json()
+
+    assert [row["slug"] for row in rows] == ["sibling-item", neighbour.slug]
+    assert client.get("/api/items/no-such-product/related").status_code == 404
+
+
+def test_most_ordered_counts_units_asked_for(
+    client: TestClient, db: Session, category: Category, location: Location
+) -> None:
+    shop, once = _shop_with_item(
+        client, db, category, location, "03770711", ar("business.first"), ar("item.zaatar_local")
+    )
+    other_shop, many = _shop_with_item(
+        client, db, category, location, "03770712", ar("business.second"), ar("item.generic")
+    )
+    for business, item, quantity in ((shop, once, 1), (other_shop, many, 4)):
+        order = Order(
+            business_id=business.id,
+            customer_name=ar("order.customer"),
+            customer_phone="+96170111333",
+            status=OrderStatus.NEW,
+        )
+        order.lines = [
+            OrderLine(
+                item_id=item.id,
+                title=item.title,
+                price=Decimal("3.00"),
+                currency=Currency.USD,
+                quantity=quantity,
+            )
+        ]
+        db.add(order)
+    db.commit()
+
+    rows = client.get("/api/items/most-ordered").json()
+
+    assert [row["slug"] for row in rows] == [many.slug, once.slug]
+
+
+def test_featured_testimonials_are_published_ones_on_open_listings_best_first(
+    client: TestClient, db: Session, category: Category, location: Location
+) -> None:
+    shop, _ = _shop_with_item(
+        client, db, category, location, "03770713", ar("business.first"), ar("item.generic")
+    )
+    hidden, _ = _shop_with_item(
+        client, db, category, location, "03770714", ar("business.second"), ar("item.generic")
+    )
+    hidden.status = BusinessStatus.SUSPENDED
+    now = datetime.now(UTC)
+    for business, rating, status, minutes in (
+        (shop, 4, TestimonialStatus.APPROVED, 1),
+        (shop, 5, TestimonialStatus.APPROVED, 2),
+        (shop, 5, TestimonialStatus.PENDING_REVIEW, 3),
+        (hidden, 5, TestimonialStatus.APPROVED, 4),
+        (shop, 3, TestimonialStatus.APPROVED, 5),
+        (shop, 2, TestimonialStatus.APPROVED, 6),
+    ):
+        db.add(
+            Testimonial(
+                business_id=business.id,
+                author_name=ar("order.customer"),
+                body=f"{rating}-{status.value}-{minutes}",
+                rating=rating,
+                status=status,
+                approved_at=now - timedelta(minutes=minutes),
+            )
+        )
+    db.commit()
+
+    rows = client.get("/api/testimonials/featured").json()
+
+    assert [row["body"] for row in rows] == ["5-APPROVED-2", "4-APPROVED-1", "3-APPROVED-5"]
+    assert rows[0]["subject_kind"] == "business" and rows[0]["subject_slug"] == shop.slug
+    assert "status" not in rows[0] and "customer_phone" not in rows[0]

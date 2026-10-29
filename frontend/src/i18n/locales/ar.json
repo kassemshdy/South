@@ -1527,5 +1527,11 @@
   "viewAs.open": "عرض الحساب كما يراه صاحبه",
   "viewAs.banner": "تعرض حساب {name} للقراءة فقط، ولا يُحفظ أي تغيير.",
   "viewAs.end": "إنهاء العرض",
-  "viewAs.failed": "تعذّر فتح الحساب للعرض."
+  "viewAs.failed": "تعذّر فتح الحساب للعرض.",
+  "home.mostOrderedTitle": "الأكثر طلبًا",
+  "home.testimonialsTitle": "ماذا يقول زبائننا",
+  "admin.homeSectionMostOrdered": "المنتجات الأكثر طلبًا",
+  "admin.homeSectionTestimonials": "آراء الزبائن",
+  "products.relatedTitle": "قد يعجبك أيضًا",
+  "products.trendingTitle": "الأكثر رواجًا"
 }

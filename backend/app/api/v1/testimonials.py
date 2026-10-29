@@ -36,7 +36,9 @@ from app.repositories.testimonial import TestimonialRepository
 from app.schemas.common import MessageResponse
 from app.schemas.testimonial import (
     AdminTestimonialOut,
+    FeaturedTestimonialOut,
     OwnerTestimonialOut,
+    TestimonialOut,
     TestimonialSubmitIn,
 )
 from app.services.testimonial import TestimonialService
@@ -47,6 +49,39 @@ admin_router = APIRouter(prefix="/admin", tags=["admin-testimonials"])
 
 
 # --- Public ----------------------------------------------------------------
+
+
+#: How many testimonials the home page shows.
+FEATURED_LIMIT = 3
+
+
+@public_router.get("/testimonials/featured", response_model=list[FeaturedTestimonialOut])
+def featured_testimonials(db: DbSession) -> list[FeaturedTestimonialOut]:
+    """The home page's testimonials: the three best published ones, each with
+    the listing it is about."""
+    featured: list[FeaturedTestimonialOut] = []
+    for testimonial in TestimonialRepository(db).featured(FEATURED_LIMIT):
+        business, profile = testimonial.business, testimonial.talent_profile
+        base = TestimonialOut.model_validate(testimonial).model_dump()
+        if business is not None:
+            featured.append(
+                FeaturedTestimonialOut(
+                    **base,
+                    subject_kind="business",
+                    subject_name=business.name,
+                    subject_slug=business.slug,
+                )
+            )
+        elif profile is not None:
+            featured.append(
+                FeaturedTestimonialOut(
+                    **base,
+                    subject_kind="talent",
+                    subject_name=profile.display_name,
+                    subject_slug=profile.slug,
+                )
+            )
+    return featured
 
 
 @public_router.post(

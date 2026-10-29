@@ -24,9 +24,11 @@ export const PROPOSED_ORDER: HomeSectionId[] = [
   'products',
   'top_rated_products',
   'top_viewed_products',
+  'most_ordered_products',
   'category_products',
   'shops',
   'talents',
+  'testimonials',
   'news',
   'blog',
 ]
