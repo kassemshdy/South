@@ -19,7 +19,10 @@ export function JobCard({ job }: { job: JobOpening }) {
   const { t, locale } = useI18n()
   return (
     <Link to={`/vacancies/${encodeURIComponent(job.slug)}`} className="block">
-      <Card className="h-full transition-shadow hover:shadow-lift">
+      <Card className="h-full overflow-hidden transition-shadow hover:shadow-lift">
+        {job.cover_url ? (
+          <img src={job.cover_url} alt="" loading="lazy" className="aspect-[16/9] w-full object-cover" />
+        ) : null}
         <CardBody className="space-y-2 p-5">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-sand-100 px-2.5 py-1 text-xs font-semibold text-brand-700">
             <Briefcase className="h-3.5 w-3.5" aria-hidden="true" />

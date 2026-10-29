@@ -1278,6 +1278,8 @@ export interface JobOpening {
   location: LocationNode | null
   work_place: string | null
   work_mode: WorkMode | null
+  /** A thumbnail staff chose; null shows the plain card. */
+  cover_url?: string | null
   created_at: string
 }
 
