@@ -1072,3 +1072,62 @@ export interface AttachedApplication {
   kind: DiscardedApplication['kind']
   listing_id: string
 }
+
+/** `GET /api/admin/growth-report`: the value equation read off live data. */
+export type GrowthLever = 'outcome' | 'likelihood' | 'time' | 'effort'
+
+export interface GrowthShopLine {
+  name: string
+  slug: string
+  orders: number
+  views: number
+}
+
+export interface GrowthRecommendation {
+  key: string
+  lever: GrowthLever
+  priority: 'high' | 'medium' | 'low'
+  count: number | null
+}
+
+export interface GrowthReport {
+  generated_at: string
+  week_starts: string[]
+  approved_shops: number
+  approved_talents: number
+  public_products: number
+  pending_reviews: number
+  pending_over_48h: number
+  shops_with_order_7d: number
+  shops_with_order_30d: number
+  orders_7d: number
+  orders_30d: number
+  service_requests_30d: number
+  views_30d: number
+  orders_per_1000_views: number | null
+  median_approval_hours: number | null
+  approved_testimonials: number
+  goal_usd: number
+  order_value_usd: number
+  order_value_usd_30d: number
+  order_value_lbp: number
+  thin_catalogue_shops: number
+  shops_without_logo: number
+  weekly: {
+    orders: number[]
+    service_requests: number[]
+    views: number[]
+    new_sellers: number[]
+    new_products: number[]
+  }
+  health: { with_orders: number; viewed_no_orders: number; unseen: number }
+  top_shops: GrowthShopLine[]
+  quiet_shops: GrowthShopLine[]
+  recommendations: GrowthRecommendation[]
+}
+
+export interface GrowthPlan {
+  goal_usd: number
+  /** Null while the site's default wording stands. */
+  offer: string | null
+}

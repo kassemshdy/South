@@ -137,6 +137,9 @@ const AdminHomeLayoutPage = lazy(() =>
 const AdminExportPage = lazy(() =>
   import('@/pages/admin/AdminExportPage').then((m) => ({ default: m.AdminExportPage })),
 )
+const AdminGrowthPage = lazy(() =>
+  import('@/pages/admin/AdminGrowthPage').then((m) => ({ default: m.AdminGrowthPage })),
+)
 const AdminOrdersPage = lazy(() =>
   import('@/pages/admin/AdminOrdersPage').then((m) => ({ default: m.AdminOrdersPage })),
 )
@@ -295,6 +298,7 @@ export function App() {
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="applications" element={<AdminApplicationsPage />} />
             <Route path="orders" element={<AdminOrdersPage />} />
+            <Route path="growth" element={<AdminGrowthPage />} />
             <Route path="export" element={<AdminExportPage />} />
             <Route path="staff" element={<AdminStaffPage />} />
             <Route path="home-layout" element={<AdminHomeLayoutPage />} />
