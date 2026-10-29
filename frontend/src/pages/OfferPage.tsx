@@ -154,7 +154,7 @@ export function OfferPage() {
               application, which carries the responsibility notice and the
               steps itself (round 3: one page instead of three). Signed in, it
               is a button: the notice still stands before the dashboard. */}
-          <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {OFFER_DOORS.map((door) => (
               <li key={door.key}>
                 {isAuthenticated ? (

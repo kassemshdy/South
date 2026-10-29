@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  Briefcase,
   Bug,
   Aperture,
   Clapperboard,
@@ -60,6 +61,7 @@ const NAV: {
   },
   { to: '/admin/articles', labelKey: 'admin.navArticles', icon: Newspaper, end: false },
   { to: '/admin/workshops', labelKey: 'admin.navWorkshops', icon: GraduationCap, end: false },
+  { to: '/admin/job-openings', labelKey: 'admin.navJobOpenings', icon: Briefcase, end: false },
   { to: '/admin/pages', labelKey: 'admin.navPages', icon: FileText, end: false },
   { to: '/admin/page-covers', labelKey: 'admin.navPageCovers', icon: ImageIcon, end: false },
   { to: '/admin/home-layout', labelKey: 'admin.navHomeLayout', icon: LayoutList, end: false, needs: 'content' },

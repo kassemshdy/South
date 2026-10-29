@@ -55,6 +55,7 @@ from app.services import (
     business_documents,
     db_backup,
     feedback_attachments,
+    job_applications,
     telegram_archive,
     telegram_db_backup,
     verification,
@@ -179,6 +180,8 @@ PRIVATE_MEDIA_FOLDERS = (
     verification.STORAGE_FOLDERS
     | business_documents.STORAGE_FOLDERS
     | feedback_attachments.STORAGE_FOLDERS
+    # Job applicants' CVs.
+    | job_applications.STORAGE_FOLDERS
     # Database backups hold every account's identity.
     | db_backup.STORAGE_FOLDERS
 )

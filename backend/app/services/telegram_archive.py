@@ -99,6 +99,8 @@ ARCHIVED_TABLES = frozenset(
         "partner_requests",
         "story_images",
         "workshop_registrations",
+        "job_applications",
+        "job_openings",
     }
 )
 
@@ -122,6 +124,7 @@ FILE_COLUMNS = frozenset(
         "cover_storage_key",
         "image_storage_key",
         "photo_storage_key",
+        "id_document_storage_key",
     }
 )
 
@@ -247,6 +250,8 @@ def admin_path(change: Change, business_of_item: Callable[[str], str | None]) ->
         return "/admin/stories"
     if table == "workshop_registrations":
         return "/admin/workshops"
+    if table in ("job_applications", "job_openings"):
+        return "/admin/job-openings"
     business_id = row_id if table == "businesses" else refs.get("business_id")
     if business_id is None and "item_id" in refs:
         business_id = business_of_item(refs["item_id"])
@@ -272,6 +277,7 @@ _PATH_RANK = (
     "/admin/feedback",
     "/admin/applications",
     "/admin/stories",
+    "/admin/job-openings",
     "/admin/workshops",
     "/admin/businesses/",
     "/admin/talent/",
@@ -299,6 +305,8 @@ _KINDS = (
     (("discarded_applications",), "set_aside"),
     (("story_images",), "story"),
     (("workshop_registrations",), "workshop_signup"),
+    (("job_applications",), "job_application"),
+    (("job_openings",), "job_offer"),
     (("users", "owner_verification_documents"), "account"),
 )
 

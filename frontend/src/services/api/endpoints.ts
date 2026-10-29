@@ -74,6 +74,11 @@ import type {
   Workshop,
   WorkshopInput,
   WorkshopRegistration,
+  AdminJobOpening,
+  JobApplication,
+  JobOpening,
+  JobOfferInput,
+  JobOpeningInput,
   WorkshopMode,
   GrowthPlan,
   ViewAsToken,
@@ -365,6 +370,40 @@ export const partnerApi = {
       method: 'POST',
       body: { ...payload, captcha_token: captchaToken },
     }),
+}
+
+/** Job openings: anyone reads and applies with a CV; applications are staff-only. */
+export const jobApi = {
+  list: () => apiRequest<JobOpening[]>('/api/job-openings'),
+  bySlug: (slug: string) => apiRequest<JobOpening>(`/api/job-openings/${encodeURIComponent(slug)}`),
+  apply: (
+    slug: string,
+    payload: { full_name: string; email: string; phone_number: string },
+    cv: File,
+    captchaToken: string | null,
+  ) => {
+    const form = new FormData()
+    form.append('full_name', payload.full_name)
+    form.append('email', payload.email)
+    form.append('phone_number', payload.phone_number)
+    if (captchaToken) form.append('captcha_token', captchaToken)
+    form.append('cv', cv)
+    return apiRequest<{ message: string }>(
+      `/api/job-openings/${encodeURIComponent(slug)}/apply`,
+      { method: 'POST', formData: form },
+    )
+  },
+  /** An employer offers a job; it waits as a draft for an administrator. */
+  offer: (payload: JobOfferInput, idDocument: File, captchaToken: string | null) => {
+    const form = new FormData()
+    for (const [key, value] of Object.entries(payload)) form.append(key, value)
+    if (captchaToken) form.append('captcha_token', captchaToken)
+    form.append('id_document', idDocument)
+    return apiRequest<{ message: string }>('/api/job-openings/offer', {
+      method: 'POST',
+      formData: form,
+    })
+  },
 }
 
 /** Workshops: anyone reads and signs up; who signed up is for staff only. */
@@ -960,6 +999,28 @@ export const adminApi = {
     apiRequest<AdminWorkshop>(`/api/admin/workshops/${id}/unpublish`, { method: 'POST' }),
   deleteWorkshop: (id: string) =>
     apiRequest<{ message: string }>(`/api/admin/workshops/${id}`, { method: 'DELETE' }),
+  jobOpenings: () => apiRequest<AdminJobOpening[]>('/api/admin/job-openings'),
+  createJobOpening: (body: JobOpeningInput) =>
+    apiRequest<AdminJobOpening>('/api/admin/job-openings', { method: 'POST', body }),
+  updateJobOpening: (id: string, body: Partial<JobOpeningInput>) =>
+    apiRequest<AdminJobOpening>(`/api/admin/job-openings/${id}`, { method: 'PUT', body }),
+  publishJobOpening: (id: string) =>
+    apiRequest<AdminJobOpening>(`/api/admin/job-openings/${id}/publish`, { method: 'POST' }),
+  unpublishJobOpening: (id: string) =>
+    apiRequest<AdminJobOpening>(`/api/admin/job-openings/${id}/unpublish`, { method: 'POST' }),
+  deleteJobOpening: (id: string) =>
+    apiRequest<{ message: string }>(`/api/admin/job-openings/${id}`, { method: 'DELETE' }),
+  jobApplications: (id: string) =>
+    apiRequest<JobApplication[]>(`/api/admin/job-openings/${id}/applications`),
+  downloadJobApplicationCv: (jobId: string, applicationId: string) =>
+    apiDownload(`/api/admin/job-openings/${jobId}/applications/${applicationId}/cv`),
+  downloadJobOfferIdDocument: (jobId: string) =>
+    apiDownload(`/api/admin/job-openings/${jobId}/id-document`),
+  deleteJobApplication: (jobId: string, applicationId: string) =>
+    apiRequest<{ message: string }>(
+      `/api/admin/job-openings/${jobId}/applications/${applicationId}`,
+      { method: 'DELETE' },
+    ),
   uploadWorkshopCover: (id: string, file: File) => {
     const form = new FormData()
     form.append('file', file)

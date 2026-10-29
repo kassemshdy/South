@@ -289,3 +289,13 @@ class WorkshopMode(str, enum.Enum):
 
     ONLINE = "ONLINE"
     IN_PERSON = "IN_PERSON"
+
+
+class JobType(str, enum.Enum):
+    """How a job opening is worked."""
+
+    FULL_TIME = "FULL_TIME"
+    PART_TIME = "PART_TIME"
+    REMOTE = "REMOTE"
+    FREELANCE = "FREELANCE"
+    INTERNSHIP = "INTERNSHIP"
