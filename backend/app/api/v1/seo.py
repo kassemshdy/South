@@ -14,6 +14,7 @@ from xml.etree.ElementTree import Element, SubElement, tostring
 
 from fastapi import APIRouter, Response
 
+from app.api.v1 import jobs
 from app.core.dependencies import AppSettings, DbSession
 from app.repositories.business import BusinessRepository
 from app.repositories.item import ItemRepository
@@ -73,6 +74,12 @@ def sitemap(db: DbSession, settings: AppSettings) -> Response:
     # elsewhere is what Search Console reports as "Alternate page with proper
     # canonical tag" -- every entry flagged rather than indexed. A sitemap
     # lists canonical URLs only.
+
+    # Job openings the platform posts (29 Oct 2026): only open ones, through
+    # the same rule the public routes use.
+    add("/vacancies", changefreq="daily", priority="0.8")
+    for slug, updated_at in jobs.open_slugs(db):
+        add(f"/vacancies/{slug}", changefreq="weekly", priority="0.7", lastmod=updated_at)
 
     for slug, updated_at in TalentRepository(db).approved_slugs():
         add(f"/talent/{slug}", changefreq="weekly", priority="0.8", lastmod=updated_at)

@@ -18,7 +18,7 @@ import { OFFER_DOORS } from '@/features/onboarding/destinations'
 export function OfferSwitcher({
   current,
 }: {
-  current: 'business' | 'imported' | 'service' | 'job'
+  current: 'business' | 'imported' | 'service' | 'job' | 'employer'
 }) {
   return (
     <DoorStrip doors={OFFER_DOORS} current={current} label="onboarding.offerSwitcherLabel" />

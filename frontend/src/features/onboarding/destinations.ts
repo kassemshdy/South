@@ -1,4 +1,4 @@
-import { Briefcase, Globe, Package, Store, UserRound, Users } from 'lucide-react'
+import { Briefcase, Building2, Globe, Package, Store, UserRound, Users } from 'lucide-react'
 
 import type { TranslationKey } from '@/i18n'
 import type { GoodsOrigin } from '@/types/api'
@@ -202,6 +202,17 @@ export const OFFER_DOORS: Door[] = [
     shortKey: 'onboarding.offerJobShort',
     href: '/dashboard/talent?kind=JOB_SEEKER',
     applyHref: '/register/talent?kind=JOB_SEEKER',
+  },
+  {
+    // An employer offering a job to a southerner (the owners' ticket, 29 Oct
+    // 2026): one public form for everybody, signed in or not, whose offer
+    // waits as a draft at /admin/job-openings until a person publishes it.
+    key: 'employer',
+    icon: Building2,
+    titleKey: 'onboarding.offerEmployerTitle',
+    descriptionKey: 'onboarding.offerEmployerDescription',
+    shortKey: 'onboarding.offerEmployerShort',
+    href: '/vacancies/offer',
   },
 ]
 

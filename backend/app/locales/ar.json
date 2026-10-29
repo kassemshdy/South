@@ -289,5 +289,16 @@
   "workshop.ends_before_start": "يجب أن ينتهي موعد الورشة بعد بدايتها.",
   "workshop.deleted": "حُذفت ورشة العمل.",
   "telegram.kind.workshop_signup": "تسجيل جديد في ورشة عمل",
-  "moderation.logo_required": "لا يمكن نشر النشاط قبل إضافة شعاره. أضف الشعار من صفحة النشاط ثم وافق عليه."
+  "moderation.logo_required": "لا يمكن نشر النشاط قبل إضافة شعاره. أضف الشعار من صفحة النشاط ثم وافق عليه.",
+  "job.not_found": "لم يُعثر على فرصة العمل.",
+  "job.duplicate_slug": "توجد فرصة عمل أخرى بهذا الرابط.",
+  "job.applied": "وصلنا طلبك وسيراجعه فريقنا ويتواصل معك.",
+  "job.rate_limited": "محاولات كثيرة، يرجى المحاولة لاحقًا.",
+  "job.deleted": "حُذفت فرصة العمل وكل الطلبات المرسلة إليها.",
+  "job.application_not_found": "لم يُعثر على الطلب.",
+  "job.application_deleted": "حُذف الطلب وسيرته الذاتية.",
+  "telegram.kind.job_application": "طلب جديد على فرصة عمل",
+  "job.offer_received": "وصلت فرصة العمل التي عرضتها، وسيراجعها فريقنا قبل نشرها.",
+  "job.id_document_not_found": "لا توجد وثيقة هوية لهذه الفرصة.",
+  "telegram.kind.job_offer": "فرصة عمل جديدة من صاحب عمل"
 }

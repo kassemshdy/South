@@ -37,6 +37,8 @@ export const SITE_SECTIONS: SiteSection[] = [
   // Services and job applications: one directory until the owners split it.
   { id: 'services', href: '/services', labelKey: 'nav.services' },
   { id: 'jobs', href: '/jobs', labelKey: 'nav.jobs' },
+  // Openings the platform posts by hand (29 Oct 2026).
+  { id: 'vacancies', href: '/vacancies', labelKey: 'nav.vacancies' },
   // The blog before the news, in the CEO's order.
   { id: 'blog', href: '/blog', labelKey: 'nav.blog' },
   { id: 'news', href: '/news', labelKey: 'nav.news' },
