@@ -112,7 +112,7 @@ test.describe('Audience chooser', () => {
     // One page instead of three (round 3): the door goes straight to the
     // public application form -- never the login page, since somebody here
     // has no account and no way to get one except by applying.
-    await page.getByRole('link', { name: t('onboarding.ownerTitle') }).click()
+    await page.getByRole('link', { name: t('onboarding.seekGoodsTitle') }).click()
     await expect(page).toHaveURL(/\/register\/business/)
 
     // The notice and the steps are on that page, above the submit button.
@@ -140,7 +140,7 @@ test.describe('Audience chooser', () => {
     // value at build time, so it would need a second build -- but the
     // failure that actually costs someone a listing is this one.
     await page.goto('/offer')
-    await page.getByRole('link', { name: t('onboarding.ownerTitle') }).click()
+    await page.getByRole('link', { name: t('onboarding.seekGoodsTitle') }).click()
 
     await expect(page.getByText(t('register.stepReview'))).toBeVisible()
     await expect(page.getByText(t('assisted.title'))).toHaveCount(0)
@@ -171,7 +171,7 @@ test.describe('Audience chooser', () => {
     // No steps panel for someone who has already been through it: agreeing is
     // the whole remaining step, and the control is a real link.
     await page.getByRole('link', { name: t('home.actionOffer') }).click()
-    await page.getByRole('button', { name: t('onboarding.ownerTitle') }).click()
+    await page.getByRole('button', { name: t('onboarding.seekGoodsTitle') }).click()
     await page.getByRole('link', { name: t('consent.agree') }).click()
     await expect(page).toHaveURL(/\/dashboard\/businesses\/new/)
 
@@ -207,7 +207,6 @@ test.describe('Audience chooser', () => {
     for (const key of [
       'onboarding.seekGoodsTitle',
       'onboarding.seekServicesTitle',
-      'onboarding.seekJobsTitle',
     ] as const) {
       await expect(main.getByRole('link', { name: t(key) })).toBeVisible()
     }
@@ -229,47 +228,58 @@ test.describe('Audience chooser', () => {
     await expect(page).toHaveURL(/\/services/)
   })
 
-  test('goods made in the South and imported goods are separate doors, on both halves', async ({
+  test('goods are one door on both halves, and local or imported is chosen later', async ({
     page,
   }) => {
-    // At the CEO's request: a southern store selling imported goods is
-    // welcome, but under its own door, so a buyer looking for what the South
-    // produces is never shown an import under that heading. The mark is the
-    // business's `goods_origin`, set by the door the owner came through.
-    //
-    // Anchored to the start of the card: the local door's own description
-    // mentions imported goods, so a plain substring would match both cards.
-    const startsWith = (key: string) =>
-      new RegExp(`^${t(key).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`)
-
+    // The owners' ticket of 29 Oct 2026 merged the local and imported doors:
+    // the seller chooses on the application form, the buyer on the products
+    // directory. Jobs left both halves for a door of their own.
     await page.goto('/offer')
-    await expect(page.getByRole('link', { name: startsWith('onboarding.ownerTitle') })).toBeVisible()
-    await page.getByRole('link', { name: startsWith('onboarding.importedTitle') }).click()
-
-    // The application form opens on the door chosen, and says so.
-    await expect(page).toHaveURL(/\/register\/business\?origin=IMPORTED/)
+    await expect(page.getByRole('link', { name: t('onboarding.importedTitle') })).toHaveCount(0)
+    await expect(page.getByRole('link', { name: t('jobsHub.applyTitle') })).toHaveCount(0)
+    await page.getByRole('link', { name: t('onboarding.seekGoodsTitle') }).click()
+    await expect(page).toHaveURL(/\/register\/business$/)
+    // The origin is a field of the form, local unless the seller says not.
     await expect(page.getByRole('combobox', { name: t('offerPage.doorsTitle') })).toHaveText(
-      t('onboarding.importedTitle'),
+      t('onboarding.ownerTitle'),
     )
 
-    // The looking-for half has the same split, each onto its own page --
-    // an address that can be sent to somebody, headed with the title the CEO
-    // chose for it so the narrowing is never silent.
     await page.goto('/browse')
     await page.getByRole('button', { name: t('consent.agree') }).click()
-    await expect(page.getByRole('link', { name: startsWith('onboarding.ownerTitle') })).toBeVisible()
-    await page.getByRole('link', { name: startsWith('onboarding.importedTitle') }).click()
-    await expect(page).toHaveURL(/\/products\/imported$/)
-    await expect(
-      page.getByRole('heading', { level: 1, name: t('products.importedPageTitle') }),
-    ).toBeVisible()
+    const main = page.getByRole('main')
+    await expect(main.getByRole('link', { name: t('onboarding.importedTitle') })).toHaveCount(0)
+    await expect(main.getByRole('link', { name: t('onboarding.seekJobsTitle') })).toHaveCount(0)
 
-    // The whole directory still offers the same narrowing as a filter, and
-    // shows it when a link arrives with one set.
+    // The narrowing is still there, on the directory, as a filter and as its
+    // own page.
     await page.goto('/products?origin=IMPORTED')
     await expect(page.getByRole('combobox', { name: t('directory.origin') })).toHaveText(
       t('onboarding.importedTitle'),
     )
+    await page.goto('/products/imported')
+    await expect(
+      page.getByRole('heading', { level: 1, name: t('products.importedPageTitle') }),
+    ).toBeVisible()
+  })
+
+  test('jobs have a homepage door of their own, with three choices', async ({ page }) => {
+    await page.goto('/')
+    await page.getByRole('link', { name: t('home.actionJobs'), exact: true }).click()
+    await expect(page).toHaveURL(/\/jobs-hub$/)
+    await expect(page.getByRole('heading', { name: t('jobsHub.doorsTitle') })).toBeVisible()
+
+    const main = page.getByRole('main')
+    await expect(main.getByRole('link', { name: t('jobsHub.postTitle') })).toHaveAttribute(
+      'href',
+      '/vacancies/offer',
+    )
+    await expect(main.getByRole('link', { name: t('jobsHub.seekersTitle') })).toHaveAttribute(
+      'href',
+      '/jobs',
+    )
+    // Without an account, asking for a job is the public application.
+    await main.getByRole('link', { name: t('jobsHub.applyTitle') }).click()
+    await expect(page).toHaveURL(/\/register\/talent\?kind=JOB_SEEKER/)
   })
 
   test('a step change puts the top of the page back in view', async ({ page }) => {
@@ -282,7 +292,7 @@ test.describe('Audience chooser', () => {
     // The offering half has no in-page steps any more (round 3): a door is a
     // link, and a route change is ScrollToTop's own job.
     await page.goto('/offer')
-    const door = page.getByRole('link', { name: t('onboarding.ownerTitle') })
+    const door = page.getByRole('link', { name: t('onboarding.seekGoodsTitle') })
     await door.scrollIntoViewIfNeeded()
     expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
     await door.click()
