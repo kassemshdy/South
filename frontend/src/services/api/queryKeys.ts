@@ -73,6 +73,7 @@ export const queryKeys = {
   team: ['team'] as const,
   adminTeam: ['admin', 'team'] as const,
   siteSettings: ['site-settings'] as const,
+  offerPopup: ['site-settings', 'offer-popup'] as const,
   adminSiteSettings: ['admin', 'site-settings'] as const,
   adminCredentialsMessage: ['admin', 'credentials-message'] as const,
   adminDiscardedApplications: (includeDismissed: boolean) =>

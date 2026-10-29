@@ -1512,5 +1512,12 @@
   "growth.planSave": "حفظ",
   "growth.planCancel": "إلغاء",
   "growth.planSaved": "حُفظ الهدف والعرض.",
-  "growth.planFailed": "تعذّر الحفظ."
+  "growth.planFailed": "تعذّر الحفظ.",
+  "growth.planPopupLabel": "عرض العرض للزوار في نافذة منبثقة (مرة واحدة لكل زائر)",
+  "aiTools.heading": "أدوات الذكاء الاصطناعي لمتجرك",
+  "aiTools.soon": "قريبًا",
+  "aiTools.imagesTitle": "صور احترافية لمنتجاتك",
+  "aiTools.imagesBody": "حوّل صور هاتفك إلى صور منتجات بخلفية نظيفة وإضاءة احترافية.",
+  "aiTools.videoTitle": "فيديو ترويجي لمنتجاتك",
+  "aiTools.videoBody": "فيديو قصير جاهز للنشر على إنستغرام وتيك توك وواتساب، من صور منتجاتك."
 }

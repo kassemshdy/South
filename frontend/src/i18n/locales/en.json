@@ -1512,5 +1512,12 @@
   "growth.planSave": "Save",
   "growth.planCancel": "Cancel",
   "growth.planSaved": "Goal and offer saved.",
-  "growth.planFailed": "Could not save."
+  "growth.planFailed": "Could not save.",
+  "growth.planPopupLabel": "Show the offer to visitors in a popup (once per visitor)",
+  "aiTools.heading": "AI tools for your shop",
+  "aiTools.soon": "Coming soon",
+  "aiTools.imagesTitle": "Professional product photos",
+  "aiTools.imagesBody": "Turn your phone photos into product shots with a clean background and professional lighting.",
+  "aiTools.videoTitle": "Promotional video for your products",
+  "aiTools.videoBody": "A short video ready for Instagram, TikTok and WhatsApp, made from your product photos."
 }
