@@ -90,11 +90,15 @@ class GrowthPlanOut(BaseModel):
 
     goal_usd: int = DEFAULT_GOAL_USD
     offer: str | None = None
+    # Whether visitors are shown the offer in a popup. Off until the manager
+    # turns it on, so a deploy shows visitors nothing new.
+    offer_popup: bool = False
 
 
 class GrowthPlanIn(BaseModel):
     goal_usd: int = Field(ge=1, le=1_000_000_000_000)
     offer: str | None = Field(default=None, max_length=5000)
+    offer_popup: bool = False
 
     @field_validator("offer", mode="before")
     @classmethod
@@ -102,3 +106,11 @@ class GrowthPlanIn(BaseModel):
         if isinstance(value, str) and not value.strip():
             return None
         return value.strip() if isinstance(value, str) else value
+
+
+class OfferPopupOut(BaseModel):
+    """What a visitor's popup shows: nothing while it is switched off, and
+    ``offer`` null while the site's own default wording stands."""
+
+    enabled: bool = False
+    offer: str | None = None

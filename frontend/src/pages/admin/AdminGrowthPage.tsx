@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/States";
 import { useToast } from "@/components/ui/Toast";
 import { useStaffCan } from "@/features/admin/staffAccess";
+import { OfferText } from "@/features/growth/OfferText";
 import { useI18n, type TranslationKey } from "@/i18n";
 import { ApiError } from "@/services/api/client";
 import { adminApi } from "@/services/api/endpoints";
@@ -420,42 +421,13 @@ function GoalAndOffer({ data }: { data: GrowthReport }) {
   );
 }
 
-/**
- * The offer as typed, with its section titles bold: a short line that opens
- * a paragraph (the first line, or one after a blank line) and is not a
- * bullet. Plain text in, so the manager edits words, not markup.
- */
-function OfferText({ text }: { text: string }) {
-  const lines = text.split("\n");
-  return (
-    <div className="leading-relaxed text-ink-900">
-      {lines.map((line, index) => {
-        if (line.trim() === "") return <div key={index} className="h-3" />;
-        const opens = index === 0 || lines[index - 1]?.trim() === "";
-        const title =
-          opens && line.length <= 60 && !line.trimStart().startsWith("•");
-        return (
-          <p
-            key={index}
-            className={cn(
-              title && "font-bold text-brand-900",
-              index === 0 && "text-lg",
-            )}
-          >
-            {line}
-          </p>
-        );
-      })}
-    </div>
-  );
-}
-
 function PlanForm({ plan, onDone }: { plan: GrowthPlan; onDone: () => void }) {
   const { t } = useI18n();
   const toast = useToast();
   const queryClient = useQueryClient();
   const [goal, setGoal] = useState(String(plan.goal_usd));
   const [offer, setOffer] = useState(plan.offer ?? t("growth.offerDefault"));
+  const [popup, setPopup] = useState(plan.offer_popup);
 
   const save = useMutation({
     mutationFn: () =>
@@ -463,6 +435,7 @@ function PlanForm({ plan, onDone }: { plan: GrowthPlan; onDone: () => void }) {
         goal_usd: Number(goal.replace(/[^0-9]/g, "")) || plan.goal_usd,
         // Saving the default unchanged keeps following the default.
         offer: offer.trim() === t("growth.offerDefault").trim() ? null : offer,
+        offer_popup: popup,
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({
@@ -513,6 +486,15 @@ function PlanForm({ plan, onDone }: { plan: GrowthPlan; onDone: () => void }) {
           />
         )}
       </Field>
+      <label className="flex items-center gap-3">
+        <input
+          type="checkbox"
+          checked={popup}
+          onChange={(event) => setPopup(event.target.checked)}
+          className="h-5 w-5 accent-brand-700"
+        />
+        <span className="font-semibold text-ink-900">{t("growth.planPopupLabel")}</span>
+      </label>
       <div className="flex gap-2">
         <Button type="submit" size="sm" loading={save.isPending}>
           {t("growth.planSave")}

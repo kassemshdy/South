@@ -70,6 +70,7 @@ import type {
   GrowthReport,
   GrowthPlan,
   ViewAsToken,
+  OfferPopup,
   StaffMember,
   StaffPassword,
   StaffRole,
@@ -358,6 +359,7 @@ export const partnerApi = {
 
 export const siteSettingsApi = {
   get: () => apiRequest<SiteSettings>('/api/site-settings'),
+  offerPopup: () => apiRequest<OfferPopup>('/api/site-settings/offer-popup'),
 }
 
 export const homeApi = {

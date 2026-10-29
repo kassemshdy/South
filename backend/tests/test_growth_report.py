@@ -206,6 +206,7 @@ def test_the_manager_sets_the_goal_and_the_offer_and_other_staff_only_read_them(
     assert client.get("/api/admin/growth-plan", headers=manager).json() == {
         "goal_usd": 100_000_000,
         "offer": None,
+        "offer_popup": False,
     }
 
     saved = client.put(
@@ -214,7 +215,11 @@ def test_the_manager_sets_the_goal_and_the_offer_and_other_staff_only_read_them(
         json={"goal_usd": 5_000_000, "offer": f"  {ar('business.generic_short')}  "},
     )
     assert saved.status_code == 200, saved.text
-    assert saved.json() == {"goal_usd": 5_000_000, "offer": ar("business.generic_short")}
+    assert saved.json() == {
+        "goal_usd": 5_000_000,
+        "offer": ar("business.generic_short"),
+        "offer_popup": False,
+    }
     report = client.get("/api/admin/growth-report", headers=manager).json()
     assert report["goal_usd"] == 5_000_000
 
@@ -228,7 +233,7 @@ def test_the_manager_sets_the_goal_and_the_offer_and_other_staff_only_read_them(
     reset = client.put(
         "/api/admin/growth-plan", headers=manager, json={"goal_usd": 100_000_000, "offer": " "}
     )
-    assert reset.json() == {"goal_usd": 100_000_000, "offer": None}
+    assert reset.json() == {"goal_usd": 100_000_000, "offer": None, "offer_popup": False}
 
 
 def test_a_full_length_offer_is_saved(client: TestClient, admin: User) -> None:
@@ -242,3 +247,28 @@ def test_a_full_length_offer_is_saved(client: TestClient, admin: User) -> None:
     )
     assert saved.status_code == 200, saved.text
     assert saved.json()["offer"] == offer.strip()
+
+
+def test_visitors_see_the_offer_only_while_the_popup_is_on(
+    client: TestClient, admin: User
+) -> None:
+    manager = admin_headers(client)
+    offer = ar("business.generic_short")
+    client.put(
+        "/api/admin/growth-plan",
+        headers=manager,
+        json={"goal_usd": 5_000_000, "offer": offer, "offer_popup": False},
+    )
+    assert client.get("/api/site-settings/offer-popup").json() == {
+        "enabled": False,
+        "offer": None,
+    }
+
+    client.put(
+        "/api/admin/growth-plan",
+        headers=manager,
+        json={"goal_usd": 5_000_000, "offer": offer, "offer_popup": True},
+    )
+    shown = client.get("/api/site-settings/offer-popup").json()
+    assert shown == {"enabled": True, "offer": offer}
+    assert "5000000" not in str(shown), "the sales goal stays with the staff"

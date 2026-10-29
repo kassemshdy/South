@@ -1145,4 +1145,11 @@ export interface GrowthPlan {
   goal_usd: number
   /** Null while the site's default wording stands. */
   offer: string | null
+  /** Whether visitors are shown the offer in a popup. */
+  offer_popup: boolean
+}
+
+export interface OfferPopup {
+  enabled: boolean
+  offer: string | null
 }

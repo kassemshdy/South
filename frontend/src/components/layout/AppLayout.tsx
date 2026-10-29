@@ -8,6 +8,7 @@ import { WhatsAppButton } from '@/components/layout/WhatsAppButton'
 import { ViewAsBanner } from '@/features/admin/ViewAsBanner'
 import { useAuth } from '@/features/auth/AuthContext'
 import { FeedbackWidget } from '@/features/feedback/FeedbackWidget'
+import { OfferPopup } from '@/features/growth/OfferPopup'
 import { useT } from '@/i18n'
 
 export function AppLayout() {
@@ -45,6 +46,7 @@ export function AppLayout() {
       <div className="contents print:hidden">
         {isAuthenticated ? <FeedbackWidget /> : null}
         <WhatsAppButton />
+        <OfferPopup />
       </div>
     </div>
   )
