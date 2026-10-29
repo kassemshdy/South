@@ -57,6 +57,9 @@ def search_businesses(
     with_products: Annotated[
         bool, Query(description="Only shops with at least one product on sale")
     ] = False,
+    displaced: Annotated[
+        bool, Query(description="Only owners who chose to show they are displaced")
+    ] = False,
     sort: Annotated[Literal["newest", "name", "oldest", "nearest", "rating"], Query()] = "newest",
     # The visitor's position, for "nearest" only: from their browser, used
     # for this one ordering, and never stored (access logs drop the query).
@@ -72,6 +75,7 @@ def search_businesses(
         location_slug=location,
         origin=origin,
         with_products=with_products,
+        displaced=displaced,
         sort=sort,
         near=point_or_none(near_lat, near_lng),
         page=page,

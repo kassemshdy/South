@@ -127,6 +127,7 @@ def business_summary(business: Business) -> BusinessSummaryOut:
         ),
         rating_count=business.rating_count,
         goods_origin=business.goods_origin,
+        displaced_from=business.owner.published_displacement,
         created_at=business.created_at,
     )
 
@@ -243,6 +244,7 @@ def _product_business_ref(business: Business) -> ProductBusinessRef:
         whatsapp=whatsapp,
         category=category_out(business.category),
         location=location_out(business.location),
+        displaced_from=business.owner.published_displacement,
     )
 
 
@@ -317,6 +319,7 @@ def talent_summary(profile: TalentProfile) -> TalentSummaryOut:
         ),
         rating_count=profile.rating_count,
         location=location_out(profile.location),
+        displaced_from=profile.owner.published_displacement,
         created_at=profile.created_at,
     )
 

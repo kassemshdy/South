@@ -22,6 +22,7 @@ from app.models.business import Business, BusinessItem
 from app.models.enums import BusinessStatus, GoodsOrigin, ViewSubject
 from app.models.order import Order, OrderLine
 from app.models.taxonomy import Category, Location
+from app.models.user import User
 from app.repositories.base import BaseRepository
 from app.repositories.geo import Point, nearest_first
 
@@ -41,6 +42,7 @@ class ItemRepository(BaseRepository[BusinessItem]):
             joinedload(BusinessItem.business)
             .joinedload(Business.location)
             .joinedload(Location.parent),
+            joinedload(BusinessItem.business).joinedload(Business.owner),
         )
 
     def slug_exists(self, slug: str, *, exclude_id: uuid.UUID | None = None) -> bool:
@@ -229,7 +231,15 @@ class ItemRepository(BaseRepository[BusinessItem]):
         category_slug: str | None,
         location_slug: str | None,
         origin: GoodsOrigin | None = None,
+        displaced: bool = False,
     ) -> Select[tuple[BusinessItem]]:
+        if displaced:
+            # Only holders who chose to show it: the filter must not reveal
+            # by omission what the badge would not show.
+            stmt = stmt.where(
+                Business.owner_id.in_(select(User.id).where(User.publishes_displacement()))
+            )
+
         if origin is not None:
             # The product's own mark, not its shop's: a shop selling both has
             # each of its goods under the door that describes it.
@@ -312,6 +322,7 @@ class ItemRepository(BaseRepository[BusinessItem]):
         category_slug: str | None = None,
         location_slug: str | None = None,
         origin: GoodsOrigin | None = None,
+        displaced: bool = False,
         sort: SortOption = "newest",
         near: Point | None = None,
         page: int = 1,
@@ -324,6 +335,7 @@ class ItemRepository(BaseRepository[BusinessItem]):
             category_slug=category_slug,
             location_slug=location_slug,
             origin=origin,
+            displaced=displaced,
         )
 
         total = int(

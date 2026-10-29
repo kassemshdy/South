@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { DisplacedBadge } from '@/components/ui/DisplacedBadge'
 import { useT } from '@/i18n'
 import type { BusinessSummary } from '@/types/api'
 import { telHref, whatsappHref } from '@/utils/format'
@@ -61,6 +62,7 @@ export function BusinessCard({ business }: { business: BusinessSummary }) {
               {business.location.name_ar}
             </span>
           ) : null}
+          <DisplacedBadge place={business.displaced_from} />
         </div>
 
         <h3 className="text-lg font-bold text-ink-900">

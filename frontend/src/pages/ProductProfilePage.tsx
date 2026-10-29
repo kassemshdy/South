@@ -5,6 +5,7 @@ import { Link, useParams } from 'react-router-dom'
 import { Badge } from '@/components/ui/Badge'
 import { BackLink } from '@/components/ui/BackLink'
 import { Button } from '@/components/ui/Button'
+import { DisplacedBadge } from '@/components/ui/DisplacedBadge'
 import { Card, CardBody } from '@/components/ui/Card'
 import { ShareButton } from '@/components/ui/ShareButton'
 import { SocialShare } from '@/components/ui/SocialShare'
@@ -169,6 +170,7 @@ export function ProductProfilePage() {
                   {data.business.location ? (
                     <p className="text-sm text-ink-500">{data.business.location.name_ar}</p>
                   ) : null}
+                  <DisplacedBadge place={data.business.displaced_from} className="mt-1" />
                 </div>
               </div>
 

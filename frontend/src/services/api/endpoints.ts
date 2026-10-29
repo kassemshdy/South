@@ -283,6 +283,7 @@ export const authApi = {
     payload: IdentityPayload & {
       display_name?: string | null
       personal_phone_number?: string | null
+      show_displacement?: boolean
     },
   ) => apiRequest<User>('/api/me', { method: 'PATCH', body: payload }),
 

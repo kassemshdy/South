@@ -143,6 +143,8 @@ def update_me(payload: UpdateProfileIn, user: CurrentUser, db: DbSession) -> Use
     for field in IDENTITY_FIELDS:
         if field in data:
             setattr(user, field, data[field])
+    if data.get("show_displacement") is not None:
+        user.show_displacement = data["show_displacement"]
     db.commit()
     return UserOut.model_validate(user)
 

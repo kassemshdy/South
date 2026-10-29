@@ -436,6 +436,7 @@ export const accountSchema = (t: Translate) =>
     residence_place: z.string().trim().max(200).optional().or(z.literal('')),
     is_displaced: z.enum(['yes', 'no']).optional().or(z.literal('')),
     pre_displacement_place: z.string().trim().max(200).optional().or(z.literal('')),
+    show_displacement: z.boolean(),
   })
 
 export const rejectSchema = (t: Translate) =>

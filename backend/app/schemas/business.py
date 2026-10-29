@@ -77,6 +77,10 @@ class BusinessSummaryOut(ORMModel):
     # Made in the South or imported: public, because it is one of the doors
     # a visitor chooses between. See ``GoodsOrigin``.
     goods_origin: GoodsOrigin = GoodsOrigin.LOCAL
+    # Where the owner was displaced from, only when they chose to show it
+    # (User.published_displacement) -- the one identity value a public
+    # payload carries, and test_identity.py pins that it needs the opt-in.
+    displaced_from: str | None = None
     created_at: datetime
 
     # The small copies the cards draw; None when there is none, and the card

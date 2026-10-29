@@ -303,6 +303,13 @@ for something that hands out sessions.
   standing between those columns and the open internet: read it back through
   `OwnerIdentityOut` on a review payload instead. `tests/test_identity.py` pins that
   boundary, so treat a failure there as a disclosure bug rather than a stale assertion.
+  **One exception, by the holder's own choice:** a displaced owner may tick
+  "show visitors that I am displaced" on their account page
+  (`users.show_displacement`, off by default, the owners' decision of 29 Oct
+  2026), and only then is `pre_displacement_place` published, as
+  `displaced_from` on their listings, through `User.published_displacement`.
+  The directory filter uses the same condition, so it never finds someone the
+  badge would not show — `tests/test_displacement.py`.
 - **The view counter stores nothing about a visitor.** `listing_view_daily`
   holds a listing id, a UTC date and an integer — no address, cookie, session
   id, user agent or fingerprint. That is what made per-listing analytics
