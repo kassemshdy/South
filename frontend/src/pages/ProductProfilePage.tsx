@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { MessageCircle, Package, Phone, Store } from 'lucide-react'
+import { useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
@@ -18,6 +19,7 @@ import { RelatedWorkshops } from '@/features/workshops/RelatedWorkshops'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { useSeo } from '@/hooks/useSeo'
+import { trackListingView } from '@/services/analytics'
 import { useT } from '@/i18n'
 import { publicItemApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
@@ -40,6 +42,16 @@ export function ProductProfilePage() {
     image: data?.image_url ?? null,
     canonicalPath: `/product/${encodeURIComponent(slug)}`,
   })
+  useEffect(() => {
+    if (!data) return
+    trackListingView({
+      listing_type: 'product',
+      listing: data.slug,
+      category: data.business.category?.slug,
+      location: data.business.location?.slug,
+      shop: data.business.slug,
+    })
+  }, [data])
 
   if (product.isLoading) {
     return (

@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { LocateFixed, SlidersHorizontal, X } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Navigate, useLocation, useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/Button'
@@ -19,6 +19,7 @@ import { useNearestSort } from '@/features/directory/useNearestSort'
 import { SearchBox } from '@/features/search/SearchBox'
 import { useT, type TranslationKey } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
+import { trackDirectoryView } from '@/services/analytics'
 import { publicTalentApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { PageCoverKey, TalentKind, TalentQuery, TalentSortOption } from '@/types/api'
@@ -95,6 +96,10 @@ export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
   const workMode = kind === 'SERVICE' ? workModeFrom(searchParams.get('work_mode')) : undefined
   const chosenSort = searchParams.get('sort') as TalentSortOption | null
   const page = Number(searchParams.get('page') ?? '1')
+  // The filters on screen, never the search text: see services/analytics.ts.
+  useEffect(() => {
+    trackDirectoryView({ directory: kind === 'JOB_SEEKER' ? 'job_seekers' : 'services', skill, location, displaced })
+  }, [skill, location, displaced, kind])
   const setSort = useCallback(
     (value: TalentSortOption) => {
       const next = new URLSearchParams(searchParams)
