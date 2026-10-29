@@ -83,6 +83,10 @@ export function IssueCredentialsCard({
   const allowed = useStaffCan('credentials')
   const [issued, setIssued] = useState<IssuedPassword | null>(null)
   const [copied, setCopied] = useState(false)
+  // Replacing a password signs the owner out, so it takes two deliberate
+  // steps: open the warning, then confirm inside it. A browser confirm box
+  // was one click to wave through (the owners' ticket, 29 Oct 2026).
+  const [confirming, setConfirming] = useState(false)
 
   const template = useQuery({
     queryKey: queryKeys.adminCredentialsMessage,
@@ -107,6 +111,7 @@ export function IssueCredentialsCard({
   const issue = useMutation({
     mutationFn: () => adminApi.issueCredentials(userId),
     onSuccess: (result) => {
+      setConfirming(false)
       setIssued(result)
       remember(userId, result)
       setCopied(false)
@@ -121,13 +126,28 @@ export function IssueCredentialsCard({
 
   if (isAdmin || !allowed) return null
 
-  // A password already exists: replacing it signs the owner out, so ask.
+  const hasPassword = Boolean(issued || state.data?.has_password)
+
+  // A password already exists: replacing it signs the owner out, so the
+  // button only opens the warning, and the warning's own button replaces it.
   const issueNew = () => {
-    if ((issued || state.data?.has_password) && !window.confirm(t('credentials.reissueConfirm'))) {
-      return
-    }
-    issue.mutate()
+    if (hasPassword) setConfirming(true)
+    else issue.mutate()
   }
+
+  const replaceWarning = confirming ? (
+    <div className="space-y-3 rounded-xl border border-clay-200 bg-clay-50 p-3.5">
+      <p className="text-sm text-clay-800">{t('credentials.reissueConfirm')}</p>
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" onClick={() => issue.mutate()} loading={issue.isPending}>
+          {t('common.confirm')}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>
+          {t('common.cancel')}
+        </Button>
+      </div>
+    </div>
+  ) : null
 
   // The administrator's own wording when one is set (site settings), else
   // the site's; filled here, so the password never goes to the server.
@@ -166,12 +186,20 @@ export function IssueCredentialsCard({
         ) : issued === null ? (
           <>
             <p className="text-sm text-ink-500">{t('credentials.explainer')}</p>
-            {state.data?.has_password ? (
-              <p className="text-sm text-clay-700">{t('credentials.hasPassword')}</p>
-            ) : null}
-            <Button onClick={issueNew} loading={issue.isPending}>
-              {t('credentials.issue')}
-            </Button>
+            {hasPassword ? (
+              <>
+                <p className="text-sm text-clay-700">{t('credentials.hasPassword')}</p>
+                {replaceWarning ?? (
+                  <Button variant="ghost" onClick={issueNew}>
+                    {t('credentials.reissue')}
+                  </Button>
+                )}
+              </>
+            ) : (
+              <Button onClick={issueNew} loading={issue.isPending}>
+                {t('credentials.issue')}
+              </Button>
+            )}
           </>
         ) : (
           <>
@@ -219,9 +247,11 @@ export function IssueCredentialsCard({
               </Button>
             </div>
 
-            <Button variant="ghost" onClick={issueNew} loading={issue.isPending}>
-              {t('credentials.reissue')}
-            </Button>
+            {replaceWarning ?? (
+              <Button variant="ghost" onClick={issueNew}>
+                {t('credentials.reissue')}
+              </Button>
+            )}
           </>
         )}
       </CardBody>

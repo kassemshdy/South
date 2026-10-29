@@ -14,6 +14,8 @@ const DATASETS: { key: ExportDataset; labelKey: TranslationKey }[] = [
   { key: 'users', labelKey: 'admin.exportUsers' },
   { key: 'talent', labelKey: 'admin.exportTalent' },
   { key: 'orders', labelKey: 'admin.exportOrders' },
+  // Open and solved requests in one file; the page's own name for them.
+  { key: 'partners', labelKey: 'admin.navPartners' },
 ]
 
 /**
