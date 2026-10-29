@@ -1426,7 +1426,7 @@
   "stories.approved": "وُوفق على القصة، وستُعرض 24 ساعة.",
   "stories.rejected": "رُفضت القصة.",
   "stories.deleted": "حُذفت القصة.",
-  "admin.navStories": "القصص",
+  "admin.navStories": "الحالات",
   "admin.storiesTitle": "قصص أصحاب النشاطات",
   "admin.storiesHint": "الصور التي يرسلها أصحاب المتاجر والخدمات لتظهر في أعلى الصفحة الرئيسية. الموافقة تعرضها 24 ساعة من لحظتها.",
   "admin.storiesEmpty": "لا توجد قصص هنا.",
