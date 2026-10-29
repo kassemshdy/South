@@ -18,13 +18,15 @@ exec gosu appuser sh -c '
   python -m scripts.backup_db --reason boot
   alembic upgrade head
   python -m scripts.seed --ensure
-  # The owners' full list of towns, once per database; see the script.
-  python -m scripts.import_locations
   python -m scripts.copy_media_to_bucket
   python -m scripts.backfill_thumbnails
   # Past data to the Telegram archive, only while TELEGRAM_BACKFILL is set.
   # In the background: Telegram allows ~20 messages a minute, and the site
   # must not wait on that to start serving.
   if [ -n "$TELEGRAM_BACKFILL" ]; then python -m scripts.telegram_backfill & fi
+  # The owners' full list of towns, once per database; see the script. In
+  # the background, like the backfill: on 29 Oct 2026 it ran past the
+  # 180-second healthcheck in front of uvicorn and the deploy was refused.
+  python -m scripts.import_locations &
   exec uvicorn app.main:app --host 0.0.0.0 --port "$PORT" --workers "${WEB_CONCURRENCY:-2}" --proxy-headers --forwarded-allow-ips="*"
 '
