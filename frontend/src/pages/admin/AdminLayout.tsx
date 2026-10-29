@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Sparkles,
   Store,
+  TrendingUp,
   UserRound,
   Users,
 } from 'lucide-react'
@@ -44,6 +45,7 @@ const NAV: {
   { to: '/admin/talent-skills', labelKey: 'admin.navTalentSkills', icon: Sparkles, end: false },
   { to: '/admin/locations', labelKey: 'admin.navLocations', icon: MapPin, end: false },
   { to: '/admin/users', labelKey: 'admin.navUsers', icon: Users, end: false },
+  { to: '/admin/growth', labelKey: 'growth.nav', icon: TrendingUp, end: false },
   { to: '/admin/orders', labelKey: 'admin.navOrders', icon: ShoppingBag, end: false },
   { to: '/admin/applications', labelKey: 'admin.navApplications', icon: Inbox, end: false },
   { to: '/admin/partners', labelKey: 'admin.navPartners', icon: Handshake, end: false },
@@ -71,13 +73,13 @@ export function AdminLayout() {
   useSeo({ title: t('admin.seoTitle'), noIndex: true })
 
   return (
-    <div className="container-page py-8 lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-start lg:gap-8">
+    <div className="container-page py-8 print:block print:py-0 lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-start lg:gap-8">
       {/* A sidebar on the start side from lg up -- the right in Arabic -- so
           the sections read as a list rather than two rows of pills that grow
           with every new screen. On a phone it stays one row that scrolls
           sideways: a column there would push the page itself off screen. */}
       <nav
-        className="-mx-4 mb-6 flex gap-1.5 overflow-x-auto px-4 pb-2 lg:sticky lg:top-24 lg:mx-0 lg:mb-0 lg:flex-col lg:gap-1 lg:overflow-visible lg:rounded-2xl lg:bg-white lg:p-3 lg:shadow-sm lg:ring-1 lg:ring-ink-100"
+        className="-mx-4 mb-6 flex gap-1.5 print:hidden overflow-x-auto px-4 pb-2 lg:sticky lg:top-24 lg:mx-0 lg:mb-0 lg:flex-col lg:gap-1 lg:overflow-visible lg:rounded-2xl lg:bg-white lg:p-3 lg:shadow-sm lg:ring-1 lg:ring-ink-100"
         aria-label={t('admin.navAria')}
       >
         {NAV.filter((item) => !item.needs || staffCan(user?.staff_role, item.needs)).map(({ to, labelKey, icon: Icon, end }) => (

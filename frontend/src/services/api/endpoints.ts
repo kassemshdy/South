@@ -67,6 +67,8 @@ import type {
   OwnerViews,
   Paginated,
   PlatformGrowth,
+  GrowthReport,
+  GrowthPlan,
   StaffMember,
   StaffPassword,
   StaffRole,
@@ -634,6 +636,10 @@ export const adminApi = {
   stats: () => apiRequest<PlatformStats>('/api/admin/stats'),
   growth: (days: number) =>
     apiRequest<PlatformGrowth>('/api/admin/stats/growth', { query: { days } }),
+  growthReport: () => apiRequest<GrowthReport>('/api/admin/growth-report'),
+  growthPlan: () => apiRequest<GrowthPlan>('/api/admin/growth-plan'),
+  setGrowthPlan: (payload: GrowthPlan) =>
+    apiRequest<GrowthPlan>('/api/admin/growth-plan', { method: 'PUT', body: payload }),
   exportCsv: (dataset: ExportDataset) => apiDownload(`/api/admin/export/${dataset}.csv`),
   staff: () => apiRequest<StaffMember[]>('/api/admin/staff'),
   inviteStaff: (payload: {
