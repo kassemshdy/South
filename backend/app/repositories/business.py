@@ -10,7 +10,7 @@ from __future__ import annotations
 import uuid
 from typing import Literal
 
-from sqlalchemy import Select, exists, func, nullslast, or_, select
+from sqlalchemy import ColumnElement, Select, exists, func, nullslast, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.core.arabic import normalize_arabic
@@ -19,6 +19,7 @@ from app.models.business import Business, BusinessItem
 from app.models.enums import BusinessStatus, GoodsOrigin
 from app.models.taxonomy import Category, Location
 from app.models.user import User
+from app.repositories.admin_search import phone_digits, phone_match
 from app.repositories.base import BaseRepository
 from app.repositories.geo import Point, nearest_first
 
@@ -221,7 +222,14 @@ class BusinessRepository(BaseRepository[Business]):
         if status is not None:
             stmt = stmt.where(Business.status == status)
         if q:
-            stmt = stmt.where(Business.search_text.like(f"%{normalize_arabic(q)}%"))
+            matches: ColumnElement[bool] = Business.search_text.like(f"%{normalize_arabic(q)}%")
+            digits = phone_digits(q)
+            if digits:
+                matches = or_(
+                    matches,
+                    phone_match(digits, Business.owner_id, Business.phone, Business.whatsapp),
+                )
+            stmt = stmt.where(matches)
 
         total = int(
             self.db.execute(select(func.count()).select_from(stmt.subquery())).scalar_one()
