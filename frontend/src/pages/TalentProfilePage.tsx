@@ -238,6 +238,7 @@ export function TalentProfilePage() {
               {data.skill ? (
                 <Link
                   to={`${directoryPath(data.kind)}?skill=${encodeURIComponent(data.skill.slug)}`}
+                  dir="auto"
                   className="font-semibold text-brand-700 hover:underline"
                 >
                   {skillLabel}
@@ -246,7 +247,9 @@ export function TalentProfilePage() {
               {/* The taxonomy value links to a filtered list; the specialty
                   does not, because nothing filters on free text. */}
               {data.skill_specialty ? (
-                <span className="text-ink-500">{data.skill_specialty}</span>
+                <span dir="auto" className="text-ink-500">
+                  {data.skill_specialty}
+                </span>
               ) : null}
               {data.location ? (
                 <span className="inline-flex items-center gap-1">
