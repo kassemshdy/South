@@ -37,7 +37,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select, text, update
 from sqlalchemy.orm import Session
 
 from app.models.article import Article
@@ -175,7 +175,13 @@ class _Tree:
 def import_locations(db: Session, data: dict[str, Any] | None = None) -> ImportReport:
     """Apply the list to the tree. The caller commits."""
     data = data or load_data()
+    # Wait at most this long for a row another connection holds, rather than
+    # hanging silently: the first attempt on the live database did exactly
+    # that, and a lock timeout turns it into an error that names the wait.
+    db.execute(text("SET LOCAL lock_timeout = '15s'"))
+    db.execute(text("SET LOCAL statement_timeout = '60s'"))
     tree = _Tree(db)
+    logger.info("Location import: %d rows loaded, %d in use", len(tree.rows), len(tree.used))
     report = ImportReport()
     # Governorates matched as one region (the file's ``match_together``).
     together = {normalise(name) for name in data.get("match_together", [])}
@@ -212,6 +218,8 @@ def import_locations(db: Session, data: dict[str, Any] | None = None) -> ImportR
     # other by id, which the unit of work cannot order on its own.
     db.flush()
 
+    logger.info("Location import: governorates ready")
+
     # --- Districts: merge the doubles, then put each under its governorate --
     districts: dict[str, Location] = {}
     by_key: dict[str, list[Location]] = defaultdict(list)
@@ -243,6 +251,7 @@ def import_locations(db: Session, data: dict[str, Any] | None = None) -> ImportR
                 )
 
     db.flush()
+    logger.info("Location import: districts ready (%d merged)", report.districts_merged)
 
     # --- Towns: match what exists, add the rest -----------------------------
     claimed: dict[tuple[str, str], Location] = {}  # (district key, town key) -> row
@@ -280,6 +289,9 @@ def import_locations(db: Session, data: dict[str, Any] | None = None) -> ImportR
             report.towns_moved += 1
         town.is_active = True
 
+    logger.info(
+        "Location import: %d towns matched, %d moved", len(claimed), report.towns_moved
+    )
     for gov_entry in data["governorates"]:
         for entry in gov_entry["districts"]:
             district_key = normalise(entry["name_ar"])
@@ -301,6 +313,7 @@ def import_locations(db: Session, data: dict[str, Any] | None = None) -> ImportR
             report.towns_hidden += 1
 
     db.flush()
+    logger.info("Location import: %d towns added, flushed", report.towns_added)
     return report
 
 
@@ -308,6 +321,7 @@ def run_once(db: Session) -> ImportReport | None:
     """Import unless this database already has; records it and commits."""
     if already_done(db):
         return None
+    logger.info("Location import: starting")
     report = import_locations(db)
     db.add(SiteSetting(key=DONE_KEY, value=DONE_VALUE))
     db.commit()
