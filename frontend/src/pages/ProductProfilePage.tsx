@@ -12,6 +12,7 @@ import { AddToCartButton } from '@/features/cart/AddToCartButton'
 import { FavouriteButton } from '@/features/favourites/FavouriteButton'
 import { hasProductFacts, ProductFacts } from '@/features/items/ProductFacts'
 import { ProductGallery } from '@/features/items/ProductGallery'
+import { RelatedWorkshops } from '@/features/workshops/RelatedWorkshops'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { useSeo } from '@/hooks/useSeo'
@@ -194,6 +195,11 @@ export function ProductProfilePage() {
           </Card>
         </aside>
       </div>
+
+      <RelatedWorkshops
+        category={data.business.category?.slug}
+        location={data.business.location?.slug}
+      />
     </article>
   )
 }

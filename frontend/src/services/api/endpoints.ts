@@ -68,6 +68,10 @@ import type {
   Paginated,
   PlatformGrowth,
   GrowthReport,
+  AdminWorkshop,
+  Workshop,
+  WorkshopInput,
+  WorkshopRegistration,
   GrowthPlan,
   StaffMember,
   StaffPassword,
@@ -350,6 +354,22 @@ export interface PartnerPayload {
 export const partnerApi = {
   send: (payload: PartnerPayload, captchaToken: string | null) =>
     apiRequest<{ message: string }>('/api/partners', {
+      method: 'POST',
+      body: { ...payload, captcha_token: captchaToken },
+    }),
+}
+
+/** Workshops: anyone reads and signs up; who signed up is for staff only. */
+export const workshopApi = {
+  list: (query: { when?: 'upcoming' | 'past'; category?: string; location?: string; limit?: number } = {}) =>
+    apiRequest<Workshop[]>('/api/workshops', { query: { ...query } }),
+  bySlug: (slug: string) => apiRequest<Workshop>(`/api/workshops/${encodeURIComponent(slug)}`),
+  register: (
+    slug: string,
+    payload: { full_name: string; phone_number: string },
+    captchaToken: string | null,
+  ) =>
+    apiRequest<{ message: string }>(`/api/workshops/${encodeURIComponent(slug)}/register`, {
       method: 'POST',
       body: { ...payload, captcha_token: captchaToken },
     }),
@@ -892,6 +912,27 @@ export const adminApi = {
   rejectTestimonial: (id: string) =>
     apiRequest<AdminTestimonial>(`/api/admin/testimonials/${id}/reject`, { method: 'POST' }),
 
+  workshops: () => apiRequest<AdminWorkshop[]>('/api/admin/workshops'),
+  createWorkshop: (body: WorkshopInput) =>
+    apiRequest<AdminWorkshop>('/api/admin/workshops', { method: 'POST', body }),
+  updateWorkshop: (id: string, body: Partial<WorkshopInput>) =>
+    apiRequest<AdminWorkshop>(`/api/admin/workshops/${id}`, { method: 'PUT', body }),
+  publishWorkshop: (id: string) =>
+    apiRequest<AdminWorkshop>(`/api/admin/workshops/${id}/publish`, { method: 'POST' }),
+  unpublishWorkshop: (id: string) =>
+    apiRequest<AdminWorkshop>(`/api/admin/workshops/${id}/unpublish`, { method: 'POST' }),
+  deleteWorkshop: (id: string) =>
+    apiRequest<{ message: string }>(`/api/admin/workshops/${id}`, { method: 'DELETE' }),
+  uploadWorkshopCover: (id: string, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return apiRequest<AdminWorkshop>(`/api/admin/workshops/${id}/image`, {
+      method: 'POST',
+      formData: form,
+    })
+  },
+  workshopRegistrations: (id: string) =>
+    apiRequest<WorkshopRegistration[]>(`/api/admin/workshops/${id}/registrations`),
   articles: (section?: ArticleSection) =>
     apiRequest<AdminArticle[]>('/api/admin/articles', { query: section ? { section } : {} }),
   createArticle: (body: ArticleInput) =>

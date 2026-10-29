@@ -559,6 +559,7 @@ export type HomeSectionId =
   | 'products'
   | 'top_rated_products'
   | 'top_viewed_products'
+  | 'workshops'
   | 'category_products'
   | 'shops'
   | 'talents'
@@ -1137,4 +1138,53 @@ export interface GrowthPlan {
   goal_usd: number
   /** Null while the site's default wording stands. */
   offer: string | null
+}
+
+export type WorkshopMode = 'ONLINE' | 'IN_PERSON'
+
+/** A published workshop, as a visitor reads it. */
+export interface Workshop {
+  id: string
+  slug: string
+  title: string
+  description: string
+  trainer_name: string | null
+  starts_at: string
+  ends_at: string | null
+  mode: WorkshopMode
+  venue: string | null
+  /** Null is free. */
+  price: string | null
+  currency: Currency
+  cover_url: string | null
+  category: Category | null
+  location: LocationNode | null
+}
+
+export interface AdminWorkshop extends Workshop {
+  is_published: boolean
+  registration_count: number
+  created_at: string
+  updated_at: string
+}
+
+export interface WorkshopInput {
+  title: string
+  description: string
+  trainer_name: string | null
+  starts_at: string
+  ends_at: string | null
+  mode: WorkshopMode
+  venue: string | null
+  price: string | null
+  currency: Currency
+  category_id: string | null
+  location_id: string | null
+}
+
+export interface WorkshopRegistration {
+  id: string
+  full_name: string
+  phone_number: string
+  created_at: string
 }

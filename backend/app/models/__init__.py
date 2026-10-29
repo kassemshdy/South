@@ -50,6 +50,7 @@ from app.models.team import TeamMember
 from app.models.testimonial import Testimonial
 from app.models.user import User
 from app.models.verification import OwnerVerificationDocument
+from app.models.workshop import Workshop, WorkshopRegistration
 
 __all__ = [
     "Article",
@@ -100,4 +101,6 @@ __all__ = [
     "User",
     "UserRole",
     "ViewSubject",
+    "Workshop",
+    "WorkshopRegistration",
 ]

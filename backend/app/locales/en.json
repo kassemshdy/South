@@ -278,5 +278,13 @@
   "verification.empty": "The file is empty.",
   "verification.not_found": "Document not found.",
   "verification.too_large": "The file exceeds the {limit} MB limit.",
-  "verification.unsupported_format": "Only PDF, JPG or PNG files are allowed."
+  "verification.unsupported_format": "Only PDF, JPG or PNG files are allowed.",
+  "workshop.not_found": "Workshop not found.",
+  "workshop.duplicate_slug": "Another workshop already uses this address.",
+  "workshop.registered": "We received your sign-up; our team will contact you on WhatsApp.",
+  "workshop.rate_limited": "Too many attempts; please try again later.",
+  "workshop.already_started": "This workshop has started; sign-up is closed.",
+  "workshop.ends_before_start": "A workshop must end after it starts.",
+  "workshop.deleted": "Workshop deleted.",
+  "telegram.kind.workshop_signup": "New workshop sign-up"
 }

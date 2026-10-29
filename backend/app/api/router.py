@@ -29,6 +29,7 @@ from app.api.v1 import (
     taxonomy,
     team,
     testimonials,
+    workshops,
 )
 from app.api.v1.admin import applications as admin_applications
 from app.api.v1.admin import articles as admin_articles
@@ -92,6 +93,8 @@ api_router.include_router(registration.router)
 api_router.include_router(search.router)
 api_router.include_router(partners.public_router)
 api_router.include_router(partners.admin_router)
+api_router.include_router(workshops.public_router)
+api_router.include_router(workshops.admin_router)
 api_router.include_router(items.public_router)
 api_router.include_router(service_requests.public_router)
 api_router.include_router(talent.public_router)
