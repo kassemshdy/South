@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { ArticleBody } from '@/features/articles/ArticleBody'
 import { RelatedListings } from '@/features/articles/RelatedListings'
+import { RelatedWorkshops } from '@/features/workshops/RelatedWorkshops'
 import { useSeo } from '@/hooks/useSeo'
 import { useI18n, type TranslationKey } from '@/i18n'
 import { publicArticleApi } from '@/services/api/endpoints'
@@ -84,6 +85,7 @@ export function ArticleDetailPage() {
       </div>
 
       <RelatedListings article={article} />
+      <RelatedWorkshops category={article.category?.slug} location={article.location?.slug} />
     </div>
   )
 }

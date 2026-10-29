@@ -281,3 +281,11 @@ class ApplicationKind(str, enum.Enum):
 
     BUSINESS = "BUSINESS"
     TALENT = "TALENT"
+
+
+class WorkshopMode(str, enum.Enum):
+    """Where a workshop happens: online (the link is sent after sign-up) or
+    in person, in a town."""
+
+    ONLINE = "ONLINE"
+    IN_PERSON = "IN_PERSON"

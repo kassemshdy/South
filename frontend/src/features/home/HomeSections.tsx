@@ -21,6 +21,7 @@ import { SearchBox } from '@/features/search/SearchBox'
 import { ProductCard } from '@/features/items/ProductCard'
 import { WORK_MODE_KEYS } from '@/features/talent/labels'
 import { Stars } from '@/features/testimonials/Stars'
+import { WorkshopCard } from '@/features/workshops/WorkshopCard'
 import { useI18n, useT } from '@/i18n'
 import {
   homeApi,
@@ -31,6 +32,7 @@ import {
   reelApi,
   taxonomyApi,
   testimonialApi,
+  workshopApi,
 } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { ArticleSection, Category, GoodsOrigin, ProductQuery, ProductSummary } from '@/types/api'
@@ -434,6 +436,52 @@ export function TestimonialsSection() {
           </li>
         ))}
       </ul>
+    </Band>
+  )
+}
+
+/** The next workshops the platform runs; nothing until one is published. */
+export function WorkshopsSection() {
+  const t = useT()
+  const workshops = useQuery({
+    queryKey: queryKeys.workshops({ limit: 3 }),
+    queryFn: () => workshopApi.list({ limit: 3 }),
+  })
+  const items = workshops.data ?? []
+  if (items.length === 0) return null
+  return (
+    <Band>
+      <SectionHeading title={t('workshops.upcoming')} to="/workshops" more={t('workshops.viewAll')} />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {items.map((workshop) => (
+          <WorkshopCard key={workshop.id} workshop={workshop} />
+        ))}
+      </div>
+    </Band>
+  )
+}
+
+/** The next online workshops, joinable from anywhere; nothing until one is published. */
+export function OnlineWorkshopsSection() {
+  const t = useT()
+  const workshops = useQuery({
+    queryKey: queryKeys.workshops({ limit: 3, mode: 'ONLINE' }),
+    queryFn: () => workshopApi.list({ limit: 3, mode: 'ONLINE' }),
+  })
+  const items = workshops.data ?? []
+  if (items.length === 0) return null
+  return (
+    <Band>
+      <SectionHeading
+        title={t('workshops.onlineTitle')}
+        to="/workshops?mode=online"
+        more={t('workshops.viewAll')}
+      />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {items.map((workshop) => (
+          <WorkshopCard key={workshop.id} workshop={workshop} />
+        ))}
+      </div>
     </Band>
   )
 }
