@@ -84,6 +84,13 @@ class Settings(BaseSettings):
     # Public origin of the deployed site; used for canonical URLs and sitemaps.
     public_base_url: str = "http://localhost:5173"
 
+    # --- Public read cache (app.core.cache) ---------------------------------
+    # Seconds an anonymous public read is served from memory; 0 turns it off.
+    public_cache_seconds: int = 60
+    # Shared by the worker processes in one container, so a write in one
+    # empties the others' memory too.
+    public_cache_version_file: str = "/tmp/south-public-cache-version"
+
     # --- Database ----------------------------------------------------------
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/south_dev"
     db_pool_size: int = 5
