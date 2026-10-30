@@ -13,6 +13,7 @@ import io
 import logging
 import re
 import uuid
+import warnings
 from dataclasses import dataclass
 
 from PIL import Image, UnidentifiedImageError
@@ -21,6 +22,14 @@ from app.core.config import Settings
 from app.core.errors import PayloadTooLargeError, UnsupportedMediaTypeError
 from app.models.enums import ImageKind
 from app.storage.base import StorageBackend, StoredFile
+
+#: The most pixels an upload may decode to. A few megabytes of PNG can
+#: describe a 10,000 x 10,000 canvas, and decoding it would hold hundreds of
+#: megabytes in one worker; nothing a shop uploads needs more than this
+#: (a 48-megapixel phone photo is 48M, so the limit sits just under it and
+#: such a photo is refused rather than half-decoded -- resized ones pass).
+MAX_PIXELS = 40_000_000
+Image.MAX_IMAGE_PIXELS = MAX_PIXELS
 
 logger = logging.getLogger(__name__)
 
@@ -208,10 +217,20 @@ class ImageService:
 
     def _decode(self, data: bytes) -> Image.Image:
         try:
-            image = Image.open(io.BytesIO(data))
-            image.verify()  # structural check; consumes the file object
-            image = Image.open(io.BytesIO(data))
-        except (UnidentifiedImageError, OSError, ValueError) as exc:
+            # Pillow only warns between the limit and twice it; treat that
+            # as the refusal it is meant to be.
+            with warnings.catch_warnings():
+                warnings.simplefilter("error", Image.DecompressionBombWarning)
+                image = Image.open(io.BytesIO(data))
+                image.verify()  # structural check; consumes the file object
+                image = Image.open(io.BytesIO(data))
+        except (
+            UnidentifiedImageError,
+            OSError,
+            ValueError,
+            Image.DecompressionBombError,
+            Image.DecompressionBombWarning,
+        ) as exc:
             raise UnsupportedMediaTypeError("image.unreadable") from exc
 
         if image.format not in ALLOWED_FORMATS:
