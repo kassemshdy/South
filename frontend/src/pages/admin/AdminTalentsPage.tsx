@@ -91,7 +91,11 @@ export function AdminTalentsPage() {
         role="search"
         onSubmit={(event) => {
           event.preventDefault()
-          update({ q: searchInput.trim() })
+          // A search covers every status, not the tab that happens to be open:
+          // a reviewer looking up a number expects to find the account
+          // wherever it is (the owners' ticket, 29 Oct 2026).
+          const query = searchInput.trim()
+          update(query ? { q: query, status: 'ALL' } : { q: '' })
         }}
         className="flex gap-2"
       >

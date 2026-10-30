@@ -10,7 +10,7 @@ from __future__ import annotations
 import uuid
 from typing import Any, Literal
 
-from sqlalchemy import Select, func, or_, select
+from sqlalchemy import ColumnElement, Select, func, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.core.arabic import normalize_arabic
@@ -19,6 +19,7 @@ from app.models.enums import BusinessStatus, TalentKind, WorkMode
 from app.models.talent import TalentProfile, TalentSkill
 from app.models.taxonomy import Location
 from app.models.user import User
+from app.repositories.admin_search import phone_digits, phone_match
 from app.repositories.base import BaseRepository
 from app.repositories.geo import Point, nearest_first
 
@@ -228,7 +229,17 @@ class TalentRepository(BaseRepository[TalentProfile]):
         if status is not None:
             stmt = stmt.where(TalentProfile.status == status)
         if q:
-            stmt = stmt.where(TalentProfile.search_text.like(f"%{normalize_arabic(q)}%"))
+            pattern = f"%{normalize_arabic(q)}%"
+            matches: ColumnElement[bool] = TalentProfile.search_text.like(pattern)
+            digits = phone_digits(q)
+            if digits:
+                matches = or_(
+                    matches,
+                    phone_match(
+                        digits, TalentProfile.owner_id, TalentProfile.phone, TalentProfile.whatsapp
+                    ),
+                )
+            stmt = stmt.where(matches)
 
         total = int(
             self.db.execute(select(func.count()).select_from(stmt.subquery())).scalar_one()
