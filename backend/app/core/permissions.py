@@ -181,6 +181,11 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     ("PUT", "/api/admin/site-settings/credentials-message"): frozenset({M}),
     # The growth page's sales goal and offer: the owners' strategy.
     ("PUT", "/api/admin/growth-plan"): frozenset({M}),
+    # Keys to the partner feed (Yalla Pay, AdsTalk): who reads the directory
+    # by machine is the owners' strategy, like the growth plan.
+    ("POST", "/api/admin/api-partners"): frozenset({M}),
+    ("POST", "/api/admin/api-partners/{partner_id}/rotate"): frozenset({M}),
+    ("POST", "/api/admin/api-partners/{partner_id}/revoke"): frozenset({M}),
     ("POST", "/api/admin/staff"): frozenset({M}),
     ("PATCH", "/api/admin/staff/{user_id}"): frozenset({M}),
     ("POST", "/api/admin/staff/{user_id}/password"): frozenset({M}),

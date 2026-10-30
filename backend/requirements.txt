@@ -13,4 +13,5 @@ Pillow==11.0.0
 boto3==1.35.99
 python-slugify==8.0.4
 httpx==0.28.1
+cryptography==44.0.0
 sentry-sdk[fastapi]==2.19.2

@@ -31,6 +31,12 @@ from app.models.enums import (
     ViewSubject,
 )
 from app.models.feedback import FeedbackAttachment, FeedbackComment, FeedbackTicket
+from app.models.integration import (
+    ApiPartner,
+    IntegrationOutbox,
+    ShopifyConnection,
+    ShopifyProductLink,
+)
 from app.models.job import JobApplication, JobOpening
 from app.models.order import Order, OrderLine
 from app.models.page import Page
@@ -56,6 +62,7 @@ from app.models.workshop import Workshop, WorkshopRegistration
 
 __all__ = [
     "Activity",
+    "ApiPartner",
     "Article",
     "ArticleSection",
     "Business",
@@ -75,6 +82,7 @@ __all__ = [
     "FeedbackStatus",
     "FeedbackTicket",
     "ImageKind",
+    "IntegrationOutbox",
     "JobApplication",
     "JobOpening",
     "ListingViewDaily",
@@ -92,6 +100,8 @@ __all__ = [
     "RateLimitEvent",
     "Reel",
     "ServiceRequest",
+    "ShopifyConnection",
+    "ShopifyProductLink",
     "SiteSetting",
     "SocialPlatform",
     "StoryImage",

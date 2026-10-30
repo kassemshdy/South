@@ -122,6 +122,8 @@ class BusinessDetailOut(BusinessSummaryOut):
     # rather than read off the relationship.
     testimonials: list[TestimonialOut] = Field(default_factory=list)
     approved_at: datetime | None = None
+    # The shop's own Shopify store, where payment and delivery happen.
+    online_store_url: str | None = None
 
 
 class OwnerBusinessOut(BusinessDetailOut):

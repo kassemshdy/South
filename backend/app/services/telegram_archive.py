@@ -113,6 +113,10 @@ SKIPPED_COLUMNS = frozenset(
         "created_at",
         "updated_at",
         "search_vector",
+        # Never archived tables, listed anyway: a connected store's
+        # encrypted token and a partner key's hash have no business in a chat.
+        "access_token_enc",
+        "key_hash",
     }
 )
 

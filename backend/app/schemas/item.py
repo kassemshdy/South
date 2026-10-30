@@ -42,6 +42,9 @@ class BusinessItemOut(ORMModel):
     external_link: str | None = None
     goods_origin: GoodsOrigin = GoodsOrigin.LOCAL
     images: list[ItemImageOut] = Field(default_factory=list)
+    # The product on the shop's own Shopify store, when it has one and the
+    # product was pushed there (app/services/storefront.py).
+    buy_url: str | None = None
 
     @computed_field  # type: ignore[prop-decorator]
     @property
