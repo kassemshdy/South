@@ -440,3 +440,36 @@ def test_a_shop_description_keeps_its_line_breaks() -> None:
     message = archive.render(telegram_archive.Batch(name="Sam", phone=None, changes=[change]))
     assert message is not None
     assert f"{label('description')}: first line\nsecond line" in message.text
+
+
+def test_a_network_failure_logs_no_traceback_token_or_phone(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A dropped connection used to propagate to ``logger.exception``, whose
+    traceback frames -- and so the error report -- hold the bot URL (with its
+    token) and the message (with the owner's phone)."""
+
+    def unreachable(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("unreachable", request=request)
+
+    archive = TelegramArchive(
+        token=TOKEN,
+        chat_id="-100",
+        read_file=lambda key: b"",
+        base_url=SITE,
+        client=httpx.Client(transport=httpx.MockTransport(unreachable)),
+        interval=0,
+        autostart=False,
+    )
+    caplog.set_level(logging.DEBUG)
+    archive.submit(
+        telegram_archive.Batch(
+            name="x",
+            phone="+96170111222",
+            changes=[telegram_archive.Change("created", "orders", "1", {"a": "b"})],
+        )
+    )
+    archive.drain()
+    assert all(record.exc_info is None for record in caplog.records)
+    assert TOKEN not in caplog.text
+    assert "+96170111222" not in caplog.text

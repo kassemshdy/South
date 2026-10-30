@@ -647,7 +647,14 @@ class TelegramArchive:
         self, method: str, *, data: dict[str, str], files: dict[str, Any] | None = None
     ) -> None:
         for _attempt in range(5):
-            response = self._client.post(f"{self._base}/{method}", data=data, files=files)
+            try:
+                response = self._client.post(f"{self._base}/{method}", data=data, files=files)
+            except httpx.HTTPError as exc:
+                # Never with exc_info: the traceback's frames hold the bot URL,
+                # which carries the token, and the message, which carries an
+                # owner's phone number. The exception's class says enough.
+                logger.warning("telegram %s failed: %s", method, type(exc).__name__)
+                return
             if response.status_code == 429:
                 retry = response.json().get("parameters", {}).get("retry_after", 5)
                 time.sleep(float(retry) + 0.5)
