@@ -173,6 +173,24 @@ export function ShopifyCard({ businessId }: { businessId: string }) {
           </div>
         ) : (
           <form onSubmit={onConnect} className="space-y-3">
+            {/* Shopify has no API that creates stores, so a shop without one
+                is sent to sign up (through our referral link) and comes back. */}
+            {data.status !== 'UNINSTALLED' ? (
+              <div className="space-y-2 rounded-xl bg-sand-50 p-4">
+                <p className="font-semibold text-ink-900">{t('shopify.noStoreTitle')}</p>
+                <ol className="list-decimal space-y-1 ps-5 text-sm text-ink-700">
+                  <li>{t('shopify.step1')}</li>
+                  <li>{t('shopify.step2')}</li>
+                  <li>{t('shopify.step3')}</li>
+                </ol>
+                <Button asChild variant="outline" size="sm">
+                  <a href={data.signup_url} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                    {t('shopify.createStore')}
+                  </a>
+                </Button>
+              </div>
+            ) : null}
             {data.status === 'UNINSTALLED' ? (
               <p className="text-sm text-clay-700">{t('shopify.uninstalled')}</p>
             ) : null}

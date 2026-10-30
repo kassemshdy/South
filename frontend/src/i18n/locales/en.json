@@ -1756,5 +1756,10 @@
   "admin.apiPartnerRevoked": "Revoked",
   "admin.apiPartnerLastUsed": "Last used {date}",
   "admin.apiPartnerNever": "Never used",
-  "admin.apiPartnersEmpty": "No partner keys yet."
+  "admin.apiPartnersEmpty": "No partner keys yet.",
+  "shopify.noStoreTitle": "No Shopify store yet?",
+  "shopify.step1": "Create your store on Shopify (it starts with a free trial).",
+  "shopify.step2": "In your store, add Yalla Pay from the Shopify App Store for payment and delivery.",
+  "shopify.step3": "Come back here and enter your store address to connect it.",
+  "shopify.createStore": "Create your Shopify store"
 }

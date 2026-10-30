@@ -20,6 +20,22 @@ integration in this repository.
 | Domain | `janobona.com`, on Cloudflare. |
 | Partners | A read-only, key-protected feed: `docs/PARTNER_API.md`. |
 
+## Getting a store
+
+**Shopify has no public API that creates stores.** A store is made by the
+merchant signing up, or by hand by a Partner in the Partner Dashboard, so
+Janobona cannot open one for a shop automatically. What it does instead:
+
+- An owner whose shop has no store sees "Create your Shopify store" on the
+  products page, with three steps: sign up, add Yalla Pay, come back and
+  connect.
+- The button opens `SHOPIFY_SIGNUP_URL`. Set it to the Janobona Partner
+  referral link (Partner Dashboard → Referrals), so Shopify credits the
+  referral to Janobona. Unset, it is Shopify's public free-trial page.
+- Creating stores on merchants' behalf would need a platform partnership
+  with Shopify. That is a business conversation, possibly through the
+  investor, not something code can do.
+
 ## Setting it up
 
 1. **Shopify Partner account.** In it, create a **public app with unlisted

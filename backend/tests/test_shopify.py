@@ -255,6 +255,19 @@ def test_production_refuses_a_half_configured_integration() -> None:
         ).enforce_production_safety()
 
 
+def test_a_shop_without_a_store_is_offered_the_sign_up_link(
+    db: Session, fake: FakeShopify, category: Category, location: Location
+) -> None:
+    """Shopify has no API that creates stores; the owner signs up themselves."""
+    referral = "https://shopify.pxf.io/janobona"
+    for client in _client_with(shopify_settings(shopify_signup_url=referral), fake):
+        headers = sign_in(client, OWNER_PHONE)
+        business = approved_business(client, db, headers, category, location)
+        status = client.get(f"/api/businesses/{business.id}/shopify", headers=headers).json()
+        assert status["connected"] is False
+        assert status["signup_url"] == referral
+
+
 # --- Connecting ----------------------------------------------------------------
 
 

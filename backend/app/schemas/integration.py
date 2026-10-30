@@ -24,6 +24,8 @@ class ShopifyStatusOut(BaseModel):
     """The owner's own view of their store's connection. Never the token."""
 
     connected: bool
+    # Shopify cannot create stores by API: a shop without one signs up here.
+    signup_url: str
     subdomains_available: bool
     subdomain_base: str
     shop_domain: str | None = None

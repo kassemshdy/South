@@ -280,6 +280,10 @@ class Settings(BaseSettings):
     shopify_api_secret: str | None = None
     shopify_api_version: str = "2025-07"
     shopify_scopes: str = "read_products,write_products,write_publications,read_publications"
+    # Where a shop without a store is sent to open one. Shopify has no API
+    # that creates stores, so the owner signs up themselves; set this to the
+    # Partner referral link so the referral is credited to Janobona.
+    shopify_signup_url: str = "https://www.shopify.com/free-trial"
     # Fernet key that encrypts the stores' access tokens at rest. Its own
     # variable, never SECRET_KEY: rotating the signing key must not orphan
     # every connected store, and the hourly SQL copy of the database is only

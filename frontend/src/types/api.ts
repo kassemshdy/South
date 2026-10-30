@@ -1375,6 +1375,8 @@ export interface JobApplication {
 /** The owner's view of their Shopify store's connection. Never the token. */
 export interface ShopifyStatus {
   connected: boolean
+  /** Shopify cannot create stores by API: a shop without one signs up here. */
+  signup_url: string
   subdomains_available: boolean
   subdomain_base: string
   shop_domain: string | null

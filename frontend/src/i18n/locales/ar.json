@@ -1756,5 +1756,10 @@
   "admin.apiPartnerRevoked": "مُلغى",
   "admin.apiPartnerLastUsed": "آخر استخدام {date}",
   "admin.apiPartnerNever": "لم يُستخدم بعد",
-  "admin.apiPartnersEmpty": "لا توجد مفاتيح شركاء بعد."
+  "admin.apiPartnersEmpty": "لا توجد مفاتيح شركاء بعد.",
+  "shopify.noStoreTitle": "ليس لديك متجر على شوبيفاي بعد؟",
+  "shopify.step1": "أنشئ متجرك على شوبيفاي (يبدأ بفترة تجريبية مجانية).",
+  "shopify.step2": "أضف إلى متجرك تطبيق يلا باي من متجر تطبيقات شوبيفاي للدفع والتوصيل.",
+  "shopify.step3": "عد إلى هنا وأدخل عنوان متجرك لربطه.",
+  "shopify.createStore": "أنشئ متجرك على شوبيفاي"
 }

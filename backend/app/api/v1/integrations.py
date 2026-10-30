@@ -68,6 +68,7 @@ def _status(db: DbSession, business: Business, settings: Settings) -> ShopifySta
     connection = business.shopify_connection
     base = ShopifyStatusOut(
         connected=False,
+        signup_url=settings.shopify_signup_url,
         subdomains_available=settings.cloudflare_enabled,
         subdomain_base=settings.store_subdomain_base,
     )
