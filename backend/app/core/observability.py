@@ -54,6 +54,15 @@ SENSITIVE_KEYS = frozenset(
         "set-cookie",
         "token",
         "access_token",
+        # Third-party commerce: a store's encrypted token, Shopify's OAuth
+        # callback (its code, signature and our signed state) and the
+        # partner feed's keys.
+        "access_token_enc",
+        "api_key",
+        "hmac",
+        "key_hash",
+        "state",
+        "x-shopify-access-token",
     }
 )
 

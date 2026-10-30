@@ -384,6 +384,15 @@ for something that hands out sessions.
   emptied and `token_version` reset, so the file restores a whole site
   without anyone's password -- `tests/test_telegram_db_backup.py` pins it.
   A new column that signs someone in belongs in `REDACTED_USER_COLUMNS`.
+- **A connected store's token is ciphertext, and its key is not in the
+  database.** `shopify_connections.access_token_enc` is Fernet-encrypted with
+  `INTEGRATION_ENCRYPTION_KEY` (`app/core/crypto.py`), a Railway variable
+  that production refuses to equal `SECRET_KEY`. That is what makes the
+  hourly `.sql` copy sent to Telegram harmless for it; the column is also in
+  `SKIPPED_COLUMNS` and Sentry's `SENSITIVE_KEYS`. A partner API key is
+  shown once and stored as its SHA-256 only. Deleting a listing or an
+  account revokes the token and removes the DNS record after the commit
+  (`forget_stores`). `tests/test_shopify.py` pins the encryption.
 - **Deleting an account deletes its files too.** `AccountDeletionService`
   removes the rows in one transaction and then every file they pointed at,
   private documents included; a new upload type that belongs to an account
@@ -426,6 +435,34 @@ constrain how you work on it:
 - `update_ticket` is **one** tool that routes `status` to `/move` and
   everything else to the edit route, because the edit route silently ignores a
   status and answers 200.
+
+## Third-Party Commerce (Shopify, Yalla Pay, AdsTalk)
+
+**Janobona is the door, not the shop** (the investor's model, 30 Oct 2026).
+Each shop connects its **own** Shopify store; payment and delivery happen
+there (Yalla Pay is a Shopify app), and this codebase holds no payment code.
+Full detail and setup in `docs/COMMERCE.md`; the partners' reference is
+`docs/PARTNER_API.md`. What constrains how you work on it:
+
+- **One direction for now: Janobona → Shopify.** A product change on a
+  connected shop is queued in `integration_outbox` by a session hook
+  (`app/services/outbox.py`) in the same flush, and pushed by a worker in the
+  API's lifespan. Do not push from a route: a rolled-back edit must send
+  nothing, and a crash after commit must lose nothing.
+- **Prices are never converted.** A product in a currency the store does
+  not sell in, or with no price, is not pushed, and the reason is shown to
+  the owner.
+- **The OAuth callback and the webhooks are authenticated by Shopify's
+  HMAC**, checked before anything is read, and the callback also by our
+  signed `state`. Only an approved listing can connect.
+- **Buy links are public only while the connection is live**
+  (`app/services/storefront.py`); an uninstall webhook removes them.
+- **`<sub>.janoubona.net` is a DNS-only CNAME** -- Shopify issues the
+  certificate and cannot behind Cloudflare's proxy. Shopify's API cannot
+  attach a domain, so the owner does that one step in Shopify.
+- **The partner feed publishes nothing a visitor cannot read**: approved
+  listings, available products, built from the public serializers.
+  `tests/test_partner_api.py` is its `test_identity.py`.
 
 ## Optional Integrations Are Inert Without Their Variable
 

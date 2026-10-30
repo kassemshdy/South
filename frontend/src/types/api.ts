@@ -248,6 +248,8 @@ export interface BusinessItem {
   goods_origin: GoodsOrigin
   /** Separate from image_url, which is the card thumbnail. */
   images: ItemImage[]
+  /** The product on the shop's own Shopify store, when it has one. */
+  buy_url?: string | null
 }
 
 export interface BusinessSummary {
@@ -308,6 +310,8 @@ export interface BusinessDetail extends BusinessSummary {
   /** Approved only. The API never sends a pending or hidden one here. */
   testimonials: Testimonial[]
   approved_at: string | null
+  /** The shop's own Shopify store, where payment and delivery happen. */
+  online_store_url?: string | null
 }
 
 /** The owner's own view of a listing, including moderation state. */
@@ -879,6 +883,8 @@ export interface ProductDetail extends ProductSummary {
   net_weight: string | null
   external_link: string | null
   images: ItemImage[]
+  /** The product on the shop's own Shopify store, when it has one. */
+  buy_url?: string | null
 }
 
 /**
@@ -1364,4 +1370,42 @@ export interface JobApplication {
   content_type: string
   size_bytes: number
   created_at: string
+}
+
+/** The owner's view of their Shopify store's connection. Never the token. */
+export interface ShopifyStatus {
+  connected: boolean
+  /** Shopify cannot create stores by API: a shop without one signs up here. */
+  signup_url: string
+  subdomains_available: boolean
+  subdomain_base: string
+  shop_domain: string | null
+  status: 'CONNECTED' | 'UNINSTALLED' | 'ERROR' | null
+  storefront_url: string | null
+  currency: string | null
+  subdomain: string | null
+  subdomain_hostname: string | null
+  /** True once the owner connected the subdomain inside Shopify. */
+  subdomain_live: boolean
+  connected_at: string | null
+  last_sync_at: string | null
+  last_error: string | null
+  synced_products: number
+  pending_pushes: number
+}
+
+/** A company holding a key to the read-only partner feed. */
+export interface ApiPartner {
+  id: string
+  name: string
+  key_prefix: string
+  scopes: string[]
+  active: boolean
+  created_at: string
+  last_used_at: string | null
+}
+
+export interface ApiPartnerIssued extends ApiPartner {
+  /** Shown once; only its hash is kept. */
+  api_key: string
 }

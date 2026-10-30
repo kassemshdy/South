@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { MessageCircle, Package, Phone, Store } from 'lucide-react'
+import { MessageCircle, Package, Phone, ShoppingBag, Store } from 'lucide-react'
 import { useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
@@ -122,22 +122,34 @@ export function ProductProfilePage() {
           <div className="mt-5 flex flex-wrap gap-2">
             {/* Only for something actually orderable: a product page reached
                 while unavailable has nothing to add. */}
-            <AddToCartButton
-              target={{
-                businessSlug: data.business.slug,
-                businessName: data.business.name,
-                whatsapp: data.business.whatsapp,
-                phone: data.business.phone,
-              }}
-              line={{
-                itemId: data.id,
-                title: data.title,
-                price: data.price,
-                currency: data.currency,
-                imageUrl: data.image_url,
-                quantity: 1,
-              }}
-            />
+            {/* A shop with its own online store sells there: payment and
+                delivery are the store's. Every other shop keeps the order
+                request and WhatsApp. */}
+            {data.buy_url ? (
+              <Button asChild>
+                <a href={data.buy_url} target="_blank" rel="noopener noreferrer">
+                  <ShoppingBag className="h-5 w-5" aria-hidden="true" />
+                  {t('products.buyOnline')}
+                </a>
+              </Button>
+            ) : (
+              <AddToCartButton
+                target={{
+                  businessSlug: data.business.slug,
+                  businessName: data.business.name,
+                  whatsapp: data.business.whatsapp,
+                  phone: data.business.phone,
+                }}
+                line={{
+                  itemId: data.id,
+                  title: data.title,
+                  price: data.price,
+                  currency: data.currency,
+                  imageUrl: data.image_url,
+                  quantity: 1,
+                }}
+              />
+            )}
             <ShareButton title={data.title} text={shareText} />
             <SocialShare text={shareText} />
             <FavouriteButton

@@ -7,6 +7,7 @@ import logging
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.models.business import Business, BusinessItem
 from app.models.enums import ViewSubject
 from app.models.feedback import FeedbackTicket
@@ -16,6 +17,7 @@ from app.models.user import User
 from app.models.verification import OwnerVerificationDocument
 from app.services.analytics import ViewCounterService
 from app.services.images import thumbnail_key
+from app.services.shopify_connection import forget_stores, remember_stores
 from app.storage.base import StorageBackend
 
 logger = logging.getLogger(__name__)
@@ -44,6 +46,9 @@ class AccountDeletionService:
     def delete(self, user: User) -> None:
         keys = self._files_of(user)
         user_id = user.id
+        stores = remember_stores(
+            list(self._db.scalars(select(Business).where(Business.owner_id == user_id)))
+        )
 
         # One transaction: the services' own delete methods commit as they go,
         # and an account left half-deleted is worse than one not deleted.
@@ -61,6 +66,7 @@ class AccountDeletionService:
         self._db.commit()
         logger.info("Account deleted", extra={"user_id": str(user_id), "files": len(keys)})
         self._remove(keys)
+        forget_stores(stores, get_settings())
 
     # --- One listing, by an administrator --------------------------------
     #
@@ -70,10 +76,12 @@ class AccountDeletionService:
     def delete_business(self, business: Business) -> None:
         keys = _with_thumbnails(self._business_files(business))
         business_id = business.id
+        stores = remember_stores([business])
         self._drop_business(business)
         self._db.commit()
         logger.info("Business deleted", extra={"business_id": str(business_id)})
         self._remove(keys)
+        forget_stores(stores, get_settings())
 
     def delete_profile(self, profile: TalentProfile) -> None:
         keys = _with_thumbnails(self._profile_files(profile))

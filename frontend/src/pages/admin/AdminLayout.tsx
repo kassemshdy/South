@@ -9,6 +9,7 @@ import {
   FolderTree,
   GraduationCap,
   Handshake,
+  KeyRound,
   Inbox,
   MapPin,
   Megaphone,
@@ -72,6 +73,7 @@ const NAV: {
   { to: '/admin/site-settings', labelKey: 'nav.contact', icon: PhoneCall, end: false, needs: 'manage' },
   { to: '/admin/feedback', labelKey: 'admin.navFeedback', icon: Bug, end: false },
   { to: '/admin/export', labelKey: 'admin.navExport', icon: Download, end: false, needs: 'manage' },
+  { to: '/admin/api-partners', labelKey: 'admin.navApiPartners', icon: KeyRound, end: false, needs: 'manage' },
   { to: '/admin/staff', labelKey: 'admin.navStaff', icon: ShieldCheck, end: false, needs: 'manage' },
 ]
 

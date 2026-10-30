@@ -56,6 +56,7 @@ from app.schemas.talent import (
 from app.schemas.taxonomy import CategoryOut, LocationOut
 from app.schemas.testimonial import AdminTestimonialOut, OwnerTestimonialOut, TestimonialOut
 from app.schemas.verification import BusinessDocumentOut
+from app.services.storefront import buy_url, online_store_url
 
 RecordT = TypeVar("RecordT")
 SchemaT = TypeVar("SchemaT")
@@ -89,7 +90,7 @@ def location_out(
 
 
 def item_out(item: BusinessItem) -> BusinessItemOut:
-    return BusinessItemOut.model_validate(item)
+    return BusinessItemOut.model_validate(item).model_copy(update={"buy_url": buy_url(item)})
 
 
 def _gallery(business: Business) -> list[BusinessImageOut]:
@@ -165,6 +166,7 @@ def business_detail(
         social_links=[SocialLinkOut.model_validate(link) for link in business.social_links],
         items=[item_out(item) for item in sorted(business.items, key=lambda i: i.sort_order)],
         approved_at=business.approved_at,
+        online_store_url=online_store_url(business),
     )
 
 
@@ -278,6 +280,7 @@ def product_detail(item: BusinessItem) -> ProductDetailOut:
         net_weight=item.net_weight,
         external_link=item.external_link,
         images=_item_gallery(item),
+        buy_url=buy_url(item),
     )
 
 

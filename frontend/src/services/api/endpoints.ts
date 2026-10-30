@@ -30,6 +30,9 @@ import type {
   AdminTalent,
   AdminTestimonial,
   AdminPartnerRequest,
+  ApiPartner,
+  ApiPartnerIssued,
+  ShopifyStatus,
   AdminUser,
   AdminUserDetail,
   Article,
@@ -626,6 +629,22 @@ export const serviceRequestApi = {
 }
 
 export const ownerApi = {
+  /** 404 while the integration is not configured: the card is then hidden. */
+  shopify: (id: string) => apiRequest<ShopifyStatus>(`/api/businesses/${id}/shopify`),
+  shopifyInstall: (id: string, shop: string) =>
+    apiRequest<{ authorize_url: string }>(`/api/businesses/${id}/shopify/install`, {
+      method: 'POST',
+      body: { shop },
+    }),
+  shopifySync: (id: string) =>
+    apiRequest<{ queued: number }>(`/api/businesses/${id}/shopify/sync`, { method: 'POST' }),
+  shopifyDisconnect: (id: string) =>
+    apiRequest<{ message: string }>(`/api/businesses/${id}/shopify`, { method: 'DELETE' }),
+  shopifySubdomain: (id: string, subdomain: string) =>
+    apiRequest<ShopifyStatus>(`/api/businesses/${id}/shopify/subdomain`, {
+      method: 'POST',
+      body: { subdomain },
+    }),
   stories: (businessId: string) => apiRequest<Story[]>(`/api/my/businesses/${businessId}/stories`),
   postStory: (businessId: string, file: File, caption: string | null) => {
     const form = new FormData()
@@ -889,6 +908,13 @@ export const adminApi = {
     apiRequest<{ message: string }>(`/api/admin/talent/${id}`, { method: 'DELETE' }),
   deleteUser: (id: string) =>
     apiRequest<{ message: string }>(`/api/admin/users/${id}`, { method: 'DELETE' }),
+  apiPartners: () => apiRequest<ApiPartner[]>('/api/admin/api-partners'),
+  issueApiPartner: (name: string) =>
+    apiRequest<ApiPartnerIssued>('/api/admin/api-partners', { method: 'POST', body: { name } }),
+  rotateApiPartner: (id: string) =>
+    apiRequest<ApiPartnerIssued>(`/api/admin/api-partners/${id}/rotate`, { method: 'POST' }),
+  revokeApiPartner: (id: string) =>
+    apiRequest<ApiPartner>(`/api/admin/api-partners/${id}/revoke`, { method: 'POST' }),
   partners: (solved = false) =>
     apiRequest<AdminPartnerRequest[]>('/api/admin/partners', { query: { solved } }),
   solvePartner: (id: string) =>

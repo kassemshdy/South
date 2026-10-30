@@ -29,6 +29,11 @@ REDACTED_KEYS = frozenset(
         "owner_identity",
         "owner_phone",
         "owner_personal_phone",
+        # Third-party commerce: no route the server calls returns these, and
+        # if one ever does, an agent never needs them.
+        "access_token_enc",
+        "api_key",
+        "key_hash",
     }
 )
 
