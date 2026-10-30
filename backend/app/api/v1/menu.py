@@ -38,6 +38,7 @@ ITEMS: tuple[str, ...] = (
     "blog",
     "news",
     "workshops",
+    "activities",
     "about",
     "contact",
 )
