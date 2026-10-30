@@ -133,6 +133,23 @@ repository, so it is not a password anywhere real. Clear it from the live
 `api` service before flipping `APP_ENV`, or the deploy will fail loudly rather
 than quietly running with a known credential on the seeded listings.
 
+### Checking a deployment end to end
+
+`scripts/smoke.sh` checks a deployment from outside, against its public
+addresses: the public pages and stats, a photo, the private media folders
+refusing, an administrator's sign-in and the moderation queue, an owner's
+dashboard through a view-as session, and the MCP server signing in to the API.
+Credentials come from the environment, never the command line:
+
+```bash
+SMOKE_EXPECT_STATS=96/282/37 SMOKE_ADMIN_EMAIL=... SMOKE_ADMIN_PASSWORD=... SMOKE_MCP_TOKEN=... \
+  scripts/smoke.sh https://www.janoubona.net https://api.janoubona.net https://mcp-south.up.railway.app
+```
+
+It writes nothing except the view-as session, which the API logs. Set
+`SMOKE_EXPECT_STATS` to the old deployment's numbers after copying data
+between projects; without it the stats only have to load.
+
 ### Optional: the registration captcha
 
 The public application forms carry a Cloudflare Turnstile widget when, and
