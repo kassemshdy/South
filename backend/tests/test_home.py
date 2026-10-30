@@ -20,7 +20,10 @@ def test_a_fresh_site_shows_only_the_original_sections(client: TestClient) -> No
     layout = client.get("/api/home/layout").json()["sections"]
     assert [s["id"] for s in layout] == list(SECTIONS)
     shown = [s["id"] for s in layout if s["visible"]]
-    assert shown == ["cover", "hero", "slogan"], "new sections wait for an administrator"
+    # The carousel is the one exception: it is empty until an activity exists.
+    assert shown == ["cover", "hero", "slogan", "activities"], (
+        "new sections wait for an administrator"
+    )
 
 
 def test_an_administrator_reorders_and_hides_sections(client: TestClient, admin: User) -> None:

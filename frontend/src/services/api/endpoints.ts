@@ -70,6 +70,9 @@ import type {
   PlatformGrowth,
   GrowthReport,
   FeaturedTestimonial,
+  Activity,
+  ActivityInput,
+  AdminActivity,
   AdminWorkshop,
   Workshop,
   WorkshopInput,
@@ -429,6 +432,12 @@ export const workshopApi = {
       method: 'POST',
       body: { ...payload, captcha_token: captchaToken },
     }),
+}
+
+/** Development activities: kept ones with a photograph, for anyone. */
+export const activityApi = {
+  list: () => apiRequest<Activity[]>('/api/activities'),
+  bySlug: (slug: string) => apiRequest<Activity>(`/api/activities/${encodeURIComponent(slug)}`),
 }
 
 export const siteSettingsApi = {
@@ -1039,6 +1048,21 @@ export const adminApi = {
     const form = new FormData()
     form.append('file', file)
     return apiRequest<AdminWorkshop>(`/api/admin/workshops/${id}/image`, {
+      method: 'POST',
+      formData: form,
+    })
+  },
+  activities: () => apiRequest<AdminActivity[]>('/api/admin/activities'),
+  createActivity: (body: ActivityInput) =>
+    apiRequest<AdminActivity>('/api/admin/activities', { method: 'POST', body }),
+  updateActivity: (id: string, body: Partial<ActivityInput> & { is_archived?: boolean }) =>
+    apiRequest<AdminActivity>(`/api/admin/activities/${id}`, { method: 'PUT', body }),
+  deleteActivity: (id: string) =>
+    apiRequest<{ message: string }>(`/api/admin/activities/${id}`, { method: 'DELETE' }),
+  uploadActivityImage: (id: string, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return apiRequest<AdminActivity>(`/api/admin/activities/${id}/image`, {
       method: 'POST',
       formData: form,
     })

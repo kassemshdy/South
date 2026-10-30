@@ -16,6 +16,7 @@ export const PROPOSED_ORDER: HomeSectionId[] = [
   'cover',
   'hero',
   'slogan',
+  'activities',
   'categories',
   'search',
   'stories',
