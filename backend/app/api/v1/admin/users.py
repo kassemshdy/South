@@ -21,7 +21,7 @@ from app.core.downloads import content_disposition
 from app.core.errors import NotFoundError, PermissionDeniedError, ValidationError
 from app.core.i18n import translate
 from app.core.security import create_access_token
-from app.models.enums import UserRole, VerificationDocumentKind
+from app.models.enums import StaffRole, UserRole, VerificationDocumentKind
 from app.repositories.business import BusinessRepository
 from app.repositories.talent import TalentRepository
 from app.repositories.user import UserRepository
@@ -37,7 +37,7 @@ from app.storage.factory import get_storage
 router = APIRouter(prefix="/admin", tags=["admin-users"])
 logger = logging.getLogger(__name__)
 
-#: How long a read-only look at an owner's account lasts.
+#: How long a look at (or, for a manager, into) an owner's account lasts.
 VIEW_AS_MINUTES = 30
 
 
@@ -162,14 +162,15 @@ def issue_credentials(
 
 @router.post("/users/{user_id}/view-as", response_model=ViewAsOut)
 def view_as(user_id: uuid.UUID, admin: AdminUser, db: DbSession) -> ViewAsOut:
-    """Open an owner's account read-only, as the owner sees it.
+    """Open an owner's account as the owner sees it.
 
-    The owners' decision (29 Oct 2026): an administrator may see an owner's
-    dashboard to help them, and may change nothing there. The session is the
-    owner's own for 30 minutes, marked with the administrator, and refused
-    for any change by ``_enforce_view_only``; it ends early if either of them
-    signs out everywhere or changes password. Never for an administrator's
-    account. Logged, with both ids and nothing else.
+    The owners' decisions: a reviewer may see an owner's dashboard to help
+    them and change nothing (29 Oct 2026); a manager may also edit it (30 Oct
+    2026), though never the owner's password or the account's deletion. The
+    session is the owner's own for 30 minutes, marked with the administrator,
+    and ``_enforce_view_only`` applies both rules; it ends early if either of
+    them signs out everywhere or changes password. Never for an
+    administrator's account. Logged, with both ids and the mode only.
     """
     user = UserRepository(db).get_active(user_id)
     if user is None:
@@ -183,8 +184,11 @@ def view_as(user_id: uuid.UUID, admin: AdminUser, db: DbSession) -> ViewAsOut:
         expires_delta=timedelta(minutes=VIEW_AS_MINUTES),
         extra={"va": str(admin.id), "atv": admin.token_version},
     )
+    can_edit = admin.staff_role is StaffRole.MANAGER
     logger.info(
-        "Administrator viewing an account read-only",
+        "Administrator opening an account for editing"
+        if can_edit
+        else "Administrator viewing an account read-only",
         extra={"admin_id": str(admin.id), "user_id": str(user.id)},
     )
     return ViewAsOut(
@@ -194,6 +198,7 @@ def view_as(user_id: uuid.UUID, admin: AdminUser, db: DbSession) -> ViewAsOut:
         # What the banner names the account by: the owner's name, else the
         # number they sign in with.
         display_name=user.display_name or user.phone_number,
+        can_edit=can_edit,
     )
 
 

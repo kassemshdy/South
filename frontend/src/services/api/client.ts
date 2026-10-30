@@ -40,18 +40,21 @@ export class ApiError extends Error {
 
 const VIEW_AS_KEY = 'south.viewAs'
 
-/** An administrator's read-only look at an owner's account. */
+/** An administrator's look at, or a manager's edit of, an owner's account. */
 export interface ViewAsSession {
   token: string
   userId: string
   name: string | null
   expiresAt: string
+  /** Saving is allowed (a manager's session); the server decides either way. */
+  canEdit?: boolean
 }
 
 /**
  * Kept in this tab's session storage, apart from the administrator's own
  * session: the other tabs stay the administrator's, and closing the tab or
- * ending the view returns to it. The server refuses any change made with it.
+ * ending the view returns to it. The server refuses any change made with a
+ * read-only one, and the owner's password and deletion with either.
  */
 export const viewAsStorage = {
   get(): ViewAsSession | null {
