@@ -56,7 +56,7 @@ class ShopifyConnection(Base, TimestampMixin):
     # once connected in Shopify, or the myshopify one.
     primary_domain: Mapped[str | None] = mapped_column(String(255), nullable=True)
     currency: Mapped[str | None] = mapped_column(String(3), nullable=True)
-    # "<subdomain>.janobona.com", chosen by the owner; Latin, unlike slugs.
+    # "<subdomain>.janoubona.net", chosen by the owner; Latin, unlike slugs.
     subdomain: Mapped[str | None] = mapped_column(String(63), nullable=True, unique=True)
     cf_dns_record_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     connected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

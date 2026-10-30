@@ -600,7 +600,7 @@ def test_disconnecting_revokes_the_token_and_forgets_the_store(
     assert db.scalars(select(ShopifyConnection)).first() is None
 
 
-# --- <sub>.janobona.com --------------------------------------------------------------
+# --- <sub>.janoubona.net --------------------------------------------------------------
 
 
 @pytest.fixture
@@ -651,11 +651,11 @@ def test_a_subdomain_is_a_dns_only_cname_to_shopify(
             json={"subdomain": "souk"},
         )
         assert response.status_code == 200, response.text
-        assert response.json()["subdomain_hostname"] == "souk.janobona.com"
+        assert response.json()["subdomain_hostname"] == "souk.janoubona.net"
         created = next(r for r in fake.requests if r.url.host == "api.cloudflare.com")
         assert json.loads(created.content) == {
             "type": "CNAME",
-            "name": "souk.janobona.com",
+            "name": "souk.janoubona.net",
             "content": "shops.myshopify.com",
             "proxied": False,
             "ttl": 1,

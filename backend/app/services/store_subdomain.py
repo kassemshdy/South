@@ -1,4 +1,4 @@
-"""``<sub>.janobona.com`` for a connected store.
+"""``<sub>.janoubona.net`` for a connected store.
 
 The owner picks the name: business slugs keep Arabic script and cannot be
 hostnames. We create the DNS record; Shopify's Admin API has no way to

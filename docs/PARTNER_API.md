@@ -53,14 +53,14 @@ Query parameters: `connected=true` (only stores with a live Shopify store),
       "rating_average": 4.5,
       "rating_count": 12,
       "goods_origin": "LOCAL",
-      "page_url": "https://janobona.com/business/…",
+      "page_url": "https://janoubona.net/business/…",
       "website": null,
       "latitude": 33.27,
       "longitude": 35.2,
       "updated_at": "2026-10-30T10:00:00Z",
       "shop_domain": "souk.myshopify.com",
-      "online_store_url": "https://souk.janobona.com",
-      "subdomain_hostname": "souk.janobona.com"
+      "online_store_url": "https://souk.janoubona.net",
+      "subdomain_hostname": "souk.janoubona.net"
     }
   ],
   "next_cursor": null
@@ -96,8 +96,8 @@ Query parameters: `store` (a store's slug), `updated_since`, `cursor`, `limit`.
       "image_url": "/media/…",
       "images": ["/media/…"],
       "goods_origin": "LOCAL",
-      "page_url": "https://janobona.com/product/…",
-      "buy_url": "https://souk.janobona.com/products/zaatar",
+      "page_url": "https://janoubona.net/product/…",
+      "buy_url": "https://souk.janoubona.net/products/zaatar",
       "updated_at": "2026-10-30T10:00:00Z"
     }
   ],
@@ -110,7 +110,7 @@ Notes on the fields:
 - `price` is a decimal string.
 - `buy_url` is the product's page on the shop's Shopify store. It is `null`
   when the shop has none, or when the product has not been sent there.
-- Image paths are relative to `https://janobona.com`.
+- Image paths are relative to `https://janoubona.net`.
 
 ## What is never in the feed
 

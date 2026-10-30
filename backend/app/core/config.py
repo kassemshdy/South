@@ -292,11 +292,11 @@ class Settings(BaseSettings):
     # Seconds between passes of the outbox worker that pushes products.
     integration_outbox_poll_seconds: int = 15
 
-    # <shop>.janobona.com: a DNS-only CNAME to Shopify per connected store.
+    # <shop>.janoubona.net: a DNS-only CNAME to Shopify per connected store.
     # Unset means owners only see their store's own domain.
     cloudflare_api_token: str | None = None
     cloudflare_zone_id: str | None = None
-    store_subdomain_base: str = "janobona.com"
+    store_subdomain_base: str = "janoubona.net"
 
     # Read-only feed of stores and products for partners (Yalla Pay,
     # AdsTalk), per API key. See docs/PARTNER_API.md.

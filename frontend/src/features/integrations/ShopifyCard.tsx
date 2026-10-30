@@ -15,7 +15,7 @@ import { queryKeys } from '@/services/api/queryKeys'
 
 /**
  * The shop's own Shopify store: connect it, see what was sent, and give it a
- * janobona.com address.
+ * janoubona.net address.
  *
  * Hidden entirely while the integration is not configured on the server,
  * which answers 404 -- the same "inert without its variable" rule as every

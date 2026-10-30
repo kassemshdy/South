@@ -17,7 +17,7 @@ integration in this repository.
 | Sync direction | Janobona → Shopify only. Owners keep editing on Janobona. Two-way comes later. |
 | Buying | Connected shops get "Buy online" links to Shopify. Every other shop keeps the order request and WhatsApp. |
 | Payments | None in this codebase. Yalla Pay runs inside each Shopify store. |
-| Domain | `janobona.com`, on Cloudflare. |
+| Domain | `janoubona.net`, on Cloudflare. |
 | Partners | A read-only, key-protected feed: `docs/PARTNER_API.md`. |
 
 ## Getting a store
@@ -42,9 +42,9 @@ Janobona cannot open one for a shop automatically. What it does instead:
    distribution**.
    - Custom distribution only covers one merchant, so it is not enough for
      many independent stores.
-   - App URL: `https://janobona.com/dashboard`.
-   - Allowed redirection URL: `https://janobona.com/api/integrations/shopify/callback`.
-   - Webhooks go to `https://janobona.com/api/integrations/shopify/webhooks`. Subscribe to
+   - App URL: `https://janoubona.net/dashboard`.
+   - Allowed redirection URL: `https://janoubona.net/api/integrations/shopify/callback`.
+   - Webhooks go to `https://janoubona.net/api/integrations/shopify/webhooks`. Subscribe to
      `app/uninstalled` and `shop/update`, and set the three mandatory
      compliance topics (`customers/data_request`, `customers/redact`,
      `shop/redact`) to the same URL.
@@ -57,7 +57,7 @@ Janobona cannot open one for a shop automatically. What it does instead:
      `SECRET_KEY`; production refuses to start if it is.
    - Optional: `SHOPIFY_API_VERSION` (pinned) and `SHOPIFY_SCOPES`.
 3. **Cloudflare.**
-   - Create an API token scoped to Zone → DNS → Edit on `janobona.com`.
+   - Create an API token scoped to Zone → DNS → Edit on `janoubona.net`.
    - Set `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ZONE_ID`.
 
 ## How it works

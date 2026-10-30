@@ -457,7 +457,7 @@ Full detail and setup in `docs/COMMERCE.md`; the partners' reference is
   signed `state`. Only an approved listing can connect.
 - **Buy links are public only while the connection is live**
   (`app/services/storefront.py`); an uninstall webhook removes them.
-- **`<sub>.janobona.com` is a DNS-only CNAME** -- Shopify issues the
+- **`<sub>.janoubona.net` is a DNS-only CNAME** -- Shopify issues the
   certificate and cannot behind Cloudflare's proxy. Shopify's API cannot
   attach a domain, so the owner does that one step in Shopify.
 - **The partner feed publishes nothing a visitor cannot read**: approved

@@ -1,6 +1,6 @@
 """The one thing Janobona asks of Cloudflare: a DNS record per store.
 
-``<sub>.janobona.com`` CNAME ``shops.myshopify.com``, **DNS only**. Shopify
+``<sub>.janoubona.net`` CNAME ``shops.myshopify.com``, **DNS only**. Shopify
 issues the certificate for a connected domain itself and cannot while
 Cloudflare's proxy sits in front, so ``proxied`` is always false.
 """
