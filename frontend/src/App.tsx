@@ -19,6 +19,8 @@ import { JobOfferPage } from '@/pages/JobOfferPage'
 import { JobsHubPage } from '@/pages/JobsHubPage'
 import { VacanciesPage } from '@/pages/VacanciesPage'
 import { VacancyPage } from '@/pages/VacancyPage'
+import { ActivitiesPage } from '@/pages/ActivitiesPage'
+import { ActivityPage } from '@/pages/ActivityPage'
 import { WorkshopPage } from '@/pages/WorkshopPage'
 import { WorkshopsPage } from '@/pages/WorkshopsPage'
 import { DirectoryPage } from '@/pages/DirectoryPage'
@@ -109,6 +111,9 @@ const AdminTestimonialsPage = lazy(() =>
 )
 const AdminWorkshopsPage = lazy(() =>
   import('@/pages/admin/AdminWorkshopsPage').then((m) => ({ default: m.AdminWorkshopsPage })),
+)
+const AdminActivitiesPage = lazy(() =>
+  import('@/pages/admin/AdminActivitiesPage').then((m) => ({ default: m.AdminActivitiesPage })),
 )
 const AdminArticlesPage = lazy(() =>
   import('@/pages/admin/AdminArticlesPage').then((m) => ({ default: m.AdminArticlesPage })),
@@ -221,6 +226,8 @@ export function App() {
           <Route path="partner" element={<PartnerPage />} />
           <Route path="workshops" element={<WorkshopsPage />} />
           <Route path="workshops/:slug" element={<WorkshopPage />} />
+          <Route path="activities" element={<ActivitiesPage />} />
+          <Route path="activities/:slug" element={<ActivityPage />} />
           <Route path="vacancies" element={<VacanciesPage />} />
           <Route path="vacancies/offer" element={<JobOfferPage />} />
           <Route path="vacancies/:slug" element={<VacancyPage />} />
@@ -335,6 +342,7 @@ export function App() {
             <Route path="testimonials" element={<AdminTestimonialsPage />} />
             <Route path="articles" element={<AdminArticlesPage />} />
             <Route path="workshops" element={<AdminWorkshopsPage />} />
+            <Route path="activities" element={<AdminActivitiesPage />} />
             <Route path="job-openings" element={<AdminJobOpeningsPage />} />
           </Route>
 

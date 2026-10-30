@@ -147,6 +147,11 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     ("POST", "/api/admin/workshops/{workshop_id}/unpublish"): _CONTENT,
     ("POST", "/api/admin/workshops/{workshop_id}/image"): _CONTENT,
     ("DELETE", "/api/admin/workshops/{workshop_id}/image"): _CONTENT,
+    # The home page's activity announcements (30 Oct 2026): the same people.
+    ("POST", "/api/admin/activities"): _CONTENT,
+    ("PUT", "/api/admin/activities/{activity_id}"): _CONTENT,
+    ("DELETE", "/api/admin/activities/{activity_id}"): _CONTENT,
+    ("POST", "/api/admin/activities/{activity_id}/image"): _CONTENT,
     # The home page's Instagram reels.
     ("POST", "/api/admin/reels"): _CONTENT,
     ("PUT", "/api/admin/reels/order"): _CONTENT,

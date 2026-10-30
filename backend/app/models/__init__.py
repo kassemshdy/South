@@ -1,5 +1,6 @@
 """SQLAlchemy models. Importing this package registers every table on Base."""
 
+from app.models.activity import Activity
 from app.models.analytics import ListingViewDaily
 from app.models.application import DiscardedApplication
 from app.models.article import Article
@@ -54,6 +55,7 @@ from app.models.verification import OwnerVerificationDocument
 from app.models.workshop import Workshop, WorkshopRegistration
 
 __all__ = [
+    "Activity",
     "Article",
     "ArticleSection",
     "Business",

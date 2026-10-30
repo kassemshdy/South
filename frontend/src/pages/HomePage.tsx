@@ -22,6 +22,7 @@ import {
   StoriesSection,
   TalentsSection,
 } from '@/features/home/HomeSections'
+import { ActivitiesCarousel } from '@/features/activities/ActivitiesCarousel'
 import {
   ORIGINAL_ORDER,
   PREVIEW_PARAM,
@@ -42,6 +43,7 @@ const SECTIONS: Record<HomeSectionId, () => ReactNode> = {
   cover: () => <CoverSection />,
   hero: () => <HeroSection />,
   slogan: () => <SloganSection />,
+  activities: () => <ActivitiesCarousel />,
   search: () => <SearchSection />,
   categories: () => <CategoriesSection />,
   stories: () => <StoriesSection />,

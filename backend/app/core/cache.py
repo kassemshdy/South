@@ -57,6 +57,7 @@ CACHED_PREFIXES: tuple[str, ...] = (
     "/api/menu",
     "/api/site-settings",
     "/api/workshops",
+    "/api/activities",
     "/api/job-openings",
     "/api/articles",
     "/api/pages",

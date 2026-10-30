@@ -75,7 +75,7 @@ import { cn } from '@/utils/cn'
 // them are three words long, and left to wrap they turn a 64px bar into a
 // two-line one. Padding stays tight until there is room to spare.
 const NAV_LINK =
-  'whitespace-nowrap rounded-lg px-2.5 py-2 text-[15px] font-medium text-ink-700 transition-colors hover:bg-sand-100 hover:text-ink-900 2xl:px-3'
+  'whitespace-nowrap rounded-lg px-1.5 py-2 text-[15px] font-medium text-ink-700 transition-colors hover:bg-sand-100 hover:text-ink-900 2xl:px-3'
 
 const MENU_ITEM =
   'flex cursor-pointer select-none items-center gap-2.5 rounded-lg px-3 py-2.5 text-[15px] text-ink-700 outline-none data-[highlighted]:bg-sand-100 data-[highlighted]:text-ink-900'

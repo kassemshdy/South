@@ -44,6 +44,8 @@ export const SITE_SECTIONS: SiteSection[] = [
   { id: 'news', href: '/news', labelKey: 'nav.news' },
   // The platform's own training (29 Oct 2026).
   { id: 'workshops', href: '/workshops', labelKey: 'nav.workshops' },
+  // Development activities, the home page's carousel as a page (29 Oct 2026).
+  { id: 'activities', href: '/activities', labelKey: 'nav.activities' },
   { id: 'about', href: '/about', labelKey: 'nav.about' },
   // "Contact us" left the menu (the owners' ticket, 29 Oct 2026): its details
   // are at the foot of the About page and in the footer; /contact still answers.

@@ -576,6 +576,7 @@ export type HomeSectionId =
   | 'cover'
   | 'hero'
   | 'slogan'
+  | 'activities'
   | 'search'
   | 'categories'
   | 'stories'
@@ -612,6 +613,7 @@ export type MenuItemId =
   | 'blog'
   | 'news'
   | 'workshops'
+  | 'activities'
   | 'about'
   | 'contact'
 
@@ -1213,6 +1215,36 @@ export interface GrowthPlan {
 export interface OfferPopup {
   enabled: boolean
   offer: string | null
+}
+
+/** A development activity announced on the home page, as a visitor reads it. */
+export interface Activity {
+  id: string
+  slug: string
+  title: string
+  summary: string | null
+  body: string
+  starts_at: string | null
+  ends_at: string | null
+  location: string | null
+  image_url: string | null
+}
+
+export interface AdminActivity extends Activity {
+  is_archived: boolean
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export interface ActivityInput {
+  title: string
+  body: string
+  summary: string | null
+  starts_at: string | null
+  ends_at: string | null
+  location: string | null
+  sort_order: number
 }
 
 export type WorkshopMode = 'ONLINE' | 'IN_PERSON'
