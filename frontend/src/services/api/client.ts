@@ -6,7 +6,7 @@
  */
 
 import { activeLocale, translate } from '@/i18n'
-import { shrinkImagesIn } from '@/utils/shrinkImage'
+import { shrinkImagesIn, UnreadableFileError } from '@/utils/shrinkImage'
 import type { ApiErrorPayload } from '@/types/api'
 
 const TOKEN_STORAGE_KEY = 'south.auth.token'
@@ -172,7 +172,15 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   const headers = baseHeaders()
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   // Every upload passes here, so this is the one place photos are shrunk.
-  const form = formData ? await shrinkImagesIn(formData) : undefined
+  let form: FormData | undefined
+  try {
+    form = formData ? await shrinkImagesIn(formData) : undefined
+  } catch (cause) {
+    if (cause instanceof UnreadableFileError) {
+      throw new ApiError(0, null, translate(activeLocale(), 'images.photoUnreadable'))
+    }
+    throw cause
+  }
 
   let response: Response
   try {
