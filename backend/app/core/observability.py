@@ -100,6 +100,10 @@ def configure_error_tracking(settings: Settings) -> None:
         release=settings.sentry_release,
         # Never attach request bodies, headers, cookies or the client IP.
         send_default_pii=False,
+        # A frame's locals hold the request models -- a typed password, an
+        # applicant's identity -- and the key-based scrub above cannot see
+        # inside a model's repr. Off rather than scrubbed.
+        include_local_variables=False,
         traces_sample_rate=settings.sentry_traces_sample_rate,
         before_send=_before_send,
     )

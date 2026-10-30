@@ -52,15 +52,17 @@ class IdentityFieldsIn(BaseModel):
     and anything that needs an age can derive it.
     """
 
-    full_name: str | None = Field(default=None, max_length=200)
-    birth_year: int | None = Field(default=None, ge=1900, le=2100)
-    gender: Gender | None = None
-    marital_status: MaritalStatus | None = None
-    registration_place: str | None = Field(default=None, max_length=160)
-    residence_place: str | None = Field(default=None, max_length=200)
-    is_displaced: bool | None = None
+    # ``repr=False`` throughout: a model's repr is what an error report shows
+    # for a frame that holds it, and none of this may reach one.
+    full_name: str | None = Field(default=None, max_length=200, repr=False)
+    birth_year: int | None = Field(default=None, ge=1900, le=2100, repr=False)
+    gender: Gender | None = Field(default=None, repr=False)
+    marital_status: MaritalStatus | None = Field(default=None, repr=False)
+    registration_place: str | None = Field(default=None, max_length=160, repr=False)
+    residence_place: str | None = Field(default=None, max_length=200, repr=False)
+    is_displaced: bool | None = Field(default=None, repr=False)
     # Where a displaced holder lived before displacement.
-    pre_displacement_place: str | None = Field(default=None, max_length=200)
+    pre_displacement_place: str | None = Field(default=None, max_length=200, repr=False)
 
     @field_validator("full_name", "registration_place", "residence_place", "pre_displacement_place")
     @classmethod
