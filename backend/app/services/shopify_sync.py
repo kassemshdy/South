@@ -65,6 +65,19 @@ mutation publish($id: ID!, $input: [PublicationInput!]!) {
 
 ONLINE_STORE = "Online Store"
 
+WEBHOOK_SUBSCRIBE = """
+mutation subscribe($topic: WebhookSubscriptionTopic!, $url: URL!) {
+  webhookSubscriptionCreate(
+    topic: $topic, webhookSubscription: {callbackUrl: $url, format: JSON}
+  ) { userErrors { field message } }
+}
+"""
+
+#: The events the app listens for. Subscribed from code on every connect,
+#: because a Partner Dashboard app has no form for them; the compliance
+#: topics are the exception and are set by hand in the app's configuration.
+WEBHOOK_TOPICS = ("APP_UNINSTALLED", "SHOP_UPDATE")
+
 
 class SkipItem(Exception):
     """This product is deliberately not pushed; the reason is for the owner."""
@@ -83,6 +96,24 @@ def refresh_shop(connection: ShopifyConnection, client: ShopifyClient) -> None:
     host = (shop.get("primaryDomain") or {}).get("host")
     if host:
         connection.primary_domain = host
+
+
+def register_webhooks(client: ShopifyClient, callback_url: str) -> None:
+    """Subscribe the store to ``WEBHOOK_TOPICS``; an existing one is fine."""
+    for topic in WEBHOOK_TOPICS:
+        result = (
+            client.graphql(WEBHOOK_SUBSCRIBE, {"topic": topic, "url": callback_url}).get(
+                "webhookSubscriptionCreate"
+            )
+            or {}
+        )
+        errors = [
+            e
+            for e in result.get("userErrors") or []
+            if "taken" not in str(e.get("message", "")).lower()
+            and "already" not in str(e.get("message", "")).lower()
+        ]
+        raise_user_errors({"userErrors": errors})
 
 
 def _absolute(url: str, settings: Settings) -> str:

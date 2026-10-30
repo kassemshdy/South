@@ -73,6 +73,7 @@ class FakeShopify:
         self.requests: list[httpx.Request] = []
         self.currency = "USD"
         self.products = 0
+        self.webhook_error: str | None = None
 
     def graphql_calls(self) -> list[str]:
         return [
@@ -129,6 +130,11 @@ class FakeShopify:
             return httpx.Response(
                 200,
                 json={"data": {"publications": {"nodes": [{"id": "pub1", "name": "Online Store"}]}}},
+            )
+        if "webhookSubscriptionCreate" in query:
+            errors = [{"message": self.webhook_error}] if self.webhook_error else []
+            return httpx.Response(
+                200, json={"data": {"webhookSubscriptionCreate": {"userErrors": errors}}}
             )
         if "publishablePublish" in query:
             return httpx.Response(200, json={"data": {"publishablePublish": {"userErrors": []}}})
@@ -374,6 +380,46 @@ def test_connecting_stores_the_token_encrypted_and_queues_every_product(
     assert status["connected"] is True
     assert status["storefront_url"] == "https://souk.example.com"
     assert "access_token" not in json.dumps(status)
+
+
+def test_connecting_subscribes_the_store_to_the_webhooks_we_handle(
+    shop_client: TestClient,
+    db: Session,
+    fake: FakeShopify,
+    category: Category,
+    location: Location,
+) -> None:
+    headers = sign_in(shop_client, OWNER_PHONE)
+    business = approved_business(shop_client, db, headers, category, location)
+    connect(shop_client, business, headers)
+    sent = [
+        json.loads(r.content)["variables"]
+        for r in fake.requests
+        if b"webhookSubscriptionCreate" in r.content
+    ]
+    assert sorted(v["topic"] for v in sent) == ["APP_UNINSTALLED", "SHOP_UPDATE"]
+    assert {v["url"] for v in sent} == {
+        "https://janobona.test/api/integrations/shopify/webhooks"
+    }
+    db.expire_all()
+    assert db.scalars(select(ShopifyConnection)).one().last_error is None
+
+
+def test_a_reconnect_with_webhooks_already_subscribed_still_connects(
+    shop_client: TestClient,
+    db: Session,
+    fake: FakeShopify,
+    category: Category,
+    location: Location,
+) -> None:
+    fake.webhook_error = "Address for this topic has already been taken"
+    headers = sign_in(shop_client, OWNER_PHONE)
+    business = approved_business(shop_client, db, headers, category, location)
+    connect(shop_client, business, headers)
+    db.expire_all()
+    connection = db.scalars(select(ShopifyConnection)).one()
+    assert connection.is_live
+    assert connection.last_error is None
 
 
 # --- Queueing and pushing --------------------------------------------------------

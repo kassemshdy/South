@@ -37,17 +37,22 @@ from app.models.enums import BusinessStatus, ShopifyConnectionStatus
 from app.models.integration import ShopifyConnection
 from app.models.user import User
 from app.services import outbox
-from app.services.shopify_sync import client_for, refresh_shop
+from app.services.shopify_sync import client_for, refresh_shop, register_webhooks
 
 logger = logging.getLogger(__name__)
 
 STATE_AUDIENCE = "shopify-install"
 STATE_TTL = timedelta(minutes=15)
 CALLBACK_PATH = "/api/integrations/shopify/callback"
+WEBHOOK_PATH = "/api/integrations/shopify/webhooks"
 
 
 def callback_url(settings: Settings) -> str:
     return settings.public_base_url.rstrip("/") + CALLBACK_PATH
+
+
+def webhook_url(settings: Settings) -> str:
+    return settings.public_base_url.rstrip("/") + WEBHOOK_PATH
 
 
 def dashboard_url(settings: Settings, business_id: uuid.UUID | str, outcome: str) -> str:
@@ -163,7 +168,9 @@ class ShopifyConnectionService:
         connection.connected_at = datetime.now(UTC)
         connection.last_error = None
         try:
-            refresh_shop(connection, client_for(connection, self._settings, self._http))
+            client = client_for(connection, self._settings, self._http)
+            refresh_shop(connection, client)
+            register_webhooks(client, webhook_url(self._settings))
         except shopify.ShopifyError as exc:
             connection.last_error = str(exc)
         self._db.flush()

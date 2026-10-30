@@ -44,10 +44,13 @@ Janobona cannot open one for a shop automatically. What it does instead:
      many independent stores.
    - App URL: `https://janoubona.net/dashboard`.
    - Allowed redirection URL: `https://janoubona.net/api/integrations/shopify/callback`.
-   - Webhooks go to `https://janoubona.net/api/integrations/shopify/webhooks`. Subscribe to
-     `app/uninstalled` and `shop/update`, and set the three mandatory
-     compliance topics (`customers/data_request`, `customers/redact`,
-     `shop/redact`) to the same URL.
+   - **Compliance webhooks** are set by hand in the app's configuration
+     (a new version in the Dev Dashboard, or Configuration in the Partner
+     Dashboard): `customers/data_request`, `customers/redact` and
+     `shop/redact`, all to
+     `https://janoubona.net/api/integrations/shopify/webhooks`.
+   - `app/uninstalled` and `shop/update` need no setup: the app subscribes
+     the store to them itself on every connect (`register_webhooks`).
    - Shopify's app review is needed before any store but a development store
      can install it, and it can take weeks.
 2. **Variables on `api`.**
