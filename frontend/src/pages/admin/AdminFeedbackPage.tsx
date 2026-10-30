@@ -18,6 +18,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { GitBranch, MessageSquare, Paperclip, Plus, Trash2, UserRound } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { useSearchParams } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -76,7 +77,19 @@ export function AdminFeedbackPage() {
     groupByStatus([]),
   )
   const [activeTicket, setActiveTicket] = useState<FeedbackTicketSummary | null>(null)
-  const [openTicketId, setOpenTicketId] = useState<string | null>(null)
+  // A link from the Telegram copy carries the ticket to open: ?ticket=<id>.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [openTicketId, setOpenTicketIdState] = useState<string | null>(() =>
+    searchParams.get('ticket'),
+  )
+  const setOpenTicketId = (id: string | null) => {
+    setOpenTicketIdState(id)
+    if (!id && searchParams.has('ticket')) {
+      const next = new URLSearchParams(searchParams)
+      next.delete('ticket')
+      setSearchParams(next, { replace: true })
+    }
+  }
 
   useSeo({ title: t('admin.feedbackHeading'), noIndex: true })
 

@@ -246,7 +246,9 @@ def admin_path(change: Change, business_of_item: Callable[[str], str | None]) ->
     if table == "partner_requests":
         return "/admin/partners"
     if table.startswith("feedback_"):
-        return "/admin/feedback"
+        # Straight to the ticket, not the whole board.
+        ticket_id = row_id if table == "feedback_tickets" else refs.get("ticket_id")
+        return f"/admin/feedback?ticket={ticket_id}" if ticket_id else "/admin/feedback"
     if table == "discarded_applications":
         return "/admin/applications"
     if table == "story_images":
