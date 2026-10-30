@@ -36,6 +36,20 @@ class FeedbackUserOut(ORMModel):
     email: str | None = None
 
 
+class FeedbackReporterContactOut(BaseModel):
+    """Who sent a report and how to reach them, for the board's detail view.
+
+    Administrators only (the board is an admin route): an owner who writes
+    "I cannot add products" is called back, not left to wonder whether the
+    report arrived (the owners' request, 30 Oct 2026). The name is the
+    account's legal name, else its display name; the phone is the one it
+    signs in with.
+    """
+
+    name: str | None = None
+    phone: str | None = None
+
+
 class FeedbackTicketSummaryOut(ORMModel):
     """Card-sized payload for the Kanban board."""
 
@@ -58,6 +72,7 @@ class FeedbackTicketDetailOut(FeedbackTicketSummaryOut):
     page_path: str | None = None
     client_context: str | None = None
     resolved_at: datetime | None = None
+    reporter_contact: FeedbackReporterContactOut | None = None
     attachments: list[FeedbackAttachmentOut] = Field(default_factory=list)
     comments: list[FeedbackCommentOut] = Field(default_factory=list)
 

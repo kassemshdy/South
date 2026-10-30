@@ -140,7 +140,15 @@ QUEUE_SIZE = 2000
 # Which listing or account a row belongs to, kept whether or not it changed,
 # so the message can link to the screen where it is reviewed.
 REF_COLUMNS = frozenset(
-    {"business_id", "item_id", "profile_id", "talent_profile_id", "user_id", "owner_id"}
+    {
+        "business_id",
+        "item_id",
+        "profile_id",
+        "talent_profile_id",
+        "user_id",
+        "owner_id",
+        "ticket_id",
+    }
 )
 
 # Where a visitor's own name and phone are, when nobody is signed in.
@@ -246,7 +254,9 @@ def admin_path(change: Change, business_of_item: Callable[[str], str | None]) ->
     if table == "partner_requests":
         return "/admin/partners"
     if table.startswith("feedback_"):
-        return "/admin/feedback"
+        # Straight to the ticket, not the whole board.
+        ticket_id = row_id if table == "feedback_tickets" else refs.get("ticket_id")
+        return f"/admin/feedback?ticket={ticket_id}" if ticket_id else "/admin/feedback"
     if table == "discarded_applications":
         return "/admin/applications"
     if table == "story_images":

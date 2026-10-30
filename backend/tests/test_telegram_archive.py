@@ -440,3 +440,14 @@ def test_a_shop_description_keeps_its_line_breaks() -> None:
     message = archive.render(telegram_archive.Batch(name="Sam", phone=None, changes=[change]))
     assert message is not None
     assert f"{label('description')}: first line\nsecond line" in message.text
+
+
+def test_a_support_report_links_straight_to_its_ticket() -> None:
+    def no_business(_: str) -> None:
+        return None
+
+    Change = telegram_archive.Change
+    ticket = Change("created", "feedback_tickets", "t-1")
+    attachment = Change("created", "feedback_attachments", "a-1", refs={"ticket_id": "t-1"})
+    assert telegram_archive.admin_path(ticket, no_business) == "/admin/feedback?ticket=t-1"
+    assert telegram_archive.admin_path(attachment, no_business) == "/admin/feedback?ticket=t-1"
