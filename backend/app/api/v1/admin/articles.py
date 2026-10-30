@@ -143,8 +143,6 @@ def upload_cover(
     article = _get_or_404(repo, article_id)
 
     service = ImageService(get_storage(), settings)
-    service.delete(article.cover_storage_key)
-
     data = read_at_most(file.file, settings.max_upload_bytes)
     stored = service.process_and_store(
         data=data,
@@ -153,8 +151,12 @@ def upload_cover(
         kind=ImageKind.COVER,
         prefix="articles",
     )
+    # The old file goes only once the new one is stored and saved: deleting
+    # it first left the page pointing at nothing whenever the upload failed.
+    previous = article.cover_storage_key
     article.cover_url, article.cover_storage_key = stored.url, stored.key
     db.commit()
+    service.delete(previous)
     return admin_article_out(article)
 
 
