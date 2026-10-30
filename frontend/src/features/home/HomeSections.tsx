@@ -292,7 +292,12 @@ export function StatsSection() {
 export function ProductsSection() {
   const t = useT()
   const [origin, setOrigin] = useState<GoodsOrigin | undefined>(undefined)
-  const query: ProductQuery = { sort: 'newest', page_size: 8, ...(origin ? { origin } : {}) }
+  const query: ProductQuery = {
+    sort: 'newest',
+    page_size: 8,
+    one_per_shop: true,
+    ...(origin ? { origin } : {}),
+  }
   const products = useQuery({
     queryKey: queryKeys.products(query),
     queryFn: () => publicItemApi.search(query),
@@ -513,7 +518,12 @@ export function CategoryProductsSection() {
 }
 
 function CategoryRow({ category, more }: { category: Category; more: string }) {
-  const query: ProductQuery = { category: category.slug, sort: 'newest', page_size: 8 }
+  const query: ProductQuery = {
+    category: category.slug,
+    sort: 'newest',
+    page_size: 8,
+    one_per_shop: true,
+  }
   const products = useQuery({
     queryKey: queryKeys.products(query),
     queryFn: () => publicItemApi.search(query),

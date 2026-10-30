@@ -61,6 +61,9 @@ def search_products(
     # The visitor's position, for "nearest" only -- see search_businesses.
     near_lat: Annotated[float | None, Query(ge=-90, le=90, alias="lat")] = None,
     near_lng: Annotated[float | None, Query(ge=-180, le=180, alias="lng")] = None,
+    one_per_shop: Annotated[
+        bool, Query(description="Each shop's newest product only, for the home rows")
+    ] = False,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
 ) -> PaginatedResponse[ProductSummaryOut]:
@@ -87,6 +90,7 @@ def search_products(
         displaced=displaced,
         sort=sort,
         near=point_or_none(near_lat, near_lng),
+        one_per_shop=one_per_shop,
         page=page,
         page_size=page_size,
     )

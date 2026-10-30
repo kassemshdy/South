@@ -1,7 +1,7 @@
 """Newest first, everywhere a list has a default order (the owners'
-decision, 30 Oct 2026) -- and one product per shop on the newest products
-listing, so a shop that adds many products at once does not fill the page
-and the home rows on its own.
+decision, 30 Oct 2026). The directory lists every product; only the home
+rows ask for one per shop, and get it only once more than six shops have a
+product to show.
 """
 
 from __future__ import annotations
@@ -60,7 +60,7 @@ def _shop(
     return str(business["slug"]), titles
 
 
-def test_newest_products_show_one_per_shop_but_other_orders_show_all(
+def test_newest_products_list_every_product_newest_first(
     client: TestClient, db: Session, category: Category, location: Location
 ) -> None:
     busy, busy_titles = _shop(
@@ -83,23 +83,49 @@ def test_newest_products_show_one_per_shop_but_other_orders_show_all(
     )
 
     newest = client.get("/api/items").json()
-    assert newest["meta"]["total"] == 2
-    assert [item["business"]["slug"] for item in newest["items"]] == [quiet, busy]
-    assert [item["title"] for item in newest["items"]] == [quiet_titles[-1], busy_titles[-1]]
-
-    # A filter that is not a search still gets one per shop...
-    in_category = client.get("/api/items", params={"category": category.slug}).json()
-    assert in_category["meta"]["total"] == 2
-
-    # ...while any other order, or a text search, lists every product.
-    by_price = client.get("/api/items", params={"sort": "price_asc"}).json()
-    assert by_price["meta"]["total"] == 6
-    searched = client.get("/api/items", params={"q": ar("item.zaatar_local")}).json()
-    assert searched["meta"]["total"] == 6
+    assert newest["meta"]["total"] == 6
+    assert [item["title"] for item in newest["items"][:2]] == [
+        quiet_titles[-1],
+        busy_titles[-1],
+    ]
 
     # And the shop's own page still shows all of its products.
     shop = client.get(f"/api/businesses/{busy}").json()
     assert len(shop["items"]) == 5
+
+
+def test_home_rows_show_one_per_shop_only_once_more_than_six_shops_have_products(
+    client: TestClient, db: Session, category: Category, location: Location
+) -> None:
+    _shop(
+        client,
+        db,
+        phone="03960010",
+        name_key="business.manakish",
+        products=5,
+        category=category,
+        location=location,
+    )
+    home_row = {"one_per_shop": "true"}
+
+    # One shop alone: too few to spread out, so the row lists every product.
+    assert client.get("/api/items", params=home_row).json()["meta"]["total"] == 5
+
+    for index in range(6):
+        _shop(
+            client,
+            db,
+            phone=f"0396002{index}",
+            name_key="business.sweets_shop",
+            products=1,
+            category=category,
+            location=location,
+        )
+
+    # Seven shops: the home row takes each one's newest product...
+    assert client.get("/api/items", params=home_row).json()["meta"]["total"] == 7
+    # ...while the directory, which never asks, still lists all of them.
+    assert client.get("/api/items").json()["meta"]["total"] == 11
 
 
 def test_review_queue_lists_the_newest_submission_first(
