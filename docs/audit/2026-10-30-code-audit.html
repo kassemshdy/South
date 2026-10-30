@@ -1,0 +1,315 @@
+<title>Janoubona Code Audit</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: an engineering review dossier — single reading column, scorecard grid up top, findings as dense severity-striped tables. */
+:root{
+  --bg:#f6f5f0; --surface:#ffffff; --fg:#1f1e1c; --muted:#6b6a64; --line:#e3e0d6;
+  --accent:#41633a; --accent-soft:#e6ede1;
+  --crit:#a3271b; --high:#c2410c; --med:#a16207; --low:#4b6b8a; --ok:#3f7a3a;
+  --crit-bg:#fbe9e6; --high-bg:#fdeee3; --med-bg:#fbf3dd; --low-bg:#e9f0f6; --ok-bg:#e8f2e5;
+  --display:'Source Serif 4', Georgia, 'Times New Roman', serif;
+  --body:'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono:'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#161714; --surface:#1f201c; --fg:#ecebe5; --muted:#a3a29a; --line:#34352f;
+  --accent:#9cbd8a; --accent-soft:#263022;
+  --crit:#f08a7c; --high:#f3a26b; --med:#e3bf5e; --low:#8fb4d6; --ok:#9cc98f;
+  --crit-bg:#3a1f1b; --high-bg:#3a2617; --med-bg:#352c14; --low-bg:#1d2a35; --ok-bg:#1f2e1c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#161714; --surface:#1f201c; --fg:#ecebe5; --muted:#a3a29a; --line:#34352f;
+  --accent:#9cbd8a; --accent-soft:#263022;
+  --crit:#f08a7c; --high:#f3a26b; --med:#e3bf5e; --low:#8fb4d6; --ok:#9cc98f;
+  --crit-bg:#3a1f1b; --high-bg:#3a2617; --med-bg:#352c14; --low-bg:#1d2a35; --ok-bg:#1f2e1c; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.6 var(--body);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:1040px;margin:0 auto;padding-block:40px 64px;display:flex;flex-direction:column;gap:44px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.2}
+h1{font-size:clamp(30px,5vw,44px)}
+h2{font-size:26px;padding-bottom:8px;border-bottom:2px solid var(--fg)}
+h3{font-size:18px;margin-top:6px}
+p{margin:0;max-width:72ch}
+.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+header{display:flex;flex-direction:column;gap:12px}
+.meta{color:var(--muted);font-size:14px}
+code,.mono{font-family:var(--mono);font-size:.86em}
+section{display:flex;flex-direction:column;gap:16px}
+.lead{font-size:17px}
+/* scorecard */
+.scores{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.score{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:6px}
+.score .row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.score .name{font-weight:600}
+.grade{font:700 26px/1 var(--display)}
+.g-a{color:var(--ok)} .g-b{color:var(--accent)} .g-c{color:var(--med)} .g-d{color:var(--high)}
+.score p{font-size:13.5px;color:var(--muted)}
+/* tables */
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:9px 12px;border-bottom:1px solid var(--line)}
+th{font:600 12px/1.3 var(--mono);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);background:var(--bg)}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+td .loc{display:block;font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:2px;word-break:break-all}
+.sev{display:inline-block;font:600 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.04em;padding:4px 7px;border-radius:999px;white-space:nowrap}
+.s-crit{color:var(--crit);background:var(--crit-bg)} .s-high{color:var(--high);background:var(--high-bg)}
+.s-med{color:var(--med);background:var(--med-bg)} .s-low{color:var(--low);background:var(--low-bg)} .s-ok{color:var(--ok);background:var(--ok-bg)}
+/* phases */
+.phases{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.phase{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:8px}
+.phase h3{margin:0}
+.phase ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:14px}
+.phase .tag{font:500 12px var(--mono);color:var(--muted)}
+.good{background:var(--accent-soft);border-radius:10px;padding:16px 18px}
+.good ul{margin:8px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:3px}
+.bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;min-width:80px}
+.bar span{display:block;height:100%;background:var(--accent)}
+.bar.lo span{background:var(--high)} .bar.mid span{background:var(--med)}
+details{background:var(--surface);border:1px solid var(--line);border-radius:10px}
+summary{cursor:pointer;padding:12px 16px;font-weight:600}
+summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+details .tw{border:0;border-top:1px solid var(--line);border-radius:0 0 10px 10px}
+footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:16px}
+</style>
+
+<main>
+<header>
+  <span class="eyebrow">Engineering review · janoubona.net</span>
+  <h1>Janoubona Code Audit</h1>
+  <p class="meta">30 October 2026 · repository <span class="mono">kassemshdy/South</span> at <span class="mono">develop-claude</span> · FastAPI + SQLAlchemy + Postgres, React + Vite, MCP server · four read-only reviews plus a measured test-coverage run</p>
+  <p class="lead">The codebase is in good health where it matters most: every security rule the project set itself holds, errors are handled consistently, and there is no SQL injection or XSS path. The debt is structural. Routes do work that belongs in services, the business and service-provider halves of the app are copies of each other, and a handful of real defects in error reporting, caching and query loading are worth fixing first.</p>
+</header>
+
+<section>
+  <h2>Scorecard</h2>
+  <div class="scores">
+    <div class="score"><div class="row"><span class="name">Security</span><span class="grade g-b">B+</span></div><p>All Security Musts hold. One high issue: Sentry can capture passwords from crashing requests.</p></div>
+    <div class="score"><div class="row"><span class="name">Architecture &amp; SOLID</span><span class="grade g-c">C+</span></div><p>Layering leaks: 18 route modules query the DB, 87 commits in routes, 690-line <span class="mono">main.py</span>.</p></div>
+    <div class="score"><div class="row"><span class="name">DRY</span><span class="grade g-c">C</span></div><p>Business and talent duplicate moderation, admin lists, image storage, serializers and admin pages.</p></div>
+    <div class="score"><div class="row"><span class="name">Database &amp; indexes</span><span class="grade g-b">B−</span></div><p>Core indexes exist; ~10 missing or unusable indexes, 4 redundant ones, N+1 on item images.</p></div>
+    <div class="score"><div class="row"><span class="name">Caching &amp; performance</span><span class="grade g-c">C</span></div><p>Any write flushes the whole cache; invalidation is per container; no HTTP cache headers.</p></div>
+    <div class="score"><div class="row"><span class="name">Scalability</span><span class="grade g-c">C</span></div><p>Backups and Telegram jobs run in the API process; pool can exhaust Postgres at 3 replicas.</p></div>
+    <div class="score"><div class="row"><span class="name">Tests</span><span class="grade g-b" id="tests-grade">B</span></div><p id="tests-note">Backend 91% line+branch, MCP 79%, frontend unit 0%. Gaps: admin taxonomy, gallery routes, S3 backend.</p></div>
+    <div class="score"><div class="row"><span class="name">Comments &amp; docs</span><span class="grade g-b">B</span></div><p>Docstrings explain why. 8 stale comments; ~96 dated decision notes belong in an ADR log.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>What is already good</h2>
+  <div class="good">
+    <p>Checked against the code, not assumed:</p>
+    <ul>
+      <li>All 137 <span class="mono">/api/admin/*</span> routes go through <span class="mono">require_admin</span>; every admin write has a <span class="mono">permissions.WRITES</span> entry.</li>
+      <li>Every owner route is scoped to the signed-in owner; child ids are always filtered by their parent.</li>
+      <li>Private media folders are refused by the <span class="mono">/media</span> mount; storage keys are server-generated, path traversal is blocked.</li>
+      <li>No SQL built from f-strings; no <span class="mono">dangerouslySetInnerHTML</span>; CSV export guards formulas; JSON-LD is escaped.</li>
+      <li>Errors go through one hierarchy in <span class="mono">core/errors.py</span>; no bare <span class="mono">HTTPException</span>.</li>
+      <li>TypeScript is strict with effectively zero <span class="mono">any</span>; data fetching is all react-query with sensible stale times.</li>
+      <li>Storage is a clean strategy pattern (local disk / S3) behind one factory.</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <h2>Top 15 risks</h2>
+  <p>Ordered by impact over effort. Each becomes its own small pull request.</p>
+  <div class="tw"><table>
+    <thead><tr><th>#</th><th>Sev</th><th>Finding</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td><span class="sev s-high">High</span></td><td>Sentry records stack-frame locals; a crashing login or registration sends the typed password and identity fields.<span class="loc">backend/app/core/observability.py:97 · schemas/auth.py:58</span></td><td><span class="mono">include_local_variables=False</span>, <span class="mono">repr=False</span> on secret fields, a test.</td></tr>
+      <tr><td class="num">2</td><td><span class="sev s-high">High</span></td><td>A backslash in a business, product or profile name makes its page return 500 permanently (user text used as a regex replacement).<span class="loc">backend/app/core/seo.py:70,76,102</span></td><td>Pass a lambda to <span class="mono">re.sub</span>; regression test.</td></tr>
+      <tr><td class="num">3</td><td><span class="sev s-high">High</span></td><td>N+1: every product's images load one query at a time on shop pages and the admin business list.<span class="loc">repositories/business.py:42 · api/serializers.py:91</span></td><td><span class="mono">selectinload(Business.items).selectinload(BusinessItem.images)</span>.</td></tr>
+      <tr><td class="num">4</td><td><span class="sev s-high">High</span></td><td>Any successful write anywhere (login, order, review) empties the whole public cache; hit rate collapses under normal traffic.<span class="loc">core/cache.py:202-213</span></td><td>Invalidate only on routes that change public data.</td></tr>
+      <tr><td class="num">5</td><td><span class="sev s-high">High</span></td><td>Cache invalidation lives in each container's <span class="mono">/tmp</span>; with 2+ replicas a suspended listing stays visible up to the TTL.<span class="loc">core/cache.py · config.py:92</span></td><td>Keep the cache version in Postgres.</td></tr>
+      <tr><td class="num">6</td><td><span class="sev s-high">High</span></td><td><span class="mono">rate_limit_events</span> is never purged and grows forever; check-then-insert can race past limits.<span class="loc">core/rate_limit.py:102</span></td><td>Scheduled purge; advisory lock around check+insert.</td></tr>
+      <tr><td class="num">7</td><td><span class="sev s-high">High</span></td><td>DB pool (2 workers × 15) exhausts Postgres at ~3 replicas; sessions stay open while images are decoded and uploaded.<span class="loc">core/config.py:96 · services/images.py:133</span></td><td>Size pool to threads or add PgBouncer; no session during image work.</td></tr>
+      <tr><td class="num">8</td><td><span class="sev s-med">Med</span></td><td>Covers are deleted before the new image is stored; a failed upload leaves the page pointing at a missing file. Five copies.<span class="loc">workshops.py:299 · jobs.py:367 · reels.py:205 · admin/articles.py:135 · team.py</span></td><td>Store new, then swap, then delete old; one shared service.</td></tr>
+      <tr><td class="num">9</td><td><span class="sev s-med">Med</span></td><td>No pixel limit on uploaded images; a 5&nbsp;MB PNG can allocate hundreds of MB.<span class="loc">services/images.py:192</span></td><td><span class="mono">Image.MAX_IMAGE_PIXELS</span>, catch the bomb error.</td></tr>
+      <tr><td class="num">10</td><td><span class="sev s-med">Med</span></td><td>No request body limit; FastAPI/Starlette are behind two CVE fixes.<span class="loc">frontend/Caddyfile · requirements.txt</span></td><td>Caddy <span class="mono">request_body max_size</span>; upgrade.</td></tr>
+      <tr><td class="num">11</td><td><span class="sev s-med">Med</span></td><td>Product search can't use its trigram index (<span class="mono">lower(title)</span>) and misses Arabic spelling variants.<span class="loc">repositories/business.py:146</span></td><td>Match on the normalised, indexed <span class="mono">search_text</span>.</td></tr>
+      <tr><td class="num">12</td><td><span class="sev s-med">Med</span></td><td>Login is limited per phone number only; one host can spray a common password across all numbers.<span class="loc">services/auth.py:52,194</span></td><td>Add a per-IP limit.</td></tr>
+      <tr><td class="num">13</td><td><span class="sev s-med">Med</span></td><td>Hourly Telegram backup builds a full <span class="mono">pg_dump</span> in memory inside the API; queued archive messages are lost on restart.<span class="loc">services/telegram_db_backup.py:113 · telegram_archive.py:420</span></td><td>Separate worker; durable outbox table.</td></tr>
+      <tr><td class="num">14</td><td><span class="sev s-med">Med</span></td><td>Business and talent moderation, admin lists, image routes and serializers are near-identical copies.<span class="loc">services/moderation.py · talent_moderation.py · repositories/*.list_for_admin</span></td><td>Generic listing base + one moderation service.</td></tr>
+      <tr><td class="num">15</td><td><span class="sev s-med">Med</span></td><td>Admin locations and category edit/delete are untested at every level; the back of the ID document has no access test.<span class="loc">admin/taxonomy.py:72-182 · auth.py:231 · admin/users.py:92</span></td><td>Backend tests + an e2e for taxonomy admin.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>Test coverage</h2>
+  <p id="cov-intro">Measured on <span class="mono">develop-claude</span> with <span class="mono">pytest --cov --cov-branch</span> against a real Postgres.</p>
+  <div class="tw"><table id="cov-summary">
+    <thead><tr><th>Component</th><th class="num">Line + branch coverage</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Backend (<span class="mono">app/</span>)</td><td class="num" id="cov-backend">91.1%</td><td id="cov-backend-note">759 tests in 5 min 37 s on 4 workers; 9,635 of 10,317 statements and 1,382 of 1,770 branches covered. One local-only failure (<span class="mono">test_seed</span> needs <span class="mono">ADMIN_PASSWORD</span>, set in CI).</td></tr>
+      <tr><td>MCP server</td><td class="num">79%</td><td>62 tests; <span class="mono">__main__</span> 0%, <span class="mono">server.py</span> 79%, redaction 100%</td></tr>
+      <tr><td>Frontend unit</td><td class="num">0%</td><td>vitest installed, no tests and no config</td></tr>
+      <tr><td>Frontend e2e</td><td class="num">—</td><td>18 Playwright specs, 36 tests; 24 of 31 admin pages and the owner item editor not covered</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Least covered backend modules</h3>
+  <div class="tw"><table id="cov-low">
+    <thead><tr><th>Module</th><th class="num">Coverage</th><th></th></tr></thead>
+    <tbody><tr><td><span class="mono">services/youtube_covers.py</span><span class="loc">Network fetch of video thumbnails; no test stubs the HTTP call</span></td><td class="num">28%</td><td style="width:30%"><div class="bar lo"><span style="width:28%"></span></div></td></tr><tr><td><span class="mono">api/v1/admin/taxonomy.py</span><span class="loc">Locations CRUD and category edit/delete never called</span></td><td class="num">35%</td><td style="width:30%"><div class="bar lo"><span style="width:35%"></span></div></td></tr><tr><td><span class="mono">api/v1/images.py</span><span class="loc">Business gallery reorder, single delete, clear gallery</span></td><td class="num">43%</td><td style="width:30%"><div class="bar lo"><span style="width:43%"></span></div></td></tr><tr><td><span class="mono">storage/s3.py</span><span class="loc">Bucket backend; tests use local disk</span></td><td class="num">58%</td><td style="width:30%"><div class="bar lo"><span style="width:58%"></span></div></td></tr><tr><td><span class="mono">api/v1/talent_images.py</span><span class="loc">Talent gallery reorder and deletes</span></td><td class="num">60%</td><td style="width:30%"><div class="bar mid"><span style="width:60%"></span></div></td></tr><tr><td><span class="mono">repositories/taxonomy.py</span><span class="loc">Location queries behind the untested admin routes</span></td><td class="num">61%</td><td style="width:30%"><div class="bar mid"><span style="width:61%"></span></div></td></tr><tr><td><span class="mono">api/v1/workshops.py</span><span class="loc">Unpublish and image routes</span></td><td class="num">73%</td><td style="width:30%"><div class="bar mid"><span style="width:73%"></span></div></td></tr><tr><td><span class="mono">api/v1/jobs.py</span><span class="loc">Unpublish and application delete</span></td><td class="num">78%</td><td style="width:30%"><div class="bar mid"><span style="width:78%"></span></div></td></tr><tr><td><span class="mono">api/v1/admin/articles.py</span><span class="loc">Article image upload and removal</span></td><td class="num">80%</td><td style="width:30%"><div class="bar mid"><span style="width:80%"></span></div></td></tr><tr><td><span class="mono">api/v1/stories.py</span><span class="loc">Talent and admin story deletes</span></td><td class="num">82%</td><td style="width:30%"><div class="bar "><span style="width:82%"></span></div></td></tr></tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>All findings by area</h2>
+  <p>Condensed from about 170 findings across the four reviews. Severity is the reviewer's, checked against the code.</p>
+
+  <details open><summary>Security (25)</summary><div class="tw"><table>
+    <thead><tr><th>Sev</th><th>Finding</th><th>Fix</th></tr></thead><tbody>
+    <tr><td><span class="sev s-high">High</span></td><td>Sentry captures frame locals incl. passwords<span class="loc">core/observability.py:97</span></td><td>Disable locals; secret fields</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Telegram client errors send the bot URL (token) and owner phones to Sentry<span class="loc">services/telegram_archive.py:650</span></td><td>Catch <span class="mono">httpx.HTTPError</span>, log without exc_info</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>SEO regex replacement crash (permanent 500)<span class="loc">core/seo.py:70</span></td><td>Lambda replacement</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>No image pixel cap (decompression bomb)<span class="loc">services/images.py:192</span></td><td>MAX_IMAGE_PIXELS</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>No request body limit; Starlette CVEs<span class="loc">Caddyfile · requirements.txt</span></td><td>Cap + upgrade</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Frontend Sentry breadcrumbs carry <span class="mono">?q=</span> and lat/lng<span class="loc">frontend/src/main.tsx:25</span></td><td>beforeBreadcrumb strips query</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Staging front sends no CSP / X-Frame-Options / HSTS while using live data<span class="loc">frontend/Caddyfile.staging:37</span></td><td>Copy headers</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Login limited per identifier only<span class="loc">services/auth.py:52</span></td><td>Per-IP limit</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Weak <span class="mono">SECRET_KEY</span> (e.g. "abc") boots in production<span class="loc">core/config.py:316</span></td><td>Require ≥32 chars</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Admin tokens live 14 days in localStorage<span class="loc">core/config.py:103</span></td><td>Shorter admin TTL (owners' call)</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Orders, testimonials, service requests have no captcha<span class="loc">services/order.py:71 …</span></td><td>Captcha or IP-first limits (owners' call)</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>Global 100/day registration budget can be exhausted by anyone<span class="loc">services/registration.py:110</span></td><td>Count only captcha-passing submissions</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>Failed sign-ins log the phone / email; <span class="mono">email</span> not in SENSITIVE_KEYS<span class="loc">services/auth.py:146</span></td><td>Log a hash; widen keys</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td><span class="mono">/me/password</span> and <span class="mono">/me/delete</span> not rate-limited<span class="loc">api/v1/auth.py:97</span></td><td>Reuse login limiter</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>Unlimited feedback tickets with 8×8 MB attachments<span class="loc">api/v1/feedback.py:54</span></td><td>Per-user limit</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>Client IP trust depends on API having no public domain<span class="loc">docker-entrypoint.sh:31</span></td><td>Confirm / verify peer</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>CORS <span class="mono">allow_credentials=True</span> with bearer tokens<span class="loc">main.py:270</span></td><td>Set False</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>CSP allows <span class="mono">img-src https:</span> and inline styles<span class="loc">core/config.py:42</span></td><td>Narrow</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>HSTS only in production<span class="loc">main.py:265</span></td><td>Use is_hardened</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>Runtime image runs as root<span class="loc">backend/Dockerfile:41</span></td><td>Non-root USER</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>LIKE wildcards not escaped in searches<span class="loc">repositories/business.py:225</span></td><td>escape='\\'</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>Owner PDFs served inline on the app origin<span class="loc">api/v1/admin/feedback.py:181</span></td><td>attachment disposition</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>Transitive deps unlocked; Pillow and sentry-sdk ~1 year old<span class="loc">requirements.txt</span></td><td>Lock file; upgrade</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>Stale "single-use password" docstring; <span class="mono">/api/health</span> reveals env<span class="loc">core/passwords.py:1 · main.py:286</span></td><td>Fix text; return ok</td></tr>
+  </tbody></table></div></details>
+
+  <details><summary>Database, indexes, performance &amp; caching (32)</summary><div class="tw"><table>
+    <thead><tr><th>Sev</th><th>Finding</th><th>Fix</th></tr></thead><tbody>
+    <tr><td><span class="sev s-high">High</span></td><td>N+1 on item images (shop page, owner list, admin list)<span class="loc">repositories/business.py:42</span></td><td>Nested selectinload</td></tr>
+    <tr><td><span class="sev s-high">High</span></td><td>Product search on <span class="mono">lower(title)</span> skips the trigram index<span class="loc">repositories/business.py:146</span></td><td>Use search_text</td></tr>
+    <tr><td><span class="sev s-high">High</span></td><td>Whole-cache flush on any write<span class="loc">core/cache.py:202</span></td><td>Targeted invalidation</td></tr>
+    <tr><td><span class="sev s-high">High</span></td><td>Per-container cache version<span class="loc">core/cache.py</span></td><td>Version in Postgres</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Card lists load all items, images, links per shop (over-fetch)<span class="loc">repositories/business.py:35 · talent.py:58</span></td><td>Summary vs detail loaders</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Email login filters <span class="mono">lower(email)</span> with no matching index<span class="loc">repositories/user.py:22</span></td><td><span class="mono">UNIQUE (lower(email))</span></td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Newest-products sort and per-shop window have no index<span class="loc">repositories/item.py:321,334</span></td><td>Partial + composite created_at indexes</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td><span class="mono">func.date(orders.created_at)</span> filter; no orders.created_at index<span class="loc">repositories/item.py:157</span></td><td>Range filter + index</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td><span class="mono">order_lines.item_id</span> FK unindexed<span class="loc">models/order.py:82</span></td><td>Partial index</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Duplicate index on <span class="mono">listing_view_daily</span>; top-viewed scans by type<span class="loc">models/analytics.py:50</span></td><td>Replace with (type, day) INCLUDE</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Search-as-you-type: ~12-15 queries per keystroke incl. unused COUNT<span class="loc">api/v1/search.py:46</span></td><td>Light suggest()</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Every paginated search evaluates the filter twice (COUNT + page)<span class="loc">repositories/*.search_public</span></td><td><span class="mono">count(*) over()</span></td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>View counter upsert + commit on every detail view<span class="loc">services/analytics.py</span></td><td>Buffer / background task</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Cache fill race after invalidation; no byte budget; raw query strings as keys<span class="loc">core/cache.py:239</span></td><td>Version check; budget; skip q/nearest</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>No Cache-Control / ETag on public JSON; <span class="mono">/assets</span> not immutable<span class="loc">core/cache.py · main.py:430</span></td><td>Add headers</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>SEO HTML re-reads index.html and runs full loaders per request<span class="loc">main.py:493</span></td><td>Read once; cache tags</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Signed-in users bypass cache on public pages (token on every request)<span class="loc">core/dependencies.py:215</span></td><td>Omit token on public GETs</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td><span class="mono">coalesce(...)</span> recency sorts unindexed<span class="loc">repositories/business.py:243,302</span></td><td>Expression indexes</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>4 redundant single-column indexes<span class="loc">businesses.status, talent.status, orders.business_id, testimonials.business_id</span></td><td>DROP CONCURRENTLY</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>Admin search: leading-wildcard ILIKE and regexp phone match with no trigram index<span class="loc">repositories/user.py:53 · admin_search.py:36</span></td><td>Trigram indexes / phone_digits column</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>2-char search terms can't use trigram<span class="loc">api/v1/search.py</span></td><td>Min length 3</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>Per-row COUNT in admin workshops/jobs lists; users list counts all owners<span class="loc">workshops.py:190 · jobs.py:271 · admin/stats.py:155</span></td><td>GROUP BY once</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>Taxonomy endpoints run 2-4 aggregates each<span class="loc">api/v1/taxonomy.py:47</span></td><td>COUNT FILTER, longer TTL</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>Unindexed FKs on rare deletes<span class="loc">approved_by, moderation actions, …</span></td><td>Index or accept</td></tr>
+  </tbody></table></div></details>
+
+  <details><summary>Scalability &amp; operations (10)</summary><div class="tw"><table>
+    <thead><tr><th>Sev</th><th>Finding</th><th>Fix</th></tr></thead><tbody>
+    <tr><td><span class="sev s-high">High</span></td><td>Connection budget exhausts Postgres at ~3 replicas<span class="loc">core/config.py:96</span></td><td>Pool sizing / PgBouncer</td></tr>
+    <tr><td><span class="sev s-high">High</span></td><td>Unbounded <span class="mono">rate_limit_events</span>; racy limits<span class="loc">core/rate_limit.py:102</span></td><td>Purge; advisory lock</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Backups and Telegram DB copy run in-process, dumps buffered in memory<span class="loc">services/telegram_db_backup.py:113 · db_backup.py:88</span></td><td>Separate cron/worker</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Telegram archive queue is in memory per worker; lost on deploy; rate limit per process<span class="loc">services/telegram_archive.py:420</span></td><td>Durable outbox</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Migrations rewrite tables under exclusive locks at boot; no lock/statement timeouts<span class="loc">alembic/versions/3c91d4e2f7a8 …</span></td><td>Timeouts in env.py; ADD VALUE</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>Boot runs dump, migrations, seeding, media copy before serving<span class="loc">docker-entrypoint.sh</span></td><td>Release step</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>Expired stories purged inside requests<span class="loc">services/stories.py:68</span></td><td>Scheduled job</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>No index migration uses CONCURRENTLY<span class="loc">alembic/versions</span></td><td>Use concurrent form</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>Autogenerate keeps proposing to drop trigram indexes<span class="loc">alembic/env.py</span></td><td>include_object / declare in models</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>Two merge revisions in history<span class="loc">0aa27d4f9f5a · a2d2e3589dee</span></td><td>CI single-head check</td></tr>
+  </tbody></table></div></details>
+
+  <details><summary>Architecture, SOLID, DRY &amp; design patterns (30)</summary><div class="tw"><table>
+    <thead><tr><th>Sev</th><th>Finding</th><th>Fix</th></tr></thead><tbody>
+    <tr><td><span class="sev s-high">High</span></td><td>18 route modules run their own queries; 9 features have no repository or service<span class="loc">workshops.py, jobs.py, reels.py, activities.py, partners.py, team.py, pages.py …</span></td><td>Repositories + services; routes keep HTTP only</td></tr>
+    <tr><td><span class="sev s-high">High</span></td><td>No single owner of the transaction: 87 commits in routes, 21 services also commit<span class="loc">jobs.py (10), workshops.py (9), admin/taxonomy.py (9) …</span></td><td>Services commit, routes never</td></tr>
+    <tr><td><span class="sev s-high">High</span></td><td>Business logic in route modules imported by other routes<span class="loc">api/v1/images.py:123 · talent_images.py:32</span></td><td>Move to services</td></tr>
+    <tr><td><span class="sev s-high">High</span></td><td><span class="mono">main.py</span> (690 lines): factory, lifespan jobs, handlers, media, S3 proxy, SEO render, SPA fallback; one function is 277 lines<span class="loc">app/main.py:411,492</span></td><td>Split into web/spa, web/media, core/handlers</td></tr>
+    <tr><td><span class="sev s-high">High</span></td><td>Moderation service copied for talent (60-line <span class="mono">_transition</span> twice)<span class="loc">services/moderation.py:49 · talent_moderation.py:34</span></td><td>One generic service</td></tr>
+    <tr><td><span class="sev s-high">High</span></td><td>Admin listing, image storage and 4 owner image routes duplicated per listing type<span class="loc">repositories/*:213 · images.py · talent_images.py</span></td><td>Listing base + ListingImageService</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Five more duplicated repository methods; hand-rolled pagination in 5+ places<span class="loc">search_public, count_by_status, recently_approved …</span></td><td><span class="mono">_paginate</span> helper, mixin</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Serializers (528 lines) rebuild payloads layer by layer with repeated <span class="mono">model_dump()</span><span class="loc">api/serializers.py</span></td><td>Split by domain; compose once</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Anti-abuse block copied in 3 routes, all using the "partner" setting<span class="loc">partners.py · workshops.py · jobs.py:80</span></td><td>Shared guard + own settings</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Services built by hand in routes (<span class="mono">ImageService(get_storage(), settings)</span> 30+ times)<span class="loc">jobs.py, auth.py, admin/articles.py …</span></td><td>Depends providers</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td><span class="mono">telegram_archive.py</span> (752 lines) mixes capture, batching, formatting, HTTP<span class="loc">services/telegram_archive.py</span></td><td>Split</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td><span class="mono">GrowthReportService</span>: 15 methods, 14 raw selects, persistence mixed in<span class="loc">services/growth_report.py:72</span></td><td>Query object + store</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Route-to-route dependency (seo imports jobs)<span class="loc">api/v1/seo.py:17</span></td><td>Move helper to repository</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Upload size checks duplicated in some routes, missing in others<span class="loc">images.py:52 vs workshops.py:310 …</span></td><td>One policy in the service</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>Talent uses <span class="mono">BusinessStatus</span> and <span class="mono">ImageKind.LOGO</span> for its photo<span class="loc">models/talent.py:35</span></td><td>Neutral ListingStatus</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td><span class="mono">S3Storage.keys()</span> missing from the storage protocol<span class="loc">storage/s3.py:102</span></td><td>Add to protocol</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>Magic numbers (86400, MAX_LISTED=60 ×3, timeouts, page sizes)<span class="loc">partners.py:53 …</span></td><td>Named settings</td></tr>
+  </tbody></table></div></details>
+
+  <details><summary>Tech debt &amp; dead code (8)</summary><div class="tw"><table>
+    <thead><tr><th>Sev</th><th>Finding</th><th>Fix</th></tr></thead><tbody>
+    <tr><td><span class="sev s-med">Med</span></td><td>12 unused functions (<span class="mono">make_repository</span> ×3, <span class="mono">clamp_page_size</span>, <span class="mono">constant_time_equals</span>, <span class="mono">get_cache</span>, <span class="mono">is_valid_phone</span>, <span class="mono">to_whatsapp_number</span>, <span class="mono">translate_all</span>, <span class="mono">available_locales</span>, <span class="mono">all_for</span>, <span class="mono">list_by_type</span>)</td><td>Delete</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td><span class="mono">must_change_password</span> kept as a kill switch but never set<span class="loc">models/user.py:117</span></td><td>Owners decide: keep and document, or remove</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Frontend API types hand-written (~2,600 lines) with no drift check<span class="loc">types/api.ts · endpoints.ts</span></td><td>Generate from OpenAPI</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>26 public pages loaded eagerly; main bundle 864 KB<span class="loc">frontend/src/App.tsx:11</span></td><td>Lazy routes</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Near-duplicate admin pages (categories/skills/locations; business/talent review; content admins)<span class="loc">pages/admin/*</span></td><td>Shared components</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>Literal react-query keys and broad <span class="mono">['admin']</span> invalidations<span class="loc">AdminTestimonialsPage.tsx:75 …</span></td><td>queryKeys helpers</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>877-line <span class="mono">ItemManager.tsx</span> with an exhaustive-deps disable<span class="loc">features/items/ItemManager.tsx:124</span></td><td>Split; fix deps</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>~25 unused i18n keys; broken <span class="mono">npm run lint</span> (no ESLint)<span class="loc">i18n/locales · package.json</span></td><td>Delete; install or remove</td></tr>
+  </tbody></table></div></details>
+
+  <details><summary>Tests &amp; code comments (18)</summary><div class="tw"><table>
+    <thead><tr><th>Sev</th><th>Finding</th><th>Fix</th></tr></thead><tbody>
+    <tr><td><span class="sev s-high">High</span></td><td>Admin locations CRUD and category edit/delete untested (backend and e2e)<span class="loc">admin/taxonomy.py:72-182</span></td><td>Tests</td></tr>
+    <tr><td><span class="sev s-high">High</span></td><td>Back-of-ID-document routes have no access tests<span class="loc">auth.py:231 · admin/users.py:92</span></td><td>Owner/admin/other tests</td></tr>
+    <tr><td><span class="sev s-high">High</span></td><td>No frontend unit tests; <span class="mono">npm test</span> finds nothing<span class="loc">frontend/src</span></td><td>vitest config + pure-logic tests in CI</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Reorder endpoints, single-image deletes, pending queues, talent reactivate untested<span class="loc">images.py:94 · items.py:215 · admin/talent.py:62,103</span></td><td>Tests</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>No unit tests for pure backend logic (transitions, slug, sort)<span class="loc">services/moderation.py …</span></td><td>Unit tests</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>24 of 31 admin pages, owner item editor and many public pages have no e2e<span class="loc">frontend/e2e</span></td><td>Approve flow, item edit, taxonomy specs</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Truncate-all-tables before every test (cost scales with test × table count)<span class="loc">tests/conftest.py:84</span></td><td>Transaction rollback fixture</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>mcp read tools never called in tests<span class="loc">mcp-server/south_mcp/server.py:108-304</span></td><td>Tests</td></tr>
+    <tr><td><span class="sev s-high">High</span></td><td>Stale comment: product views "not reported", but top-viewed uses them<span class="loc">services/analytics.py:142</span></td><td>Fix</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Stale: Telegram "three lines"; "newest first everywhere" vs story queue oldest-first; destinations "two doors" (three)<span class="loc">telegram_archive.py:4 · business.py:238 · destinations.ts:50,92</span></td><td>Fix text or code</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>~96 dated "owners' decision" notes in code<span class="loc">backend 47 · frontend 38 · tests 11</span></td><td><span class="mono">docs/decisions/</span> log; one-line rule + link</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>10 long functions with no docstring (e.g. <span class="mono">GrowthReportService.build</span>, 113 lines)<span class="loc">services/growth_report.py:76 …</span></td><td>Docstrings</td></tr>
+    <tr><td><span class="sev s-med">Med</span></td><td>Large frontend pages almost uncommented (0.02-0.04 ratio)<span class="loc">AdminReviewPage.tsx · TalentProfilePage.tsx · AdminGrowthPage.tsx</span></td><td>Explain the non-obvious</td></tr>
+    <tr><td><span class="sev s-low">Low</span></td><td>History and debugging stories in comments<span class="loc">main.py:152 …</span></td><td>Move to commit messages</td></tr>
+  </tbody></table></div></details>
+</section>
+
+<section>
+  <h2>Remediation roadmap</h2>
+  <p>Every item is a small pull request into <span class="mono">develop-claude</span>, green on all four CI jobs, then released. Refactors change no test expectations; fixes land with a test that fails before and passes after.</p>
+  <div class="phases">
+    <div class="phase"><span class="tag">Phase 0 · days</span><h3>Security and correctness</h3><ul>
+      <li>Sentry locals off, secret fields, frontend breadcrumb scrub</li><li>SEO regex crash</li><li>Image pixel cap; body size cap; FastAPI/Starlette upgrade</li><li>Covers: store new before deleting old</li><li>SECRET_KEY length, staging headers, CORS credentials, health endpoint</li><li>Per-IP login limit; purge and lock rate-limit events</li></ul></div>
+    <div class="phase"><span class="tag">Phase 1 · ~1 week</span><h3>Database and performance</h3><ul>
+      <li>Fix N+1 on item images; summary vs detail loaders</li><li>One concurrent index migration (8 add, 5 drop)</li><li>Product search on search_text; date filter rewrite</li><li>Targeted cache invalidation, DB-backed version, HTTP cache headers</li><li>Light search suggest; count(*) over()</li></ul></div>
+    <div class="phase"><span class="tag">Phase 2 · ~1 week</span><h3>Tests</h3><ul>
+      <li>Untested routes: taxonomy, ID back, reorders, queues</li><li>Unit tests for pure logic</li><li>vitest setup + frontend logic tests in CI</li><li>E2E: approve flow, item editor, taxonomy</li><li>Coverage report and single-head check in CI</li></ul></div>
+    <div class="phase"><span class="tag">Phase 3 · 2-3 weeks</span><h3>Refactors (DRY, SOLID)</h3><ul>
+      <li>ListingImageService + CoverImageService; DI providers</li><li>Listing base repository; one moderation service; serializers by domain</li><li>Repositories/services for workshops, jobs, reels, activities, pages</li><li>Services own commits</li><li>Split main.py and telegram_archive.py</li><li>Frontend: lazy routes, shared admin pages, split ItemManager</li></ul></div>
+    <div class="phase"><span class="tag">Phase 4 · ~1 week</span><h3>Scalability</h3><ul>
+      <li>Backups and Telegram jobs to a worker; durable outbox</li><li>Pool sizing or PgBouncer; no session during image work</li><li>Buffered view counter</li><li>Migration timeouts; non-root image; locked dependencies</li></ul></div>
+    <div class="phase"><span class="tag">Phase 5 · ongoing</span><h3>Comments and docs</h3><ul>
+      <li><span class="mono">docs/decisions/</span> for dated decisions</li><li>Fix 8 stale comments</li><li>Docstrings on long functions</li><li>Delete dead code and unused i18n keys</li></ul></div>
+  </div>
+</section>
+
+<section>
+  <h2>Decisions for the owners</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Question</th><th>Trade-off</th></tr></thead><tbody>
+    <tr><td>Keep <span class="mono">must_change_password</span> as a kill switch?</td><td>Kept on purpose today; removing it simplifies auth code and one test.</td></tr>
+    <tr><td>Shorter admin session (e.g. 12 hours)?</td><td>Limits the damage of a stolen token; staff sign in more often.</td></tr>
+    <tr><td>Captcha on orders, reviews and service requests?</td><td>Stops budget-exhaustion abuse; adds a step for real customers.</td></tr>
+    <tr><td>Separate worker service for backups and Telegram?</td><td>Takes heavy jobs out of the website process; a small extra hosting cost.</td></tr>
+  </tbody></table></div>
+</section>
+
+<footer>Prepared from four read-only code reviews and a measured coverage run on 30 Oct 2026. File references are relative to the repository root unless they start with <span class="mono">services/</span>, <span class="mono">repositories/</span>, <span class="mono">api/</span>, <span class="mono">core/</span> or <span class="mono">models/</span>, which are under <span class="mono">backend/app/</span>.</footer>
+</main>
