@@ -31,6 +31,11 @@ SortOption = Literal[
 ]
 
 
+#: The home rows show one product per shop only while more shops than this
+#: have a product to show; below it they list every product.
+ONE_PER_SHOP_MIN = 6
+
+
 class ItemRepository(BaseRepository[BusinessItem]):
     model = BusinessItem
 
@@ -319,14 +324,12 @@ class ItemRepository(BaseRepository[BusinessItem]):
     def _latest_per_shop(stmt: Select[tuple[BusinessItem]]) -> Select[tuple[BusinessItem]]:
         """Keep each shop's most recent product only.
 
-        Newest first is the default order, and a shop that adds twenty
-        products at once would otherwise fill the first page and the home
-        rows on its own (the owners' request, 30 Oct 2026). Applied to the
-        newest order with or without a category, town or origin filter, but
-        not to a text search, where someone is looking for a product rather
-        than browsing, nor to any other order; a shop's own page lists all
-        of its products. Done in the query, so the total and the pages count
-        shops rather than products.
+        Asked for by the home page's product rows alone (``one_per_shop``),
+        so a shop that adds twenty products at once does not fill a row on
+        its own; the directory lists every product (the owners' decision,
+        30 Oct 2026). Applied only while more than ``ONE_PER_SHOP_MIN``
+        shops have a product in the row's filter, because with fewer the
+        row would show a handful of cards rather than a varied one.
         """
         ranked = stmt.with_only_columns(
             BusinessItem.id,
@@ -349,6 +352,7 @@ class ItemRepository(BaseRepository[BusinessItem]):
         displaced: bool = False,
         sort: SortOption = "newest",
         near: Point | None = None,
+        one_per_shop: bool = False,
         page: int = 1,
         page_size: int = 12,
     ) -> Page[BusinessItem]:
@@ -361,8 +365,12 @@ class ItemRepository(BaseRepository[BusinessItem]):
             origin=origin,
             displaced=displaced,
         )
-        if sort == "newest" and not q:
-            filtered = self._latest_per_shop(filtered)
+        if one_per_shop and sort == "newest" and not q:
+            shops = self.db.execute(
+                select(func.count(func.distinct(filtered.subquery().c.business_id)))
+            ).scalar_one()
+            if shops > ONE_PER_SHOP_MIN:
+                filtered = self._latest_per_shop(filtered)
 
         total = int(
             self.db.execute(select(func.count()).select_from(filtered.subquery())).scalar_one()
