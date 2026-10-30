@@ -149,12 +149,27 @@ def test_review_queue_lists_the_newest_submission_first(
         category=category,
         location=location,
     )
+    # An application from the public form: pending from creation, with no
+    # submitted_at. It is the newest, so it must head the queue.
+    applied, _ = _shop(
+        client,
+        db,
+        phone="03960005",
+        name_key="business.manakish",
+        products=0,
+        category=category,
+        location=location,
+    )
     now = datetime.now(UTC)
-    for slug, submitted in ((older, now - timedelta(days=2)), (newer, now - timedelta(hours=1))):
+    for slug, submitted in (
+        (older, now - timedelta(days=2)),
+        (newer, now - timedelta(hours=1)),
+        (applied, None),
+    ):
         record = db.query(Business).filter(Business.slug == slug).one()
         record.status = BusinessStatus.PENDING_REVIEW
         record.submitted_at = submitted
     db.commit()
 
     queue = client.get("/api/admin/businesses/pending", headers=admin_headers(client)).json()
-    assert [row["slug"] for row in queue["items"]] == [newer, older]
+    assert [row["slug"] for row in queue["items"]] == [applied, newer, older]
