@@ -2,11 +2,18 @@
 
 from __future__ import annotations
 
+import logging
 from functools import lru_cache
 from typing import Annotated, Literal
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
+
+#: The shortest SECRET_KEY a deployed process should run with: it signs every
+#: session, and a short one can be guessed offline from any token.
+MIN_SECRET_KEY_LENGTH = 32
 
 # staging is production-hardened, with one deliberate relaxation: it may carry
 # a known password for the demo accounts so a deployed build can be signed into
@@ -315,6 +322,14 @@ class Settings(BaseSettings):
         problems: list[str] = []
         if self.secret_key == "dev-insecure-secret-change-me":
             problems.append("SECRET_KEY must be set to a strong random value")
+        elif len(self.secret_key) < MIN_SECRET_KEY_LENGTH:
+            # A warning, not a refusal, until the live key is confirmed long
+            # enough: refusing would stop the next deploy from starting.
+            logger.warning(
+                "SECRET_KEY is shorter than %d characters; replace it with a "
+                "long random value",
+                MIN_SECRET_KEY_LENGTH,
+            )
         # The admin password is re-applied to the administrator on every
         # deploy, so this is also what rotates one that was ever the old
         # published default: a deploy with a real value replaces the hash.

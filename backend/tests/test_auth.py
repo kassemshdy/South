@@ -297,6 +297,19 @@ def test_production_requires_a_real_secret_key() -> None:
         settings.enforce_production_safety()
 
 
+def test_a_short_secret_key_is_reported_at_boot(caplog: pytest.LogCaptureFixture) -> None:
+    """A key short enough to guess from one token is named in the boot log
+    (and so in error tracking); a long one is not."""
+    common = {"app_env": "production", "admin_password": "Strong-Passw0rd-42", "debug": False}
+    with caplog.at_level("WARNING", logger="app.core.config"):
+        Settings(secret_key="short-key", **common).enforce_production_safety()
+    assert "SECRET_KEY is shorter" in caplog.text
+    caplog.clear()
+    with caplog.at_level("WARNING", logger="app.core.config"):
+        Settings(secret_key="k" * 48, **common).enforce_production_safety()
+    assert "SECRET_KEY" not in caplog.text
+
+
 def test_production_refuses_a_seeded_owner_password() -> None:
     """The demo accounts' password is in this repository. So it is a shortcut.
 
