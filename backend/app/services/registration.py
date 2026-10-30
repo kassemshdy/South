@@ -25,10 +25,15 @@ from sqlalchemy.orm import Session
 
 from app.core.captcha import verify_captcha
 from app.core.config import Settings
-from app.core.errors import RateLimitedError
+from app.core.errors import RateLimitedError, ValidationError
 from app.core.rate_limit import DatabaseRateLimiter, RateLimitRule
 from app.models.application import DiscardedApplication
-from app.models.enums import ApplicationKind, BusinessStatus, VerificationDocumentKind
+from app.models.enums import (
+    ApplicationKind,
+    BusinessStatus,
+    ImageKind,
+    VerificationDocumentKind,
+)
 from app.models.user import User
 from app.repositories.user import UserRepository
 from app.schemas.identity import IDENTITY_FIELDS
@@ -39,6 +44,8 @@ from app.schemas.registration import (
     TalentRegistrationIn,
 )
 from app.services.business import BusinessService
+from app.services.business_images import store_business_image
+from app.services.images import ImageService
 from app.services.talent import TalentService
 from app.services.verification import VerificationDocumentService
 from app.storage.factory import get_storage
@@ -52,6 +59,16 @@ class ApplicantDocument:
 
     data: bytes
     original_filename: str | None
+
+
+@dataclass(frozen=True)
+class ApplicantLogo:
+    """The shop's logo, sent with a business application (the owners'
+    decision, 30 Oct 2026): a shop cannot be approved without one, so it is
+    asked for up front rather than added by the reviewer afterwards."""
+
+    data: bytes
+    content_type: str | None
 
 
 @dataclass(frozen=True)
@@ -187,13 +204,19 @@ class RegistrationService:
         *,
         client_ip: str | None,
         documents: ApplicantDocuments | None = None,
+        logo: ApplicantLogo | None = None,
     ) -> None:
         self._guard(payload.captcha_token, client_ip)
         scans = documents or ApplicantDocuments()
         # Before anything is created, so a file that is too large or is not a
         # document refuses the application rather than leaving an account
-        # behind with nothing usable attached to it.
+        # behind with nothing usable attached to it. The logo likewise.
         self._check_documents(scans)
+        if logo is None or not logo.data:
+            raise ValidationError("registration.logo_required", code="logo_required")
+        ImageService(get_storage(), self._settings).validate(
+            data=logo.data, content_type=logo.content_type
+        )
 
         owner = self._claim_account(payload, ApplicationKind.BUSINESS)
         if owner is None:
@@ -205,6 +228,16 @@ class RegistrationService:
         # submit from, so creating it as a DRAFT would leave it invisible to
         # everyone including the administrator who has to act on it.
         business.status = BusinessStatus.PENDING_REVIEW
+        # Never for a number that already has an account: that path returned
+        # above, so a guessed number cannot put a file on someone's listing.
+        store_business_image(
+            self._db,
+            self._settings,
+            business,
+            kind=ImageKind.LOGO,
+            data=logo.data,
+            content_type=logo.content_type,
+        )
         self._attach_documents(owner, scans)
         self._db.commit()
         logger.info(
