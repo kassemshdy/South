@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
+import { useEffect } from 'react'
 
 import { useSiteSettings } from '@/hooks/useSiteSettings'
 import { useI18n, type TranslationKey } from '@/i18n'
 import { menuApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import type { MenuItemId } from '@/types/api'
+import type { MenuItemId, SiteMenu } from '@/types/api'
+import { readRemembered, writeRemembered } from '@/utils/rememberedQuery'
 
 /**
  * The site's public sections, in the order the directory's owner asked for.
@@ -61,13 +63,24 @@ export interface ShownSection extends SiteSection {
  *
  * An administrator orders, hides and renames them at /admin/menu (the owners'
  * request, 29 Oct 2026). Until that answer arrives -- or if it never does --
- * the menu is the list above under its catalog names, so it never renders
- * empty and never waits on the network.
+ * the menu is the one this browser saw last, else the list above under its
+ * catalog names, so it never renders empty and never waits on the network.
  */
 export function useSiteSections(): ShownSection[] {
   const { hasContact } = useSiteSettings()
   const { t, locale } = useI18n()
-  const menu = useQuery({ queryKey: queryKeys.siteMenu, queryFn: menuApi.get, staleTime: 5 * 60_000 })
+  const menu = useQuery({
+    queryKey: queryKeys.siteMenu,
+    queryFn: menuApi.get,
+    staleTime: 5 * 60_000,
+    // The menu this browser saw last, so it does not open long and then
+    // shrink to the saved one; stale at once, so it is refetched.
+    initialData: () => readRemembered<SiteMenu>('menu'),
+    initialDataUpdatedAt: 0,
+  })
+  useEffect(() => {
+    if (menu.data && menu.isFetchedAfterMount) writeRemembered('menu', menu.data)
+  }, [menu.data, menu.isFetchedAfterMount])
   const byId = new Map(SITE_SECTIONS.map((section) => [section.id, section]))
   const saved = menu.data?.items ?? SITE_SECTIONS.map((section) => ({
     id: section.id,
