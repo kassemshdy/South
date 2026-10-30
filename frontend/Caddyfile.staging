@@ -32,11 +32,26 @@ Disallow: /
 " 200
 	}
 
+	# The pages come from /srv rather than the API, so the API's security
+	# headers never reach them; the same ones are set here. The policy must
+	# match DEFAULT_CONTENT_SECURITY_POLICY in backend/app/core/config.py --
+	# backend/tests/test_hardening.py fails when the two drift.
 	header {
 		X-Robots-Tag "noindex, nofollow"
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "DENY"
+		Permissions-Policy "geolocation=(self), microphone=(), camera=(), payment=()"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' https://challenges.cloudflare.com https://www.googletagmanager.com https://www.clarity.ms https://scripts.clarity.ms; connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.clarity.ms https://*.ingest.sentry.io https://*.ingest.de.sentry.io; frame-src https://challenges.cloudflare.com https://www.youtube-nocookie.com https://www.youtube.com https://www.google.com https://maps.google.com https://www.instagram.com"
 		-Server
+	}
+
+	# Larger bodies are refused here, before the API spools them to disk.
+	# The biggest legitimate one is a business application: two 10MB ID
+	# scans and a 5MB logo.
+	request_body {
+		max_size 32MB
 	}
 
 	@data path /api/* /media/* /sitemap.xml

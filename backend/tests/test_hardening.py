@@ -7,11 +7,13 @@ that reopens the hole fails here with a sentence explaining what was lost.
 from __future__ import annotations
 
 import io
+import re
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 from starlette.requests import Request
 
-from app.core.config import Settings
+from app.core.config import DEFAULT_CONTENT_SECURITY_POLICY, Settings
 from app.core.dependencies import get_client_ip
 from app.core.downloads import content_disposition
 from app.core.uploads import read_at_most
@@ -132,6 +134,44 @@ def test_a_file_within_the_limit_is_read_whole() -> None:
 
 def test_an_empty_upload_reads_as_empty() -> None:
     assert read_at_most(io.BytesIO(b""), 1_000) == b""
+
+
+# --- The fronts in front of the API ------------------------------------------------
+
+FRONTEND = Path(__file__).resolve().parents[2] / "frontend"
+
+
+def test_both_fronts_cap_the_request_body_above_the_largest_application() -> None:
+    """An anonymous multipart route would otherwise spool any size to disk
+    before the API's own check; the cap must still admit a business
+    application (two ID scans and a logo)."""
+    settings = Settings()
+    largest = 2 * settings.max_verification_doc_bytes + settings.max_upload_bytes
+    for name in ("Caddyfile", "Caddyfile.staging"):
+        match = re.search(r"max_size\s+(\d+)MB", (FRONTEND / name).read_text())
+        assert match, name
+        assert int(match.group(1)) * 1024 * 1024 > largest, name
+
+
+def test_the_staging_front_sends_the_apis_security_headers() -> None:
+    """Staging serves its pages itself, so the API's headers never reach
+    them; the policy there must be the API's own, kept in step."""
+    staging = (FRONTEND / "Caddyfile.staging").read_text()
+    assert f'Content-Security-Policy "{DEFAULT_CONTENT_SECURITY_POLICY}"' in staging
+    assert 'X-Frame-Options "DENY"' in staging
+    assert "Strict-Transport-Security" in staging
+
+
+def test_health_says_only_that_it_is_alive(client: TestClient) -> None:
+    assert client.get("/api/health").json() == {"status": "ok"}
+
+
+def test_cross_origin_requests_carry_no_credentials(client: TestClient) -> None:
+    response = client.options(
+        "/api/health",
+        headers={"Origin": "http://localhost:5173", "Access-Control-Request-Method": "GET"},
+    )
+    assert response.headers.get("access-control-allow-credentials") != "true"
 
 
 # --- Download filenames cannot break the header ---------------------------------
