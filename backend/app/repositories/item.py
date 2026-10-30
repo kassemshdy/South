@@ -315,30 +315,6 @@ class ItemRepository(BaseRepository[BusinessItem]):
             return stmt.order_by(nullslast(BusinessItem.price.desc()), BusinessItem.id.asc())
         return stmt.order_by(BusinessItem.created_at.desc())
 
-    @staticmethod
-    def _latest_per_shop(stmt: Select[tuple[BusinessItem]]) -> Select[tuple[BusinessItem]]:
-        """Keep each shop's most recent product only.
-
-        Newest first is the default order, and a shop that adds twenty
-        products at once would otherwise fill the first page and the home
-        rows on its own (the owners' request, 30 Oct 2026). Applied to the
-        newest order with or without a category, town or origin filter, but
-        not to a text search, where someone is looking for a product rather
-        than browsing, nor to any other order; a shop's own page lists all
-        of its products. Done in the query, so the total and the pages count
-        shops rather than products.
-        """
-        ranked = stmt.with_only_columns(
-            BusinessItem.id,
-            func.row_number()
-            .over(
-                partition_by=BusinessItem.business_id,
-                order_by=(BusinessItem.created_at.desc(), BusinessItem.id.desc()),
-            )
-            .label("rank"),
-        ).subquery()
-        return stmt.where(BusinessItem.id.in_(select(ranked.c.id).where(ranked.c.rank == 1)))
-
     def search_public(
         self,
         *,
@@ -361,8 +337,6 @@ class ItemRepository(BaseRepository[BusinessItem]):
             origin=origin,
             displaced=displaced,
         )
-        if sort == "newest" and not q:
-            filtered = self._latest_per_shop(filtered)
 
         total = int(
             self.db.execute(select(func.count()).select_from(filtered.subquery())).scalar_one()
