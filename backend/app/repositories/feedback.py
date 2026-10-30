@@ -75,10 +75,12 @@ class FeedbackTicketRepository(BaseRepository[FeedbackTicket]):
         return list(self.db.execute(stmt).scalars().all())
 
     def next_sort_order(self, status: FeedbackStatus) -> int:
-        current_max = self.db.execute(
-            select(func.max(FeedbackTicket.sort_order)).where(FeedbackTicket.status == status)
+        """A place at the top of the column: the newest ticket first (the
+        owners' decision, 30 Oct 2026). Dragging still reorders freely."""
+        current_min = self.db.execute(
+            select(func.min(FeedbackTicket.sort_order)).where(FeedbackTicket.status == status)
         ).scalar_one()
-        return (current_max + 1) if current_max is not None else 0
+        return (current_min - 1) if current_min is not None else 0
 
     def count_by_status(self) -> dict[FeedbackStatus, int]:
         rows = self.db.execute(

@@ -49,15 +49,15 @@ function locate(onDone: (position: Position | null) => void) {
 }
 
 /**
- * The directories' sort order, with "nearest" as the default for a visitor
- * who has already let the site know where they are.
+ * The directories' sort order: the page's fallback (newest first) unless the
+ * visitor chooses another -- the owners' decision, 30 Oct 2026, replacing
+ * nearest-first as the default once a position was known.
  *
  * The browser is asked only when someone chooses nearest (by the button, the
  * sort list, or a link that already says so), never on a plain arrival:
  * a permission prompt on page load is answered "no" out of reflex, and then
- * cannot be asked again. Once granted -- now or on an earlier visit -- the
- * directories open nearest-first, which is what the owners asked for, while
- * an order chosen explicitly in the URL still wins.
+ * cannot be asked again. A position granted earlier in the session is reused
+ * when nearest is chosen, but no longer makes it the default.
  *
  * The position lives in this tab's session storage and in the request, never
  * in the page URL: a link someone shares should not carry where they were.
@@ -71,22 +71,6 @@ export function useNearestSort<S extends string>(
   const toast = useToast()
   const [position, setPosition] = useState<Position | null>(cached)
   const [locating, setLocating] = useState(false)
-
-  // Already granted, on this visit or an earlier one: locate silently, which
-  // makes nearest the default without a prompt.
-  useEffect(() => {
-    if (position || !navigator.permissions?.query) return
-    let active = true
-    navigator.permissions
-      .query({ name: 'geolocation' })
-      .then((status) => {
-        if (active && status.state === 'granted') locate((found) => active && setPosition(found))
-      })
-      .catch(() => undefined)
-    return () => {
-      active = false
-    }
-  }, [position])
 
   // A link that already says nearest (shared, bookmarked, or this page
   // reloaded) is someone having chosen it, so ask once; otherwise the list
@@ -103,7 +87,7 @@ export function useNearestSort<S extends string>(
     })
   }, [chosen, position, askedForLink, t, toast])
 
-  const sort: S | 'nearest' = chosen ?? (position ? 'nearest' : fallback)
+  const sort: S | 'nearest' = chosen ?? fallback
 
   const choose = useCallback(
     (option: S | 'nearest') => {

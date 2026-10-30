@@ -402,12 +402,12 @@ def delete_job_opening_cover(
 def list_job_applications(
     job_id: uuid.UUID, db: DbSession, admin: AdminUser
 ) -> list[JobApplicationOut]:
-    """Who applied, the earliest first."""
+    """Who applied, the latest first (the owners' decision, 30 Oct 2026)."""
     _get_or_404(db, job_id)
     rows = db.execute(
         select(JobApplication)
         .where(JobApplication.job_id == job_id)
-        .order_by(JobApplication.created_at.asc())
+        .order_by(JobApplication.created_at.desc())
     ).scalars()
     return [JobApplicationOut.model_validate(row) for row in rows]
 
