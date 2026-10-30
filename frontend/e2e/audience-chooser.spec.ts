@@ -264,7 +264,8 @@ test.describe('Audience chooser', () => {
 
   test('jobs have a homepage door of their own, with three choices', async ({ page }) => {
     await page.goto('/')
-    await page.getByRole('link', { name: t('home.actionJobs'), exact: true }).click()
+    // The card's link reads its title then its button, so match the start of the name.
+    await page.getByRole('main').getByRole('link', { name: new RegExp(`^${t('home.actionJobs')}`) }).click()
     await expect(page).toHaveURL(/\/jobs-hub$/)
     await expect(page.getByRole('heading', { name: t('jobsHub.doorsTitle') })).toBeVisible()
 
