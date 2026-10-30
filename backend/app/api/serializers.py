@@ -30,6 +30,7 @@ from app.schemas.common import PageMeta, PaginatedResponse
 from app.schemas.feedback import (
     FeedbackAttachmentOut,
     FeedbackCommentOut,
+    FeedbackReporterContactOut,
     FeedbackSubmissionOut,
     FeedbackTicketDetailOut,
     FeedbackTicketSummaryOut,
@@ -487,6 +488,10 @@ def feedback_ticket_detail(ticket: FeedbackTicket) -> FeedbackTicketDetailOut:
         page_path=ticket.page_path,
         client_context=ticket.client_context,
         resolved_at=ticket.resolved_at,
+        reporter_contact=FeedbackReporterContactOut(
+            name=ticket.reporter.full_name or ticket.reporter.display_name,
+            phone=ticket.reporter.phone_number,
+        ),
         attachments=[feedback_attachment_out(a) for a in ticket.attachments],
         comments=[feedback_comment_out(c) for c in ticket.comments],
     )

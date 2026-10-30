@@ -758,6 +758,8 @@ export interface FeedbackTicketDetail extends FeedbackTicketSummary {
   page_path: string | null
   client_context: string | null
   resolved_at: string | null
+  /** Who sent it and how to call them back; administrators only. */
+  reporter_contact: { name: string | null; phone: string | null } | null
   attachments: FeedbackAttachment[]
   comments: FeedbackComment[]
 }

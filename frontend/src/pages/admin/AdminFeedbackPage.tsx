@@ -18,6 +18,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { GitBranch, MessageSquare, Paperclip, Plus, Trash2, UserRound } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { useSearchParams } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -34,7 +35,13 @@ import { ApiError } from '@/services/api/client'
 import { feedbackApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { FeedbackPriority, FeedbackStatus, FeedbackTicketSummary } from '@/types/api'
-import { FEEDBACK_PRIORITY_KEYS, FEEDBACK_STATUS_KEYS, formatRelativeDate } from '@/utils/format'
+import {
+  FEEDBACK_PRIORITY_KEYS,
+  FEEDBACK_STATUS_KEYS,
+  formatRelativeDate,
+  telHref,
+  whatsappHref,
+} from '@/utils/format'
 import { commentSchema, type CommentValues } from '@/utils/validation'
 
 const STATUSES: FeedbackStatus[] = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'NEEDS_FEEDBACK', 'DONE']
@@ -70,7 +77,19 @@ export function AdminFeedbackPage() {
     groupByStatus([]),
   )
   const [activeTicket, setActiveTicket] = useState<FeedbackTicketSummary | null>(null)
-  const [openTicketId, setOpenTicketId] = useState<string | null>(null)
+  // A link from the Telegram copy carries the ticket to open: ?ticket=<id>.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [openTicketId, setOpenTicketIdState] = useState<string | null>(() =>
+    searchParams.get('ticket'),
+  )
+  const setOpenTicketId = (id: string | null) => {
+    setOpenTicketIdState(id)
+    if (!id && searchParams.has('ticket')) {
+      const next = new URLSearchParams(searchParams)
+      next.delete('ticket')
+      setSearchParams(next, { replace: true })
+    }
+  }
 
   useSeo({ title: t('admin.feedbackHeading'), noIndex: true })
 
@@ -370,6 +389,34 @@ function TicketDetailDialog({ ticketId, onClose }: { ticketId: string; onClose: 
 
             {data.description ? (
               <p className="whitespace-pre-line text-ink-700">{data.description}</p>
+            ) : null}
+
+            {data.reporter_contact && (data.reporter_contact.name || data.reporter_contact.phone) ? (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-700">
+                <span className="font-semibold">{t('feedback.sentBy')}:</span>
+                {data.reporter_contact.name ? <span dir="auto">{data.reporter_contact.name}</span> : null}
+                {data.reporter_contact.phone ? (
+                  <>
+                    <a
+                      href={telHref(data.reporter_contact.phone) ?? undefined}
+                      className="ltr-nums font-medium text-brand-700 underline-offset-2 hover:underline"
+                      dir="ltr"
+                    >
+                      {data.reporter_contact.phone}
+                    </a>
+                    {whatsappHref(data.reporter_contact.phone) ? (
+                      <a
+                        href={whatsappHref(data.reporter_contact.phone) ?? undefined}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-brand-700 underline-offset-2 hover:underline"
+                      >
+                        WhatsApp
+                      </a>
+                    ) : null}
+                  </>
+                ) : null}
+              </div>
             ) : null}
 
             {data.page_path ? (

@@ -315,6 +315,22 @@ def _register_exception_handlers(app: FastAPI) -> None:
         # from the catalogs, because pydantic writes its own messages in
         # English and knows nothing about the request locale. See
         # ``app/core/validation_messages.py``.
+        # Where and why, never the value: a rejected field can be a password
+        # or a phone number. Without this a 422 left no trace of its cause
+        # (four rejected screenshots on 30 Oct 2026).
+        logger.info(
+            "Request validation failed",
+            extra={
+                "path": request.url.path,
+                "fields": [
+                    {
+                        "loc": ".".join(str(part) for part in error.get("loc", ())),
+                        "type": error.get("type"),
+                    }
+                    for error in exc.errors()
+                ],
+            },
+        )
         return JSONResponse(
             {
                 "error": {

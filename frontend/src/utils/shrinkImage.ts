@@ -66,12 +66,43 @@ const UPLOAD_TARGET_BYTES = 4.5 * 1024 * 1024
 export async function shrinkImagesIn(form: FormData): Promise<FormData> {
   const shrunk = new FormData()
   for (const [key, value] of form.entries()) {
-    if (value instanceof File && SHRINKABLE.has(value.type.toLowerCase())) {
-      const file = await shrinkImage(value, { maxBytes: UPLOAD_TARGET_BYTES }).catch(() => value)
+    if (value instanceof File) {
+      const copy = await inMemory(value)
+      const file = SHRINKABLE.has(copy.type.toLowerCase())
+        ? await shrinkImage(copy, { maxBytes: UPLOAD_TARGET_BYTES }).catch(() => copy)
+        : copy
       shrunk.append(key, file, file.name)
     } else {
       shrunk.append(key, value)
     }
   }
   return shrunk
+}
+
+/** A picked file whose bytes the browser could no longer read. */
+export class UnreadableFileError extends Error {
+  constructor() {
+    super('unreadable file')
+    this.name = 'UnreadableFileError'
+  }
+}
+
+/**
+ * The same file, held in memory.
+ *
+ * A photo picked on Android (above all from Google Photos or another cloud
+ * gallery) is a reference to the phone's storage, and the browser can lose
+ * the right to read it before the upload starts: fetch then fails at once
+ * and the owner was told to check their internet (the owners' ticket, 30 Oct
+ * 2026). Reading the bytes as soon as the photo is picked, and again before
+ * sending, keeps a copy the browser can always send, and turns the failure
+ * into a message that says what actually happened.
+ */
+export async function inMemory(file: File): Promise<File> {
+  try {
+    const bytes = await file.arrayBuffer()
+    return new File([bytes], file.name, { type: file.type, lastModified: file.lastModified })
+  } catch {
+    throw new UnreadableFileError()
+  }
 }
