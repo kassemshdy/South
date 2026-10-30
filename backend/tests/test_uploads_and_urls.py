@@ -73,6 +73,27 @@ def test_non_image_content_is_rejected(
     assert response.json()["error"]["code"] == "unsupported_media_type"
 
 
+def test_a_small_file_that_decodes_to_a_huge_canvas_is_refused(
+    client: TestClient, business: tuple[str, dict[str, str]]
+) -> None:
+    """A decompression bomb: a few kilobytes of PNG describing 8,000 x 8,000
+    pixels. Decoding it would hold hundreds of megabytes in the worker."""
+    business_id, headers = business
+    buffer = io.BytesIO()
+    Image.new("1", (8000, 8000)).save(buffer, format="PNG")
+    assert len(buffer.getvalue()) < 100_000
+
+    response = client.post(
+        f"/api/businesses/{business_id}/images",
+        headers=headers,
+        files={"file": ("bomb.png", buffer.getvalue(), "image/png")},
+        data={"kind": "GALLERY"},
+    )
+
+    assert response.status_code == 415
+    assert response.json()["error"]["code"] == "unsupported_media_type"
+
+
 def test_disallowed_mime_type_is_rejected(
     client: TestClient, business: tuple[str, dict[str, str]]
 ) -> None:

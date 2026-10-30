@@ -67,13 +67,17 @@ def _replace_meta(document: str, key: str, content: str) -> str:
         replacement = f'<meta name="{key}" content="{_escape(content)}">'
 
     if tag_pattern.search(document):
-        return tag_pattern.sub(replacement, document, count=1)
+        # A function, not the string: ``re.sub`` reads backslashes in a
+        # replacement string as group references, and this text is a name or
+        # description somebody typed -- "Shop \\q" made the page answer 500.
+        return tag_pattern.sub(lambda _match: replacement, document, count=1)
     return document.replace("</head>", f"  {replacement}\n</head>", 1)
 
 
 def inject(document: str, tags: SeoTags) -> str:
     """Return ``document`` with its head rewritten for ``tags``."""
-    result = _TITLE_RE.sub(f"<title>{_escape(tags.title)}</title>", document, count=1)
+    title = f"<title>{_escape(tags.title)}</title>"
+    result = _TITLE_RE.sub(lambda _match: title, document, count=1)
 
     for key, value in (
         ("description", tags.description),
@@ -99,7 +103,7 @@ def inject(document: str, tags: SeoTags) -> str:
     canonical = f'<link rel="canonical" href="{_escape(tags.canonical_url)}">'
     canonical_pattern = re.compile(r'<link\s+rel=["\']canonical["\'][^>]*>', re.IGNORECASE)
     if canonical_pattern.search(result):
-        result = canonical_pattern.sub(canonical, result, count=1)
+        result = canonical_pattern.sub(lambda _match: canonical, result, count=1)
     else:
         result = result.replace("</head>", f"  {canonical}\n</head>", 1)
 

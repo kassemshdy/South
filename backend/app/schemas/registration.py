@@ -81,7 +81,7 @@ class RegistrationBase(BaseModel):
     # the sign-in form, and the one a gateway would text if one ever arrives.
     # Required, unlike the listing's published phone: without it there is no
     # account to create and nowhere to send the credentials.
-    login_phone: str = Field(min_length=6, max_length=25)
+    login_phone: str = Field(min_length=6, max_length=25, repr=False)
     # Absent when Turnstile is not configured; see app/core/captcha.py.
     captcha_token: str | None = Field(default=None, max_length=4096)
     # Nested rather than flattened, for the reason OwnerIdentityOut is: these

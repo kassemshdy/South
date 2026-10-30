@@ -3,14 +3,17 @@ by anyone, signed up for anonymously; who signed up is read by staff only."""
 
 from __future__ import annotations
 
+import io
 from datetime import UTC, datetime, timedelta
 
 from fastapi.testclient import TestClient
+from PIL import Image
 from sqlalchemy.orm import Session
 
 from app.models.taxonomy import Category, Location
 from app.models.user import User
 from app.services import telegram_archive
+from app.storage.factory import get_storage
 from scripts.seed_data import WORKSHOPS
 from tests.conftest import admin_headers
 from tests.samples import ar
@@ -165,3 +168,35 @@ def test_the_online_section_lists_online_workshops_only(client: TestClient, admi
     listed = client.get("/api/workshops?mode=ONLINE").json()
     assert [w["slug"] for w in listed] == [online["slug"]]
     assert len(client.get("/api/workshops").json()) == 2
+
+
+def _png() -> bytes:
+    buffer = io.BytesIO()
+    Image.new("RGB", (800, 450), (40, 90, 60)).save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+def test_a_failed_cover_upload_keeps_the_old_cover(client: TestClient, admin: User) -> None:
+    """The old file used to be deleted before the new one was processed, so
+    an unreadable upload left the workshop pointing at a missing file."""
+    headers = admin_headers(client)
+    workshop = _create(client, headers, publish=False)
+    url = f"/api/admin/workshops/{workshop['id']}/image"
+
+    first = client.post(url, headers=headers, files={"file": ("a.png", _png(), "image/png")})
+    assert first.status_code == 200, first.text
+    cover = first.json()["cover_url"]
+    key = cover.removeprefix("/media/")
+
+    refused = client.post(
+        url, headers=headers, files={"file": ("b.png", b"not an image", "image/png")}
+    )
+    assert refused.status_code == 415
+
+    listed = client.get("/api/admin/workshops", headers=headers).json()
+    assert [w["cover_url"] for w in listed] == [cover]
+    assert get_storage().exists(key)
+
+    replaced = client.post(url, headers=headers, files={"file": ("c.png", _png(), "image/png")})
+    assert replaced.json()["cover_url"] != cover
+    assert not get_storage().exists(key)

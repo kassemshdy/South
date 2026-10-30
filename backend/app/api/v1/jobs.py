@@ -371,10 +371,10 @@ def upload_job_opening_cover(
     settings: AppSettings,
     file: Annotated[UploadFile, File(description="Thumbnail image")],
 ) -> AdminJobOpeningOut:
-    """Set or replace the opening's thumbnail; the old file is removed."""
+    """Set or replace the opening's thumbnail; the old file is removed
+    once the new one is saved."""
     job = _get_or_404(db, job_id)
     service = ImageService(get_storage(), settings)
-    service.delete(job.cover_storage_key)
     stored = service.process_and_store(
         data=read_at_most(file.file, settings.max_upload_bytes),
         content_type=file.content_type,
@@ -382,8 +382,12 @@ def upload_job_opening_cover(
         kind=ImageKind.COVER,
         prefix="jobs",
     )
+    # The old file goes only once the new one is stored and saved: deleting
+    # it first left the page pointing at nothing whenever the upload failed.
+    previous = job.cover_storage_key
     job.cover_url, job.cover_storage_key = stored.url, stored.key
     db.commit()
+    service.delete(previous)
     return _admin_out(db, job)
 
 

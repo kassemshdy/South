@@ -305,7 +305,6 @@ def upload_workshop_cover(
 ) -> AdminWorkshopOut:
     workshop = _get_or_404(db, workshop_id)
     service = ImageService(get_storage(), settings)
-    service.delete(workshop.cover_storage_key)
     stored = service.process_and_store(
         data=read_at_most(file.file, settings.max_upload_bytes),
         content_type=file.content_type,
@@ -313,8 +312,12 @@ def upload_workshop_cover(
         kind=ImageKind.COVER,
         prefix="workshops",
     )
+    # The old file goes only once the new one is stored and saved: deleting
+    # it first left the page pointing at nothing whenever the upload failed.
+    previous = workshop.cover_storage_key
     workshop.cover_url, workshop.cover_storage_key = stored.url, stored.key
     db.commit()
+    service.delete(previous)
     return _admin_out(db, workshop)
 
 

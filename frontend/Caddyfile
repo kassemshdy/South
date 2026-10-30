@@ -26,6 +26,13 @@
 		header Cache-Control "public, max-age=31536000, immutable"
 	}
 
+	# Larger bodies are refused here, before the API spools them to disk.
+	# The biggest legitimate one is a business application: two 10MB ID
+	# scans and a 5MB logo.
+	request_body {
+		max_size 32MB
+	}
+
 	header {
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "strict-origin-when-cross-origin"

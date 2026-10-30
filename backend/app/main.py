@@ -269,7 +269,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
-        allow_credentials=True,
+        # Bearer tokens in a header, never cookies: there is nothing for
+        # credentials mode to carry, and leaving it on only widens what a
+        # misconfigured origin list would expose.
+        allow_credentials=False,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type", "X-Request-Id"],
         expose_headers=["X-Request-Id"],
@@ -283,7 +286,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.get("/api/health", tags=["system"])
     def health() -> dict[str, str]:
-        return {"status": "ok", "env": settings.app_env}
+        # Liveness only: which environment this is tells a stranger nothing
+        # they need.
+        return {"status": "ok"}
 
     _mount_media(app, settings)
     _mount_frontend(app, settings)

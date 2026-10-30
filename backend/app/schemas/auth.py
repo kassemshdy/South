@@ -12,8 +12,8 @@ from app.schemas.identity import IdentityFieldsIn
 
 
 class AdminLoginIn(BaseModel):
-    email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
+    email: EmailStr = Field(repr=False)
+    password: str = Field(min_length=8, max_length=128, repr=False)
 
 
 class UserOut(ORMModel):
@@ -69,8 +69,8 @@ class LoginIn(BaseModel):
     answer.
     """
 
-    identifier: str = Field(min_length=1, max_length=255)
-    password: str = Field(min_length=1, max_length=200)
+    identifier: str = Field(min_length=1, max_length=255, repr=False)
+    password: str = Field(min_length=1, max_length=200, repr=False)
 
 
 class ChangePasswordIn(BaseModel):
@@ -81,15 +81,15 @@ class ChangePasswordIn(BaseModel):
     stops a borrowed unlocked phone from taking the account over.
     """
 
-    current_password: str = Field(min_length=1, max_length=200)
-    new_password: str = Field(min_length=8, max_length=200)
+    current_password: str = Field(min_length=1, max_length=200, repr=False)
+    new_password: str = Field(min_length=8, max_length=200, repr=False)
 
 
 class DeleteAccountIn(BaseModel):
     """Deleting one's own account: the password again, for the reason
     ChangePasswordIn asks for it -- an unlocked phone is not consent."""
 
-    password: str = Field(min_length=1, max_length=200)
+    password: str = Field(min_length=1, max_length=200, repr=False)
 
 
 class IssuedPasswordOut(BaseModel):

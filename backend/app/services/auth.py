@@ -54,6 +54,16 @@ class AuthService:
             limit=settings.password_login_limit,
             window_seconds=settings.password_login_window_seconds,
         )
+        self._login_ip_rule = RateLimitRule(
+            bucket="password_login_ip",
+            limit=settings.password_login_per_ip_limit,
+            window_seconds=settings.password_login_window_seconds,
+        )
+        self._confirm_rule = RateLimitRule(
+            bucket="password_confirm",
+            limit=settings.password_confirm_limit,
+            window_seconds=settings.password_confirm_window_seconds,
+        )
 
     # --- Administrators ----------------------------------------------------
 
@@ -131,6 +141,8 @@ class AuthService:
             )
 
         status = self._limiter.check(self._login_rule, normalized)
+        if status.allowed and client_ip:
+            status = self._limiter.check(self._login_ip_rule, client_ip)
         if not status.allowed:
             raise RateLimitedError(status.retry_after_seconds, "auth.login.rate_limited")
 
@@ -141,6 +153,8 @@ class AuthService:
         )
 
         if user is None or not verify_password(password, user.password_hash):
+            if client_ip:
+                self._limiter.hit(self._login_ip_rule, client_ip)
             self._record_failed_login(normalized)
             logger.warning(
                 "Failed sign-in", extra={"identifier": normalized, "request_ip": client_ip}
@@ -193,6 +207,24 @@ class AuthService:
         """
         self._limiter.hit(self._login_rule, identifier)
         self._db.commit()
+
+    def confirm_password(self, user: User, password: str) -> bool:
+        """Whether ``password`` is the signed-in account's own, on a budget.
+
+        Changing the password and deleting the account both ask for it
+        again; without a budget a stolen session could guess it freely. A
+        wrong answer is spent and committed before the caller raises, for
+        the reason :meth:`_record_failed_login` gives.
+        """
+        identifier = str(user.id)
+        status = self._limiter.check(self._confirm_rule, identifier)
+        if not status.allowed:
+            raise RateLimitedError(status.retry_after_seconds, "auth.login.rate_limited")
+        if verify_password(password, user.password_hash):
+            return True
+        self._limiter.hit(self._confirm_rule, identifier)
+        self._db.commit()
+        return False
 
     def set_password(self, user: User, password: str) -> None:
         """Replace the account's password and end every other session.

@@ -15,6 +15,7 @@ import { activeLocale, I18nProvider, loadLocale, useI18n } from '@/i18n'
 import { initAnalytics } from '@/services/analytics'
 import { initClarity } from '@/services/clarity'
 import { ApiError } from '@/services/api/client'
+import { scrubBreadcrumb, scrubEvent } from '@/services/sentryScrub'
 import { installStaleBuildRecovery } from '@/utils/staleBuild'
 import '@/index.css'
 
@@ -29,6 +30,8 @@ if (sentryDsn) {
     environment: import.meta.env.MODE,
     sendDefaultPii: false,
     integrations: [],
+    beforeBreadcrumb: scrubBreadcrumb,
+    beforeSend: scrubEvent,
   })
 }
 
