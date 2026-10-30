@@ -1,4 +1,4 @@
-import { Briefcase, Building2, Globe, Package, Store, UserRound, Users } from 'lucide-react'
+import { Briefcase, Building2, Package, Store, UserRound, Users } from 'lucide-react'
 
 import type { TranslationKey } from '@/i18n'
 import type { GoodsOrigin } from '@/types/api'
@@ -98,60 +98,28 @@ const jobsDoor: Door = {
 export const BROWSE_DOORS: Door[] = [productsDoor, servicesDoor, jobsDoor]
 
 /**
- * Where someone looking for something goes: **three** doors —— goods made in
- * the South, imported goods sold by southern stores, and services and jobs.
- * The two goods doors open a page each, `/products/local` and
- * `/products/imported` -- the products directory with the origin fixed --
- * split at the CEO's request so that a buyer looking for what the South
- * produces is never shown an import under it.
+ * Where someone looking for something goes: goods and products, or services.
  *
- * Originally two, along the one axis the board ticket named —— goods on one
- * side, services and jobs on the other.
+ * One goods door rather than the two it used to be (goods made in the South,
+ * imported goods) and no jobs door: the owners' ticket of 29 Oct 2026 merged
+ * the goods and moved jobs to a homepage door of their own, `JOBS_DOORS`.
+ * A buyer narrows local or imported on the products directory itself, whose
+ * origin filter and `/products/local` and `/products/imported` pages remain.
  *
- * Two rather than three is the ticket's call and it costs something, so it is
- * written down here rather than left to be rediscovered: the businesses
- * directory is no longer offered by the homepage fork. It stays one tap away
- * and, since the CEO asked for the site to speak only of goods and products
- * and of services and skills, nothing else on the site names it either.
+ * The businesses directory is still not offered here: since the CEO asked for
+ * the site to speak only of goods and products and of services and skills,
+ * nothing else on the site names it either.
  */
-export const SEEK_DOORS: Door[] = [
-  {
-    // The products directory, narrowed to what the South itself makes. Its
-    // title is the offering door's own, so a seller and a buyer read the same
-    // words for the same shelf.
-    key: 'products-local',
-    icon: Package,
-    titleKey: 'onboarding.ownerTitle',
-    descriptionKey: 'onboarding.seekGoodsDescription',
-    shortKey: 'browse.productsShort',
-    href: '/products/local',
-  },
-  {
-    key: 'products-imported',
-    icon: Globe,
-    titleKey: 'onboarding.importedTitle',
-    descriptionKey: 'onboarding.importedDescription',
-    shortKey: 'onboarding.importedShort',
-    href: '/products/imported',
-  },
-  servicesDoor,
-  jobsDoor,
-]
+export const SEEK_DOORS: Door[] = [productsDoor, servicesDoor]
 
 /**
- * Where someone with something to offer can go: three doors, the same three
- * as `SEEK_DOORS` —— goods made in the South, imported goods, or services and
- * jobs. The first two are both businesses; the door sets `goods_origin`.
+ * Where someone with something to offer can go: goods and products, or a
+ * service -- the same two as `SEEK_DOORS`. Jobs have their own door since
+ * the owners' ticket of 29 Oct 2026; see `JOBS_DOORS`.
  *
  * The split is the whole point: a business is a place or a product, a talent
  * profile is the person themselves. Collapsing them into one card is exactly
  * the bug that sent a craftsperson into the shop wizard.
- *
- * The jobs half of each label is not decoration. Offering a service here means
- * listing yourself, which is how someone asks for work; asking for one means
- * reading those profiles, which is how someone offers work. So the same axis
- * reads as "sell, or look for work" on this side and "buy, or offer work" on
- * the other, which is what the board ticket asked for.
  *
  * **Each of these has two destinations**, because the visitor decides which
  * one is right: `href` for somebody who already has an account, `applyHref`
@@ -164,28 +132,20 @@ export const SEEK_DOORS: Door[] = [
  */
 export const OFFER_DOORS: Door[] = [
   {
+    // Goods and products, local or imported: one door since the owners'
+    // ticket of 29 Oct 2026. The seller chooses which on the application form
+    // itself (`BasicsForm`'s origin field), so the mark that keeps an import
+    // off the "made in the South" shelf is still set, just one step later.
     key: 'business',
     icon: Store,
-    titleKey: 'onboarding.ownerTitle',
-    descriptionKey: 'onboarding.ownerDescription',
+    titleKey: 'onboarding.seekGoodsTitle',
+    descriptionKey: 'onboarding.offerGoodsDescription',
     shortKey: 'onboarding.ownerShort',
     href: '/dashboard/businesses/new',
     applyHref: '/register/business',
   },
   {
-    // A southern store selling imported goods: the same application and the
-    // same wizard as the door above, with the listing marked imported.
-    key: 'imported',
-    icon: Globe,
-    titleKey: 'onboarding.importedTitle',
-    descriptionKey: 'onboarding.importedDescription',
-    shortKey: 'onboarding.importedShort',
-    href: '/dashboard/businesses/new?origin=IMPORTED',
-    applyHref: '/register/business?origin=IMPORTED',
-  },
-  {
-    // A talent profile listed under services. The same application and
-    // dashboard as the door below; the door presets which directory.
+    // A talent profile listed under services.
     key: 'service',
     icon: UserRound,
     titleKey: 'onboarding.offerServiceTitle',
@@ -194,25 +154,45 @@ export const OFFER_DOORS: Door[] = [
     href: '/dashboard/talent?kind=SERVICE',
     applyHref: '/register/talent?kind=SERVICE',
   },
+]
+
+/**
+ * The homepage's third door, "Jobs" (the owners' ticket, 29 Oct 2026): jobs
+ * left the offering and looking halves for a page of their own, `/jobs-hub`,
+ * with these three.
+ *
+ * Posting an offer and browsing the people looking for work are plain links.
+ * Asking for a job means listing yourself, so it is a talent profile like a
+ * service and takes the same two destinations: the public application for
+ * somebody with no account, the dashboard for an owner who has one.
+ */
+export const JOBS_DOORS: Door[] = [
+  {
+    // An employer offering a job: one public form for everybody, signed in or
+    // not, whose offer waits as a draft until a person publishes it.
+    key: 'employer',
+    icon: Building2,
+    titleKey: 'jobsHub.postTitle',
+    descriptionKey: 'onboarding.offerEmployerDescription',
+    shortKey: 'onboarding.offerEmployerShort',
+    href: '/vacancies/offer',
+  },
+  {
+    key: 'seekers',
+    icon: Users,
+    titleKey: 'jobsHub.seekersTitle',
+    descriptionKey: 'onboarding.seekJobsDescription',
+    shortKey: 'browse.jobsShort',
+    href: '/jobs',
+  },
   {
     key: 'job',
     icon: Briefcase,
-    titleKey: 'onboarding.offerJobTitle',
+    titleKey: 'jobsHub.applyTitle',
     descriptionKey: 'onboarding.offerJobDescription',
     shortKey: 'onboarding.offerJobShort',
     href: '/dashboard/talent?kind=JOB_SEEKER',
     applyHref: '/register/talent?kind=JOB_SEEKER',
-  },
-  {
-    // An employer offering a job to a southerner (the owners' ticket, 29 Oct
-    // 2026): one public form for everybody, signed in or not, whose offer
-    // waits as a draft at /admin/job-openings until a person publishes it.
-    key: 'employer',
-    icon: Building2,
-    titleKey: 'onboarding.offerEmployerTitle',
-    descriptionKey: 'onboarding.offerEmployerDescription',
-    shortKey: 'onboarding.offerEmployerShort',
-    href: '/vacancies/offer',
   },
 ]
 

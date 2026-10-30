@@ -233,7 +233,7 @@ export function BusinessWizardPage() {
           first save there is nothing to lose, and this is where a
           craftsperson who tapped the wrong card finds out. */}
       {businessId === null ? (
-        <OfferSwitcher current={origin === 'IMPORTED' ? 'imported' : 'business'} />
+        <OfferSwitcher current="business" />
       ) : null}
 
       <ol className="mb-8 flex flex-wrap gap-2" aria-label={t('wizard.stepsAria')}>

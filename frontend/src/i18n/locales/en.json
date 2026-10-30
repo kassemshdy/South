@@ -753,8 +753,8 @@
   "gallery.counter": "{current} of {total}",
   "gallery.next": "Next photo",
   "gallery.previous": "Previous photo",
-  "home.actionBrowse": "I want to order a product or a service (buy, or offer work)",
-  "home.actionOffer": "I want to list a product or a service (sell, or look for work)",
+  "home.actionBrowse": "I want to order a product or a service (buy)",
+  "home.actionOffer": "I want to list a product or a service (sell)",
   "home.comingSoon": "Coming soon",
   "home.disclaimer": "Notice: Janoubona does not take part in buying or selling in any way. That happens between the seller and the buyer; the platform only brings them together. Please also note that Janoubona is a non-profit volunteer initiative, run by a group of volunteers who are not paid for their work.",
   "home.heroSubtitle": "Here southerners offer their goods, their products, their skills and their academic and professional knowledge, so that everyone who believes in their cause can share in their steadfastness, and so that they remain productive and active.",
@@ -1678,5 +1678,13 @@
   "displaced.filter": "Displaced owners",
   "account.showDisplacementLabel": "Show visitors that I am displaced from this place",
   "account.showDisplacementHint": "“Displaced from …” appears on your pages and cards. You can hide it at any time.",
-  "feedback.status.NEEDS_FEEDBACK": "Needs admin feedback"
+  "feedback.status.NEEDS_FEEDBACK": "Needs admin feedback",
+  "onboarding.offerGoodsDescription": "A shop, restaurant, workshop or farm — goods made in the South or imported; you choose which in the application.",
+  "home.actionJobs": "Jobs",
+  "jobsHub.title": "Jobs",
+  "jobsHub.subtitle": "Post a job offer, browse the people looking for work, or show employers your experience.",
+  "jobsHub.doorsTitle": "What would you like to do?",
+  "jobsHub.postTitle": "Post a job offer",
+  "jobsHub.seekersTitle": "See the people applying for jobs",
+  "jobsHub.applyTitle": "Ask for a job"
 }
