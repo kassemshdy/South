@@ -238,7 +238,9 @@ class BusinessRepository(BaseRepository[Business]):
         # Newest first everywhere, the review queue included (the owners'
         # decision, 30 Oct 2026, replacing oldest-pending-first).
         order = (
-            nullslast(Business.submitted_at.desc())
+            # An application from the public form is created pending and has no
+            # submitted_at, so it counts from when it was created.
+            func.coalesce(Business.submitted_at, Business.created_at).desc()
             if status is BusinessStatus.PENDING_REVIEW
             else Business.created_at.desc()
         )

@@ -10,7 +10,7 @@ from __future__ import annotations
 import uuid
 from typing import Any, Literal
 
-from sqlalchemy import ColumnElement, Select, func, nullslast, or_, select
+from sqlalchemy import ColumnElement, Select, func, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.core.arabic import normalize_arabic
@@ -248,7 +248,9 @@ class TalentRepository(BaseRepository[TalentProfile]):
         # Newest first everywhere, the review queue included (the owners'
         # decision, 30 Oct 2026, replacing oldest-pending-first).
         order = (
-            nullslast(TalentProfile.submitted_at.desc())
+            # An application from the public form is created pending and has no
+            # submitted_at, so it counts from when it was created.
+            func.coalesce(TalentProfile.submitted_at, TalentProfile.created_at).desc()
             if status is BusinessStatus.PENDING_REVIEW
             else TalentProfile.created_at.desc()
         )
