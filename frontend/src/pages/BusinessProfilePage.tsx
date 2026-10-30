@@ -10,6 +10,7 @@ import {
   Music2,
   Phone,
   Search,
+  ShoppingBag,
   Store,
   Youtube,
 } from 'lucide-react'
@@ -211,6 +212,14 @@ export function BusinessProfilePage() {
         {/* Contact CTAs sit directly under the header: on a phone this is the
             single most important action on the page. */}
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {data.online_store_url ? (
+            <Button asChild variant="secondary" size="lg" block className="sm:col-span-2">
+              <a href={data.online_store_url} target="_blank" rel="noopener noreferrer">
+                <ShoppingBag className="h-5 w-5" aria-hidden="true" />
+                {t('business.visitStore')}
+              </a>
+            </Button>
+          ) : null}
           {whatsapp ? (
             <Button asChild variant="whatsapp" size="lg" block>
               <a href={whatsapp} target="_blank" rel="noopener noreferrer">

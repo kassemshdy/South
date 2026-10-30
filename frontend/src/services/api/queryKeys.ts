@@ -28,6 +28,8 @@ export const queryKeys = {
   talent: (slug: string) => ['talent', slug] as const,
   myBusinesses: ['my-businesses'] as const,
   myBusiness: (id: string) => ['my-business', id] as const,
+  shopify: (id: string) => ['my-business', id, 'shopify'] as const,
+  adminApiPartners: ['admin', 'api-partners'] as const,
   myBusinessItems: (id: string) => ['my-business', id, 'items'] as const,
   readiness: (id: string) => ['my-business', id, 'readiness'] as const,
   myViews: ['my-views'] as const,
