@@ -117,8 +117,8 @@ export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
   } = useNearestSort<TalentSortOption>(
     chosenSort,
     setSort,
-    // Job seekers are not rated, so their page keeps newest first.
-    kind === 'SERVICE' ? 'rating' : 'newest',
+    // Newest first on both pages (the owners' decision, 30 Oct 2026).
+    'newest',
   )
 
   const [filtersOpen, setFiltersOpen] = useState(false)

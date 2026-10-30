@@ -66,7 +66,7 @@ def list_pending_talent(
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> PaginatedResponse[AdminTalentOut]:
-    """The review queue, oldest submission first."""
+    """The review queue, newest submission first."""
     results = TalentRepository(db).list_for_admin(
         status=BusinessStatus.PENDING_REVIEW, page=page, page_size=page_size
     )

@@ -235,9 +235,10 @@ class BusinessRepository(BaseRepository[Business]):
             self.db.execute(select(func.count()).select_from(stmt.subquery())).scalar_one()
         )
 
-        # Oldest pending first: the review queue should be FIFO.
+        # Newest first everywhere, the review queue included (the owners'
+        # decision, 30 Oct 2026, replacing oldest-pending-first).
         order = (
-            Business.submitted_at.asc()
+            nullslast(Business.submitted_at.desc())
             if status is BusinessStatus.PENDING_REVIEW
             else Business.created_at.desc()
         )

@@ -59,7 +59,7 @@ export function DirectoryPage() {
     choose: chooseSort,
     locating,
     near,
-  } = useNearestSort<BusinessSortOption>(chosenSort, setSort, 'rating')
+  } = useNearestSort<BusinessSortOption>(chosenSort, setSort, 'newest')
 
   const [filtersOpen, setFiltersOpen] = useState(false)
   const t = useT()

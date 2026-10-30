@@ -93,7 +93,7 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
     choose: chooseSort,
     locating,
     near,
-  } = useNearestSort<ProductSortOption>(chosenSort, setSort, 'rating')
+  } = useNearestSort<ProductSortOption>(chosenSort, setSort, 'newest')
 
   // Open from the start when a query-string origin narrowed the list: on a
   // phone the filters are folded away, and a narrowing nobody can see is a

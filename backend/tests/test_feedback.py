@@ -72,8 +72,9 @@ def test_board_lists_every_ticket_ordered_by_column_then_position(
 
     board = client.get("/api/admin/feedback/tickets", headers=headers).json()
     ids = [t["id"] for t in board]
-    assert ids == [first["id"], second["id"]]
-    assert [t["sort_order"] for t in board] == [0, 1]
+    # A new ticket joins its column at the top: newest first (30 Oct 2026).
+    assert ids == [second["id"], first["id"]]
+    assert [t["sort_order"] for t in board] == [-1, 0]
 
 
 # --- Moving across the board ---------------------------------------------
@@ -105,15 +106,15 @@ def test_reorder_within_the_same_column(client: TestClient, admin: User) -> None
     first = _create(client, headers, title=ar("feedback.bug_title"))
     second = _create(client, headers, title=ar("feedback.feature_title"))
 
-    # Move the second ticket ahead of the first, within BACKLOG.
+    # The newer ticket starts on top; move the first one back ahead of it.
     moved = client.post(
-        f"/api/admin/feedback/tickets/{second['id']}/move",
+        f"/api/admin/feedback/tickets/{first['id']}/move",
         headers=headers,
         json={"status": "BACKLOG", "index": 0},
     )
     assert moved.status_code == 200, moved.text
     board = moved.json()
-    assert [t["id"] for t in board] == [second["id"], first["id"]]
+    assert [t["id"] for t in board] == [first["id"], second["id"]]
     assert [t["sort_order"] for t in board] == [0, 1]
 
 

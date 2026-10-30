@@ -10,7 +10,7 @@ from __future__ import annotations
 import uuid
 from typing import Any, Literal
 
-from sqlalchemy import ColumnElement, Select, func, or_, select
+from sqlalchemy import ColumnElement, Select, func, nullslast, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.core.arabic import normalize_arabic
@@ -245,9 +245,10 @@ class TalentRepository(BaseRepository[TalentProfile]):
             self.db.execute(select(func.count()).select_from(stmt.subquery())).scalar_one()
         )
 
-        # Oldest pending first: the review queue should be FIFO.
+        # Newest first everywhere, the review queue included (the owners'
+        # decision, 30 Oct 2026, replacing oldest-pending-first).
         order = (
-            TalentProfile.submitted_at.asc()
+            nullslast(TalentProfile.submitted_at.desc())
             if status is BusinessStatus.PENDING_REVIEW
             else TalentProfile.created_at.desc()
         )
