@@ -1,4 +1,4 @@
-import { ArrowLeft, ShoppingBag, Store } from 'lucide-react'
+import { ArrowLeft, Briefcase, ShoppingBag, Store } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { useT, type TranslationKey } from '@/i18n'
@@ -60,13 +60,22 @@ const HALVES: Half[] = [
     surface: 'from-clay-500 to-clay-700',
     iconColor: 'text-clay-600',
   },
+  {
+    // The third door, in its own colour (the owners' ticket, 29 Oct 2026):
+    // jobs left the two halves above for a page of their own.
+    to: '/jobs-hub',
+    icon: Briefcase,
+    titleKey: 'home.actionJobs',
+    surface: 'from-sea-500 to-sea-700',
+    iconColor: 'text-sea-600',
+  },
 ]
 
 export function AudienceChooser() {
   const t = useT()
 
   return (
-    <div className="mx-auto w-full max-w-4xl">
+    <div className="mx-auto w-full max-w-5xl">
       {/* The question is asked out loud rather than implied by two cards. It
           carries the section: these two are the homepage's navigation for
           someone who is not confident online, so the label above them is sized
@@ -81,11 +90,11 @@ export function AudienceChooser() {
       {/* Wide gaps on purpose: two targets this large read as two choices
           only when there is room between them. Below `sm` they stack, and the
           gap becomes vertical breathing space rather than a gutter. */}
-      <ul className="mt-8 grid gap-6 sm:mt-10 sm:grid-cols-2 sm:gap-8">
+      <ul className="mt-8 grid grid-cols-1 gap-6 sm:mt-10 sm:grid-cols-3 sm:gap-6 lg:gap-8">
         {HALVES.map((half) => {
           const Icon = half.icon
           return (
-            <li key={half.to}>
+            <li key={half.to} className="min-w-0">
               <Link
                 to={half.to}
                 className={`group relative isolate flex h-full min-h-[18rem] w-full flex-col items-center justify-center gap-5 overflow-hidden rounded-3xl bg-gradient-to-br ${half.surface} p-8 text-center shadow-lift transition-all duration-300 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-wheat-500 focus-visible:ring-offset-2 sm:p-10`}

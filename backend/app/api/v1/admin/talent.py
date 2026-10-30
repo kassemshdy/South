@@ -9,13 +9,15 @@ from __future__ import annotations
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, File, Form, Query, UploadFile
 
 from app.api.serializers import admin_talent, paginate
-from app.core.dependencies import AdminUser, DbSession
-from app.core.errors import NotFoundError
+from app.api.v1.talent_images import COVER_KIND, PHOTO_KIND, store_talent_image
+from app.core.dependencies import AdminUser, AppSettings, DbSession
+from app.core.errors import NotFoundError, PayloadTooLargeError, ValidationError
 from app.core.i18n import translate
-from app.models.enums import BusinessStatus
+from app.core.uploads import read_at_most
+from app.models.enums import BusinessStatus, ImageKind
 from app.models.talent import TalentProfile
 from app.repositories.talent import TalentRepository
 from app.schemas.common import MessageResponse, PaginatedResponse
@@ -133,6 +135,31 @@ def set_place(
             longitude=payload.longitude,
         ),
     )
+    return admin_talent(_load(db, profile_id))
+
+
+@router.post("/talent/{profile_id}/images", response_model=AdminTalentOut)
+def upload_profile_image(
+    profile_id: uuid.UUID,
+    db: DbSession,
+    settings: AppSettings,
+    admin: AdminUser,
+    file: Annotated[UploadFile, File(description="Image file")],
+    kind: Annotated[ImageKind, Form()] = ImageKind.LOGO,
+) -> AdminTalentOut:
+    """A photo or cover for a profile that went live without one, as a
+    business's logo and cover can be added from its review page. Photo and
+    cover only: the portfolio stays the owner's."""
+    if kind not in (PHOTO_KIND, COVER_KIND):
+        raise ValidationError("image.invalid_kind", code="invalid_image_kind")
+    data = read_at_most(file.file, settings.max_upload_bytes)
+    if len(data) > settings.max_upload_bytes:
+        raise PayloadTooLargeError()
+    profile = _load(db, profile_id)
+    store_talent_image(
+        db, settings, profile, kind=kind, data=data, content_type=file.content_type
+    )
+    db.commit()
     return admin_talent(_load(db, profile_id))
 
 

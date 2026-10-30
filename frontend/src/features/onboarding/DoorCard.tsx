@@ -20,11 +20,13 @@ import type { Door } from '@/features/onboarding/destinations'
  * on the homepage is the colour of the page they land on, so the choice they
  * made stays visible on the next screen. See `AudienceChooser` for the pair.
  */
-export type DoorSide = 'offer' | 'browse'
+export type DoorSide = 'offer' | 'browse' | 'jobs'
 
 const SURFACE: Record<DoorSide, string> = {
   offer: 'from-brand-600 to-brand-800',
   browse: 'from-clay-500 to-clay-700',
+  // The homepage's third card, in sea blue (the owners' ticket, 29 Oct 2026).
+  jobs: 'from-sea-500 to-sea-700',
 }
 
 export function doorCard(side: DoorSide): string {

@@ -16,6 +16,7 @@ import { BusinessProfilePage } from '@/pages/BusinessProfilePage'
 import { ContactPage } from '@/pages/ContactPage'
 import { PartnerPage } from '@/pages/PartnerPage'
 import { JobOfferPage } from '@/pages/JobOfferPage'
+import { JobsHubPage } from '@/pages/JobsHubPage'
 import { VacanciesPage } from '@/pages/VacanciesPage'
 import { VacancyPage } from '@/pages/VacancyPage'
 import { WorkshopPage } from '@/pages/WorkshopPage'
@@ -194,6 +195,7 @@ export function App() {
               it could not be linked, shared or stepped back out of. */}
           <Route path="offer" element={<OfferPage />} />
           <Route path="browse" element={<BrowsePage />} />
+          <Route path="jobs-hub" element={<JobsHubPage />} />
           <Route path="businesses" element={<DirectoryPage />} />
           <Route path="business/:slug" element={<BusinessProfilePage />} />
           <Route path="products" element={<ProductsDirectoryPage />} />

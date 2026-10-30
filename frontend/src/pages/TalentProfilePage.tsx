@@ -277,9 +277,19 @@ export function TalentProfilePage() {
       <div className="container-page pt-10">
         <BackLink fallback={directoryPath(data.kind)} />
 
-        {/* The band is decoration; the card over it is the header. */}
+        {/* The band is decoration; the card over it is the header. The
+            profile's cover when it has one, a brand colour otherwise. */}
         <div className="mt-4">
-          <div className="h-24 rounded-3xl bg-brand-800 sm:h-32" aria-hidden="true" />
+          {data.cover_url ? (
+            <div
+              className="h-40 overflow-hidden rounded-3xl bg-brand-800 sm:h-56"
+              aria-hidden="true"
+            >
+              <img src={data.cover_url} alt="" className="h-full w-full object-cover" />
+            </div>
+          ) : (
+            <div className="h-24 rounded-3xl bg-brand-800 sm:h-32" aria-hidden="true" />
+          )}
           <div className="relative -mt-16 px-3 sm:-mt-20 sm:px-6">
             <div className="flex flex-col gap-6 rounded-2xl border border-ink-100 bg-white p-5 shadow-card sm:p-7 lg:flex-row lg:items-start">
               <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:items-start sm:text-start lg:flex-1">

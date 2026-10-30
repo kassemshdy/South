@@ -21,7 +21,8 @@ import type { ImageKind, OwnerTalent } from '@/types/api'
  * "logo" of its own, and reusing that kind gets the square 600px variant the
  * headshot wants without a new enum value.
  */
-const PHOTO_KIND: ImageKind = 'LOGO'
+const PHOTO_KIND = 'LOGO' as const
+const COVER_KIND = 'COVER' as const
 
 interface TalentImageManagerProps {
   profile: OwnerTalent
@@ -35,6 +36,7 @@ export function TalentImageManager({ profile, maxGallery = 10 }: TalentImageMana
   const t = useT()
   const [uploadingKind, setUploadingKind] = useState<ImageKind | null>(null)
   const photoCrop = useCropStep('logo')
+  const coverCrop = useCropStep('cover')
   const galleryCrop = useCropStep('gallery')
 
   const gallery = profile.images.filter((image) => image.kind === 'GALLERY')
@@ -54,6 +56,17 @@ export function TalentImageManager({ profile, maxGallery = 10 }: TalentImageMana
     onError: (error) =>
       toast.error(t('images.uploadFailed'), error instanceof ApiError ? error.message : undefined),
     onSettled: () => setUploadingKind(null),
+  })
+
+  const removeSingle = useMutation({
+    mutationFn: (kind: typeof PHOTO_KIND | typeof COVER_KIND) =>
+      ownerTalentApi.deleteSingleImage(kind),
+    onSuccess: () => {
+      toast.success(t('images.deleted'))
+      invalidate()
+    },
+    onError: (error) =>
+      toast.error(t('images.deleteFailed'), error instanceof ApiError ? error.message : undefined),
   })
 
   const remove = useMutation({
@@ -78,7 +91,8 @@ export function TalentImageManager({ profile, maxGallery = 10 }: TalentImageMana
       return
     }
     // The size is checked on what is sent: a crop is usually much smaller.
-    const file = await (kind === PHOTO_KIND ? photoCrop : galleryCrop).crop(picked)
+    const step = kind === PHOTO_KIND ? photoCrop : kind === COVER_KIND ? coverCrop : galleryCrop
+    const file = await step.crop(picked)
     if (!file) return
     if (file.size > MAX_IMAGE_BYTES) {
       toast.error(t('images.tooLarge'), t('images.tooLargeDescription'))
@@ -102,19 +116,30 @@ export function TalentImageManager({ profile, maxGallery = 10 }: TalentImageMana
   return (
     <div className="space-y-8">
       {photoCrop.dialog}
+      {coverCrop.dialog}
       {galleryCrop.dialog}
-      <SingleImageSlot
-        label={t('talentImages.photoTitle')}
-        hint={t('talentImages.photoHint')}
-        required
-        url={profile.photo_url}
-        uploading={uploadingKind === PHOTO_KIND}
-        onSelect={(file) => void handleFile(file, PHOTO_KIND)}
-        onRemove={() => {
-          const photo = profile.images.find((image) => image.kind === PHOTO_KIND)
-          if (photo) remove.mutate(photo.id)
-        }}
-      />
+      {/* Both required before review for a service (the owners' ticket, 29
+          Oct 2026). Removed by kind: the payload lists only the portfolio. */}
+      <div className="grid gap-6 sm:grid-cols-2">
+        <SingleImageSlot
+          label={t('talentImages.photoTitle')}
+          hint={t('talentImages.photoHint')}
+          required
+          url={profile.photo_url}
+          uploading={uploadingKind === PHOTO_KIND}
+          onSelect={(file) => void handleFile(file, PHOTO_KIND)}
+          onRemove={() => removeSingle.mutate(PHOTO_KIND)}
+        />
+        <SingleImageSlot
+          label={t('images.coverTitle')}
+          hint={t('images.coverHint')}
+          required={profile.kind === 'SERVICE'}
+          url={profile.cover_url ?? null}
+          uploading={uploadingKind === COVER_KIND}
+          onSelect={(file) => void handleFile(file, COVER_KIND)}
+          onRemove={() => removeSingle.mutate(COVER_KIND)}
+        />
+      </div>
 
       <section>
         <div className="mb-3 flex items-center justify-between gap-3">

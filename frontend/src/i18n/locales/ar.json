@@ -753,8 +753,8 @@
   "gallery.counter": "{current} من {total}",
   "gallery.next": "الصورة التالية",
   "gallery.previous": "الصورة السابقة",
-  "home.actionBrowse": "أريد أن أطلب سلعة/منتج أو خدمة (شراء وعرض وظيفة)",
-  "home.actionOffer": "أريد أن أعرض سلعة/منتج أو خدمة (بيع وطلب وظيفة)",
+  "home.actionBrowse": "أريد أن أطلب سلعة/منتج أو خدمة (شراء)",
+  "home.actionOffer": "أريد أن أعرض سلعة/منتج أو خدمة (بيع)",
   "home.comingSoon": "قريباً",
   "home.disclaimer": "تنويه: منصّة جنوبنا لا تتدخّل بعمليّة البيع والشراء بأي شكل من الأشكال، بل أنّ هذه العمليّة تتمّ بين العارض والطالب، ونكتفي في المنصّة بجمعهما فقط. كما نلفت انتباهكم أنّ منصّة \"جنوبنا\" هي مبادرة تطوّعيّة لا تبغي الربح ويشغّلها مجموعة متطوّعين لا يتلقّون أجرًا مقابل عملهم",
   "home.heroSubtitle": "هنا يعرض الجنوبيون سلعهم ومنتجاتهم ومهاراتهم ومعارفهم العلمية والمهنية حتى يتيحوا لكل مؤمن بقضيتهم أن يكون شريكًا في صمودهم وحتى يبقوا منتجين وفاعلين.",
@@ -1120,6 +1120,7 @@
   "talent.field.location": "المنطقة",
   "talent.field.map_pin": "الموقع على الخريطة",
   "talent.field.photo": "الصورة الشخصية",
+  "talent.field.cover": "صورة الغلاف",
   "talent.field.skill": "المهارة",
   "talent.field.work_mode": "طريقة تقديم الخدمة",
   "talent.field.years_experience": "سنوات الخبرة",
@@ -1677,5 +1678,13 @@
   "displaced.filter": "أصحاب نشاط نازحون",
   "account.showDisplacementLabel": "أظهر للزوّار أنني نازح من هذه البلدة",
   "account.showDisplacementHint": "تظهر عبارة «نازح من …» على صفحاتك وبطاقاتك، ويمكنك إخفاؤها في أي وقت.",
-  "feedback.status.NEEDS_FEEDBACK": "بانتظار رد الإدارة"
+  "feedback.status.NEEDS_FEEDBACK": "بانتظار رد الإدارة",
+  "onboarding.offerGoodsDescription": "متجر، مطعم، ورشة، مزرعة — سلع مصنوعة في الجنوب أو مستوردة، وتحدّد نوعها في الطلب.",
+  "home.actionJobs": "وظائف",
+  "jobsHub.title": "وظائف",
+  "jobsHub.subtitle": "انشر عرض عمل، أو تصفّح من يبحثون عن عمل، أو اعرض خبرتك على أصحاب العمل.",
+  "jobsHub.doorsTitle": "ماذا تريد أن تفعل؟",
+  "jobsHub.postTitle": "انشر عرض عمل",
+  "jobsHub.seekersTitle": "انظر المتقدمين على الوظائف",
+  "jobsHub.applyTitle": "أطلب وظيفة"
 }

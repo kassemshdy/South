@@ -137,6 +137,7 @@ class AccountDeletionService:
         ).all()
         return [
             profile.photo_storage_key,
+            profile.cover_storage_key,
             *(image.storage_key for image in profile.images),
             *stories,
         ]

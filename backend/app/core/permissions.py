@@ -78,6 +78,7 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
             "reject",
             "suspend",
             "reactivate",
+            "images",
             "skill",
             "place",
             "convert-to-business",

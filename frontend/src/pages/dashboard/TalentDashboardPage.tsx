@@ -143,7 +143,9 @@ export function TalentDashboardPage() {
             has been written yet, so there is nothing to strand. Only on the
             create form — once a profile exists this is the page for managing
             it, not a fork. */}
-        <OfferSwitcher current={initialKind === 'JOB_SEEKER' ? 'job' : 'service'} />
+        {/* Not for a job seeker: asking for a job is a door of the jobs page
+            now, no longer one of the two this strip offers. */}
+        {initialKind === 'JOB_SEEKER' ? null : <OfferSwitcher current="service" />}
         <Card>
           <CardBody>
             <TalentForm
@@ -229,8 +231,15 @@ export function TalentDashboardPage() {
       ) : null}
 
       <Card>
+        {/* The images tab stays open while a required image is missing: with
+            only the photo checked, uploading it switched the view to the
+            details tab before the cover (also required for a service) could
+            be added. */}
         <Tabs.Root
-          value={tab ?? (data.photo_url ? 'details' : 'images')}
+          value={
+            tab ??
+            (!data.photo_url || (data.kind === 'SERVICE' && !data.cover_url) ? 'images' : 'details')
+          }
           onValueChange={setTab}
         >
           <Tabs.List

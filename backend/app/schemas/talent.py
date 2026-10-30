@@ -83,6 +83,8 @@ class TalentSummaryOut(ORMModel):
     # Which directory it is listed in: services, or job applications.
     kind: TalentKind = TalentKind.SERVICE
     photo_url: str | None = None
+    # The wide image across the top of the profile page (29 Oct 2026).
+    cover_url: str | None = None
     phone: str | None = None
     whatsapp: str | None = None
     years_experience: int | None = None
