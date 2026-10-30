@@ -1394,6 +1394,7 @@
   "crop.zoom": "Zoom",
   "crop.useOriginal": "Use the photo as it is",
   "crop.apply": "Crop and use",
+  "images.photoUnreadable": "This photo could not be read from the phone. Pick it again, or save it to the phone first and then pick it.",
   "home.reelsTitle": "Reels from the South",
   "reels.play": "Play the reel",
   "reels.previous": "Previous reel",

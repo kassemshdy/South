@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 
 import { Button } from '@/components/ui/Button'
 import { Dialog, DialogContent } from '@/components/ui/Dialog'
+import { useToast } from '@/components/ui/Toast'
 import { useT } from '@/i18n'
+import { inMemory } from '@/utils/shrinkImage'
 import { cn } from '@/utils/cn'
 
 /** A frame shape, written as the ratio people know it by. */
@@ -63,9 +65,22 @@ export function useCropStep(shape: CropShape): {
   const [pending, setPending] = useState<{ file: File; resolve: (file: File | null) => void } | null>(
     null,
   )
+  const toast = useToast()
+  const t = useT()
   const crop = useCallback(
-    (file: File) => new Promise<File | null>((resolve) => setPending({ file, resolve })),
-    [],
+    async (picked: File): Promise<File | null> => {
+      // Held in memory straight away: on Android a picked photo can become
+      // unreadable later, after the owner has filled in the rest of the form.
+      let file: File
+      try {
+        file = await inMemory(picked)
+      } catch {
+        toast.error(t('images.photoUnreadable'))
+        return null
+      }
+      return new Promise<File | null>((resolve) => setPending({ file, resolve }))
+    },
+    [toast, t],
   )
   const finish = (file: File | null) => {
     pending?.resolve(file)
