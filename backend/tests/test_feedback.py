@@ -616,3 +616,25 @@ def test_a_ticket_can_wait_on_the_admin_without_counting_as_resolved(
     detail = client.get(f"/api/admin/feedback/tickets/{ticket['id']}", headers=headers).json()
     assert detail["status"] == "NEEDS_FEEDBACK"
     assert detail["resolved_at"] is None
+
+
+def test_an_administrator_sees_who_sent_a_report_and_their_phone(
+    client: TestClient, db: Session, admin: User
+) -> None:
+    owner = sign_in(client, "03991122")
+    user = db.query(User).filter(User.phone_number.like("%3991122")).one()
+    user.full_name = ar("identity.full_name")
+    db.commit()
+
+    receipt = client.post("/api/feedback", headers=owner, json={"title": ar("feedback.bug_title")})
+    assert receipt.status_code == 201, receipt.text
+    # The reporter's own receipt carries nothing about them.
+    assert "reporter_contact" not in receipt.json()
+
+    detail = client.get(
+        f"/api/admin/feedback/tickets/{receipt.json()['id']}", headers=admin_headers(client)
+    ).json()
+    assert detail["reporter_contact"] == {
+        "name": ar("identity.full_name"),
+        "phone": user.phone_number,
+    }

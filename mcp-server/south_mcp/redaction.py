@@ -29,6 +29,9 @@ REDACTED_KEYS = frozenset(
         "owner_identity",
         "owner_phone",
         "owner_personal_phone",
+        # A ticket reporter's name and phone, shown to administrators on the
+        # board; an agent triaging the ticket needs neither.
+        "reporter_contact",
     }
 )
 

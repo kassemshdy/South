@@ -142,17 +142,29 @@ export function FeedbackWidget() {
         ? await feedbackApi.create({ ...common, priority: values.priority })
         : await feedbackApi.submit(common)
       const attach = isAdmin ? feedbackApi.uploadAttachment : feedbackApi.submitAttachment
-      if (screenshot) {
-        await attach(ticket.id, screenshot, 'SCREENSHOT')
+      // The report exists from here on. A picture that fails to attach must
+      // not read as a failed report, or the reporter sends it again (one
+      // owner sent the same report four times, 30 Oct 2026).
+      let attachmentFailed = false
+      const uploads = [
+        ...(screenshot ? [{ file: screenshot, kind: 'SCREENSHOT' as const }] : []),
+        ...files.map((pending) => ({ file: pending.file, kind: pending.kind })),
+      ]
+      for (const upload of uploads) {
+        try {
+          await attach(ticket.id, upload.file, upload.kind)
+        } catch {
+          attachmentFailed = true
+        }
       }
-      for (const pending of files) {
-        await attach(ticket.id, pending.file, pending.kind)
-      }
-      return ticket
+      return { ticket, attachmentFailed }
     },
-    onSuccess: () => {
+    onSuccess: ({ attachmentFailed }) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.feedbackTickets })
-      toast.success(t('feedback.reportSent'), t('feedback.reportSentDescription'))
+      toast.success(
+        t('feedback.reportSent'),
+        attachmentFailed ? t('feedback.attachmentSkipped') : t('feedback.reportSentDescription'),
+      )
       handleOpenChange(false)
     },
     onError: (error) =>
