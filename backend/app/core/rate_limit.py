@@ -7,6 +7,7 @@ without touching any caller.
 
 from __future__ import annotations
 
+import random
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Protocol
@@ -15,6 +16,12 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.models.auth import RateLimitEvent
+
+#: How long an attempt is kept: twice the longest window any rule uses (one
+#: day), so nothing a rule can still count is ever removed.
+KEEP_SECONDS = 2 * 86_400
+#: The share of recorded attempts that also clear out expired ones.
+PURGE_CHANCE = 0.01
 
 
 @dataclass(frozen=True)
@@ -87,19 +94,29 @@ class DatabaseRateLimiter:
         The returned status describes *this* attempt, not the next one: with a
         limit of 3, the third call is allowed and the fourth is refused.
         """
+        # Serialise the read and the insert for this one key: two requests
+        # in parallel could otherwise both see room for one more attempt and
+        # both record it. Held until the transaction ends.
+        self._db.execute(
+            select(func.pg_advisory_xact_lock(func.hashtext(f"{rule.bucket}:{identifier}")))
+        )
         timestamps = self._events_in_window(rule, identifier)
         if len(timestamps) >= rule.limit:
             return self._status(rule, timestamps)
 
         self._db.add(RateLimitEvent(bucket=rule.bucket, identifier=identifier))
         self._db.flush()
+        # Nothing else ever removed old rows, so the table only grew. A
+        # small share of attempts clears what no window can still count.
+        if random.random() < PURGE_CHANCE:
+            self.purge_expired()
         return RateLimitStatus(
             allowed=True,
             remaining=rule.limit - len(timestamps) - 1,
             retry_after_seconds=0,
         )
 
-    def purge_expired(self, older_than_seconds: int = 86_400) -> int:
+    def purge_expired(self, older_than_seconds: int = KEEP_SECONDS) -> int:
         """Housekeeping so the table does not grow without bound."""
         cutoff = datetime.now(UTC) - timedelta(seconds=older_than_seconds)
         result = self._db.execute(
