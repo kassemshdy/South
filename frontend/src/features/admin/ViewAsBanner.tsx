@@ -4,9 +4,10 @@ import { useT } from '@/i18n'
 import { viewAsStorage } from '@/services/api/client'
 
 /**
- * Says, on every page of a read-only view, whose account this is and that
- * nothing can be changed, with the way back to the administrator's own
- * session. Read once per render: starting or ending a view reloads the page.
+ * Says, on every page of a view, whose account this is and whether changes
+ * are saved (a manager's editing session) or not, with the way back to the
+ * administrator's own session. Read once per render: starting or ending a
+ * view reloads the page.
  */
 export function ViewAsBanner() {
   const t = useT()
@@ -23,7 +24,9 @@ export function ViewAsBanner() {
       <div className="container-page flex flex-wrap items-center justify-between gap-3 py-2 text-sm">
         <p className="flex items-center gap-2 font-semibold">
           <Eye className="h-4 w-4 shrink-0" aria-hidden="true" />
-          {t('viewAs.banner', { name: session.name ?? t('admin.userNoName') })}
+          {t(session.canEdit ? 'viewAs.bannerEdit' : 'viewAs.banner', {
+            name: session.name ?? t('admin.userNoName'),
+          })}
         </p>
         <button
           type="button"

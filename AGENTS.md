@@ -250,15 +250,22 @@ and the last active manager cannot be demoted or disabled. The frontend
 mirrors the table in `features/admin/staffAccess.ts` only to hide what a
 role cannot use -- the API is the guard.
 
-**An administrator may look at an owner's account, never act in it.**
-`POST /api/admin/users/{id}/view-as` (manager and reviewer only, never an
-administrator's account) issues a 30-minute session that is the owner's own,
-carrying the administrator's id and token version. `_enforce_view_only` in
-`app/core/dependencies.py` refuses every request with it that is not a read,
-before any route runs, and ends it when either side's sessions are revoked
-(the owners' decision, 29 Oct 2026). The frontend keeps it in the tab's
-session storage, apart from the administrator's own session.
-`tests/test_view_as.py` pins it; a write that gets through is a bug in the
+**A reviewer may look at an owner's account; a manager may also edit it,
+but never take it over.** `POST /api/admin/users/{id}/view-as` (manager and
+reviewer only, never an administrator's account) issues a 30-minute session
+that is the owner's own, carrying the administrator's id and token version.
+`_enforce_view_only` in `app/core/dependencies.py` runs before any route:
+it ends the session when either side's sessions are revoked, refuses every
+write from a reviewer's (the owners' decision, 29 Oct 2026), and lets a
+manager's write through (the owners' decision, 30 Oct 2026) -- except the
+routes in `OWNER_ONLY_WRITES`, the owner's password and the account's
+deletion, which would take the account from its owner. Each allowed write
+is logged with both ids, the method and the path, and the Telegram archive
+records it as the administrator's (so it is not posted as the owner's
+own). The frontend keeps the session in the tab's session storage, apart
+from the administrator's own, and its banner says which mode it is in.
+`tests/test_view_as.py` pins it; a write that gets through a reviewer's
+session, or reaches `OWNER_ONLY_WRITES` from a manager's, is a bug in the
 guard, not a missing check in the route.
 
 **Sign-in is one form for everybody.** `POST /api/auth/login` takes an
