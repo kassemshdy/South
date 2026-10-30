@@ -1220,23 +1220,28 @@ function applicationForm(application: unknown, documents: ApplicantDocuments): F
 }
 
 export const registrationApi = {
+  /** `logo` is required by the API: a shop cannot be approved without one. */
   business: (
     applicant: Applicant,
     business: BusinessPayload,
+    logo: File,
     captcha_token: string | null,
-  ) =>
-    apiRequest<RegistrationResult>('/api/register/business', {
+  ) => {
+    const form = applicationForm(
+      {
+        login_phone: applicant.phone,
+        identity: applicant.identity,
+        business,
+        captcha_token,
+      },
+      applicant.documents,
+    )
+    form.append('logo', logo)
+    return apiRequest<RegistrationResult>('/api/register/business', {
       method: 'POST',
-      formData: applicationForm(
-        {
-          login_phone: applicant.phone,
-          identity: applicant.identity,
-          business,
-          captcha_token,
-        },
-        applicant.documents,
-      ),
-    }),
+      formData: form,
+    })
+  },
   talent: (applicant: Applicant, talent: TalentPayload, captcha_token: string | null) =>
     apiRequest<RegistrationResult>('/api/register/talent', {
       method: 'POST',

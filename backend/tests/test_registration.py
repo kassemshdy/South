@@ -29,8 +29,8 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.security import verify_password
-from app.models.business import Business
-from app.models.enums import BusinessStatus, UserRole, VerificationDocumentKind
+from app.models.business import Business, BusinessImage
+from app.models.enums import BusinessStatus, ImageKind, UserRole, VerificationDocumentKind
 from app.models.talent import TalentProfile, TalentSkill
 from app.models.taxonomy import Category, Location
 from app.models.user import User
@@ -88,25 +88,33 @@ PNG_BYTES = base64.b64decode(
 )
 
 
+#: The shop's logo every business application now carries.
+LOGO_FILE = ("logo.png", PNG_BYTES, "image/png")
+
+
 def _register(
     client: TestClient,
     kind: str,
     payload: dict[str, object],
     document: tuple[str, bytes, str] | None = None,
     document_back: tuple[str, bytes, str] | None = None,
+    logo: tuple[str, bytes, str] | None = LOGO_FILE,
 ):
     """POST an application the way the forms do: JSON in one multipart field.
 
     The route takes multipart because an application carries the applicant's
     ID scan and there is no account to upload it to yet — see
     `app/api/v1/registration.py` for why that is not an anonymous upload
-    endpoint.
+    endpoint. A business application also carries the shop's logo, which is
+    required; pass ``logo=None`` to send none.
     """
     files: dict[str, tuple[str, bytes, str]] = {}
     if document is not None:
         files["document"] = document
     if document_back is not None:
         files["document_back"] = document_back
+    if kind == "business" and logo is not None:
+        files["logo"] = logo
     return client.post(
         f"/api/register/{kind}",
         data={"application": json.dumps(payload)},
@@ -357,6 +365,59 @@ def test_a_scan_cannot_be_hung_on_somebody_elses_account(
     db.refresh(owner)
     assert owner.document_of(VerificationDocumentKind.IDENTITY) is None
     assert owner.document_of(VerificationDocumentKind.IDENTITY_BACK) is None
+
+
+def test_the_logo_arrives_with_the_application(
+    client: TestClient, db: Session, category: Category, location: Location
+) -> None:
+    """A shop cannot be approved without a logo (the owners' decision, 29 Oct
+    2026), so the form asks for it up front (30 Oct 2026)."""
+    _apply(client, _business_payload(category, location))
+
+    business = db.execute(select(Business)).scalar_one()
+    assert business.logo_url is not None
+    assert [image.kind for image in business.images] == [ImageKind.LOGO]
+
+
+def test_an_application_without_a_logo_is_refused_and_creates_nothing(
+    client: TestClient, db: Session, category: Category, location: Location
+) -> None:
+    response = _register(client, "business", _business_payload(category, location), logo=None)
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "logo_required"
+    assert _owner(db) is None
+    assert db.execute(select(Business)).first() is None
+
+
+def test_a_logo_that_is_not_an_image_refuses_the_whole_application(
+    client: TestClient, db: Session, category: Category, location: Location
+) -> None:
+    response = _register(
+        client,
+        "business",
+        _business_payload(category, location),
+        logo=("logo.png", b"not an image at all", "image/png"),
+    )
+
+    assert response.status_code == 415
+    assert _owner(db) is None
+    assert db.execute(select(Business)).first() is None
+
+
+def test_a_logo_cannot_be_hung_on_somebody_elses_listing(
+    client: TestClient, db: Session, category: Category, location: Location
+) -> None:
+    """A number that already has an account gets the same answer and nothing
+    stored, the logo included -- as with the ID scan."""
+    _apply(client, _business_payload(category, location))
+    before = db.execute(select(BusinessImage)).scalars().all()
+
+    again = _register(client, "business", _business_payload(category, location))
+
+    assert again.status_code == 202
+    db.expire_all()
+    assert len(db.execute(select(BusinessImage)).scalars().all()) == len(before)
 
 
 def test_a_talent_applicant_can_attach_one_too(

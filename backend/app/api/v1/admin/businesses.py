@@ -12,7 +12,6 @@ from typing import Annotated
 from fastapi import APIRouter, File, Form, Query, Response, UploadFile
 
 from app.api.serializers import admin_business, paginate
-from app.api.v1.images import store_business_image
 from app.core.dependencies import AdminUser, AppSettings, DbSession
 from app.core.downloads import content_disposition
 from app.core.errors import NotFoundError, PayloadTooLargeError, ValidationError
@@ -34,6 +33,7 @@ from app.schemas.moderation import (
 from app.services.account import AccountDeletionService
 from app.services.business import BusinessService
 from app.services.business_documents import BusinessDocumentService
+from app.services.business_images import store_business_image
 from app.services.moderation import ModerationService
 from app.storage.factory import get_storage
 

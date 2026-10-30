@@ -305,5 +305,6 @@
   "telegram.kind.job_application": "طلب جديد على فرصة عمل",
   "job.offer_received": "وصلت فرصة العمل التي عرضتها، وسيراجعها فريقنا قبل نشرها.",
   "job.id_document_not_found": "لا توجد وثيقة هوية لهذه الفرصة.",
-  "telegram.kind.job_offer": "فرصة عمل جديدة من صاحب عمل"
+  "telegram.kind.job_offer": "فرصة عمل جديدة من صاحب عمل",
+  "registration.logo_required": "أضف شعار نشاطك."
 }

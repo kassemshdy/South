@@ -235,6 +235,12 @@ Five things about it are load-bearing rather than incidental:
   number would be a way to put a file on somebody else's account. `VerificationDocumentService.validate`
   exists to make the "refused before anything is created" half possible, and
   `tests/test_registration.py` pins every clause of this paragraph.
+  **A business application also carries the shop's logo, and must** (the
+  owners' decision, 30 Oct 2026): a shop cannot be approved without one, so
+  it is asked for up front rather than added by the reviewer. The same rules
+  hold -- accepted only with an application that succeeds, refused before
+  anything is created when missing or not an image (`ImageService.validate`),
+  never stored for a number that already has an account.
 
 **Staff have roles, and one table decides what each may do.** Every
 `ADMIN` account carries a `StaffRole` -- manager, reviewer, support, content

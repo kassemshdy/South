@@ -24,6 +24,7 @@ from app.models.enums import BusinessStatus, GoodsOrigin
 from app.models.taxonomy import Category, Location
 from tests.conftest import post_item, sign_in
 from tests.samples import ar
+from tests.test_registration import LOGO_FILE
 
 
 def _approved_business(
@@ -192,7 +193,11 @@ def test_the_public_application_carries_it(
             "goods_origin": "IMPORTED",
         },
     }
-    response = client.post("/api/register/business", data={"application": json.dumps(payload)})
+    response = client.post(
+        "/api/register/business",
+        data={"application": json.dumps(payload)},
+        files={"logo": LOGO_FILE},
+    )
     assert response.status_code == 202, response.text
 
     business = db.execute(select(Business)).scalar_one()
