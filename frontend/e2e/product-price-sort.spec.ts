@@ -34,7 +34,7 @@ async function products(request: APIRequestContext, sort: string): Promise<Produ
  *
  * What the ordering must not do is the reason for this spec:
  *
- * 1. **It must not drop anything.** Every product on `newest` is still there
+ * 1. **It must not drop anything.** Every product on `oldest` is still there
  *    on both price orders — that is the whole difference from the filter it
  *    replaced, and it is the property an owner with a blank price depends on.
  * 2. **An unpriced product sorts last in both directions.** Postgres puts
@@ -44,7 +44,9 @@ async function products(request: APIRequestContext, sort: string): Promise<Produ
  */
 test.describe('Products price sort', () => {
   test('both orders keep every product and sort the unpriced ones last', async ({ request }) => {
-    const baseline = await products(request, 'newest')
+    // Oldest first lists every product; newest shows one per shop (30 Oct
+    // 2026), so it is no baseline for "nothing removed".
+    const baseline = await products(request, 'oldest')
     const unpriced = baseline.filter((product) => product.price === null)
 
     // The fixture the rest of this test leans on: the seed has to contain

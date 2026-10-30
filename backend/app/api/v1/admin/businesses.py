@@ -69,7 +69,7 @@ def list_pending(
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> PaginatedResponse[AdminBusinessOut]:
-    """The review queue, oldest submission first."""
+    """The review queue, newest submission first."""
     results = BusinessRepository(db).list_for_admin(
         status=BusinessStatus.PENDING_REVIEW, page=page, page_size=page_size
     )

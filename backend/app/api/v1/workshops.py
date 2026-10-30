@@ -344,11 +344,11 @@ def delete_workshop(
 def list_registrations(
     workshop_id: uuid.UUID, db: DbSession, admin: AdminUser
 ) -> list[WorkshopRegistrationOut]:
-    """Who signed up, the earliest first."""
+    """Who signed up, the latest first (the owners' decision, 30 Oct 2026)."""
     _get_or_404(db, workshop_id)
     rows = db.execute(
         select(WorkshopRegistration)
         .where(WorkshopRegistration.workshop_id == workshop_id)
-        .order_by(WorkshopRegistration.created_at.asc())
+        .order_by(WorkshopRegistration.created_at.desc())
     ).scalars()
     return [WorkshopRegistrationOut.model_validate(row) for row in rows]
