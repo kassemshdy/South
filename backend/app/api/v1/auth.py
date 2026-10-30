@@ -15,7 +15,6 @@ from app.core.dependencies import (
 )
 from app.core.errors import AuthenticationError, PayloadTooLargeError, PermissionDeniedError
 from app.core.i18n import translate
-from app.core.security import verify_password
 from app.core.uploads import read_at_most
 from app.models.enums import ImageKind, UserRole, VerificationDocumentKind
 from app.schemas.auth import (
@@ -94,7 +93,7 @@ def change_my_password(
     an account may do.
     """
     service = AuthService(db, settings)
-    if not verify_password(payload.current_password, user.password_hash):
+    if not service.confirm_password(user, payload.current_password):
         raise AuthenticationError("auth.invalid_credentials", code="invalid_credentials")
     service.set_password(user, payload.new_password)
     return UserOut.model_validate(user)
@@ -102,7 +101,7 @@ def change_my_password(
 
 @router.post("/me/delete", response_model=MessageResponse)
 def delete_my_account(
-    payload: DeleteAccountIn, user: SignedInUser, db: DbSession
+    payload: DeleteAccountIn, user: SignedInUser, db: DbSession, settings: AppSettings
 ) -> MessageResponse:
     """Delete one's own account and everything it published, for good.
 
@@ -115,7 +114,7 @@ def delete_my_account(
         raise PermissionDeniedError("account.admin_cannot_delete")
     # 403, not 401: the client treats any 401 as an ended session and signs
     # out, which a mistyped password must not do to someone mid-decision.
-    if not verify_password(payload.password, user.password_hash):
+    if not AuthService(db, settings).confirm_password(user, payload.password):
         raise PermissionDeniedError("auth.invalid_credentials", code="invalid_credentials")
     AccountDeletionService(db, get_storage()).delete(user)
     return MessageResponse(message=translate("account.deleted"))

@@ -188,6 +188,15 @@ class Settings(BaseSettings):
     # See AuthService.login.
     password_login_limit: int = 10
     password_login_window_seconds: int = 900
+    # A second, wider budget per address, beside the one above rather than
+    # instead of it: the per-identifier budget alone lets one host try one
+    # common password against every number. Generous, so a shared
+    # connection -- a family, a cafe -- is not shut out by its neighbours.
+    password_login_per_ip_limit: int = 30
+    # Re-entering one's own password to change it or delete the account: a
+    # stolen session could otherwise guess the password behind it freely.
+    password_confirm_limit: int = 10
+    password_confirm_window_seconds: int = 900
 
     # --- Human verification ------------------------------------------------
     # Cloudflare Turnstile. Unset means the public forms are not captcha

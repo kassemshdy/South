@@ -190,6 +190,50 @@ def test_a_successful_sign_in_spends_nothing(client: TestClient) -> None:
         assert ok.status_code == 200, ok.text
 
 
+def test_one_address_cannot_spray_a_password_across_every_number(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The per-identifier budget alone let one host try one common password
+    against each number in turn; the address now has a budget of its own."""
+    monkeypatch.setattr(get_settings(), "password_login_per_ip_limit", 3)
+    make_owner("03555700")
+
+    for number in ("03555701", "03555702", "03555703"):
+        refused = client.post("/api/auth/login", json={"identifier": number, "password": "x"})
+        assert refused.status_code == 401
+
+    # A fresh number, and even the right password, from the same address.
+    capped = client.post(
+        "/api/auth/login", json={"identifier": "03555700", "password": OWNER_PASSWORD}
+    )
+    assert capped.status_code == 429
+
+
+def test_re_entering_ones_own_password_is_on_a_budget(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A stolen session could otherwise guess the password behind it through
+    the change-password and delete-account forms."""
+    monkeypatch.setattr(get_settings(), "password_confirm_limit", 2)
+    make_owner("03555800")
+    headers = sign_in(client, "03555800")
+
+    for _ in range(2):
+        wrong = client.post(
+            "/api/me/password",
+            headers=headers,
+            json={"current_password": "wrong", "new_password": "a-new-password-1"},
+        )
+        assert wrong.status_code == 401
+    assert client.post("/api/me/delete", headers=headers, json={"password": "wrong"}).status_code == 429
+    capped = client.post(
+        "/api/me/password",
+        headers=headers,
+        json={"current_password": OWNER_PASSWORD, "new_password": "a-new-password-1"},
+    )
+    assert capped.status_code == 429
+
+
 def test_admin_login_requires_correct_password(client: TestClient, admin: User) -> None:
     ok = client.post(
         "/api/auth/admin/login", json={"email": admin.email, "password": "AdminPass!123"}
