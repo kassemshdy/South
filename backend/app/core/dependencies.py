@@ -5,6 +5,7 @@ Authorization is enforced here and in services — never by trusting the fronten
 
 from __future__ import annotations
 
+import logging
 import uuid
 from typing import Annotated
 
@@ -25,6 +26,8 @@ from app.repositories.talent import TalentRepository
 from app.repositories.user import UserRepository
 from app.services.telegram_archive import SESSION_ACTOR as ARCHIVE_ACTOR
 from app.services.telegram_archive import person as archive_person
+
+logger = logging.getLogger(__name__)
 
 DbSession = Annotated[Session, Depends(get_db)]
 AppSettings = Annotated[Settings, Depends(get_settings)]
@@ -71,16 +74,23 @@ def _bearer_token(request: Request) -> str | None:
 #: Methods a read-only view may use: reading changes nothing.
 _READ_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 
+#: What a manager's editing session may still never do, because it would take
+#: the account from its owner or end it: replace their password (which also
+#: signs out every other session -- there is no separate "sign out
+#: everywhere" route) or delete the account. Refused as a read-only write is.
+OWNER_ONLY_WRITES = frozenset({("POST", "/api/me/password"), ("POST", "/api/me/delete")})
 
-def _enforce_view_only(request: Request, db: DbSession, payload: dict[str, object]) -> None:
-    """An administrator looking at an owner's account, read-only.
+
+def _enforce_view_only(request: Request, db: DbSession, payload: dict[str, object]) -> User:
+    """An administrator in an owner's account; returns that administrator.
 
     The token is the owner's (so every owner route answers exactly as it
     would for them) and carries the administrator's id and token version.
     It stops working the moment either side's sessions are revoked, or the
-    administrator loses a role that may use it, and whatever it asks to
-    change is refused here, before any route runs: the read-only rule lives
-    on the server, not in which buttons the page hides.
+    administrator loses a role that may use it. A manager may change things
+    there (the owners' decision, 30 Oct 2026) except the owner's password and
+    the account's deletion; every other role is read-only. Both rules are
+    enforced here, before any route runs, not by which buttons the page hides.
     """
     try:
         admin_id = uuid.UUID(str(payload.get("va")))
@@ -94,8 +104,23 @@ def _enforce_view_only(request: Request, db: DbSession, payload: dict[str, objec
         or int(str(payload.get("atv", -1))) != admin.token_version
     ):
         raise AuthenticationError("auth.session.expired", code="token_revoked")
-    if request.method not in _READ_METHODS:
+    if request.method in _READ_METHODS:
+        return admin
+    if (
+        admin.staff_role is not StaffRole.MANAGER
+        or (request.method, request.url.path) in OWNER_ONLY_WRITES
+    ):
         raise PermissionDeniedError("auth.view_only", code="view_only")
+    logger.info(
+        "Administrator editing an owner's account",
+        extra={
+            "admin_id": str(admin.id),
+            "user_id": str(payload.get("sub")),
+            "method": request.method,
+            "path": request.url.path,
+        },
+    )
+    return admin
 
 
 def get_current_user_optional(request: Request, db: DbSession) -> User | None:
@@ -117,10 +142,13 @@ def get_current_user_optional(request: Request, db: DbSession) -> User | None:
     # Token version lets us revoke every session issued to a user.
     if int(payload.get("tv", -1)) != user.token_version:
         raise AuthenticationError("auth.session.expired", code="token_revoked")
+    # Who is saving, for the Telegram archive, which skips administrators: in
+    # an owner's account that is the administrator, so their edits are not
+    # posted as the owner's own.
+    actor = user
     if payload.get("va") is not None:
-        _enforce_view_only(request, db, payload)
-    # Who is saving, for the Telegram archive, which skips administrators.
-    db.info[ARCHIVE_ACTOR] = (user.role.value, *archive_person(user))
+        actor = _enforce_view_only(request, db, payload)
+    db.info[ARCHIVE_ACTOR] = (actor.role.value, *archive_person(actor))
     return user
 
 
