@@ -305,5 +305,6 @@
   "telegram.kind.job_application": "New job application",
   "job.offer_received": "We received the job you offered; our team will review it before publishing.",
   "job.id_document_not_found": "This opening has no ID document.",
-  "telegram.kind.job_offer": "New job offered by an employer"
+  "telegram.kind.job_offer": "New job offered by an employer",
+  "registration.logo_required": "Add your business logo."
 }

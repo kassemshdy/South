@@ -155,6 +155,23 @@ class ImageService:
             height=height,
         )
 
+    def validate(self, *, data: bytes, content_type: str | None) -> None:
+        """Refuse a file ``process_and_store`` would refuse, storing nothing.
+
+        For a caller that must turn a bad image away before it creates
+        anything else, such as the public application form and its logo.
+        """
+        if len(data) > self._settings.max_upload_bytes:
+            limit_mb = self._settings.max_upload_bytes / (1024 * 1024)
+            raise PayloadTooLargeError(
+                "image.too_large", params={"limit": f"{limit_mb:.0f}"}
+            )
+        if not data:
+            raise UnsupportedMediaTypeError("image.empty")
+        if content_type and content_type.lower() not in ALLOWED_CONTENT_TYPES:
+            raise UnsupportedMediaTypeError("image.unsupported_format")
+        self._decode(data)
+
     def delete(self, key: str | None) -> None:
         if key:
             self._storage.delete(key)

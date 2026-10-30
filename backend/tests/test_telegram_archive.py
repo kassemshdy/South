@@ -11,6 +11,8 @@ from __future__ import annotations
 import json
 import logging
 from collections.abc import Iterator
+from email import policy as email_policy
+from email.parser import BytesParser
 
 import httpx
 import pytest
@@ -39,11 +41,30 @@ def label(name: str) -> str:
 SITE = "https://site.test"
 
 
+def _multipart_field(request: httpx.Request, name: str) -> str:
+    """One text field of a multipart request, as Telegram would read it."""
+    message = BytesParser(policy=email_policy.HTTP).parsebytes(
+        f"Content-Type: {request.headers['content-type']}\r\n\r\n".encode() + request.content
+    )
+    for part in message.iter_parts():
+        if part.get_param("name", header="content-disposition") == name:
+            return bytes(part.get_payload(decode=True)).decode("utf-8")
+    raise AssertionError(f"no {name} field in the request")
+
+
 class FakeTelegram:
     def __init__(self) -> None:
         self.messages: list[str] = []
         self.documents: list[bytes] = []
         self.photos: list[bytes] = []
+        #: The text a photo carries: a listing with a logo is posted as that
+        #: photo, and every business application has one now.
+        self.captions: list[str] = []
+
+    @property
+    def texts(self) -> list[str]:
+        """Everything posted as words, whether a message or a caption."""
+        return self.messages + self.captions
 
     def handler(self, request: httpx.Request) -> httpx.Response:
         assert request.url.path.startswith(f"/bot{TOKEN}/")
@@ -55,6 +76,7 @@ class FakeTelegram:
             self.messages.append(form["text"])
         elif request.url.path.endswith("/sendPhoto"):
             self.photos.append(request.content)
+            self.captions.append(_multipart_field(request, "caption"))
         else:
             self.documents.append(request.content)
         return httpx.Response(200, json={"ok": True})
@@ -151,13 +173,15 @@ def test_with_files_on_an_application_is_posted_with_its_id_scan(
 
     with SessionLocal() as session:
         business_id = session.execute(select(Business.id)).scalar_one()
-    text = "\n".join(fake.messages)
+    text = "\n".join(fake.texts)
     assert ar("identity.full_name") in text
     assert APPLICANT_E164 in text
     assert f"{label('link')}: {SITE}/admin/businesses/{business_id}" in text
     assert f"{label('shop')}: <b>{ar('business.applicant')}</b>" in text
     assert "password_hash" not in text
-    assert len(fake.documents) == 1, "the ID scan is attached"
+    # The ID scan, beside the logo's own files (every stored file goes).
+    scans = [document for document in fake.documents if b"/logo/" not in document]
+    assert len(scans) == 1, "the ID scan is attached"
 
 
 def test_an_order_is_posted(
@@ -295,13 +319,15 @@ def test_the_backfill_sends_a_business_with_its_owner_and_id_scan_once(
     business = db.execute(select(Business)).scalar_one()
     batch = telegram_backfill.business_batch(db, business)
     archive.send(batch)
-    text = "\n".join(fake.messages)
+    text = "\n".join(fake.texts)
     assert translate("telegram.past", locale="ar") in text.splitlines()[0]
     assert ar("identity.full_name") in text
     assert APPLICANT_E164 in text
     assert f"{SITE}/admin/businesses/{business.id}" in text
     assert f"{label('shop')}: <b>{ar('business.applicant')}</b>" in text
-    assert len(fake.documents) == 1, "the ID scan is attached"
+    # The ID scan, beside the logo's own files (every stored file goes).
+    scans = [document for document in fake.documents if b"/logo/" not in document]
+    assert len(scans) == 1, "the ID scan is attached"
 
     sent: list[Batch] = []
     monkeypatch.setenv("TELEGRAM_BACKFILL", "1")
