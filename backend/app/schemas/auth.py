@@ -139,10 +139,12 @@ class UpdateProfileIn(IdentityFieldsIn):
 
 
 class ViewAsOut(BaseModel):
-    """A short-lived, read-only session on an owner's account, for an
-    administrator to see what the owner sees."""
+    """A short-lived session on an owner's account, for an administrator to
+    see what the owner sees -- and, for a manager, to change it."""
 
     access_token: str
     expires_at: datetime
     user_id: uuid.UUID
     display_name: str | None = None
+    #: True when the session may save changes (a manager's); else read-only.
+    can_edit: bool = False

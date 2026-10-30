@@ -1531,6 +1531,7 @@
   "aiTools.videoBody": "A short video ready for Instagram, TikTok and WhatsApp, made from your product photos.",
   "viewAs.open": "View the account as its owner sees it",
   "viewAs.banner": "You are viewing {name}'s account read-only; nothing is saved.",
+  "viewAs.bannerEdit": "You are editing {name}'s account as an administrator; changes are saved. The password cannot be changed and the account cannot be deleted.",
   "viewAs.end": "End view",
   "viewAs.failed": "Could not open the account for viewing.",
   "home.mostOrderedTitle": "Most ordered",

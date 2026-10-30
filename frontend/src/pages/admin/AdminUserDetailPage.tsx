@@ -213,6 +213,7 @@ function ViewAsButton({ userId }: { userId: string }) {
         userId: session.user_id,
         name: session.display_name,
         expiresAt: session.expires_at,
+        canEdit: session.can_edit,
       })
       if (started) window.location.assign('/dashboard')
       else toast.error(t('viewAs.failed'))
