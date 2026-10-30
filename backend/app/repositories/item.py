@@ -31,6 +31,11 @@ SortOption = Literal[
 ]
 
 
+#: The home rows show one product per shop only while more shops than this
+#: have a product to show; below it they list every product.
+ONE_PER_SHOP_MIN = 6
+
+
 class ItemRepository(BaseRepository[BusinessItem]):
     model = BusinessItem
 
@@ -315,6 +320,28 @@ class ItemRepository(BaseRepository[BusinessItem]):
             return stmt.order_by(nullslast(BusinessItem.price.desc()), BusinessItem.id.asc())
         return stmt.order_by(BusinessItem.created_at.desc())
 
+    @staticmethod
+    def _latest_per_shop(stmt: Select[tuple[BusinessItem]]) -> Select[tuple[BusinessItem]]:
+        """Keep each shop's most recent product only.
+
+        Asked for by the home page's product rows alone (``one_per_shop``),
+        so a shop that adds twenty products at once does not fill a row on
+        its own; the directory lists every product (the owners' decision,
+        30 Oct 2026). Applied only while more than ``ONE_PER_SHOP_MIN``
+        shops have a product in the row's filter, because with fewer the
+        row would show a handful of cards rather than a varied one.
+        """
+        ranked = stmt.with_only_columns(
+            BusinessItem.id,
+            func.row_number()
+            .over(
+                partition_by=BusinessItem.business_id,
+                order_by=(BusinessItem.created_at.desc(), BusinessItem.id.desc()),
+            )
+            .label("rank"),
+        ).subquery()
+        return stmt.where(BusinessItem.id.in_(select(ranked.c.id).where(ranked.c.rank == 1)))
+
     def search_public(
         self,
         *,
@@ -325,6 +352,7 @@ class ItemRepository(BaseRepository[BusinessItem]):
         displaced: bool = False,
         sort: SortOption = "newest",
         near: Point | None = None,
+        one_per_shop: bool = False,
         page: int = 1,
         page_size: int = 12,
     ) -> Page[BusinessItem]:
@@ -337,6 +365,12 @@ class ItemRepository(BaseRepository[BusinessItem]):
             origin=origin,
             displaced=displaced,
         )
+        if one_per_shop and sort == "newest" and not q:
+            shops = self.db.execute(
+                select(func.count(func.distinct(filtered.subquery().c.business_id)))
+            ).scalar_one()
+            if shops > ONE_PER_SHOP_MIN:
+                filtered = self._latest_per_shop(filtered)
 
         total = int(
             self.db.execute(select(func.count()).select_from(filtered.subquery())).scalar_one()

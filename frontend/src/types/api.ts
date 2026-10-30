@@ -815,6 +815,8 @@ export interface BusinessQuery {
 /** Same as a business search, but its `sort` can also order by price. */
 export interface ProductQuery extends Omit<BusinessQuery, 'sort'> {
   sort?: ProductSortOption
+  /** Each shop's newest product only, while enough shops have one: home rows. */
+  one_per_shop?: boolean
 }
 
 export interface TalentQuery {

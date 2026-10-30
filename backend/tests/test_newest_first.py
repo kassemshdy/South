@@ -1,7 +1,7 @@
 """Newest first, everywhere a list has a default order (the owners'
-decision, 30 Oct 2026). Every product is listed, a shop's included when it
-added many at once: one per shop was tried and withdrawn the same day,
-because there are not yet enough shops to fill a page that way.
+decision, 30 Oct 2026). The directory lists every product; only the home
+rows ask for one per shop, and get it only once more than six shops have a
+product to show.
 """
 
 from __future__ import annotations
@@ -92,6 +92,40 @@ def test_newest_products_list_every_product_newest_first(
     # And the shop's own page still shows all of its products.
     shop = client.get(f"/api/businesses/{busy}").json()
     assert len(shop["items"]) == 5
+
+
+def test_home_rows_show_one_per_shop_only_once_more_than_six_shops_have_products(
+    client: TestClient, db: Session, category: Category, location: Location
+) -> None:
+    _shop(
+        client,
+        db,
+        phone="03960010",
+        name_key="business.manakish",
+        products=5,
+        category=category,
+        location=location,
+    )
+    home_row = {"one_per_shop": "true"}
+
+    # One shop alone: too few to spread out, so the row lists every product.
+    assert client.get("/api/items", params=home_row).json()["meta"]["total"] == 5
+
+    for index in range(6):
+        _shop(
+            client,
+            db,
+            phone=f"0396002{index}",
+            name_key="business.sweets_shop",
+            products=1,
+            category=category,
+            location=location,
+        )
+
+    # Seven shops: the home row takes each one's newest product...
+    assert client.get("/api/items", params=home_row).json()["meta"]["total"] == 7
+    # ...while the directory, which never asks, still lists all of them.
+    assert client.get("/api/items").json()["meta"]["total"] == 11
 
 
 def test_review_queue_lists_the_newest_submission_first(
