@@ -141,6 +141,10 @@ class TalentProfile(Base, TimestampMixin):
 
     photo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     photo_storage_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # The wide image across the top of the profile page, as a business has
+    # (the owners' ticket, 29 Oct 2026). Required before review, like the photo.
+    cover_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    cover_storage_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     # --- Professional detail (published) ---------------------------------
     # These describe the work, so they belong on the public profile —

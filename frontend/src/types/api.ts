@@ -434,6 +434,8 @@ export interface TalentSummary {
   slug: string
   kind: TalentKind
   photo_url: string | null
+  /** The wide image across the top of the profile page. */
+  cover_url?: string | null
   /** The card-sized copy, when there is one; fall back to the full image. */
   photo_thumb_url?: string | null
   phone: string | null

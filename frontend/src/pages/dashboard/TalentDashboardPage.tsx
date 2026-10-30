@@ -229,8 +229,15 @@ export function TalentDashboardPage() {
       ) : null}
 
       <Card>
+        {/* The images tab stays open while a required image is missing: with
+            only the photo checked, uploading it switched the view to the
+            details tab before the cover (also required for a service) could
+            be added. */}
         <Tabs.Root
-          value={tab ?? (data.photo_url ? 'details' : 'images')}
+          value={
+            tab ??
+            (!data.photo_url || (data.kind === 'SERVICE' && !data.cover_url) ? 'images' : 'details')
+          }
           onValueChange={setTab}
         >
           <Tabs.List
