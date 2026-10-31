@@ -32,7 +32,9 @@ from south_mcp.config import Config
 
 logger = logging.getLogger(__name__)
 
-TicketStatus = Literal["BACKLOG", "TODO", "IN_PROGRESS", "NEEDS_FEEDBACK", "NEEDS_APPROVAL", "APPROVED", "DONE"]
+TicketStatus = Literal[
+    "BACKLOG", "TODO", "IN_PROGRESS", "NEEDS_FEEDBACK", "NEEDS_APPROVAL", "APPROVED", "DONE"
+]
 TicketPriority = Literal["LOW", "MEDIUM", "HIGH", "URGENT"]
 ListingStatus = Literal["DRAFT", "PENDING_REVIEW", "APPROVED", "REJECTED", "SUSPENDED"]
 
