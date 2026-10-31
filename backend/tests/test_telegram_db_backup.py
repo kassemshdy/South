@@ -1,4 +1,4 @@
-"""The hourly .sql copy of the database for the Telegram group."""
+"""The periodic .sql copy of the database for the Telegram group."""
 
 from __future__ import annotations
 
