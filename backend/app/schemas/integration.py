@@ -5,8 +5,6 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from app.models.enums import ShopifyConnectionStatus
-
 
 class ShopifyInstallIn(BaseModel):
     shop: str = Field(min_length=1, max_length=255)
@@ -25,11 +23,11 @@ class ShopifyStatusOut(BaseModel):
 
     connected: bool
     # Shopify cannot create stores by API: a shop without one signs up here.
-    signup_url: str
+    signup_url: str | None = None
     subdomains_available: bool
-    subdomain_base: str
+    subdomain_base: str = ""
     shop_domain: str | None = None
-    status: ShopifyConnectionStatus | None = None
+    status: str | None = None
     storefront_url: str | None = None
     currency: str | None = None
     subdomain: str | None = None

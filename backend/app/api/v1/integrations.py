@@ -1,32 +1,32 @@
-"""A shop's own Shopify store: connect, push, and the address visitors get.
+"""A shop's own Shopify store, through the shared Shopify Connector.
 
-Every route answers 404 while ``SHOPIFY_API_KEY`` and its companions are
+Every route answers 404 while ``CONNECTOR_URL`` and its companions are
 unset, which is also how the dashboard knows not to offer the card.
 
-The OAuth callback and the webhooks are unauthenticated by our session by
-nature -- Shopify calls them -- and are authenticated by Shopify's HMAC
-instead, checked before anything is read.
+The owner routes keep the paths the dashboard already uses and ask the
+connector; the connector's webhooks arrive at
+``/integrations/connector/webhooks``, authenticated by its signature (not by
+our session), checked before anything is read.
 """
 
 from __future__ import annotations
 
+import json
 import logging
 from collections.abc import Iterator
-from typing import Annotated
+from typing import Annotated, Any
 
 import httpx
 from fastapi import APIRouter, Depends, Request, Response, status
 from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import RedirectResponse
 from sqlalchemy import func, select
 
 from app.core.config import Settings
-from app.core.dependencies import AppSettings, CurrentUser, DbSession, OwnedBusiness
+from app.core.dependencies import AppSettings, DbSession, OwnedBusiness
 from app.core.errors import AppError, NotFoundError
 from app.core.i18n import translate
-from app.integrations.shopify.client import verify_webhook_hmac
 from app.models.business import Business, BusinessItem
-from app.models.integration import IntegrationOutbox, ShopifyProductLink
+from app.models.integration import IntegrationOutbox, ItemLink
 from app.schemas.common import MessageResponse
 from app.schemas.integration import (
     ShopifyInstallIn,
@@ -35,8 +35,12 @@ from app.schemas.integration import (
     SubdomainIn,
     SyncQueuedOut,
 )
-from app.services.shopify_connection import ShopifyConnectionService, dashboard_url
-from app.services.store_subdomain import StoreSubdomainService
+from app.services.connector import (
+    ConnectorUnavailable,
+    StoreConnectionService,
+    handle_event,
+    verify_signature,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -55,91 +59,103 @@ def get_http_client() -> Iterator[httpx.Client]:
 HttpClient = Annotated[httpx.Client, Depends(get_http_client)]
 
 
-def require_shopify(settings: AppSettings) -> Settings:
-    if not settings.shopify_enabled:
+def require_connector(settings: AppSettings) -> Settings:
+    if not settings.connector_enabled:
         raise NotFoundError("shopify.unavailable")
     return settings
 
 
-ShopifySettings = Annotated[Settings, Depends(require_shopify)]
+ConnectorSettings = Annotated[Settings, Depends(require_connector)]
 
 
-def _status(db: DbSession, business: Business, settings: Settings) -> ShopifyStatusOut:
-    connection = business.shopify_connection
+def _unavailable() -> AppError:
+    return AppError("shopify.unavailable", code="connector_unavailable", status_code=503)
+
+
+def _status(
+    db: DbSession, business: Business, tenant: dict[str, Any], store: dict[str, Any] | None
+) -> ShopifyStatusOut:
     base = ShopifyStatusOut(
         connected=False,
-        signup_url=settings.shopify_signup_url,
-        subdomains_available=settings.cloudflare_enabled,
-        subdomain_base=settings.store_subdomain_base,
+        signup_url=tenant.get("signup_url"),
+        subdomains_available=bool(tenant.get("subdomains_available")),
+        subdomain_base=tenant.get("subdomain_base") or "",
     )
-    if connection is None:
+    if store is None:
         return base
     synced = db.scalar(
         select(func.count())
-        .select_from(ShopifyProductLink)
-        .join(BusinessItem, BusinessItem.id == ShopifyProductLink.item_id)
-        .where(BusinessItem.business_id == business.id)
+        .select_from(ItemLink)
+        .join(BusinessItem, BusinessItem.id == ItemLink.item_id)
+        .where(BusinessItem.business_id == business.id, ItemLink.state == "SYNCED")
     )
     pending = db.scalar(
         select(func.count())
         .select_from(IntegrationOutbox)
         .where(IntegrationOutbox.business_id == business.id, IntegrationOutbox.done_at.is_(None))
     )
-    hostname = (
-        f"{connection.subdomain}.{settings.store_subdomain_base}" if connection.subdomain else None
-    )
     return base.model_copy(
         update={
-            "connected": connection.is_live,
-            "shop_domain": connection.shop_domain,
-            "status": connection.status,
-            "storefront_url": f"https://{connection.storefront_host}",
-            "currency": connection.currency,
-            "subdomain": connection.subdomain,
-            "subdomain_hostname": hostname,
-            "subdomain_live": hostname is not None and connection.primary_domain == hostname,
-            "connected_at": connection.connected_at,
-            "last_sync_at": connection.last_sync_at,
-            "last_error": connection.last_error,
+            "connected": store.get("status") == "CONNECTED",
+            "shop_domain": store.get("shop_domain"),
+            "status": store.get("status"),
+            "storefront_url": store.get("storefront_url"),
+            "currency": store.get("currency"),
+            "subdomain": store.get("subdomain"),
+            "subdomain_hostname": store.get("subdomain_hostname"),
+            "subdomain_live": bool(store.get("subdomain_live")),
+            "connected_at": store.get("connected_at"),
+            "last_sync_at": store.get("last_sync_at"),
+            "last_error": store.get("last_error"),
             "synced_products": synced or 0,
-            "pending_pushes": pending or 0,
+            # Ours still to send, plus the connector's still to push.
+            "pending_pushes": (pending or 0) + int(store.get("jobs_pending") or 0),
         }
     )
 
 
 @owner_router.get("/businesses/{business_id}/shopify", response_model=ShopifyStatusOut)
 def shopify_status(
-    business: OwnedBusiness, db: DbSession, settings: ShopifySettings
+    business: OwnedBusiness, db: DbSession, settings: ConnectorSettings, http: HttpClient
 ) -> ShopifyStatusOut:
-    return _status(db, business, settings)
+    try:
+        tenant, store = StoreConnectionService(db, settings, http).status(business)
+    except ConnectorUnavailable as exc:
+        raise _unavailable() from exc
+    return _status(db, business, tenant, store)
 
 
 @owner_router.post("/businesses/{business_id}/shopify/install", response_model=ShopifyInstallOut)
 def shopify_install(
     payload: ShopifyInstallIn,
     business: OwnedBusiness,
-    user: CurrentUser,
     db: DbSession,
-    settings: ShopifySettings,
+    settings: ConnectorSettings,
     http: HttpClient,
 ) -> ShopifyInstallOut:
-    """The URL the browser goes to next; the route itself redirects nothing."""
-    url = ShopifyConnectionService(db, settings, http).start(business, user, payload.shop)
+    """The URL the browser goes to next; the connector sends it back here."""
+    try:
+        url = StoreConnectionService(db, settings, http).start(business, payload.shop)
+    except ConnectorUnavailable as exc:
+        raise _unavailable() from exc
     return ShopifyInstallOut(authorize_url=url)
 
 
 @owner_router.post("/businesses/{business_id}/shopify/sync", response_model=SyncQueuedOut)
 def shopify_sync(
-    business: OwnedBusiness, db: DbSession, settings: ShopifySettings, http: HttpClient
+    business: OwnedBusiness, db: DbSession, settings: ConnectorSettings, http: HttpClient
 ) -> SyncQueuedOut:
-    return SyncQueuedOut(queued=ShopifyConnectionService(db, settings, http).sync_now(business))
+    return SyncQueuedOut(queued=StoreConnectionService(db, settings, http).sync_now(business))
 
 
 @owner_router.delete("/businesses/{business_id}/shopify", response_model=MessageResponse)
 def shopify_disconnect(
-    business: OwnedBusiness, db: DbSession, settings: ShopifySettings, http: HttpClient
+    business: OwnedBusiness, db: DbSession, settings: ConnectorSettings, http: HttpClient
 ) -> MessageResponse:
-    ShopifyConnectionService(db, settings, http).disconnect(business)
+    try:
+        StoreConnectionService(db, settings, http).disconnect(business)
+    except ConnectorUnavailable as exc:
+        raise _unavailable() from exc
     return MessageResponse(message=translate("shopify.disconnected"))
 
 
@@ -148,49 +164,33 @@ def shopify_subdomain(
     payload: SubdomainIn,
     business: OwnedBusiness,
     db: DbSession,
-    settings: ShopifySettings,
+    settings: ConnectorSettings,
     http: HttpClient,
 ) -> ShopifyStatusOut:
-    connection = business.shopify_connection
-    if connection is None:
-        raise NotFoundError("shopify.not_connected")
-    StoreSubdomainService(settings, http).assign(db, connection, payload.subdomain)
-    return _status(db, business, settings)
-
-
-@public_router.get("/integrations/shopify/callback", include_in_schema=False)
-def shopify_callback(
-    request: Request, db: DbSession, settings: ShopifySettings, http: HttpClient
-) -> RedirectResponse:
-    """Where Shopify sends the owner back. Always ends on their dashboard."""
-    service = ShopifyConnectionService(db, settings, http)
-    params = dict(request.query_params)
+    service = StoreConnectionService(db, settings, http)
     try:
-        business = service.complete(params)
-    except AppError as exc:
-        logger.warning("Shopify callback refused: %s", exc.code)
-        try:
-            business_id = service.read_state(params.get("state", ""))["bid"]
-        except AppError:
-            return RedirectResponse(settings.public_base_url.rstrip("/") + "/dashboard")
-        return RedirectResponse(dashboard_url(settings, business_id, exc.code))
-    return RedirectResponse(dashboard_url(settings, business.id, "connected"))
+        service.subdomain(business, payload.subdomain)
+        tenant, store = service.status(business)
+    except ConnectorUnavailable as exc:
+        raise _unavailable() from exc
+    return _status(db, business, tenant, store)
 
 
-@public_router.post("/integrations/shopify/webhooks", include_in_schema=False)
-async def shopify_webhook(
-    request: Request, db: DbSession, settings: ShopifySettings, http: HttpClient
+@public_router.post("/integrations/connector/webhooks", include_in_schema=False)
+async def connector_webhook(
+    request: Request, db: DbSession, settings: ConnectorSettings
 ) -> Response:
     body = await request.body()
-    assert settings.shopify_api_secret
-    if not verify_webhook_hmac(
-        body, request.headers.get("X-Shopify-Hmac-Sha256"), settings.shopify_api_secret
+    assert settings.connector_webhook_secret
+    if not verify_signature(
+        settings.connector_webhook_secret, body, request.headers.get("X-Connector-Signature")
     ):
         return Response(status_code=status.HTTP_401_UNAUTHORIZED)
-    topic = request.headers.get("X-Shopify-Topic", "")
-    shop = request.headers.get("X-Shopify-Shop-Domain", "")
-    # The handler is synchronous database work; keep it off the event loop.
-    await run_in_threadpool(
-        ShopifyConnectionService(db, settings, http).handle_webhook, topic, shop
-    )
+    try:
+        envelope = json.loads(body)
+        event, data = str(envelope["event"]), dict(envelope["data"])
+    except (ValueError, KeyError, TypeError):
+        return Response(status_code=status.HTTP_400_BAD_REQUEST)
+    # Synchronous database work; keep it off the event loop.
+    await run_in_threadpool(handle_event, db, event, data)
     return Response(status_code=status.HTTP_200_OK)

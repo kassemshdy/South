@@ -1,163 +1,135 @@
-"""A shop's own Shopify store: connecting it, pushing products, buy links.
+"""Janoubona as a client of the shared Shopify Connector.
 
-Every call to Shopify and Cloudflare goes to an ``httpx.MockTransport``, so
-nothing here touches the network. What is pinned:
+The connector (its own repository) is replaced by an ``httpx.MockTransport``
+that answers like it; its webhooks are signed here the way it signs them.
+What is pinned:
 
-- the routes do not exist until the integration is configured;
-- the OAuth callback is believed only with Shopify's signature, our signed
-  state and a matching shop, and the token is stored encrypted;
-- a product edit on a connected shop queues exactly one push, in the same
-  transaction -- and on any other shop, nothing;
-- a push creates the product once, then updates it, and sends nothing when
-  nothing Shopify sees has changed; a price in the wrong currency is never
-  pushed;
-- a buy link is public only while the connection is live;
-- subdomains are DNS-only CNAMEs, and reserved names are refused.
+- the routes do not exist until the connector is configured;
+- connecting asks the connector, only for an approved listing, and returns
+  the owner to their own dashboard;
+- a webhook is believed only with the connector's signature, and a fresh one;
+- a product edit on a connected shop queues one push, in the same
+  transaction -- and on any other shop, nothing; the push sends what a
+  visitor would see, with absolute https photos;
+- buy links are public only while the connector says the store is
+  connected.
 """
 
 from __future__ import annotations
 
-import base64
 import hashlib
 import hmac
 import json
-import logging
+import re
+import time
 import uuid
-from collections.abc import Callable, Iterator
-from urllib.parse import parse_qs, urlparse
+from collections.abc import Iterator
 
 import httpx
 import pytest
-from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.v1.integrations import get_http_client
 from app.core.config import Settings, get_settings
-from app.core.crypto import decrypt_secret, encrypt_secret
 from app.database.session import SessionLocal
 from app.main import create_app
 from app.models.business import Business, BusinessItem
-from app.models.enums import BusinessStatus, ShopifyConnectionStatus
-from app.models.integration import IntegrationOutbox, ShopifyConnection, ShopifyProductLink
+from app.models.enums import BusinessStatus
+from app.models.integration import IntegrationOutbox, ItemLink, StoreLink
 from app.models.taxonomy import Category, Location
-from app.services import outbox
-from app.services.shopify_sync import make_handlers
+from app.services import connector, outbox
 from tests.conftest import post_item, sign_in
 from tests.samples import ar
 
 OWNER_PHONE = "03880001"
 OTHER_PHONE = "03880002"
-SHOP = "souk-test.myshopify.com"
-SECRET = "shpss_test_secret"
+WEBHOOK_SECRET = "whsec_test"
+CONNECTOR = "https://connector.test"
 
 
-def shopify_settings(**overrides: object) -> Settings:
+def connector_settings(**overrides: object) -> Settings:
     return get_settings().model_copy(
         update={
-            "shopify_api_key": "test-api-key",
-            "shopify_api_secret": SECRET,
-            "integration_encryption_key": Fernet.generate_key().decode(),
-            # The worker never runs on its own in a test; drain_once does.
+            "connector_url": CONNECTOR,
+            "connector_api_key": "sc_live_test",
+            "connector_webhook_secret": WEBHOOK_SECRET,
+            # The worker never runs on its own in a test; drain does.
             "integration_outbox_poll_seconds": 3600,
-            "public_base_url": "https://janobona.test",
+            "public_base_url": "https://janoubona.test",
             **overrides,
         }
     )
 
 
-class FakeShopify:
-    """Records every request and answers like Shopify and Cloudflare would."""
+class FakeConnector:
+    """Answers like the Shopify Connector's /v1 API."""
 
     def __init__(self) -> None:
         self.requests: list[httpx.Request] = []
-        self.currency = "USD"
-        self.products = 0
-        self.webhook_error: str | None = None
+        self.stores: dict[str, dict[str, object]] = {}
+        self.down = False
 
-    def graphql_calls(self) -> list[str]:
+    def calls(self, method: str, pattern: str) -> list[httpx.Request]:
         return [
-            json.loads(r.content)["query"]
-            for r in self.requests
-            if r.url.path.endswith("/graphql.json")
+            r for r in self.requests if r.method == method and re.search(pattern, r.url.path)
         ]
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
         self.requests.append(request)
+        if self.down:
+            return httpx.Response(502, text="bad gateway")
+        assert request.headers["Authorization"] == "Bearer sc_live_test"
         path = request.url.path
-        if path == "/admin/oauth/access_token":
-            return httpx.Response(200, json={"access_token": "shpat_plain", "scope": "x"})
-        if path == "/admin/api_permissions/current.json":
-            return httpx.Response(200, json={})
-        if request.url.host == "api.cloudflare.com":
-            if request.method == "POST":
-                return httpx.Response(200, json={"success": True, "result": {"id": "rec1"}})
-            return httpx.Response(200, json={"success": True})
-        query = json.loads(request.content)["query"]
-        if "shop {" in query:
-            return httpx.Response(
-                200,
-                json={
-                    "data": {
-                        "shop": {
-                            "currencyCode": self.currency,
-                            "primaryDomain": {"host": "souk.example.com"},
-                        }
-                    }
-                },
-            )
-        if "productSet" in query:
-            self.products += 1
-            return httpx.Response(
-                200,
-                json={
-                    "data": {
-                        "productSet": {
-                            "product": {
-                                "id": "gid://shopify/Product/1",
-                                "handle": "zaatar",
-                                "status": json.loads(request.content)["variables"]["input"][
-                                    "status"
-                                ],
-                                "variants": {"nodes": [{"id": "gid://shopify/ProductVariant/1"}]},
-                            },
-                            "userErrors": [],
-                        }
-                    }
-                },
-            )
-        if "publications" in query:
-            return httpx.Response(
-                200,
-                json={"data": {"publications": {"nodes": [{"id": "pub1", "name": "Online Store"}]}}},
-            )
-        if "webhookSubscriptionCreate" in query:
-            errors = [{"message": self.webhook_error}] if self.webhook_error else []
-            return httpx.Response(
-                200, json={"data": {"webhookSubscriptionCreate": {"userErrors": errors}}}
-            )
-        if "publishablePublish" in query:
-            return httpx.Response(200, json={"data": {"publishablePublish": {"userErrors": []}}})
-        if "productDelete" in query:
-            return httpx.Response(
-                200, json={"data": {"productDelete": {"deletedProductId": "x", "userErrors": []}}}
-            )
-        return httpx.Response(400, json={"errors": [{"message": "unexpected"}]})
+        body = json.loads(request.content) if request.content else {}
+        if path == "/v1/tenant":
+            return httpx.Response(200, json={
+                "slug": "janoubona", "name": "Janoubona", "signup_url": "https://signup.test",
+                "subdomain_base": "janoubona.net", "subdomains_available": True})
+        m = re.fullmatch(r"/v1/stores/([^/]+)(/.*)?", path)
+        assert m, path
+        ref, rest = m.group(1), m.group(2) or ""
+        if rest == "/connect":
+            if "evil" in body["shop"]:
+                return httpx.Response(422, json={"error": {"code": "bad_shop", "message": "x"}})
+            return httpx.Response(200, json={
+                "authorize_url": f"https://{body['shop']}/admin/oauth/authorize?r={ref}"})
+        if rest == "/subdomain":
+            if body["subdomain"] == "www":
+                return httpx.Response(422, json={
+                    "error": {"code": "reserved_subdomain", "message": "x"}})
+            store = self.stores.setdefault(ref, {"status": "CONNECTED"})
+            store.update(subdomain=body["subdomain"],
+                         subdomain_hostname=f"{body['subdomain']}.janoubona.net")
+            return httpx.Response(200, json={"store_ref": ref, **store})
+        if rest.startswith("/products/"):
+            product_ref = rest.split("/")[2]
+            if request.method == "DELETE":
+                return httpx.Response(202, json={"queued": 1})
+            return httpx.Response(202, json={
+                "store_ref": ref, "product_ref": product_ref, "state": "QUEUED",
+                "handle": None, "active": False, "buy_url": None, "error": None})
+        if request.method == "DELETE":
+            self.stores.pop(ref, None)
+            return httpx.Response(204)
+        if ref not in self.stores:
+            return httpx.Response(404, json={"error": {"code": "store_not_found", "message": "x"}})
+        return httpx.Response(200, json={"store_ref": ref, "jobs_pending": 0, **self.stores[ref]})
 
 
 @pytest.fixture
-def fake() -> FakeShopify:
-    return FakeShopify()
+def fake() -> FakeConnector:
+    return FakeConnector()
 
 
 @pytest.fixture
 def settings() -> Settings:
-    return shopify_settings()
+    return connector_settings()
 
 
 @pytest.fixture
-def shop_client(settings: Settings, fake: FakeShopify) -> Iterator[TestClient]:
+def shop_client(settings: Settings, fake: FakeConnector) -> Iterator[TestClient]:
     app = create_app(settings)
     app.dependency_overrides[get_settings] = lambda: settings
 
@@ -207,29 +179,41 @@ def add_item(
     return str(created.json()["id"])
 
 
-def signed(params: dict[str, str], secret: str = SECRET) -> dict[str, str]:
-    message = "&".join(f"{k}={v}" for k, v in sorted(params.items()))
-    return {**params, "hmac": hmac.new(secret.encode(), message.encode(), hashlib.sha256).hexdigest()}
-
-
-def connect(client: TestClient, business: Business, headers: dict[str, str]) -> None:
-    started = client.post(
-        f"/api/businesses/{business.id}/shopify/install", headers=headers, json={"shop": "souk-test"}
+def webhook(
+    client: TestClient,
+    event: str,
+    data: dict[str, object],
+    *,
+    secret: str = WEBHOOK_SECRET,
+    age: int = 0,
+) -> httpx.Response:
+    body = json.dumps({"id": str(uuid.uuid4()), "event": event, "data": data}).encode()
+    t = int(time.time()) - age
+    mac = hmac.new(secret.encode(), f"{t}.".encode() + body, hashlib.sha256).hexdigest()
+    return client.post(
+        "/api/integrations/connector/webhooks",
+        content=body,
+        headers={"X-Connector-Signature": f"t={t},v1={mac}", "Content-Type": "application/json"},
     )
-    assert started.status_code == 200, started.text
-    state = parse_qs(urlparse(started.json()["authorize_url"]).query)["state"][0]
-    back = client.get(
-        "/api/integrations/shopify/callback",
-        params=signed({"code": "abc", "shop": SHOP, "state": state, "timestamp": "1"}),
-        follow_redirects=False,
-    )
-    assert back.status_code == 307, back.text
-    assert back.headers["location"].endswith("shopify=connected")
 
 
-def drain(settings: Settings, fake: FakeShopify) -> int:
+def connected(business: Business, **extra: object) -> dict[str, object]:
+    return {
+        "store_ref": str(business.id),
+        "status": "CONNECTED",
+        "shop_domain": "souk.myshopify.com",
+        "storefront_url": "https://souk.example.com",
+        "subdomain": None,
+        "subdomain_hostname": None,
+        "currency": "USD",
+        "last_error": None,
+        **extra,
+    }
+
+
+def drain(settings: Settings, fake: FakeConnector) -> int:
     with httpx.Client(transport=httpx.MockTransport(fake)) as http:
-        return outbox.drain_once(SessionLocal, make_handlers(settings, http))
+        return outbox.drain_once(SessionLocal, connector.make_handlers(settings, http))
 
 
 def pending(db: Session) -> list[IntegrationOutbox]:
@@ -246,63 +230,77 @@ def test_every_route_is_absent_without_configuration(
     headers = sign_in(client, OWNER_PHONE)
     business = approved_business(client, db, headers, category, location)
     assert client.get(f"/api/businesses/{business.id}/shopify", headers=headers).status_code == 404
-    assert client.get("/api/integrations/shopify/callback").status_code == 404
-    assert client.post("/api/integrations/shopify/webhooks", content=b"{}").status_code == 404
+    assert client.post("/api/integrations/connector/webhooks", content=b"{}").status_code == 404
 
 
-def test_production_refuses_a_half_configured_integration() -> None:
+def test_production_refuses_a_half_configured_connector() -> None:
     hardened = get_settings().model_copy(
         update={"app_env": "production", "secret_key": "s" * 40, "admin_password": "Strong!pass1"}
     )
-    with pytest.raises(RuntimeError, match="SHOPIFY_API_KEY"):
-        hardened.model_copy(update={"shopify_api_key": "k"}).enforce_production_safety()
-    with pytest.raises(RuntimeError, match="must differ"):
+    with pytest.raises(RuntimeError, match="CONNECTOR_API_KEY"):
+        hardened.model_copy(update={"connector_url": CONNECTOR}).enforce_production_safety()
+    with pytest.raises(RuntimeError, match="https"):
         hardened.model_copy(
-            update={"integration_encryption_key": "s" * 40}
+            update={
+                "connector_url": "http://connector.test",
+                "connector_api_key": "k",
+                "connector_webhook_secret": "s",
+            }
         ).enforce_production_safety()
-
-
-def test_a_shop_without_a_store_is_offered_the_sign_up_link(
-    db: Session, fake: FakeShopify, category: Category, location: Location
-) -> None:
-    """Shopify has no API that creates stores; the owner signs up themselves."""
-    referral = "https://shopify.pxf.io/janobona"
-    for client in _client_with(shopify_settings(shopify_signup_url=referral), fake):
-        headers = sign_in(client, OWNER_PHONE)
-        business = approved_business(client, db, headers, category, location)
-        status = client.get(f"/api/businesses/{business.id}/shopify", headers=headers).json()
-        assert status["connected"] is False
-        assert status["signup_url"] == referral
 
 
 # --- Connecting ----------------------------------------------------------------
 
 
+def test_connecting_asks_the_connector_and_returns_to_the_owners_dashboard(
+    shop_client: TestClient,
+    db: Session,
+    fake: FakeConnector,
+    category: Category,
+    location: Location,
+) -> None:
+    headers = sign_in(shop_client, OWNER_PHONE)
+    business = approved_business(shop_client, db, headers, category, location)
+    r = shop_client.post(
+        f"/api/businesses/{business.id}/shopify/install", headers=headers, json={"shop": "souk"}
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["authorize_url"].startswith("https://souk/admin/oauth/authorize")
+    sent = json.loads(fake.calls("POST", r"/connect$")[0].content)
+    assert sent["return_url"] == (
+        f"https://janoubona.test/dashboard/businesses/{business.id}/items"
+    )
+
+
 def test_install_refuses_a_listing_that_is_not_approved(
-    shop_client: TestClient, db: Session, category: Category, location: Location
+    shop_client: TestClient,
+    db: Session,
+    fake: FakeConnector,
+    category: Category,
+    location: Location,
 ) -> None:
     headers = sign_in(shop_client, OWNER_PHONE)
     business = approved_business(shop_client, db, headers, category, location)
     business.status = BusinessStatus.PENDING_REVIEW
     db.commit()
-    response = shop_client.post(
-        f"/api/businesses/{business.id}/shopify/install", headers=headers, json={"shop": SHOP}
+    r = shop_client.post(
+        f"/api/businesses/{business.id}/shopify/install", headers=headers, json={"shop": "souk"}
     )
-    assert response.status_code == 422
-    assert response.json()["error"]["code"] == "shopify_not_approved"
+    assert r.status_code == 422
+    assert r.json()["error"]["code"] == "shopify_not_approved"
+    assert fake.requests == []
 
 
-@pytest.mark.parametrize("shop", ["evil.com", "x.myshopify.com.evil.com", "https://a b"])
-def test_install_refuses_anything_but_a_myshopify_address(
-    shop_client: TestClient, db: Session, category: Category, location: Location, shop: str
+def test_the_connectors_refusal_reaches_the_owner_in_our_words(
+    shop_client: TestClient, db: Session, category: Category, location: Location
 ) -> None:
     headers = sign_in(shop_client, OWNER_PHONE)
     business = approved_business(shop_client, db, headers, category, location)
-    response = shop_client.post(
-        f"/api/businesses/{business.id}/shopify/install", headers=headers, json={"shop": shop}
+    r = shop_client.post(
+        f"/api/businesses/{business.id}/shopify/install", headers=headers, json={"shop": "evil"}
     )
-    assert response.status_code == 422
-    assert response.json()["error"]["code"] == "shopify_bad_shop"
+    assert r.status_code == 422
+    assert r.json()["error"]["code"] == "shopify_bad_shop"
 
 
 def test_another_owner_cannot_reach_the_connection(
@@ -311,433 +309,248 @@ def test_another_owner_cannot_reach_the_connection(
     headers = sign_in(shop_client, OWNER_PHONE)
     business = approved_business(shop_client, db, headers, category, location)
     other = sign_in(shop_client, OTHER_PHONE)
-    assert (
-        shop_client.post(
-            f"/api/businesses/{business.id}/shopify/install", headers=other, json={"shop": SHOP}
-        ).status_code
-        == 404
+    r = shop_client.post(
+        f"/api/businesses/{business.id}/shopify/install", headers=other, json={"shop": "souk"}
     )
+    assert r.status_code == 404
 
 
-def test_a_callback_without_shopifys_signature_connects_nothing(
-    shop_client: TestClient, db: Session, category: Category, location: Location
+def test_the_card_shows_the_connectors_view_and_survives_it_being_down(
+    shop_client: TestClient,
+    db: Session,
+    fake: FakeConnector,
+    category: Category,
+    location: Location,
 ) -> None:
     headers = sign_in(shop_client, OWNER_PHONE)
     business = approved_business(shop_client, db, headers, category, location)
-    started = shop_client.post(
-        f"/api/businesses/{business.id}/shopify/install", headers=headers, json={"shop": SHOP}
-    )
-    state = parse_qs(urlparse(started.json()["authorize_url"]).query)["state"][0]
-    forged = signed({"code": "abc", "shop": SHOP, "state": state}, secret="not-the-secret")
-    back = shop_client.get(
-        "/api/integrations/shopify/callback", params=forged, follow_redirects=False
-    )
-    assert back.headers["location"].endswith("shopify=shopify_bad_hmac")
-    assert db.scalars(select(ShopifyConnection)).first() is None
+    url = f"/api/businesses/{business.id}/shopify"
+    before = shop_client.get(url, headers=headers).json()
+    assert before["connected"] is False
+    assert before["signup_url"] == "https://signup.test"
+    assert before["subdomains_available"] is True
+    fake.stores[str(business.id)] = connected(business)
+    after = shop_client.get(url, headers=headers).json()
+    assert after["connected"] is True
+    assert after["storefront_url"] == "https://souk.example.com"
+    fake.down = True
+    assert shop_client.get(url, headers=headers).status_code == 503
 
 
-def test_a_callback_for_a_different_shop_than_was_asked_is_refused(
-    shop_client: TestClient, db: Session, category: Category, location: Location
+# --- The connector's webhooks -----------------------------------------------------
+
+
+@pytest.mark.parametrize(("secret", "age"), [("whsec_forged", 0), (WEBHOOK_SECRET, 3600)])
+def test_a_webhook_without_a_fresh_valid_signature_is_refused(
+    shop_client: TestClient,
+    db: Session,
+    category: Category,
+    location: Location,
+    secret: str,
+    age: int,
 ) -> None:
     headers = sign_in(shop_client, OWNER_PHONE)
     business = approved_business(shop_client, db, headers, category, location)
-    started = shop_client.post(
-        f"/api/businesses/{business.id}/shopify/install", headers=headers, json={"shop": SHOP}
-    )
-    state = parse_qs(urlparse(started.json()["authorize_url"]).query)["state"][0]
-    back = shop_client.get(
-        "/api/integrations/shopify/callback",
-        params=signed({"code": "abc", "shop": "other.myshopify.com", "state": state}),
-        follow_redirects=False,
-    )
-    assert back.headers["location"].endswith("shopify=shopify_shop_mismatch")
-    assert db.scalars(select(ShopifyConnection)).first() is None
+    r = webhook(shop_client, "store.connected", connected(business), secret=secret, age=age)
+    assert r.status_code == 401
+    assert db.scalars(select(StoreLink)).first() is None
 
 
-def test_connecting_stores_the_token_encrypted_and_queues_every_product(
+def test_store_connected_mirrors_the_store_and_queues_every_product(
     shop_client: TestClient,
     db: Session,
     settings: Settings,
+    fake: FakeConnector,
     category: Category,
     location: Location,
 ) -> None:
     headers = sign_in(shop_client, OWNER_PHONE)
     business = approved_business(shop_client, db, headers, category, location)
-    add_item(shop_client, business, headers)
+    item_id = add_item(shop_client, business, headers)
     add_item(shop_client, business, headers)
     assert pending(db) == []  # nothing queued before the store is connected
 
-    connect(shop_client, business, headers)
-
-    connection = db.scalars(select(ShopifyConnection)).one()
-    assert connection.access_token_enc != "shpat_plain"
-    assert "shpat_plain" not in connection.access_token_enc
-    assert decrypt_secret(settings, connection.access_token_enc) == "shpat_plain"
-    assert connection.primary_domain == "souk.example.com"
-    assert connection.currency == "USD"
+    assert webhook(shop_client, "store.connected", connected(business)).status_code == 200
+    link = db.scalars(select(StoreLink)).one()
+    assert link.is_live and link.storefront_url == "https://souk.example.com"
     assert len(pending(db)) == 2
 
-    status = shop_client.get(f"/api/businesses/{business.id}/shopify", headers=headers).json()
-    assert status["connected"] is True
-    assert status["storefront_url"] == "https://souk.example.com"
-    assert "access_token" not in json.dumps(status)
-
-
-def test_connecting_subscribes_the_store_to_the_webhooks_we_handle(
-    shop_client: TestClient,
-    db: Session,
-    fake: FakeShopify,
-    category: Category,
-    location: Location,
-) -> None:
-    headers = sign_in(shop_client, OWNER_PHONE)
-    business = approved_business(shop_client, db, headers, category, location)
-    connect(shop_client, business, headers)
-    sent = [
-        json.loads(r.content)["variables"]
-        for r in fake.requests
-        if b"webhookSubscriptionCreate" in r.content
-    ]
-    assert sorted(v["topic"] for v in sent) == ["APP_UNINSTALLED", "SHOP_UPDATE"]
-    assert {v["url"] for v in sent} == {
-        "https://janobona.test/api/integrations/shopify/webhooks"
-    }
-    db.expire_all()
-    assert db.scalars(select(ShopifyConnection)).one().last_error is None
-
-
-def test_a_reconnect_with_webhooks_already_subscribed_still_connects(
-    shop_client: TestClient,
-    db: Session,
-    fake: FakeShopify,
-    category: Category,
-    location: Location,
-) -> None:
-    fake.webhook_error = "Address for this topic has already been taken"
-    headers = sign_in(shop_client, OWNER_PHONE)
-    business = approved_business(shop_client, db, headers, category, location)
-    connect(shop_client, business, headers)
-    db.expire_all()
-    connection = db.scalars(select(ShopifyConnection)).one()
-    assert connection.is_live
-    assert connection.last_error is None
-
-
-# --- Queueing and pushing --------------------------------------------------------
+    assert drain(settings, fake) == 2
+    puts = fake.calls("PUT", rf"/v1/stores/{business.id}/products/")
+    assert len(puts) == 2
+    sent = json.loads(next(r for r in puts if r.url.path.endswith(item_id)).content)
+    assert sent["price"] == "4.50" and sent["currency"] == "USD"
+    assert sent["available"] is True
+    assert sent["images"]
+    assert all(u.startswith("https://janoubona.test/") for u in sent["images"])
+    assert "token" not in json.dumps(sent)
 
 
 def test_an_edit_on_a_connected_shop_queues_one_push_and_others_queue_nothing(
     shop_client: TestClient,
     db: Session,
     settings: Settings,
-    fake: FakeShopify,
+    fake: FakeConnector,
     category: Category,
     location: Location,
 ) -> None:
     headers = sign_in(shop_client, OWNER_PHONE)
     business = approved_business(shop_client, db, headers, category, location)
     item_id = add_item(shop_client, business, headers)
-    connect(shop_client, business, headers)
+    webhook(shop_client, "store.connected", connected(business))
     drain(settings, fake)
     assert pending(db) == []
 
     edited = shop_client.put(
-        f"/api/businesses/{business.id}/items/{item_id}",
-        headers=headers,
-        json={"price": "6.00"},
+        f"/api/businesses/{business.id}/items/{item_id}", headers=headers, json={"price": "6.00"}
     )
     assert edited.status_code == 200, edited.text
     queued = pending(db)
     assert [(e.kind, e.payload["item_id"]) for e in queued] == [(outbox.ITEM_UPSERT, item_id)]
 
-    # A shop with no store: edits queue nothing at all.
     other_headers = sign_in(shop_client, OTHER_PHONE)
     other = approved_business(shop_client, db, other_headers, category, location)
     add_item(shop_client, other, other_headers)
     assert len(pending(db)) == 1
 
 
-def test_a_push_creates_once_then_updates_and_skips_what_did_not_change(
+def test_buy_links_follow_what_the_connector_reports(
     shop_client: TestClient,
     db: Session,
     settings: Settings,
-    fake: FakeShopify,
+    fake: FakeConnector,
     category: Category,
     location: Location,
-    caplog: pytest.LogCaptureFixture,
 ) -> None:
-    caplog.set_level(logging.INFO, logger="app.services.shopify_sync")
     headers = sign_in(shop_client, OWNER_PHONE)
     business = approved_business(shop_client, db, headers, category, location)
     item_id = add_item(shop_client, business, headers)
-    connect(shop_client, business, headers)
-
-    assert drain(settings, fake) == 1
-    link = db.scalars(select(ShopifyProductLink)).one()
-    assert link.shopify_product_id == "gid://shopify/Product/1"
-    first = [q for q in fake.graphql_calls() if "productSet" in q]
-    assert len(first) == 1
-    assert any("publishablePublish" in q for q in fake.graphql_calls())
-    sent = json.loads(
-        next(r for r in fake.requests if b"productSet" in r.content).content
-    )["variables"]["input"]
-    assert "id" not in sent
-    assert sent["variants"][0]["price"] == "4.50"
-    assert sent["status"] == "ACTIVE"
-    assert sent["files"][0]["originalSource"].startswith("https://janobona.test/")
-
-    # The same product again: nothing Shopify sees changed, nothing is sent.
-    shop_client.post(f"/api/businesses/{business.id}/shopify/sync", headers=headers)
+    webhook(shop_client, "store.connected", connected(business))
     drain(settings, fake)
-    assert len([q for q in fake.graphql_calls() if "productSet" in q]) == 1
-
-    # A price change updates the same product, by its id.
-    shop_client.put(
-        f"/api/businesses/{business.id}/items/{item_id}", headers=headers, json={"price": "7.25"}
+    buy = "https://souk.example.com/products/zaatar"
+    webhook(
+        shop_client,
+        "product.synced",
+        {
+            "store_ref": str(business.id),
+            "product_ref": item_id,
+            "state": "SYNCED",
+            "handle": "zaatar",
+            "active": True,
+            "buy_url": buy,
+            "error": None,
+        },
     )
-    drain(settings, fake)
-    update = json.loads(
-        [r for r in fake.requests if b"productSet" in r.content][-1].content
-    )["variables"]["input"]
-    assert update["id"] == "gid://shopify/Product/1"
-    assert update["variants"][0]["price"] == "7.25"
 
-    # Every push is visible in the logs, by id: created once, updated once,
-    # and the unchanged resend logged as nothing pushed.
-    pushed = [r for r in caplog.records if r.getMessage() == "Shopify product pushed"]
-    assert [r.__dict__["action"] for r in pushed] == ["created", "updated"]
-    assert all(r.__dict__["item_id"] == item_id for r in pushed)
+    item = db.get(BusinessItem, uuid.UUID(item_id))
+    assert item is not None
+    page = shop_client.get(f"/api/businesses/{business.slug}").json()
+    assert page["online_store_url"] == "https://souk.example.com"
+    assert shop_client.get(f"/api/items/{item.slug}").json()["buy_url"] == buy
+
+    webhook(
+        shop_client,
+        "store.updated",
+        connected(business, status="UNINSTALLED", storefront_url=None),
+    )
+    assert shop_client.get(f"/api/businesses/{business.slug}").json()["online_store_url"] is None
+    assert shop_client.get(f"/api/items/{item.slug}").json()["buy_url"] is None
 
 
-def test_a_product_in_another_currency_is_never_pushed(
-    shop_client: TestClient,
-    db: Session,
-    settings: Settings,
-    fake: FakeShopify,
-    category: Category,
-    location: Location,
+def test_a_webhook_for_another_businesss_product_changes_nothing(
+    shop_client: TestClient, db: Session, category: Category, location: Location
 ) -> None:
     headers = sign_in(shop_client, OWNER_PHONE)
     business = approved_business(shop_client, db, headers, category, location)
-    add_item(shop_client, business, headers, currency="LBP")
-    connect(shop_client, business, headers)
-    drain(settings, fake)
-    assert fake.products == 0
-    db.expire_all()
-    connection = db.scalars(select(ShopifyConnection)).one()
-    assert connection.last_error is not None and "LBP" in connection.last_error
+    other_headers = sign_in(shop_client, OTHER_PHONE)
+    other = approved_business(shop_client, db, other_headers, category, location)
+    other_item = add_item(shop_client, other, other_headers)
+    webhook(
+        shop_client,
+        "product.synced",
+        {
+            "store_ref": str(business.id),
+            "product_ref": other_item,
+            "state": "SYNCED",
+            "handle": "x",
+            "active": True,
+            "buy_url": "https://evil.test/x",
+            "error": None,
+        },
+    )
+    assert db.scalars(select(ItemLink)).first() is None
 
 
-def test_deleting_a_pushed_product_deletes_it_from_the_store(
+def test_deleting_a_sent_product_tells_the_connector(
     shop_client: TestClient,
     db: Session,
     settings: Settings,
-    fake: FakeShopify,
+    fake: FakeConnector,
     category: Category,
     location: Location,
 ) -> None:
     headers = sign_in(shop_client, OWNER_PHONE)
     business = approved_business(shop_client, db, headers, category, location)
     item_id = add_item(shop_client, business, headers)
-    connect(shop_client, business, headers)
+    webhook(shop_client, "store.connected", connected(business))
     drain(settings, fake)
     deleted = shop_client.delete(f"/api/businesses/{business.id}/items/{item_id}", headers=headers)
     assert deleted.status_code in (200, 204), deleted.text
     assert [e.kind for e in pending(db)] == [outbox.ITEM_DELETE]
     drain(settings, fake)
-    assert any("productDelete" in q for q in fake.graphql_calls())
+    assert fake.calls("DELETE", rf"/products/{item_id}$")
 
 
-def test_a_failing_push_is_retried_later_with_the_error_kept(
+def test_a_failing_push_is_retried_with_the_error_kept(
     shop_client: TestClient,
     db: Session,
     settings: Settings,
+    fake: FakeConnector,
     category: Category,
     location: Location,
 ) -> None:
     headers = sign_in(shop_client, OWNER_PHONE)
     business = approved_business(shop_client, db, headers, category, location)
     add_item(shop_client, business, headers)
-    connect(shop_client, business, headers)
-
-    def down(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(401)
-
-    with httpx.Client(transport=httpx.MockTransport(down)) as http:
-        assert outbox.drain_once(SessionLocal, make_handlers(settings, http)) == 0
+    webhook(shop_client, "store.connected", connected(business))
+    fake.down = True
+    assert drain(settings, fake) == 0
     entry = pending(db)[0]
-    assert entry.attempts == 1
-    assert entry.last_error
+    assert entry.attempts == 1 and entry.last_error
     assert entry.next_attempt_at > entry.created_at
-    assert db.scalars(select(ShopifyConnection)).one().last_error
 
 
-# --- What visitors see ------------------------------------------------------------
-
-
-def test_buy_links_are_public_only_while_the_store_is_connected(
+def test_disconnecting_tells_the_connector_and_forgets_the_store(
     shop_client: TestClient,
     db: Session,
-    settings: Settings,
-    fake: FakeShopify,
+    fake: FakeConnector,
     category: Category,
     location: Location,
 ) -> None:
     headers = sign_in(shop_client, OWNER_PHONE)
     business = approved_business(shop_client, db, headers, category, location)
-    item_id = add_item(shop_client, business, headers)
-    connect(shop_client, business, headers)
-    drain(settings, fake)
-
-    page = shop_client.get(f"/api/businesses/{business.slug}").json()
-    assert page["online_store_url"] == "https://souk.example.com"
-    item = db.get(BusinessItem, uuid.UUID(item_id))
-    assert item is not None
-    product = shop_client.get(f"/api/items/{item.slug}").json()
-    assert product["buy_url"] == "https://souk.example.com/products/zaatar"
-    assert "souk-test.myshopify.com" not in json.dumps(page)
-
-    body = json.dumps({"id": 1}).encode()
-    digest = base64.b64encode(hmac.new(SECRET.encode(), body, hashlib.sha256).digest()).decode()
-    hook = shop_client.post(
-        "/api/integrations/shopify/webhooks",
-        content=body,
-        headers={
-            "X-Shopify-Hmac-Sha256": digest,
-            "X-Shopify-Topic": "app/uninstalled",
-            "X-Shopify-Shop-Domain": SHOP,
-        },
-    )
-    assert hook.status_code == 200
+    webhook(shop_client, "store.connected", connected(business))
+    r = shop_client.delete(f"/api/businesses/{business.id}/shopify", headers=headers)
+    assert r.status_code == 200, r.text
+    assert fake.calls("DELETE", rf"/v1/stores/{business.id}$")
     db.expire_all()
-    assert db.scalars(select(ShopifyConnection)).one().status is ShopifyConnectionStatus.UNINSTALLED
-    assert shop_client.get(f"/api/businesses/{business.slug}").json()["online_store_url"] is None
-    assert shop_client.get(f"/api/items/{item.slug}").json()["buy_url"] is None
+    assert db.scalars(select(StoreLink)).first() is None
 
 
-def test_a_webhook_without_shopifys_signature_is_refused(
+def test_a_reserved_subdomain_is_refused_in_our_words(
     shop_client: TestClient,
     db: Session,
+    fake: FakeConnector,
     category: Category,
     location: Location,
 ) -> None:
     headers = sign_in(shop_client, OWNER_PHONE)
     business = approved_business(shop_client, db, headers, category, location)
-    connect(shop_client, business, headers)
-    hook = shop_client.post(
-        "/api/integrations/shopify/webhooks",
-        content=b"{}",
-        headers={
-            "X-Shopify-Hmac-Sha256": "forged",
-            "X-Shopify-Topic": "app/uninstalled",
-            "X-Shopify-Shop-Domain": SHOP,
-        },
-    )
-    assert hook.status_code == 401
-    db.expire_all()
-    assert db.scalars(select(ShopifyConnection)).one().is_live
-
-
-def test_disconnecting_revokes_the_token_and_forgets_the_store(
-    shop_client: TestClient,
-    db: Session,
-    fake: FakeShopify,
-    category: Category,
-    location: Location,
-) -> None:
-    headers = sign_in(shop_client, OWNER_PHONE)
-    business = approved_business(shop_client, db, headers, category, location)
-    connect(shop_client, business, headers)
-    response = shop_client.delete(f"/api/businesses/{business.id}/shopify", headers=headers)
-    assert response.status_code == 200, response.text
-    assert any(r.url.path == "/admin/api_permissions/current.json" for r in fake.requests)
-    db.expire_all()
-    assert db.scalars(select(ShopifyConnection)).first() is None
-
-
-# --- <sub>.janoubona.net --------------------------------------------------------------
-
-
-@pytest.fixture
-def dns_settings() -> Settings:
-    return shopify_settings(cloudflare_api_token="cf-token", cloudflare_zone_id="zone1")
-
-
-@pytest.mark.parametrize(
-    ("subdomain", "code"),
-    [("www", "reserved_subdomain"), ("Bad_Name", "bad_subdomain"), ("-x", "bad_subdomain")],
-)
-def test_a_subdomain_must_be_a_free_latin_name(
-    dns_settings: Settings,
-    fake: FakeShopify,
-    db: Session,
-    category: Category,
-    location: Location,
-    subdomain: str,
-    code: str,
-) -> None:
-    for client in _client_with(dns_settings, fake):
-        headers = sign_in(client, OWNER_PHONE)
-        business = approved_business(client, db, headers, category, location)
-        connect(client, business, headers)
-        response = client.post(
-            f"/api/businesses/{business.id}/shopify/subdomain",
-            headers=headers,
-            json={"subdomain": subdomain},
-        )
-        assert response.status_code == 422
-        assert response.json()["error"]["code"] == code
-
-
-def test_a_subdomain_is_a_dns_only_cname_to_shopify(
-    dns_settings: Settings,
-    fake: FakeShopify,
-    db: Session,
-    category: Category,
-    location: Location,
-) -> None:
-    for client in _client_with(dns_settings, fake):
-        headers = sign_in(client, OWNER_PHONE)
-        business = approved_business(client, db, headers, category, location)
-        connect(client, business, headers)
-        response = client.post(
-            f"/api/businesses/{business.id}/shopify/subdomain",
-            headers=headers,
-            json={"subdomain": "souk"},
-        )
-        assert response.status_code == 200, response.text
-        assert response.json()["subdomain_hostname"] == "souk.janoubona.net"
-        created = next(r for r in fake.requests if r.url.host == "api.cloudflare.com")
-        assert json.loads(created.content) == {
-            "type": "CNAME",
-            "name": "souk.janoubona.net",
-            "content": "shops.myshopify.com",
-            "proxied": False,
-            "ttl": 1,
-        }
-
-
-def _client_with(settings: Settings, fake: Callable[[httpx.Request], httpx.Response]) -> Iterator[TestClient]:
-    app = create_app(settings)
-    app.dependency_overrides[get_settings] = lambda: settings
-
-    def http() -> Iterator[httpx.Client]:
-        with httpx.Client(transport=httpx.MockTransport(fake)) as client:
-            yield client
-
-    app.dependency_overrides[get_http_client] = http
-    try:
-        with TestClient(app) as client:
-            yield client
-    finally:
-        outbox.uninstall_hooks(SessionLocal)
-
-
-def test_the_cipher_round_trips_and_refuses_another_key(settings: Settings) -> None:
-    from app.core.crypto import CredentialCipherError
-
-    secret = encrypt_secret(settings, "shpat_x")
-    assert decrypt_secret(settings, secret) == "shpat_x"
-    other = settings.model_copy(update={"integration_encryption_key": Fernet.generate_key().decode()})
-    with pytest.raises(CredentialCipherError):
-        decrypt_secret(other, secret)
+    webhook(shop_client, "store.connected", connected(business))
+    fake.stores[str(business.id)] = connected(business)
+    url = f"/api/businesses/{business.id}/shopify/subdomain"
+    r = shop_client.post(url, headers=headers, json={"subdomain": "www"})
+    assert r.status_code == 422 and r.json()["error"]["code"] == "reserved_subdomain"
+    ok = shop_client.post(url, headers=headers, json={"subdomain": "souk"})
+    assert ok.status_code == 200, ok.text
+    assert ok.json()["subdomain_hostname"] == "souk.janoubona.net"

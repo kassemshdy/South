@@ -1,4 +1,4 @@
-"""Pushes to third parties, queued with the edit that caused them.
+"""Pushes to the Shopify Connector, queued with the edit that caused them.
 
 When a shop with a connected Shopify store saves a product, a row is added
 to ``integration_outbox`` *in the same flush* as the product row. Commit
@@ -32,8 +32,8 @@ from app.models.integration import IntegrationOutbox
 
 logger = logging.getLogger(__name__)
 
-ITEM_UPSERT = "shopify.item.upsert"
-ITEM_DELETE = "shopify.item.delete"
+ITEM_UPSERT = "connector.item.upsert"
+ITEM_DELETE = "connector.item.delete"
 
 #: Attempts before an entry is given up on; the error stays on the row and
 #: on the connection, for the owner's dashboard.
@@ -73,8 +73,8 @@ def enqueue_full_sync(db: Session, business: Business) -> int:
 
 
 def _connected(business: Business | None) -> bool:
-    connection = business.shopify_connection if business is not None else None
-    return connection is not None and connection.is_live
+    link = business.store_link if business is not None else None
+    return link is not None and link.is_live
 
 
 def _item_of(session: Session, image: BusinessItemImage) -> BusinessItem | None:
@@ -118,14 +118,9 @@ def _before_flush(session: Session, _context: object, _instances: object) -> Non
             # store are the owner's and stay.
             if obj.business in session.deleted:
                 continue
-            link = obj.shopify_link
-            if link is not None and _connected(obj.business):
-                enqueue(
-                    session,
-                    ITEM_DELETE,
-                    obj.business_id,
-                    {"shopify_product_id": link.shopify_product_id},
-                )
+            # Only a product the connector was told about has anything to remove.
+            if obj.item_link is not None and _connected(obj.business):
+                enqueue(session, ITEM_DELETE, obj.business_id, {"item_id": str(obj.id)})
     for item_id, business_id in upserts.items():
         enqueue(session, ITEM_UPSERT, business_id, {"item_id": str(item_id)})
 

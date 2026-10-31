@@ -273,30 +273,16 @@ class Settings(BaseSettings):
     sentry_release: str | None = None
 
     # --- Third-party commerce (docs/COMMERCE.md) ---------------------------
-    # Each shop runs its own Shopify store; Janobona connects to it through
-    # its own Shopify app and pushes the shop's products there. All unset
-    # means no Connect button and no Shopify route answers anything but 404.
-    shopify_api_key: str | None = None
-    shopify_api_secret: str | None = None
-    shopify_api_version: str = "2025-07"
-    shopify_scopes: str = "read_products,write_products,write_publications,read_publications"
-    # Where a shop without a store is sent to open one. Shopify has no API
-    # that creates stores, so the owner signs up themselves; set this to the
-    # Partner referral link so the referral is credited to Janobona.
-    shopify_signup_url: str = "https://www.shopify.com/free-trial"
-    # Fernet key that encrypts the stores' access tokens at rest. Its own
-    # variable, never SECRET_KEY: rotating the signing key must not orphan
-    # every connected store, and the hourly SQL copy of the database is only
-    # harmless because this key is not in it.
-    integration_encryption_key: str | None = None
+    # Each shop sells through its own Shopify store, run by the shared
+    # Shopify Connector service (its own repository). Janoubona holds no
+    # Shopify or Cloudflare credential: only this site's key to the
+    # connector and the secret its webhooks are signed with. All unset means
+    # no Connect button and every Shopify route answers 404.
+    connector_url: str | None = None
+    connector_api_key: str | None = None
+    connector_webhook_secret: str | None = None
     # Seconds between passes of the outbox worker that pushes products.
     integration_outbox_poll_seconds: int = 15
-
-    # <shop>.janoubona.net: a DNS-only CNAME to Shopify per connected store.
-    # Unset means owners only see their store's own domain.
-    cloudflare_api_token: str | None = None
-    cloudflare_zone_id: str | None = None
-    store_subdomain_base: str = "janoubona.net"
 
     # Read-only feed of stores and products for partners (Yalla Pay,
     # AdsTalk), per API key. See docs/PARTNER_API.md.
@@ -328,14 +314,10 @@ class Settings(BaseSettings):
         return self.app_env == "staging"
 
     @property
-    def shopify_enabled(self) -> bool:
+    def connector_enabled(self) -> bool:
         return bool(
-            self.shopify_api_key and self.shopify_api_secret and self.integration_encryption_key
+            self.connector_url and self.connector_api_key and self.connector_webhook_secret
         )
-
-    @property
-    def cloudflare_enabled(self) -> bool:
-        return bool(self.cloudflare_api_token and self.cloudflare_zone_id)
 
     @property
     def is_hardened(self) -> bool:
@@ -375,14 +357,12 @@ class Settings(BaseSettings):
             problems.append("S3_BUCKET is required when STORAGE_BACKEND=s3")
         if self.debug:
             problems.append("DEBUG must be false in production")
-        if self.shopify_api_key and not (
-            self.shopify_api_secret and self.integration_encryption_key
-        ):
+        if self.connector_url and not self.connector_enabled:
             problems.append(
-                "SHOPIFY_API_KEY needs SHOPIFY_API_SECRET and INTEGRATION_ENCRYPTION_KEY"
+                "CONNECTOR_URL needs CONNECTOR_API_KEY and CONNECTOR_WEBHOOK_SECRET"
             )
-        if self.integration_encryption_key and self.integration_encryption_key == self.secret_key:
-            problems.append("INTEGRATION_ENCRYPTION_KEY must differ from SECRET_KEY")
+        if self.connector_url and not self.connector_url.startswith("https://"):
+            problems.append("CONNECTOR_URL must be https")
 
         if problems:
             raise RuntimeError(

@@ -34,8 +34,8 @@ from app.models.feedback import FeedbackAttachment, FeedbackComment, FeedbackTic
 from app.models.integration import (
     ApiPartner,
     IntegrationOutbox,
-    ShopifyConnection,
-    ShopifyProductLink,
+    ItemLink,
+    StoreLink,
 )
 from app.models.job import JobApplication, JobOpening
 from app.models.order import Order, OrderLine
@@ -83,6 +83,7 @@ __all__ = [
     "FeedbackTicket",
     "ImageKind",
     "IntegrationOutbox",
+    "ItemLink",
     "JobApplication",
     "JobOpening",
     "ListingViewDaily",
@@ -100,10 +101,9 @@ __all__ = [
     "RateLimitEvent",
     "Reel",
     "ServiceRequest",
-    "ShopifyConnection",
-    "ShopifyProductLink",
     "SiteSetting",
     "SocialPlatform",
+    "StoreLink",
     "StoryImage",
     "TalentImage",
     "TalentModerationAction",

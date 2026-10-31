@@ -1,106 +1,98 @@
-# Third-party commerce: Shopify stores, store subdomains, the partner feed
+# Third-party commerce: Shopify stores, store addresses, the partner feed
 
-The investor's model (30 Oct 2026): **Janobona is the door, not the shop.**
-Each business runs its own Shopify store, which it owns and pays for. Payment
-and delivery happen there; Yalla Pay is a Shopify app the store installs. Janobona
-pushes the shop's products to that store and sends visitors to it. Partners
-(Yalla Pay, AdsTalk) read a feed of the stores and products.
+The investor's model (30 Oct 2026): **Janoubona is the door, not the shop.**
+Each business runs its own Shopify store, which it owns. Payment and delivery
+happen there: Yalla Pay is a Shopify app the store installs. Partners (Yalla
+Pay, AdsTalk) read a feed of the stores and products.
 
-Everything here does nothing until its variables are set, like every other
-integration in this repository.
+## Two services
 
-## Decisions (the owners', 30 Oct 2026)
+```
+Janoubona ──REST──▶ Shopify Connector ──▶ Shopify / Cloudflare
+Janoubona ◀─signed webhooks── Shopify Connector ◀── Shopify
+```
+
+**Shopify Connector** (repository `kassemshdy/shopify-connector`) is shared
+by every website that sells this way. It holds:
+- the one Shopify app and every store's token, encrypted;
+- each website's Cloudflare zone;
+- the product sync to Shopify.
+
+Its README and `docs/API.md` are the reference for any website joining.
+
+**Janoubona** is one of the connector's websites ("tenants"). It holds no
+Shopify or Cloudflare credential. It does four things:
+- asks the connector for an authorize URL when an owner presses Connect;
+- sends each product through the outbox: a session hook queues it in the
+  same transaction as the edit, and a worker sends it;
+- mirrors what the connector reports, through signed webhooks: the store
+  goes in `store_links`, each product's buy link in `item_links`;
+- shows "Visit the online store" and "Buy online" from that mirror.
+
+## Decisions (the owners', 30–31 Oct 2026)
 
 | Question | Decision |
 |---|---|
-| Whose Shopify account | The shop owner's own; they connect it to Janobona through OAuth. |
-| Sync direction | Janobona → Shopify only. Owners keep editing on Janobona. Two-way comes later. |
-| Buying | Connected shops get "Buy online" links to Shopify. Every other shop keeps the order request and WhatsApp. |
-| Payments | None in this codebase. Yalla Pay runs inside each Shopify store. |
-| Domain | `janoubona.net`, on Cloudflare. |
-| Partners | A read-only, key-protected feed: `docs/PARTNER_API.md`. |
+| Whose Shopify account | The shop owner's own. The connector installs the shared app on it through OAuth. |
+| Shopify app | **One shared app** for all websites: one Shopify review, and one connector. |
+| Sync direction | Janoubona → Shopify only, for now. |
+| Buying | Connected shops get "Buy online" links. Every other shop keeps the order request and WhatsApp. |
+| Payments | None in either codebase. Yalla Pay runs inside each Shopify store. |
+| Store addresses | `<name>.janoubona.net`, a DNS-only CNAME in Janoubona's Cloudflare zone, created by the connector. A shop's own domain also works. |
+| Partners | A read-only, key-protected feed served by Janoubona: `docs/PARTNER_API.md`. |
 
 ## Getting a store
 
 **Shopify has no public API that creates stores.** A store is made by the
-merchant signing up, or by hand by a Partner in the Partner Dashboard, so
-Janobona cannot open one for a shop automatically. What it does instead:
-
-- An owner whose shop has no store sees "Create your Shopify store" on the
-  products page, with three steps: sign up, add Yalla Pay, come back and
-  connect.
-- The button opens `SHOPIFY_SIGNUP_URL`. Set it to the Janobona Partner
-  referral link (Partner Dashboard → Referrals), so Shopify credits the
-  referral to Janobona. Unset, it is Shopify's public free-trial page.
-- Creating stores on merchants' behalf would need a platform partnership
-  with Shopify. That is a business conversation, possibly through the
-  investor, not something code can do.
+merchant signing up, or by hand by a Partner. Janoubona therefore shows shops
+without a store a "Create your Shopify store" button. It points to the
+website's sign-up link held in the connector, for example the Partner
+referral link.
 
 ## Setting it up
 
-1. **Shopify Partner account.** In it, create a **public app with unlisted
-   distribution**.
-   - Custom distribution only covers one merchant, so it is not enough for
-     many independent stores.
-   - App URL: `https://janoubona.net/dashboard`.
-   - Allowed redirection URL: `https://janoubona.net/api/integrations/shopify/callback`.
-   - **Compliance webhooks** are set by hand in the app's configuration
-     (a new version in the Dev Dashboard, or Configuration in the Partner
-     Dashboard): `customers/data_request`, `customers/redact` and
-     `shop/redact`, all to
-     `https://janoubona.net/api/integrations/shopify/webhooks`.
-   - `app/uninstalled` and `shop/update` need no setup: the app subscribes
-     the store to them itself on every connect (`register_webhooks`).
-   - Shopify's app review is needed before any store but a development store
-     can install it, and it can take weeks.
-2. **Variables on `api`.**
-   - `SHOPIFY_API_KEY` and `SHOPIFY_API_SECRET` come from the app.
-   - `INTEGRATION_ENCRYPTION_KEY` is a Fernet key. Generate it with the
-     command in `backend/.env.example`. It is never the same as
-     `SECRET_KEY`; production refuses to start if it is.
-   - Optional: `SHOPIFY_API_VERSION` (pinned) and `SHOPIFY_SCOPES`.
-3. **Cloudflare.**
-   - Create an API token scoped to Zone → DNS → Edit on `janoubona.net`.
-   - Set `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ZONE_ID`.
+1. **In the connector**, register Janoubona once, and keep the API key and
+   webhook secret it prints:
+   ```bash
+   python -m scripts.tenant create --slug janoubona --name Janoubona \
+     --origin https://janoubona.net \
+     --webhook-url https://janoubona.net/api/integrations/connector/webhooks \
+     --subdomain-base janoubona.net
+   ```
+   Then `set --cloudflare-zone … --cloudflare-token …` for store addresses,
+   and `set --signup-url …` for the sign-up button.
+2. **On Janoubona's `api` service**, set `CONNECTOR_URL`, `CONNECTOR_API_KEY`
+   and `CONNECTOR_WEBHOOK_SECRET`.
+3. **The Shopify app's URLs** point to the connector, not to Janoubona. The
+   connector's README has the exact values.
 
-## How it works
+All three Janoubona variables unset means no Connect button, and every
+Shopify route answers 404.
 
-- **Connecting** (`app/services/shopify_connection.py`):
-  - The owner types their `*.myshopify.com` address on the products page and
-    approves the app in Shopify.
-  - The callback is believed only with Shopify's HMAC, our signed `state` and
-    the same shop.
-  - The offline token is stored encrypted (`app/core/crypto.py`).
-  - Only an **approved** listing can connect.
-- **Pushing** (`app/services/outbox.py`, `app/services/shopify_sync.py`):
-  - A session hook adds a row to `integration_outbox` in the same flush as
-    any product change on a connected shop.
-  - A worker in the API's lifespan sends it with `productSet`. The product
-    is created once, then updated by id through `shopify_product_links`.
-  - Nothing is sent when nothing Shopify sees has changed.
-  - A product with no price, or priced in a currency the store does not
-    sell in, is never pushed. The reason shows on the owner's card.
-  - Failures retry with backoff up to 8 times.
-- **Visitors** (`app/services/storefront.py`):
-  - `online_store_url` on the shop page and `buy_url` on products are set only
-    while the connection is live.
-  - Uninstalling the app in Shopify removes them (`app/uninstalled` webhook).
-- **Subdomains** (`app/services/store_subdomain.py`):
-  - The owner picks a Latin name, because slugs keep Arabic script.
-  - We create a **DNS-only** CNAME to `shops.myshopify.com`. Shopify issues
-    the certificate and cannot do so behind Cloudflare's proxy.
-  - Shopify's API cannot attach a domain to a store, so the owner does it
-    once in Shopify (Settings → Domains → Connect existing domain).
-  - The card shows that step until the store's primary domain is the
-    subdomain.
-- **Disconnecting / deleting:**
-  - The token is revoked and the DNS record removed.
-  - Products already in Shopify stay there: they are the owner's.
+## How it behaves
+
+- **Connecting:** only an approved listing can connect. The owner returns to
+  `/dashboard/businesses/<id>/items?shopify=connected` (or an error code). The
+  connector then sends `store.connected`, and Janoubona queues every product.
+- **Products:**
+  - What is sent is what a visitor would see: title, description, price and
+    currency, public https photo addresses, and availability. A suspended
+    listing's products are sent as not available.
+  - The connector never converts a price. A product in another currency is
+    reported as skipped, with the reason.
+- **Buy links:** public only while the mirror says the store is connected.
+  An uninstall in Shopify reaches Janoubona as `store.updated`, and the links
+  disappear.
+- **Disconnecting or deleting:**
+  - Janoubona tells the connector, which revokes the token and removes the
+    DNS record.
+  - Products already in Shopify stay: they are the owner's.
+- **Webhooks from the connector:** believed only with its signature,
+  `X-Connector-Signature: t=…,v1=HMAC-SHA256(secret, "t." + body)`, at most 5
+  minutes old.
 
 ## What it does not do yet
 
-- Shopify → Janobona: products edited in Shopify are not read back.
+- Shopify → Janoubona: products edited in Shopify are not read back.
 - Variants, stock, and orders or sales counts from Shopify.
-- Suspending a listing does not set its Shopify products to draft. The
-  Janobona links disappear, but the store is the owner's.
 - Push webhooks to partners.

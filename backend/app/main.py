@@ -55,11 +55,11 @@ from app.repositories.item import ItemRepository
 from app.repositories.talent import TalentRepository
 from app.services import (
     business_documents,
+    connector,
     db_backup,
     feedback_attachments,
     job_applications,
     outbox,
-    shopify_sync,
     telegram_archive,
     telegram_db_backup,
     verification,
@@ -107,15 +107,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 interval_hours=settings.telegram_db_backup_hours,
             )
         )
-    # Pushes to the shops' own Shopify stores (app/services/outbox.py).
+    # Pushes to the Shopify Connector (app/services/outbox.py).
     pushes: asyncio.Task[None] | None = None
     push_http: httpx.Client | None = None
-    if settings.shopify_enabled:
+    if settings.connector_enabled:
         push_http = httpx.Client(timeout=30)
         pushes = asyncio.create_task(
             outbox.run_worker(
                 SessionLocal,
-                shopify_sync.make_handlers(settings, push_http),
+                connector.make_handlers(settings, push_http),
                 poll_seconds=settings.integration_outbox_poll_seconds,
             )
         )
@@ -256,7 +256,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # Before the app is built, so a failure during startup is still reported.
     configure_error_tracking(settings)
     telegram_archive.configure(settings, SessionLocal)
-    if settings.shopify_enabled:
+    if settings.connector_enabled:
         outbox.install_hooks(SessionLocal)
 
     app = FastAPI(

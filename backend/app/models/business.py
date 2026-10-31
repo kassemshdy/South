@@ -32,7 +32,7 @@ from app.models.enums import (
 )
 
 if TYPE_CHECKING:
-    from app.models.integration import ShopifyConnection, ShopifyProductLink
+    from app.models.integration import ItemLink, StoreLink
     from app.models.order import Order
     from app.models.taxonomy import Category, Location
     from app.models.testimonial import Testimonial
@@ -197,8 +197,8 @@ class Business(Base, TimestampMixin):
         cascade="all, delete-orphan",
         order_by="Order.created_at.desc()",
     )
-    # The shop's own Shopify store, when it connected one (app/models/integration.py).
-    shopify_connection: Mapped[ShopifyConnection | None] = relationship(
+    # The shop's own Shopify store, as the connector reports it.
+    store_link: Mapped[StoreLink | None] = relationship(
         back_populates="business", cascade="all, delete-orphan", uselist=False
     )
 
@@ -355,7 +355,7 @@ class BusinessItem(Base, TimestampMixin):
         cascade="all, delete-orphan",
     )
     # selectin: a shop page lists up to 200 items, each with a buy link.
-    shopify_link: Mapped[ShopifyProductLink | None] = relationship(
+    item_link: Mapped[ItemLink | None] = relationship(
         back_populates="item", cascade="all, delete-orphan", uselist=False, lazy="selectin"
     )
 

@@ -1376,11 +1376,11 @@ export interface JobApplication {
 export interface ShopifyStatus {
   connected: boolean
   /** Shopify cannot create stores by API: a shop without one signs up here. */
-  signup_url: string
+  signup_url: string | null
   subdomains_available: boolean
   subdomain_base: string
   shop_domain: string | null
-  status: 'CONNECTED' | 'UNINSTALLED' | 'ERROR' | null
+  status: 'PENDING' | 'CONNECTED' | 'UNINSTALLED' | null
   storefront_url: string | null
   currency: string | null
   subdomain: string | null

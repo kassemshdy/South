@@ -34,7 +34,7 @@ from app.core.errors import (
 from app.core.rate_limit import DatabaseRateLimiter, RateLimitRule
 from app.models.business import Business, BusinessItem
 from app.models.enums import BusinessStatus
-from app.models.integration import ApiPartner, ShopifyConnection
+from app.models.integration import CONNECTED, ApiPartner, StoreLink
 from app.schemas.integration import ApiPartnerIn, ApiPartnerIssuedOut, ApiPartnerOut
 from app.schemas.partner_api import PartnerPage, PartnerProductOut, PartnerStoreOut
 from app.services.api_partner import ApiPartnerService
@@ -112,8 +112,8 @@ def _site(settings: Settings) -> str:
 
 
 def _store(business: Business, settings: Settings) -> PartnerStoreOut:
-    connection = business.shopify_connection
-    live = connection is not None and connection.is_live
+    link = business.store_link
+    live = link is not None and link.is_live
     return PartnerStoreOut(
         **business_summary(business).model_dump(exclude={"logo_thumb_url", "cover_thumb_url"}),
         page_url=f"{_site(settings)}/business/{business.slug}",
@@ -121,13 +121,9 @@ def _store(business: Business, settings: Settings) -> PartnerStoreOut:
         latitude=float(business.latitude) if business.latitude is not None else None,
         longitude=float(business.longitude) if business.longitude is not None else None,
         updated_at=business.updated_at,
-        shop_domain=connection.shop_domain if live and connection else None,
+        shop_domain=link.shop_domain if live and link else None,
         online_store_url=online_store_url(business),
-        subdomain_hostname=(
-            f"{connection.subdomain}.{settings.store_subdomain_base}"
-            if live and connection and connection.subdomain
-            else None
-        ),
+        subdomain_hostname=link.subdomain_hostname if live and link else None,
     )
 
 
@@ -157,7 +153,7 @@ def _public_businesses() -> Select[tuple[Business]]:
             selectinload(Business.category),
             selectinload(Business.location),
             selectinload(Business.owner),
-            selectinload(Business.shopify_connection),
+            selectinload(Business.store_link),
         )
     )
 
@@ -169,7 +165,7 @@ def _public_items() -> Select[tuple[BusinessItem]]:
         .where(Business.status == BusinessStatus.APPROVED, BusinessItem.is_available.is_(True))
         .options(
             selectinload(BusinessItem.images),
-            selectinload(BusinessItem.business).selectinload(Business.shopify_connection),
+            selectinload(BusinessItem.business).selectinload(Business.store_link),
         )
     )
 
@@ -187,8 +183,8 @@ def list_stores(
     _require(partner, "stores:read")
     stmt = _public_businesses()
     if connected:
-        stmt = stmt.join(ShopifyConnection, ShopifyConnection.business_id == Business.id).where(
-            ShopifyConnection.status == "CONNECTED"
+        stmt = stmt.join(StoreLink, StoreLink.business_id == Business.id).where(
+            StoreLink.status == CONNECTED
         )
     rows = list(db.scalars(_page(stmt, Business, cursor, updated_since, limit)))
     more = len(rows) > limit

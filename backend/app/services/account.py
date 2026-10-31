@@ -16,8 +16,8 @@ from app.models.talent import TalentProfile
 from app.models.user import User
 from app.models.verification import OwnerVerificationDocument
 from app.services.analytics import ViewCounterService
+from app.services.connector import forget_stores, remember_stores
 from app.services.images import thumbnail_key
-from app.services.shopify_connection import forget_stores, remember_stores
 from app.storage.base import StorageBackend
 
 logger = logging.getLogger(__name__)

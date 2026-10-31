@@ -303,14 +303,3 @@ class JobType(str, enum.Enum):
     FREELANCE = "FREELANCE"
     INTERNSHIP = "INTERNSHIP"
 
-
-class ShopifyConnectionStatus(str, enum.Enum):
-    """Whether Janobona can still act on a store it was connected to.
-
-    UNINSTALLED is set by Shopify's own webhook when the owner removes our
-    app from their store; the token is then dead and nothing is pushed.
-    """
-
-    CONNECTED = "CONNECTED"
-    UNINSTALLED = "UNINSTALLED"
-    ERROR = "ERROR"

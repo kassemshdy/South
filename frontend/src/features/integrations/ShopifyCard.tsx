@@ -183,12 +183,14 @@ export function ShopifyCard({ businessId }: { businessId: string }) {
                   <li>{t('shopify.step2')}</li>
                   <li>{t('shopify.step3')}</li>
                 </ol>
-                <Button asChild variant="outline" size="sm">
-                  <a href={data.signup_url} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                    {t('shopify.createStore')}
-                  </a>
-                </Button>
+                {data.signup_url ? (
+                  <Button asChild variant="outline" size="sm">
+                    <a href={data.signup_url} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                      {t('shopify.createStore')}
+                    </a>
+                  </Button>
+                ) : null}
               </div>
             ) : null}
             {data.status === 'UNINSTALLED' ? (

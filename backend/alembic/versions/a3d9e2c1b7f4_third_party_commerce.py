@@ -1,9 +1,10 @@
-"""third-party commerce: Shopify connections, outbox, partner API keys
+"""third-party commerce: store and product mirrors, outbox, partner API keys
 
-The investor's model (30 Oct 2026): each shop runs its own Shopify store and
-Janobona pushes its products there; partners read a feed of stores. Four
-new tables and one enum, created only if absent, like the migrations before
-it.
+The investor's model (30 Oct 2026): each shop sells through its own Shopify
+store, run through the shared Shopify Connector service. Janoubona keeps a
+mirror of what the connector reports (``store_links``, ``item_links``), an
+outbox of pushes to it, and the keys of the partner feed. No credential for
+Shopify or Cloudflare is stored here. New tables only, created if absent.
 
 Revision ID: a3d9e2c1b7f4
 Revises: f1a7c3e9b524
@@ -35,14 +36,10 @@ def _timestamps() -> list[sa.Column]:
 
 def upgrade() -> None:
     existing = set(sa.inspect(op.get_bind()).get_table_names())
-    status = postgresql.ENUM(
-        "CONNECTED", "UNINSTALLED", "ERROR", name="shopify_connection_status"
-    )
-    status.create(op.get_bind(), checkfirst=True)
 
-    if "shopify_connections" not in existing:
+    if "store_links" not in existing:
         op.create_table(
-            "shopify_connections",
+            "store_links",
             sa.Column("id", sa.UUID(), primary_key=True),
             sa.Column(
                 "business_id",
@@ -50,35 +47,25 @@ def upgrade() -> None:
                 sa.ForeignKey(
                     "businesses.id",
                     ondelete="CASCADE",
-                    name="fk_shopify_connections_business_id_businesses",
+                    name="fk_store_links_business_id_businesses",
                 ),
                 nullable=False,
             ),
-            sa.Column("shop_domain", sa.String(255), nullable=False),
-            sa.Column("access_token_enc", sa.Text(), nullable=False),
-            sa.Column("scopes", sa.String(500), nullable=False, server_default=""),
-            sa.Column(
-                "status",
-                postgresql.ENUM(name="shopify_connection_status", create_type=False),
-                nullable=False,
-                server_default="CONNECTED",
-            ),
-            sa.Column("primary_domain", sa.String(255), nullable=True),
-            sa.Column("currency", sa.String(3), nullable=True),
+            sa.Column("status", sa.String(20), nullable=False),
+            sa.Column("shop_domain", sa.String(255), nullable=True),
+            sa.Column("storefront_url", sa.String(300), nullable=True),
             sa.Column("subdomain", sa.String(63), nullable=True),
-            sa.Column("cf_dns_record_id", sa.String(64), nullable=True),
-            sa.Column("connected_at", sa.DateTime(timezone=True), nullable=False),
-            sa.Column("last_sync_at", sa.DateTime(timezone=True), nullable=True),
+            sa.Column("subdomain_hostname", sa.String(255), nullable=True),
+            sa.Column("currency", sa.String(3), nullable=True),
             sa.Column("last_error", sa.Text(), nullable=True),
+            sa.Column("connected_at", sa.DateTime(timezone=True), nullable=True),
             *_timestamps(),
-            sa.UniqueConstraint("business_id", name="uq_shopify_connections_business_id"),
-            sa.UniqueConstraint("shop_domain", name="uq_shopify_connections_shop_domain"),
-            sa.UniqueConstraint("subdomain", name="uq_shopify_connections_subdomain"),
+            sa.UniqueConstraint("business_id", name="uq_store_links_business_id"),
         )
 
-    if "shopify_product_links" not in existing:
+    if "item_links" not in existing:
         op.create_table(
-            "shopify_product_links",
+            "item_links",
             sa.Column("id", sa.UUID(), primary_key=True),
             sa.Column(
                 "item_id",
@@ -86,18 +73,18 @@ def upgrade() -> None:
                 sa.ForeignKey(
                     "business_items.id",
                     ondelete="CASCADE",
-                    name="fk_shopify_product_links_item_id_business_items",
+                    name="fk_item_links_item_id_business_items",
                 ),
                 nullable=False,
             ),
-            sa.Column("shopify_product_id", sa.String(80), nullable=False),
-            sa.Column("shopify_variant_id", sa.String(80), nullable=True),
-            sa.Column("handle", sa.String(255), nullable=False),
-            sa.Column("active", sa.Boolean(), nullable=False, server_default=sa.true()),
-            sa.Column("synced_hash", sa.String(64), nullable=False),
-            sa.Column("synced_at", sa.DateTime(timezone=True), nullable=False),
+            sa.Column("state", sa.String(20), nullable=False),
+            sa.Column("handle", sa.String(255), nullable=True),
+            sa.Column("active", sa.Boolean(), nullable=False, server_default=sa.false()),
+            sa.Column("buy_url", sa.String(500), nullable=True),
+            sa.Column("error", sa.Text(), nullable=True),
+            sa.Column("synced_at", sa.DateTime(timezone=True), nullable=True),
             *_timestamps(),
-            sa.UniqueConstraint("item_id", name="uq_shopify_product_links_item_id"),
+            sa.UniqueConstraint("item_id", name="uq_item_links_item_id"),
         )
 
     if "integration_outbox" not in existing:
@@ -162,6 +149,5 @@ def downgrade() -> None:
     op.drop_index("ix_integration_outbox_pending", table_name="integration_outbox")
     op.drop_index("ix_integration_outbox_business_id", table_name="integration_outbox")
     op.drop_table("integration_outbox")
-    op.drop_table("shopify_product_links")
-    op.drop_table("shopify_connections")
-    postgresql.ENUM(name="shopify_connection_status").drop(op.get_bind(), checkfirst=True)
+    op.drop_table("item_links")
+    op.drop_table("store_links")
