@@ -589,8 +589,9 @@ login.
   as the run's `e2e-results` artifact on failure. Say which check failed and why before
   pushing a fix, and never merge a red PR to save a cycle.
 - `master-claude` auto-deploys the live services (`api`, `web`, on the `Postgres`
-  database). The staging services were removed on 2026-10-05, so `develop-claude`
-  no longer deploys anywhere: it is where pull requests are merged after CI, and a
-  release is a pull request from it into `master-claude`. Treat `master-claude` as
+  database). `develop-claude` deploys the develop preview (`api-develop`, demo
+  data, its own database and bucket; `docs/RAILWAY.md`): it is where pull
+  requests are merged after CI, and a release is a pull request from it into
+  `master-claude`. Treat `master-claude` as
   production: verify locally first, and check Railway deploy status/logs after
   pushing rather than assuming success.
