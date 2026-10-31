@@ -1727,5 +1727,19 @@
   "jobsHub.doorsTitle": "What would you like to do?",
   "jobsHub.postTitle": "Post a job offer",
   "jobsHub.seekersTitle": "See the people applying for jobs",
-  "jobsHub.applyTitle": "Ask for a job"
+  "jobsHub.applyTitle": "Ask for a job",
+  "staff.matrixTitle": "Permissions",
+  "staff.matrixColumn": "Permission",
+  "staff.canRead": "Read the admin area",
+  "staff.canModerate": "Approve, reject and suspend shops, services and reviews",
+  "staff.canDocuments": "ID scans, CVs and official papers",
+  "staff.canViewAs": "Open an owner's account",
+  "staff.canViewAsHint": "Reviewer: view only · Manager: can also edit",
+  "staff.canCredentials": "Issue an owner's password",
+  "staff.canSupport": "Support tickets and partner requests",
+  "staff.canContent": "Articles, workshops, home page, categories and places",
+  "staff.canManage": "Permanent deletes, site settings, staff and export",
+  "staff.matrixNote": "Any change not listed here is the manager's alone, and nobody can change a shop owner's password or delete their account from inside it.",
+  "staff.allowed": "Allowed",
+  "staff.denied": "Not allowed"
 }
