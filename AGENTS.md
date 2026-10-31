@@ -125,10 +125,16 @@ execution environment, and **stops and says so when they are absent** rather
 than finding something else to do — an unconfigured pass that improvises is
 how invented work becomes a pull request.
 
+It runs every three hours (the owners' decision, 31 Oct 2026). A fix whose
+CI is green is merged into `develop-claude` and checked on the develop site;
+the ticket gets a comment with the pull request and the develop link and
+moves to `NEEDS_APPROVAL`, which posts it to the Telegram chat with a mention
+of the owner (`TELEGRAM_MENTION`). A person approves, and a person releases.
+
 Three things it is not allowed to do, and none of them are oversights:
-approve or suspend a listing (the MCP server has no such tool), merge, or move
-a ticket to `DONE`. `DONE` means shipped, which a person decides after a
-merge.
+approve or suspend a listing (the MCP server has no such tool), merge
+anything into `master-claude`, or move a ticket to `DONE`. `DONE` means
+shipped to the live site, which a person decides after approving.
 
 The agent signs in as the existing administrator account, so the board cannot
 tell the routine's tickets and comments apart from that person's own. That is

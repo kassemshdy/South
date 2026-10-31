@@ -99,6 +99,9 @@ class FeedbackStatus(str, enum.Enum):
     # Waiting on an answer from the owners' side (wording, a file, a
     # decision) before it can go further (the owners' request, 29 Oct 2026).
     NEEDS_FEEDBACK = "NEEDS_FEEDBACK"
+    # Fixed by the triage routine and on the develop site, waiting for a
+    # person to approve the release (the owners' request, 31 Oct 2026).
+    NEEDS_APPROVAL = "NEEDS_APPROVAL"
     DONE = "DONE"
 
 

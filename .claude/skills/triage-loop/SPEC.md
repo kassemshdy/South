@@ -14,6 +14,8 @@
 
 - A renamed or removed MCP tool. The pass would fail at the first call, which
   is the safe direction, but the skill should not name a tool that is gone.
+- **A merge into `master-claude` creeping in**, the same failure one step
+  earlier: the live site would change without anyone approving.
 - **A `DONE` transition creeping in.** The prohibition is the whole reason a
   human still reviews these passes; if a future version of this file lets an
   agent close its own ticket, the board stops meaning anything.
@@ -24,7 +26,10 @@
 
 ## Deliberately not automated
 
-Moderation (approving or suspending a listing), merging, and moving a ticket
-to `DONE`. Each decides something about a real person's livelihood or about
-what the project has shipped. The MCP server has no tool for the first, and
-this skill forbids the other two.
+Moderation (approving or suspending a listing), merging into `master-claude`
+(the live site), and moving a ticket to `DONE`. Each decides something about
+a real person's livelihood or about what the project has shipped. The MCP
+server has no tool for the first, and this skill forbids the other two.
+Merging a green pull request into `develop-claude` is allowed since 31 Oct
+2026 (the owners' decision), because develop is the preview a person approves
+from, not the live site.

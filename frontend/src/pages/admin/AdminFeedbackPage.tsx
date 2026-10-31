@@ -44,7 +44,7 @@ import {
 } from '@/utils/format'
 import { commentSchema, type CommentValues } from '@/utils/validation'
 
-const STATUSES: FeedbackStatus[] = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'NEEDS_FEEDBACK', 'DONE']
+const STATUSES: FeedbackStatus[] = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'NEEDS_FEEDBACK', 'NEEDS_APPROVAL', 'DONE']
 
 const PRIORITY_TONES: Record<FeedbackPriority, string> = {
   LOW: 'bg-sand-100 text-ink-600',
@@ -61,6 +61,7 @@ function groupByStatus(
     TODO: [],
     IN_PROGRESS: [],
     NEEDS_FEEDBACK: [],
+    NEEDS_APPROVAL: [],
     DONE: [],
   }
   for (const ticket of [...tickets].sort((a, b) => a.sort_order - b.sort_order)) {
