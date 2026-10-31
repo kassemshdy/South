@@ -1,13 +1,33 @@
-# Janobona partner API (v1)
+# Janoubona partner API (v1)
 
-A read-only feed of Janobona's approved stores and their available products,
+A read-only feed of Janoubona's approved stores and their available products,
 for partners such as Yalla Pay and AdsTalk. It carries nothing a visitor to
 the site could not already read. In addition, it gives the address of each
 store's own Shopify store, where payment and delivery happen.
 
+## Base address
+
+- **Live:** `https://janoubona.net` (once the release is out)
+- **Test:** `https://api-shopify-test-shopify-test.up.railway.app`
+
+Every route below is relative to it.
+
+## Quick start
+
+```bash
+curl -H "Authorization: Bearer jnb_..." "https://janoubona.net/api/partner/v1/stores?connected=true&limit=50"
+```
+
+```bash
+curl -H "Authorization: Bearer jnb_..." "https://janoubona.net/api/partner/v1/products?updated_since=2026-10-30T00:00:00Z"
+```
+
+To keep a copy in step: page through everything once, remember when you
+started, then ask again every so often with `updated_since` set to that time.
+
 ## Authentication
 
-A Janobona manager issues each partner a key at `/admin/api-partners`. The key
+A Janoubona manager issues each partner a key at `/admin/api-partners`. The key
 is shown once. Send it as a bearer token:
 
 ```
