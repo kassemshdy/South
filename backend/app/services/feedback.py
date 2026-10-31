@@ -147,6 +147,7 @@ class FeedbackService:
                 title_key="telegram.kind.ticket_approval",
                 rows=[("title", ticket.title), ("note", note)],
                 path=f"/admin/feedback?ticket={ticket.id}",
+                button_key="telegram.button.approve",
             )
         )
 

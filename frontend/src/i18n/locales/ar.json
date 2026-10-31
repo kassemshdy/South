@@ -1742,5 +1742,10 @@
   "staff.matrixNote": "كل تعديل غير مذكور صراحةً يعود إلى المدير وحده، ولا أحد يستطيع تغيير كلمة مرور صاحب المتجر أو حذف حسابه من داخل حسابه.",
   "staff.allowed": "مسموح",
   "staff.denied": "غير مسموح",
-  "feedback.status.NEEDS_APPROVAL": "بانتظار الموافقة"
+  "feedback.status.NEEDS_APPROVAL": "بانتظار الموافقة",
+  "feedback.status.APPROVED": "تمّت الموافقة",
+  "feedback.approve": "اعتمِد",
+  "feedback.approveHint": "راجع التعديل على موقع التجربة، ثم اعتمده ليُنشر على الموقع المباشر في الإصدار التالي.",
+  "feedback.approved": "تم الاعتماد",
+  "feedback.approveFailed": "تعذّر الاعتماد"
 }

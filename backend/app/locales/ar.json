@@ -308,5 +308,6 @@
   "telegram.kind.job_offer": "فرصة عمل جديدة من صاحب عمل",
   "registration.logo_required": "أضف شعار نشاطك.",
   "telegram.kind.ticket_approval": "بلاغ تمّت معالجته بانتظار موافقتك",
-  "telegram.label.mention": "للانتباه"
+  "telegram.label.mention": "للانتباه",
+  "telegram.button.approve": "اعتمِد"
 }

@@ -28,6 +28,23 @@ environment. Create it before the server can start:
 cd mcp-server && python3 -m venv .venv && .venv/bin/pip install -q -r requirements.txt
 ```
 
+## 0.5. Ship what a person approved
+
+`list_tickets(status="APPROVED")`. A ticket gets there only when a person
+pressed «اعتمِد» on it, from the Telegram button or the board. If any are
+there, release before picking new work:
+
+1. Read `git log --oneline --no-merges origin/master-claude..origin/develop-claude`.
+   Every commit must belong to the pull request of an `APPROVED` ticket.
+   **Anything else** -- a ticket still in `NEEDS_APPROVAL`, or someone's own
+   change -- means a release would ship work nobody approved: comment that on
+   each approved ticket, leave them where they are, and go on to step 1.
+2. Otherwise follow the `ship-release` skill: its pre-flight, a release pull
+   request into `master-claude`, merge it once CI is green on its head, and
+   check the live site as it says.
+3. Only after the live check passes: comment the live link on each ticket and
+   `update_ticket(status="DONE")`.
+
 ## 1. Pick one ticket
 
 `list_tickets(status="TODO")`. If `TODO` is empty, `list_tickets(status="BACKLOG")`.
@@ -109,8 +126,9 @@ In this order:
    it is the last call, after the links are on the ticket. A ticket that did
    not reach develop goes to `IN_PROGRESS` instead.
 
-**Never move a ticket to `DONE`, and never release.** `DONE` means shipped
-to the live site, and a person decides that after approving.
+**Never release a ticket nobody approved, and never move one to `DONE`
+yourself.** Only step 0.5 releases, only what a person moved to `APPROVED`,
+and only it moves a ticket to `DONE`, after the live site shows the fix.
 
 ## 9. Report
 

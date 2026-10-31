@@ -308,5 +308,6 @@
   "telegram.kind.job_offer": "New job offered by an employer",
   "registration.logo_required": "Add your business logo.",
   "telegram.kind.ticket_approval": "A fixed ticket is waiting for your approval",
-  "telegram.label.mention": "Attention"
+  "telegram.label.mention": "Attention",
+  "telegram.button.approve": "Approve"
 }

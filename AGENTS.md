@@ -129,12 +129,14 @@ It runs every three hours (the owners' decision, 31 Oct 2026). A fix whose
 CI is green is merged into `develop-claude` and checked on the develop site;
 the ticket gets a comment with the pull request and the develop link and
 moves to `NEEDS_APPROVAL`, which posts it to the Telegram chat with a mention
-of the owner (`TELEGRAM_MENTION`). A person approves, and a person releases.
+of the owner (`TELEGRAM_MENTION`) and an «اعتمِد» button to the ticket. A
+person approving it there moves it to `APPROVED`; the next pass releases
+approved tickets -- only when every commit waiting on develop belongs to one
+-- checks the live site and moves them to `DONE`.
 
 Three things it is not allowed to do, and none of them are oversights:
-approve or suspend a listing (the MCP server has no such tool), merge
-anything into `master-claude`, or move a ticket to `DONE`. `DONE` means
-shipped to the live site, which a person decides after approving.
+approve or suspend a listing (the MCP server has no such tool), approve its
+own fix, or release anything a person has not moved to `APPROVED`.
 
 The agent signs in as the existing administrator account, so the board cannot
 tell the routine's tickets and comments apart from that person's own. That is

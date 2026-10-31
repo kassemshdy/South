@@ -493,6 +493,8 @@ MAX_PHOTO_BYTES = 10 * 1024 * 1024  # sendPhoto's limit.
 class Message:
     text: str
     logo_key: str | None = None
+    #: One button under the message: its label and the address it opens.
+    button: tuple[str, str] | None = None
 
 
 @dataclass
@@ -503,6 +505,8 @@ class Notice:
     title_key: str
     rows: list[tuple[str, str | None]]
     path: str | None = None
+    #: Shown as a button opening ``path`` rather than only as a link line.
+    button_key: str | None = None
 
 
 class TelegramArchive:
@@ -626,7 +630,13 @@ class TelegramArchive:
             for label, value in rows
             if value
         ]
-        return Message("\n".join(lines))
+        button = None
+        # Telegram refuses a button to anything but a public https address,
+        # and refuses the whole message with it -- so a local base URL gets
+        # the link line alone.
+        if notice.button_key and notice.path and self._base_url.startswith("https://"):
+            button = (_t(notice.button_key), f"{self._base_url}{notice.path}")
+        return Message("\n".join(lines), button=button)
 
     def send(self, batch: Batch | Notice) -> None:
         if isinstance(batch, Notice):
@@ -672,18 +682,21 @@ class TelegramArchive:
                 files={"photo": (key.rsplit("/", 1)[-1], logo)},
             )
             return
-        self._post(
-            "sendMessage",
-            data={
-                "chat_id": self._chat_id,
-                "text": message.text,
-                "parse_mode": "HTML",
-                # Every message ends with an admin link; Telegram's preview of
-                # it is the site's own share card, the same on every message
-                # (the owners asked for it gone, 29 Oct 2026).
-                "link_preview_options": NO_LINK_PREVIEW,
-            },
-        )
+        data = {
+            "chat_id": self._chat_id,
+            "text": message.text,
+            "parse_mode": "HTML",
+            # Every message ends with an admin link; Telegram's preview of
+            # it is the site's own share card, the same on every message
+            # (the owners asked for it gone, 29 Oct 2026).
+            "link_preview_options": NO_LINK_PREVIEW,
+        }
+        if message.button:
+            label, url = message.button
+            data["reply_markup"] = json.dumps(
+                {"inline_keyboard": [[{"text": label, "url": url}]]}, ensure_ascii=False
+            )
+        self._post("sendMessage", data=data)
 
     def _post(
         self, method: str, *, data: dict[str, str], files: dict[str, Any] | None = None

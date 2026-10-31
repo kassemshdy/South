@@ -60,6 +60,8 @@ class FakeTelegram:
         #: The text a photo carries: a listing with a logo is posted as that
         #: photo, and every business application has one now.
         self.captions: list[str] = []
+        #: The buttons under each message, as Telegram's inline keyboard.
+        self.buttons: list[list[dict[str, str]]] = []
 
     @property
     def texts(self) -> list[str]:
@@ -74,6 +76,8 @@ class FakeTelegram:
             # No preview card under the admin link (the owners' request).
             assert json.loads(form["link_preview_options"]) == {"is_disabled": True}
             self.messages.append(form["text"])
+            if "reply_markup" in form:
+                self.buttons.append(json.loads(form["reply_markup"])["inline_keyboard"][0])
         elif request.url.path.endswith("/sendPhoto"):
             self.photos.append(request.content)
             self.captions.append(_multipart_field(request, "caption"))
@@ -519,6 +523,40 @@ def test_moving_a_ticket_to_approval_posts_its_note_link_and_mention(
     assert "PR https://example.test/pull/1" in text
     assert f"{SITE}/admin/feedback?ticket={ticket['id']}" in text
     assert "@someone" in text
+    # And a button to the same ticket, where it is approved.
+    assert fake.buttons == [
+        [
+            {
+                "text": translate("telegram.button.approve", locale="ar"),
+                "url": f"{SITE}/admin/feedback?ticket={ticket['id']}",
+            }
+        ]
+    ]
+
+
+def test_no_button_without_a_public_https_address() -> None:
+    """Telegram refuses a button to anything else, and the message with it."""
+    fake = FakeTelegram()
+    archive = TelegramArchive(
+        token=TOKEN,
+        chat_id="-100",
+        read_file=lambda key: b"",
+        base_url="http://localhost:5173",
+        client=httpx.Client(transport=httpx.MockTransport(fake.handler)),
+        interval=0,
+        autostart=False,
+    )
+    archive.submit(
+        telegram_archive.Notice(
+            "telegram.kind.ticket_approval",
+            [("title", "t")],
+            path="/admin/feedback?ticket=1",
+            button_key="telegram.button.approve",
+        )
+    )
+    archive.drain()
+
+    assert fake.messages and fake.buttons == []
 
 
 def test_nothing_is_mentioned_when_no_one_is_configured() -> None:
