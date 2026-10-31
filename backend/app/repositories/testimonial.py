@@ -57,7 +57,8 @@ class TestimonialRepository(BaseRepository[Testimonial]):
 
     def featured(self, limit: int) -> list[Testimonial]:
         """The home page's few: published, about a listing a visitor can open,
-        the highest rated first and then the newest."""
+        the highest rated first and then the newest -- and only the best one of
+        each listing, so a single shop with many reviews cannot fill the row."""
         stmt = (
             select(Testimonial)
             .outerjoin(Business, Business.id == Testimonial.business_id)
@@ -74,7 +75,16 @@ class TestimonialRepository(BaseRepository[Testimonial]):
                 nullslast(Testimonial.rating.desc()),
                 nullslast(Testimonial.approved_at.desc()),
             )
-            .limit(limit)
         )
-        return list(self.db.execute(stmt).unique().scalars().all())
+        chosen: list[Testimonial] = []
+        seen: set[object] = set()
+        for testimonial in self.db.execute(stmt).unique().scalars():
+            subject = testimonial.business_id or testimonial.talent_profile_id
+            if subject in seen:
+                continue
+            seen.add(subject)
+            chosen.append(testimonial)
+            if len(chosen) == limit:
+                break
+        return chosen
 

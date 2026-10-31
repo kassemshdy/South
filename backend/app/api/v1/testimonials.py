@@ -52,13 +52,13 @@ admin_router = APIRouter(prefix="/admin", tags=["admin-testimonials"])
 
 
 #: How many testimonials the home page shows.
-FEATURED_LIMIT = 3
+FEATURED_LIMIT = 6
 
 
 @public_router.get("/testimonials/featured", response_model=list[FeaturedTestimonialOut])
 def featured_testimonials(db: DbSession) -> list[FeaturedTestimonialOut]:
-    """The home page's testimonials: the three best published ones, each with
-    the listing it is about."""
+    """The home page's testimonials: the six best published ones, one per
+    listing, each with the listing it is about."""
     featured: list[FeaturedTestimonialOut] = []
     for testimonial in TestimonialRepository(db).featured(FEATURED_LIMIT):
         business, profile = testimonial.business, testimonial.talent_profile

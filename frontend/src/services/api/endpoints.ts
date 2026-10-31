@@ -567,7 +567,7 @@ export const testimonialApi = {
   listMine: (businessId: string) =>
     apiRequest<OwnerTestimonial[]>(`/api/businesses/${businessId}/testimonials`),
   listMyTalent: () => apiRequest<OwnerTestimonial[]>('/api/my/talent/testimonials'),
-  /** The home page's three best published testimonials. */
+  /** The home page's six best published testimonials, one per listing. */
   featured: () => apiRequest<FeaturedTestimonial[]>('/api/testimonials/featured'),
 }
 
