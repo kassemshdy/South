@@ -60,6 +60,8 @@ class FakeTelegram:
         #: The text a photo carries: a listing with a logo is posted as that
         #: photo, and every business application has one now.
         self.captions: list[str] = []
+        #: The buttons under each message, as Telegram's inline keyboard.
+        self.buttons: list[list[dict[str, str]]] = []
 
     @property
     def texts(self) -> list[str]:
@@ -74,6 +76,8 @@ class FakeTelegram:
             # No preview card under the admin link (the owners' request).
             assert json.loads(form["link_preview_options"]) == {"is_disabled": True}
             self.messages.append(form["text"])
+            if "reply_markup" in form:
+                self.buttons.append(json.loads(form["reply_markup"])["inline_keyboard"][0])
         elif request.url.path.endswith("/sendPhoto"):
             self.photos.append(request.content)
             self.captions.append(_multipart_field(request, "caption"))
@@ -451,3 +455,122 @@ def test_a_support_report_links_straight_to_its_ticket() -> None:
     attachment = Change("created", "feedback_attachments", "a-1", refs={"ticket_id": "t-1"})
     assert telegram_archive.admin_path(ticket, no_business) == "/admin/feedback?ticket=t-1"
     assert telegram_archive.admin_path(attachment, no_business) == "/admin/feedback?ticket=t-1"
+
+
+def _mentioning(fake: FakeTelegram) -> TelegramArchive:
+    return TelegramArchive(
+        token=TOKEN,
+        chat_id="-100",
+        read_file=lambda key: b"",
+        base_url=SITE,
+        client=httpx.Client(transport=httpx.MockTransport(fake.handler)),
+        interval=0,
+        autostart=False,
+        mention="@someone",
+    )
+
+
+def test_a_new_support_report_mentions_the_configured_person() -> None:
+    fake = FakeTelegram()
+    archive = _mentioning(fake)
+    archive.submit(
+        Batch(
+            name="n",
+            phone="p",
+            changes=[
+                telegram_archive.Change(
+                    "created", "feedback_tickets", "t-1", {"title": "a title"}
+                )
+            ],
+        )
+    )
+    archive.drain()
+
+    assert fake.messages and "@someone" in fake.messages[0]
+
+
+def test_moving_a_ticket_to_approval_posts_its_note_link_and_mention(
+    client: TestClient, admin: User
+) -> None:
+    fake = FakeTelegram()
+    archive = _mentioning(fake)
+    telegram_archive.set_archive(archive)
+    try:
+        headers = admin_headers(client)
+        ticket = client.post(
+            "/api/admin/feedback/tickets", headers=headers, json={"title": "a bug"}
+        ).json()
+        client.post(
+            f"/api/admin/feedback/tickets/{ticket['id']}/comments",
+            headers=headers,
+            json={"body": "PR https://example.test/pull/1"},
+        )
+        for status in ("NEEDS_APPROVAL", "NEEDS_APPROVAL"):
+            moved = client.post(
+                f"/api/admin/feedback/tickets/{ticket['id']}/move",
+                headers=headers,
+                json={"status": status, "index": 0},
+            )
+            assert moved.status_code == 200, moved.text
+        archive.drain()
+    finally:
+        telegram_archive.set_archive(None)
+
+    # Once, though it was dropped there twice: only arriving is news.
+    assert len(fake.messages) == 1
+    text = fake.messages[0]
+    assert translate("telegram.kind.ticket_approval", locale="ar") in text
+    assert "PR https://example.test/pull/1" in text
+    assert f"{SITE}/admin/feedback?ticket={ticket['id']}" in text
+    assert "@someone" in text
+    # And a button to the same ticket, where it is approved.
+    assert fake.buttons == [
+        [
+            {
+                "text": translate("telegram.button.approve", locale="ar"),
+                "url": f"{SITE}/admin/feedback?ticket={ticket['id']}",
+            }
+        ]
+    ]
+
+
+def test_no_button_without_a_public_https_address() -> None:
+    """Telegram refuses a button to anything else, and the message with it."""
+    fake = FakeTelegram()
+    archive = TelegramArchive(
+        token=TOKEN,
+        chat_id="-100",
+        read_file=lambda key: b"",
+        base_url="http://localhost:5173",
+        client=httpx.Client(transport=httpx.MockTransport(fake.handler)),
+        interval=0,
+        autostart=False,
+    )
+    archive.submit(
+        telegram_archive.Notice(
+            "telegram.kind.ticket_approval",
+            [("title", "t")],
+            path="/admin/feedback?ticket=1",
+            button_key="telegram.button.approve",
+        )
+    )
+    archive.drain()
+
+    assert fake.messages and fake.buttons == []
+
+
+def test_nothing_is_mentioned_when_no_one_is_configured() -> None:
+    fake = FakeTelegram()
+    archive = TelegramArchive(
+        token=TOKEN,
+        chat_id="-100",
+        read_file=lambda key: b"",
+        client=httpx.Client(transport=httpx.MockTransport(fake.handler)),
+        interval=0,
+        autostart=False,
+    )
+    archive.submit(telegram_archive.Notice("telegram.kind.ticket_approval", [("title", "t")]))
+    archive.drain()
+
+    assert "@" not in fake.messages[0]
+    assert label("mention") not in fake.messages[0]

@@ -261,6 +261,10 @@ class Settings(BaseSettings):
     # Off: messages carry the details and say how many files there are.
     # On: photos, ID scans, CVs and papers are attached as well.
     telegram_send_files: bool = False
+    # A Telegram username (without the @) mentioned on a new support ticket
+    # and on a ticket waiting for approval, so it reaches that person rather
+    # than sitting among the rest; empty mentions nobody.
+    telegram_mention: str = ""
     # Hours between copies of the database sent to the same chat as a plain
     # .sql file, without password hashes (app/services/telegram_db_backup.py);
     # every 3, the owners' choice of 31 Oct 2026; 0 turns them off.

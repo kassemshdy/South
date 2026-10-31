@@ -28,6 +28,23 @@ environment. Create it before the server can start:
 cd mcp-server && python3 -m venv .venv && .venv/bin/pip install -q -r requirements.txt
 ```
 
+## 0.5. Ship what a person approved
+
+`list_tickets(status="APPROVED")`. A ticket gets there only when a person
+pressed «اعتمِد» on it, from the Telegram button or the board. If any are
+there, release before picking new work:
+
+1. Read `git log --oneline --no-merges origin/master-claude..origin/develop-claude`.
+   Every commit must belong to the pull request of an `APPROVED` ticket.
+   **Anything else** -- a ticket still in `NEEDS_APPROVAL`, or someone's own
+   change -- means a release would ship work nobody approved: comment that on
+   each approved ticket, leave them where they are, and go on to step 1.
+2. Otherwise follow the `ship-release` skill: its pre-flight, a release pull
+   request into `master-claude`, merge it once CI is green on its head, and
+   check the live site as it says.
+3. Only after the live check passes: comment the live link on each ticket and
+   `update_ticket(status="DONE")`.
+
 ## 1. Pick one ticket
 
 `list_tickets(status="TODO")`. If `TODO` is empty, `list_tickets(status="BACKLOG")`.
@@ -83,20 +100,37 @@ Branch from `origin/develop-claude` and target it — see the `steward` skill
 for the conventions. Say in the body which ticket this serves and what was
 actually verified.
 
-## 7. Record it on the ticket
+## 7. Put it on the develop site
 
-Three calls, in this order:
+Wait for the pull request's four CI jobs on its **current head** (the
+`steward` skill says how to read them). Then:
 
-1. `comment_on_ticket` — what was found, what changed, and the PR link. This
-   is the reporter's only window into what happened.
+- **Green:** merge it into `develop-claude` — never anything into
+  `master-claude`, which is the live site and a person's call. Wait for the
+  develop services to finish deploying that commit, and check the page the
+  ticket is about on the develop site (`docs/RAILWAY.md` names its address).
+- **Red:** fix it on the branch, as `steward` says. After two failed attempts,
+  leave it unmerged, comment on the ticket with what is failing, and stop.
+
+## 8. Record it on the ticket
+
+In this order:
+
+1. `comment_on_ticket` — what was found, what changed, the PR link and the
+   develop link to the exact page to look at. This is the comment the
+   Telegram message quotes, so put the two links first.
 2. `update_ticket(github_issue_number=…)` if a roadmap issue serves it.
-3. `update_ticket(status="IN_PROGRESS")`.
+3. `update_ticket(status="NEEDS_APPROVAL")` — only once it is on develop.
+   Arriving in that column posts the ticket, the comment and a mention of the
+   owner to the Telegram chat (`telegram_mention` in the backend config), so
+   it is the last call, after the links are on the ticket. A ticket that did
+   not reach develop goes to `IN_PROGRESS` instead.
 
-**Never move a ticket to `DONE`.** `DONE` means shipped, and a person decides
-that after a merge. A pass that marks its own work done is a pass that reports
-success it has not earned.
+**Never release a ticket nobody approved, and never move one to `DONE`
+yourself.** Only step 0.5 releases, only what a person moved to `APPROVED`,
+and only it moves a ticket to `DONE`, after the live site shows the fix.
 
-## 8. Report
+## 9. Report
 
 Say which ticket, what changed, the PR link, and what you skipped and why. If
 the pass ended without a PR — empty board, everything skipped, a blocked
