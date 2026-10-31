@@ -21,6 +21,7 @@ import base64
 import hashlib
 import hmac
 import json
+import logging
 import uuid
 from collections.abc import Callable, Iterator
 from urllib.parse import parse_qs, urlparse
@@ -463,7 +464,9 @@ def test_a_push_creates_once_then_updates_and_skips_what_did_not_change(
     fake: FakeShopify,
     category: Category,
     location: Location,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
+    caplog.set_level(logging.INFO, logger="app.services.shopify_sync")
     headers = sign_in(shop_client, OWNER_PHONE)
     business = approved_business(shop_client, db, headers, category, location)
     item_id = add_item(shop_client, business, headers)
@@ -498,6 +501,12 @@ def test_a_push_creates_once_then_updates_and_skips_what_did_not_change(
     )["variables"]["input"]
     assert update["id"] == "gid://shopify/Product/1"
     assert update["variants"][0]["price"] == "7.25"
+
+    # Every push is visible in the logs, by id: created once, updated once,
+    # and the unchanged resend logged as nothing pushed.
+    pushed = [r for r in caplog.records if r.getMessage() == "Shopify product pushed"]
+    assert [r.__dict__["action"] for r in pushed] == ["created", "updated"]
+    assert all(r.__dict__["item_id"] == item_id for r in pushed)
 
 
 def test_a_product_in_another_currency_is_never_pushed(

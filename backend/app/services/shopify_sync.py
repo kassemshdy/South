@@ -187,10 +187,17 @@ def push_item(
         data = product_input(item, connection, settings)
     except SkipItem as skip:
         connection.last_error = f"{item.title}: {skip}"
+        logger.info(
+            "Shopify product skipped",
+            extra={"business_id": str(item.business_id), "item_id": str(item.id),
+                   "reason": str(skip)},
+        )
         return link
     digest = content_hash(data)
     if link is not None and link.synced_hash == digest:
+        logger.debug("Shopify product unchanged", extra={"item_id": str(item.id)})
         return link
+    action = "updated" if link is not None else "created"
     if link is not None:
         data["id"] = link.shopify_product_id
     result = client.graphql(PRODUCT_SET, {"input": data}).get("productSet") or {}
@@ -214,6 +221,13 @@ def push_item(
     link.synced_hash = digest
     link.synced_at = now
     connection.last_sync_at = now
+    # Ids only, like every other log line: a success must be visible, or a
+    # quiet log cannot tell "sent" from "never tried".
+    logger.info(
+        "Shopify product pushed",
+        extra={"business_id": str(item.business_id), "item_id": str(item.id),
+               "action": action},
+    )
     return link
 
 
@@ -253,6 +267,7 @@ def make_handlers(settings: Settings, http: httpx.Client) -> dict[str, outbox.Ha
         # Already gone from the store (the owner deleted it there): done.
         if errors and not any("not exist" in str(e.get("message", "")) for e in errors):
             raise_user_errors(result)
+        logger.info("Shopify product deleted", extra={"business_id": str(entry.business_id)})
 
     return {outbox.ITEM_UPSERT: upsert, outbox.ITEM_DELETE: delete}
 
