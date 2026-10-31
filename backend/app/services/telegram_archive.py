@@ -493,6 +493,20 @@ MAX_PHOTO_BYTES = 10 * 1024 * 1024  # sendPhoto's limit.
 class Message:
     text: str
     logo_key: str | None = None
+    #: One button under the message: its label and the address it opens.
+    button: tuple[str, str] | None = None
+
+
+@dataclass
+class Notice:
+    """A message about something that changed rather than something added,
+    sent on purpose by a service -- the commit hooks post creations only."""
+
+    title_key: str
+    rows: list[tuple[str, str | None]]
+    path: str | None = None
+    #: Shown as a button opening ``path`` rather than only as a link line.
+    button_key: str | None = None
 
 
 class TelegramArchive:
@@ -509,6 +523,7 @@ class TelegramArchive:
         interval: float = SEND_INTERVAL_SECONDS,
         autostart: bool = True,
         send_files: bool = False,
+        mention: str = "",
     ) -> None:
         self._base = f"https://api.telegram.org/bot{token}"
         self._chat_id = chat_id
@@ -516,6 +531,7 @@ class TelegramArchive:
         # Text only unless TELEGRAM_SEND_FILES is on: the owners started with
         # details alone and may add the photos and ID scans later.
         self._send_files = send_files
+        self._mention = mention.strip().lstrip("@")
         self._lookup = lookup
         self._shop = shop
         self._base_url = base_url.rstrip("/")
@@ -523,11 +539,11 @@ class TelegramArchive:
         self._interval = interval
         # Off in tests, which call ``drain`` to send on their own thread.
         self._autostart = autostart
-        self._queue: queue.Queue[Batch] = queue.Queue(maxsize=QUEUE_SIZE)
+        self._queue: queue.Queue[Batch | Notice] = queue.Queue(maxsize=QUEUE_SIZE)
         self._thread: threading.Thread | None = None
         self._lock = threading.Lock()
 
-    def submit(self, batch: Batch) -> None:
+    def submit(self, batch: Batch | Notice) -> None:
         try:
             self._queue.put_nowait(batch)
         except queue.Full:
@@ -588,6 +604,8 @@ class TelegramArchive:
             rows += [("instagram", shop.instagram), ("facebook", shop.facebook)]
         if path:
             rows.append(("link", f"{self._base_url}{path}"))
+        if kind == "ticket":
+            rows.append(("mention", self._at()))
         # Sent as HTML: the title, the shop, the product and a review's text
         # in bold (the owners' request, 28 Oct 2026), and everything else --
         # much of it typed by visitors -- escaped so it cannot add markup.
@@ -599,7 +617,31 @@ class TelegramArchive:
         ]
         return Message("\n".join(lines), shop.logo_key if shop else None)
 
-    def send(self, batch: Batch) -> None:
+    def _at(self) -> str | None:
+        return f"@{self._mention}" if self._mention else None
+
+    def render_notice(self, notice: Notice) -> Message:
+        rows = list(notice.rows)
+        if notice.path:
+            rows.append(("link", f"{self._base_url}{notice.path}"))
+        rows.append(("mention", self._at()))
+        lines = [f"<b>{_html(_t(notice.title_key))}</b>"] + [
+            f"{_html(_t(f'telegram.label.{label}'))}: {_html(value)}"
+            for label, value in rows
+            if value
+        ]
+        button = None
+        # Telegram refuses a button to anything but a public https address,
+        # and refuses the whole message with it -- so a local base URL gets
+        # the link line alone.
+        if notice.button_key and notice.path and self._base_url.startswith("https://"):
+            button = (_t(notice.button_key), f"{self._base_url}{notice.path}")
+        return Message("\n".join(lines), button=button)
+
+    def send(self, batch: Batch | Notice) -> None:
+        if isinstance(batch, Notice):
+            self._send_message(self.render_notice(batch))
+            return
         message = self.render(batch)
         if message is not None:
             self._send_message(message)
@@ -640,18 +682,21 @@ class TelegramArchive:
                 files={"photo": (key.rsplit("/", 1)[-1], logo)},
             )
             return
-        self._post(
-            "sendMessage",
-            data={
-                "chat_id": self._chat_id,
-                "text": message.text,
-                "parse_mode": "HTML",
-                # Every message ends with an admin link; Telegram's preview of
-                # it is the site's own share card, the same on every message
-                # (the owners asked for it gone, 29 Oct 2026).
-                "link_preview_options": NO_LINK_PREVIEW,
-            },
-        )
+        data = {
+            "chat_id": self._chat_id,
+            "text": message.text,
+            "parse_mode": "HTML",
+            # Every message ends with an admin link; Telegram's preview of
+            # it is the site's own share card, the same on every message
+            # (the owners asked for it gone, 29 Oct 2026).
+            "link_preview_options": NO_LINK_PREVIEW,
+        }
+        if message.button:
+            label, url = message.button
+            data["reply_markup"] = json.dumps(
+                {"inline_keyboard": [[{"text": label, "url": url}]]}, ensure_ascii=False
+            )
+        self._post("sendMessage", data=data)
 
     def _post(
         self, method: str, *, data: dict[str, str], files: dict[str, Any] | None = None
@@ -737,6 +782,12 @@ def install_hooks(session_factory: sessionmaker[Session]) -> None:
     _installed.add(id(session_factory))
 
 
+def notify(notice: Notice) -> None:
+    """Queue ``notice`` for the chat; nothing at all when Telegram is off."""
+    if _archive is not None:
+        _archive.submit(notice)
+
+
 def set_archive(archive: TelegramArchive | None) -> None:
     global _archive
     _archive = archive
@@ -758,5 +809,6 @@ def configure(settings: Settings, session_factory: sessionmaker[Session]) -> Non
             shop=shop_lookup(session_factory),
             base_url=settings.public_base_url,
             send_files=settings.telegram_send_files,
+            mention=settings.telegram_mention,
         )
     )

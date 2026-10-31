@@ -28,6 +28,7 @@ from app.schemas.feedback import (
     FeedbackTicketCreateIn,
     FeedbackTicketUpdateIn,
 )
+from app.services import telegram_archive
 
 logger = logging.getLogger(__name__)
 
@@ -126,7 +127,29 @@ class FeedbackService:
                 row.sort_order = position
 
         self._db.commit()
+        if (
+            payload.status is FeedbackStatus.NEEDS_APPROVAL
+            and origin_status is not FeedbackStatus.NEEDS_APPROVAL
+        ):
+            self._announce_awaiting_approval(ticket)
         return self._reload(ticket.id)
+
+    def _announce_awaiting_approval(self, ticket: FeedbackTicket) -> None:
+        """Tell the chat a fixed ticket waits on a person, with the latest
+        comment -- where the routine leaves the pull request and the develop
+        link -- so the approval can be given from the message."""
+        latest = max(ticket.comments, key=lambda c: c.created_at, default=None)
+        note = latest.body if latest is not None else None
+        if note and len(note) > telegram_archive.MAX_DETAIL:
+            note = note[: telegram_archive.MAX_DETAIL] + "…"
+        telegram_archive.notify(
+            telegram_archive.Notice(
+                title_key="telegram.kind.ticket_approval",
+                rows=[("title", ticket.title), ("note", note)],
+                path=f"/admin/feedback?ticket={ticket.id}",
+                button_key="telegram.button.approve",
+            )
+        )
 
     def add_comment(self, ticket: FeedbackTicket, author: User, body: str) -> FeedbackTicket:
         self._db.add(FeedbackComment(ticket_id=ticket.id, author_id=author.id, body=body))

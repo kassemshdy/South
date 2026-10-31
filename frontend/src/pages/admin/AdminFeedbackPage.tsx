@@ -44,7 +44,7 @@ import {
 } from '@/utils/format'
 import { commentSchema, type CommentValues } from '@/utils/validation'
 
-const STATUSES: FeedbackStatus[] = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'NEEDS_FEEDBACK', 'DONE']
+const STATUSES: FeedbackStatus[] = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'NEEDS_FEEDBACK', 'NEEDS_APPROVAL', 'APPROVED', 'DONE']
 
 const PRIORITY_TONES: Record<FeedbackPriority, string> = {
   LOW: 'bg-sand-100 text-ink-600',
@@ -61,6 +61,8 @@ function groupByStatus(
     TODO: [],
     IN_PROGRESS: [],
     NEEDS_FEEDBACK: [],
+    NEEDS_APPROVAL: [],
+    APPROVED: [],
     DONE: [],
   }
   for (const ticket of [...tickets].sort((a, b) => a.sort_order - b.sort_order)) {
@@ -362,6 +364,18 @@ function TicketDetailDialog({ ticketId, onClose }: { ticketId: string; onClose: 
     onSuccess: invalidate,
   })
 
+  // The Telegram message's button opens this ticket: approving moves it to
+  // APPROVED, which the next release ships.
+  const approve = useMutation({
+    mutationFn: () => feedbackApi.move(ticketId, 'APPROVED', 0),
+    onSuccess: () => {
+      invalidate()
+      toast.success(t('feedback.approved'))
+    },
+    onError: (error) =>
+      toast.error(t('feedback.approveFailed'), error instanceof ApiError ? error.message : undefined),
+  })
+
   const schema = useMemo(() => commentSchema(t), [t])
   const {
     register,
@@ -386,6 +400,15 @@ function TicketDetailDialog({ ticketId, onClose }: { ticketId: string; onClose: 
               <span>{t(FEEDBACK_STATUS_KEYS[data.status])}</span>
               <span>{formatRelativeDate(data.created_at, locale, t)}</span>
             </div>
+
+            {data.status === 'NEEDS_APPROVAL' ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-olive-50 p-3.5">
+                <p className="text-sm text-ink-700">{t('feedback.approveHint')}</p>
+                <Button type="button" loading={approve.isPending} onClick={() => approve.mutate()}>
+                  {t('feedback.approve')}
+                </Button>
+              </div>
+            ) : null}
 
             {data.description ? (
               <p className="whitespace-pre-line text-ink-700">{data.description}</p>

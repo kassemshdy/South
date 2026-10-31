@@ -125,10 +125,18 @@ execution environment, and **stops and says so when they are absent** rather
 than finding something else to do — an unconfigured pass that improvises is
 how invented work becomes a pull request.
 
+It runs every three hours (the owners' decision, 31 Oct 2026). A fix whose
+CI is green is merged into `develop-claude` and checked on the develop site;
+the ticket gets a comment with the pull request and the develop link and
+moves to `NEEDS_APPROVAL`, which posts it to the Telegram chat with a mention
+of the owner (`TELEGRAM_MENTION`) and an «اعتمِد» button to the ticket. A
+person approving it there moves it to `APPROVED`; the next pass releases
+approved tickets -- only when every commit waiting on develop belongs to one
+-- checks the live site and moves them to `DONE`.
+
 Three things it is not allowed to do, and none of them are oversights:
-approve or suspend a listing (the MCP server has no such tool), merge, or move
-a ticket to `DONE`. `DONE` means shipped, which a person decides after a
-merge.
+approve or suspend a listing (the MCP server has no such tool), approve its
+own fix, or release anything a person has not moved to `APPROVED`.
 
 The agent signs in as the existing administrator account, so the board cannot
 tell the routine's tickets and comments apart from that person's own. That is
@@ -583,8 +591,9 @@ login.
   as the run's `e2e-results` artifact on failure. Say which check failed and why before
   pushing a fix, and never merge a red PR to save a cycle.
 - `master-claude` auto-deploys the live services (`api`, `web`, on the `Postgres`
-  database). The staging services were removed on 2026-10-05, so `develop-claude`
-  no longer deploys anywhere: it is where pull requests are merged after CI, and a
-  release is a pull request from it into `master-claude`. Treat `master-claude` as
+  database). `develop-claude` deploys the develop preview (`api-develop`, demo
+  data, its own database and bucket; `docs/RAILWAY.md`): it is where pull
+  requests are merged after CI, and a release is a pull request from it into
+  `master-claude`. Treat `master-claude` as
   production: verify locally first, and check Railway deploy status/logs after
   pushing rather than assuming success.

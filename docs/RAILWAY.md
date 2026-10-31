@@ -2,7 +2,7 @@
 
 **Live:** <https://janoubona.net> — also reachable at
 <https://janoubona.up.railway.app>
-**Staging:** <https://janoubona-develop.up.railway.app>
+**Develop (preview, demo data only):** <https://api-develop-develop-5e32.up.railway.app>
 
 <!-- This line has been wrong twice, and it is the line people trust when a
      deploy looks broken, so here is where these came from: the Railway API's
@@ -19,7 +19,7 @@
 |---|---|
 | Project | `southwork` (`323dd6ae-af69-4035-9e24-6de498989756`), workspace PulseX |
 | Environment | `production` (running `APP_ENV=staging` — see below) |
-| Branch | `master-claude` (live) and `develop-claude` (staging), both auto-deploy on push |
+| Branch | `master-claude` (live) and `develop-claude` (develop preview), both auto-deploy on push |
 | Sign-in | `/login`, for everybody — an owner types their phone number, an administrator their `ADMIN_EMAIL`, both with a password. `/admin/login` is the same administrator credentials on an unlinked URL, kept as the way back in when the main form is broken |
 | Owner passwords | issued per account by an administrator, at *issue credentials* on the review screen, and relayed over their own WhatsApp |
 
@@ -28,10 +28,16 @@ password of your own: a deployed API refuses to start without one, or with the
 default this repository once published (`Settings.enforce_production_safety`).
 
 
-The live services in the single `production` Railway environment. The staging
-trio (`postgres-develop`, `api-develop`, `web-develop`) was removed on
-2026-10-05; `develop-claude` no longer deploys anywhere. Build configuration
-lives on each service rather than in a repository-level `railway.json`.
+The live services are in the `production` Railway environment. The `develop`
+environment (rebuilt 31 Oct 2026) holds `api-develop`, tracking
+`develop-claude`, with its own `Postgres-iVxn` database and `media-develop`
+bucket -- never the live ones. It runs `APP_ENV=staging`, so it is seeded with
+the demo listings and has no backups or Telegram posts; its administrator is
+`admin@develop.janoubona.net`, with its own `ADMIN_PASSWORD` on that service.
+`api-develop` serves the site itself (there is no `web-develop` in front), on
+`PORT=8000`, which its domain targets. The triage routine checks each fix
+there before asking for approval. Build configuration lives on each service
+rather than in a repository-level `railway.json`.
 
 | Service | Tracks | Source | Healthcheck | Public |
 |---|---|---|---|---|

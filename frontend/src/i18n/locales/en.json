@@ -1741,5 +1741,11 @@
   "staff.canManage": "Permanent deletes, site settings, staff and export",
   "staff.matrixNote": "Any change not listed here is the manager's alone, and nobody can change a shop owner's password or delete their account from inside it.",
   "staff.allowed": "Allowed",
-  "staff.denied": "Not allowed"
+  "staff.denied": "Not allowed",
+  "feedback.status.NEEDS_APPROVAL": "Waiting for approval",
+  "feedback.status.APPROVED": "Approved",
+  "feedback.approve": "Approve",
+  "feedback.approveHint": "Check the change on the develop site, then approve it to go live in the next release.",
+  "feedback.approved": "Approved",
+  "feedback.approveFailed": "Could not approve"
 }
