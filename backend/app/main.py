@@ -88,7 +88,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 interval_hours=settings.db_backup_interval_hours,
             )
         )
-    # The hourly copy for the Telegram group, the owners' decision.
+    # The copy for the Telegram group every few hours, the owners' decision.
     telegram_copies: asyncio.Task[None] | None = None
     if (
         settings.is_production
