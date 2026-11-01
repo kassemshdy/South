@@ -6,6 +6,7 @@
 |---|---|
 | The MCP tool names and their arguments | `mcp-server/south_mcp/server.py`, `docs/MCP.md` |
 | The three environment variables | `mcp-server/south_mcp/config.py` |
+| The South connector as the routine's route to the board | the connector's URL in claude.ai (the deployed `mcp` service, `docs/MCP.md`) |
 | Ticket statuses and priorities | `backend/app/models/enums.py` |
 | The gate, and the branch/PR conventions | the `verify-gate` and `steward` skills |
 | The rules a hurried pass breaks | `AGENTS.md` § Security Musts, § No Arabic |
@@ -23,7 +24,9 @@
 - **The step-0 refusal being softened.** An unconfigured pass that "does
   something useful anyway" is the failure mode this skill exists to prevent:
   it invents work, and invented work is indistinguishable from a real ticket
-  once it is a PR.
+  once it is a PR. Accepting the South connector as a second route to the
+  board is not a softening: the pass still stops when it cannot see the
+  board by either route.
 
 ## Deliberately not automated
 
