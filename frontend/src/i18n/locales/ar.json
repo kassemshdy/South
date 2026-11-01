@@ -1747,5 +1747,11 @@
   "feedback.approve": "اعتمِد",
   "feedback.approveHint": "راجع التعديل على موقع التجربة، ثم اعتمده ليُنشر على الموقع المباشر في الإصدار التالي.",
   "feedback.approved": "تم الاعتماد",
-  "feedback.approveFailed": "تعذّر الاعتماد"
+  "feedback.approveFailed": "تعذّر الاعتماد",
+  "feedback.reject": "ارفض",
+  "feedback.rejectReasonLabel": "ما الذي يجب تغييره؟",
+  "feedback.rejectReasonPlaceholder": "اكتب ما ينقص أو ما يجب تعديله، ليُعاد العمل عليه.",
+  "feedback.rejectConfirm": "ارفض وأعِده للتنفيذ",
+  "feedback.rejected": "أُعيد البلاغ للتنفيذ",
+  "feedback.rejectFailed": "تعذّر الرفض"
 }

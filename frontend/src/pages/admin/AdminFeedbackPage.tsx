@@ -84,11 +84,17 @@ export function AdminFeedbackPage() {
   const [openTicketId, setOpenTicketIdState] = useState<string | null>(() =>
     searchParams.get('ticket'),
   )
+  // The Telegram buttons add the decision to confirm: ?decision=approve|reject.
+  const [decision] = useState<Decision | null>(() => {
+    const value = searchParams.get('decision')
+    return value === 'approve' || value === 'reject' ? value : null
+  })
   const setOpenTicketId = (id: string | null) => {
     setOpenTicketIdState(id)
-    if (!id && searchParams.has('ticket')) {
+    if (!id && (searchParams.has('ticket') || searchParams.has('decision'))) {
       const next = new URLSearchParams(searchParams)
       next.delete('ticket')
+      next.delete('decision')
       setSearchParams(next, { replace: true })
     }
   }
@@ -213,7 +219,11 @@ export function AdminFeedbackPage() {
       )}
 
       {openTicketId ? (
-        <TicketDetailDialog ticketId={openTicketId} onClose={() => setOpenTicketId(null)} />
+        <TicketDetailDialog
+          ticketId={openTicketId}
+          decision={openTicketId === searchParams.get('ticket') ? decision : null}
+          onClose={() => setOpenTicketId(null)}
+        />
       ) : null}
     </div>
   )
@@ -327,8 +337,22 @@ function TicketCardBody({
   )
 }
 
-function TicketDetailDialog({ ticketId, onClose }: { ticketId: string; onClose: () => void }) {
+type Decision = 'approve' | 'reject'
+
+function TicketDetailDialog({
+  ticketId,
+  decision,
+  onClose,
+}: {
+  ticketId: string
+  decision: Decision | null
+  onClose: () => void
+}) {
   const { t, locale } = useI18n()
+  // A Telegram link never decides anything on its own: «reject» opens the
+  // form for the reason, «approve» still takes a press of the button.
+  const [rejecting, setRejecting] = useState(decision === 'reject')
+  const [reason, setReason] = useState('')
   const toast = useToast()
   const queryClient = useQueryClient()
 
@@ -376,6 +400,23 @@ function TicketDetailDialog({ ticketId, onClose }: { ticketId: string; onClose: 
       toast.error(t('feedback.approveFailed'), error instanceof ApiError ? error.message : undefined),
   })
 
+  // Rejecting writes the reason on the ticket first, then sends it back to
+  // To do -- which starts the triage routine again with that comment to read.
+  const reject = useMutation({
+    mutationFn: async (body: string) => {
+      await feedbackApi.addComment(ticketId, body)
+      await feedbackApi.move(ticketId, 'TODO', 0)
+    },
+    onSuccess: () => {
+      invalidate()
+      setRejecting(false)
+      setReason('')
+      toast.success(t('feedback.rejected'))
+    },
+    onError: (error) =>
+      toast.error(t('feedback.rejectFailed'), error instanceof ApiError ? error.message : undefined),
+  })
+
   const schema = useMemo(() => commentSchema(t), [t])
   const {
     register,
@@ -402,11 +443,60 @@ function TicketDetailDialog({ ticketId, onClose }: { ticketId: string; onClose: 
             </div>
 
             {data.status === 'NEEDS_APPROVAL' ? (
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-olive-50 p-3.5">
-                <p className="text-sm text-ink-700">{t('feedback.approveHint')}</p>
-                <Button type="button" loading={approve.isPending} onClick={() => approve.mutate()}>
-                  {t('feedback.approve')}
-                </Button>
+              <div className="space-y-3 rounded-xl bg-olive-50 p-3.5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-sm text-ink-700">{t('feedback.approveHint')}</p>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      loading={approve.isPending}
+                      autoFocus={decision === 'approve'}
+                      onClick={() => approve.mutate()}
+                    >
+                      {t('feedback.approve')}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      aria-expanded={rejecting}
+                      onClick={() => setRejecting((open) => !open)}
+                    >
+                      {t('feedback.reject')}
+                    </Button>
+                  </div>
+                </div>
+                {rejecting ? (
+                  <form
+                    onSubmit={(event) => {
+                      event.preventDefault()
+                      if (reason.trim()) reject.mutate(reason.trim())
+                    }}
+                    className="space-y-2"
+                    noValidate
+                  >
+                    <Field label={t('feedback.rejectReasonLabel')}>
+                      {(props) => (
+                        <Textarea
+                          {...props}
+                          value={reason}
+                          onChange={(event) => setReason(event.target.value)}
+                          rows={3}
+                          autoFocus
+                          placeholder={t('feedback.rejectReasonPlaceholder')}
+                        />
+                      )}
+                    </Field>
+                    <Button
+                      type="submit"
+                      variant="danger"
+                      size="sm"
+                      loading={reject.isPending}
+                      disabled={!reason.trim()}
+                    >
+                      {t('feedback.rejectConfirm')}
+                    </Button>
+                  </form>
+                ) : null}
               </div>
             ) : null}
 

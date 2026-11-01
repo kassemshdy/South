@@ -493,8 +493,9 @@ MAX_PHOTO_BYTES = 10 * 1024 * 1024  # sendPhoto's limit.
 class Message:
     text: str
     logo_key: str | None = None
-    #: One button under the message: its label and the address it opens.
-    button: tuple[str, str] | None = None
+    #: Buttons in one row under the message: each its label and the address
+    #: it opens.
+    buttons: list[tuple[str, str]] = field(default_factory=list)
 
 
 @dataclass
@@ -505,8 +506,9 @@ class Notice:
     title_key: str
     rows: list[tuple[str, str | None]]
     path: str | None = None
-    #: Shown as a button opening ``path`` rather than only as a link line.
-    button_key: str | None = None
+    #: Buttons in one row under the message, each a label key and the admin
+    #: path it opens (approve and reject on a ticket waiting for approval).
+    buttons: list[tuple[str, str]] = field(default_factory=list)
 
 
 class TelegramArchive:
@@ -630,13 +632,13 @@ class TelegramArchive:
             for label, value in rows
             if value
         ]
-        button = None
+        buttons: list[tuple[str, str]] = []
         # Telegram refuses a button to anything but a public https address,
         # and refuses the whole message with it -- so a local base URL gets
         # the link line alone.
-        if notice.button_key and notice.path and self._base_url.startswith("https://"):
-            button = (_t(notice.button_key), f"{self._base_url}{notice.path}")
-        return Message("\n".join(lines), button=button)
+        if self._base_url.startswith("https://"):
+            buttons = [(_t(key), f"{self._base_url}{path}") for key, path in notice.buttons]
+        return Message("\n".join(lines), buttons=buttons)
 
     def send(self, batch: Batch | Notice) -> None:
         if isinstance(batch, Notice):
@@ -691,11 +693,9 @@ class TelegramArchive:
             # (the owners asked for it gone, 29 Oct 2026).
             "link_preview_options": NO_LINK_PREVIEW,
         }
-        if message.button:
-            label, url = message.button
-            data["reply_markup"] = json.dumps(
-                {"inline_keyboard": [[{"text": label, "url": url}]]}, ensure_ascii=False
-            )
+        if message.buttons:
+            row = [{"text": label, "url": url} for label, url in message.buttons]
+            data["reply_markup"] = json.dumps({"inline_keyboard": [row]}, ensure_ascii=False)
         self._post("sendMessage", data=data)
 
     def _post(
