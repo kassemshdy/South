@@ -517,8 +517,10 @@ def test_moving_a_ticket_to_approval_posts_its_note_link_and_mention(
         telegram_archive.set_archive(None)
 
     # Once, though it was dropped there twice: only arriving is news.
-    assert len(fake.messages) == 1
-    text = fake.messages[0]
+    approval = translate("telegram.kind.ticket_approval", locale="ar")
+    sent = [m for m in fake.messages if approval in m]
+    assert len(sent) == 1
+    text = sent[0]
     assert translate("telegram.kind.ticket_approval", locale="ar") in text
     assert "PR https://example.test/pull/1" in text
     assert f"{SITE}/admin/feedback?ticket={ticket['id']}" in text
@@ -532,6 +534,65 @@ def test_moving_a_ticket_to_approval_posts_its_note_link_and_mention(
             }
         ]
     ]
+
+
+def test_every_new_ticket_and_status_change_is_posted(
+    client: TestClient, admin: User
+) -> None:
+    """The owners' request (1 Nov 2026): an administrator's ticket, which
+    the commit hooks skip, and every move between columns -- but not a
+    reorder within one."""
+    fake = FakeTelegram()
+    archive = _mentioning(fake)
+    telegram_archive.set_archive(archive)
+    try:
+        headers = admin_headers(client)
+        ticket = client.post(
+            "/api/admin/feedback/tickets",
+            headers=headers,
+            json={"title": "a bug", "description": "what happened"},
+        ).json()
+        for status in ("IN_PROGRESS", "IN_PROGRESS", "DONE"):
+            moved = client.post(
+                f"/api/admin/feedback/tickets/{ticket['id']}/move",
+                headers=headers,
+                json={"status": status, "index": 0},
+            )
+            assert moved.status_code == 200, moved.text
+        archive.drain()
+    finally:
+        telegram_archive.set_archive(None)
+
+    link = f"{SITE}/admin/feedback?ticket={ticket['id']}"
+    created, started, done = fake.messages
+    assert translate("telegram.kind.ticket", locale="ar") in created
+    assert "a bug" in created and "what happened" in created and link in created
+    assert "@someone" in created
+
+    def status(origin: str, destination: str) -> str:
+        return translate(
+            "telegram.ticket_moved",
+            locale="ar",
+            origin=translate(f"telegram.ticket_status.{origin}", locale="ar"),
+            destination=translate(f"telegram.ticket_status.{destination}", locale="ar"),
+        )
+
+    for text, origin, destination in (
+        (started, "BACKLOG", "IN_PROGRESS"),
+        (done, "IN_PROGRESS", "DONE"),
+    ):
+        assert translate("telegram.kind.ticket_moved", locale="ar") in text
+        assert status(origin, destination) in text
+        assert "a bug" in text and link in text
+
+
+def test_every_ticket_status_has_a_name_for_the_chat() -> None:
+    from app.models.enums import FeedbackStatus
+
+    for status in FeedbackStatus:
+        key = f"telegram.ticket_status.{status.value}"
+        assert translate(key, locale="ar") != key
+        assert translate(key, locale="en") != key
 
 
 def test_no_button_without_a_public_https_address() -> None:
