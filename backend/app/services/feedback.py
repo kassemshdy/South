@@ -29,7 +29,7 @@ from app.schemas.feedback import (
     FeedbackTicketCreateIn,
     FeedbackTicketUpdateIn,
 )
-from app.services import telegram_archive
+from app.services import telegram_archive, triage_trigger
 
 logger = logging.getLogger(__name__)
 
@@ -146,6 +146,8 @@ class FeedbackService:
                 self._announce_awaiting_approval(ticket)
             else:
                 self._announce_moved(ticket, origin_status)
+            # A person handing the routine work: fix it now, or release it.
+            triage_trigger.fire(str(ticket.id), payload.status)
         return self._reload(ticket.id)
 
     def _announce_created(self, ticket: FeedbackTicket) -> None:

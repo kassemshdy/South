@@ -54,6 +54,8 @@ SENSITIVE_KEYS = frozenset(
         "set-cookie",
         "token",
         "access_token",
+        # The triage routine's bearer token, held in a local while it is sent.
+        "claude_triage_token",
     }
 )
 
