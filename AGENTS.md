@@ -136,6 +136,15 @@ person approving it there moves it to `APPROVED`; the next pass releases
 approved tickets -- only when every commit waiting on develop belongs to one
 -- checks the live site and moves them to `DONE`.
 
+It does not have to wait for the schedule. Moving a ticket to `TODO` or
+`APPROVED` calls the routine's API trigger (`app/services/triage_trigger.py`,
+the owners' request of 1 Nov 2026), so a run starts within a minute. The
+call carries only the ticket's id and column -- never ticket text -- runs on
+the owners' Claude subscription rather than an API key, is skipped within
+five minutes of the last one, and does nothing without both
+`CLAUDE_TRIAGE_FIRE_URL` and `CLAUDE_TRIAGE_TOKEN` on the API. The schedule
+stays as the fallback for anything skipped.
+
 Three things it is not allowed to do, and none of them are oversights:
 approve or suspend a listing (the MCP server has no such tool), approve its
 own fix, or release anything a person has not moved to `APPROVED`.
