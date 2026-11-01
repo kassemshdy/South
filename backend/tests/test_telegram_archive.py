@@ -525,13 +525,17 @@ def test_moving_a_ticket_to_approval_posts_its_note_link_and_mention(
     assert "PR https://example.test/pull/1" in text
     assert f"{SITE}/admin/feedback?ticket={ticket['id']}" in text
     assert "@someone" in text
-    # And a button to the same ticket, where it is approved.
+    # And two buttons opening the same ticket with the decision to confirm.
     assert fake.buttons == [
         [
             {
                 "text": translate("telegram.button.approve", locale="ar"),
-                "url": f"{SITE}/admin/feedback?ticket={ticket['id']}",
-            }
+                "url": f"{SITE}/admin/feedback?ticket={ticket['id']}&decision=approve",
+            },
+            {
+                "text": translate("telegram.button.reject", locale="ar"),
+                "url": f"{SITE}/admin/feedback?ticket={ticket['id']}&decision=reject",
+            },
         ]
     ]
 
@@ -612,7 +616,7 @@ def test_no_button_without_a_public_https_address() -> None:
             "telegram.kind.ticket_approval",
             [("title", "t")],
             path="/admin/feedback?ticket=1",
-            button_key="telegram.button.approve",
+            buttons=[("telegram.button.approve", "/admin/feedback?ticket=1")],
         )
     )
     archive.drain()

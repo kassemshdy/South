@@ -319,5 +319,6 @@
   "telegram.ticket_status.NEEDS_FEEDBACK": "Needs admin feedback",
   "telegram.ticket_status.NEEDS_APPROVAL": "Waiting for approval",
   "telegram.ticket_status.APPROVED": "Approved",
-  "telegram.ticket_status.DONE": "Done"
+  "telegram.ticket_status.DONE": "Done",
+  "telegram.button.reject": "Reject"
 }

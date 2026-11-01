@@ -1747,5 +1747,11 @@
   "feedback.approve": "Approve",
   "feedback.approveHint": "Check the change on the develop site, then approve it to go live in the next release.",
   "feedback.approved": "Approved",
-  "feedback.approveFailed": "Could not approve"
+  "feedback.approveFailed": "Could not approve",
+  "feedback.reject": "Reject",
+  "feedback.rejectReasonLabel": "What needs changing?",
+  "feedback.rejectReasonPlaceholder": "Write what is missing or wrong, so it can be redone.",
+  "feedback.rejectConfirm": "Reject and send back to To do",
+  "feedback.rejected": "Sent back to To do",
+  "feedback.rejectFailed": "Could not reject"
 }

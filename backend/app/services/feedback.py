@@ -186,12 +186,19 @@ class FeedbackService:
         link -- so the approval can be given from the message."""
         latest = max(ticket.comments, key=lambda c: c.created_at, default=None)
         note = _clip(latest.body if latest is not None else None)
+        path = f"/admin/feedback?ticket={ticket.id}"
+        # Each button opens the ticket behind the admin sign-in with that
+        # decision ready to confirm; nothing is decided by opening a link
+        # (the owners asked for both buttons, 1 Nov 2026).
         telegram_archive.notify(
             telegram_archive.Notice(
                 title_key="telegram.kind.ticket_approval",
                 rows=[("title", ticket.title), ("note", note)],
-                path=f"/admin/feedback?ticket={ticket.id}",
-                button_key="telegram.button.approve",
+                path=path,
+                buttons=[
+                    ("telegram.button.approve", f"{path}&decision=approve"),
+                    ("telegram.button.reject", f"{path}&decision=reject"),
+                ],
             )
         )
 

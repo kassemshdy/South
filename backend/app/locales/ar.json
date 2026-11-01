@@ -319,5 +319,6 @@
   "telegram.ticket_status.NEEDS_FEEDBACK": "بانتظار رد الإدارة",
   "telegram.ticket_status.NEEDS_APPROVAL": "بانتظار الموافقة",
   "telegram.ticket_status.APPROVED": "تمّت الموافقة",
-  "telegram.ticket_status.DONE": "منجزة"
+  "telegram.ticket_status.DONE": "منجزة",
+  "telegram.button.reject": "ارفض"
 }
