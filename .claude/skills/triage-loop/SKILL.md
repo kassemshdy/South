@@ -1,6 +1,6 @@
 ---
 name: triage-loop
-description: One pass of the support ticket board — pick the most deserving ticket, implement it, open a pull request, record what happened on the ticket. Used by the scheduled triage routine, and runnable by hand when someone wants the next ticket picked up. Reads and writes tickets through the south MCP server.
+description: One pass of the support ticket board — pick the most deserving ticket, implement it, open a pull request, record what happened on the ticket. Used by the scheduled triage routine, and runnable by hand when someone wants the next ticket picked up. Reads and writes tickets through the South connector or the local south MCP server.
 license: Apache-2.0
 ---
 
@@ -11,17 +11,26 @@ that half-starts four.
 
 ## 0. Refuse to guess
 
-Check the `south` MCP server answers before doing anything else — call
-`platform_stats`.
+The board is reachable two ways, and either is enough:
 
-If it is not configured (missing `SOUTH_API_URL`, `SOUTH_AGENT_EMAIL`,
-`SOUTH_AGENT_PASSWORD`) or cannot sign in: **stop and say so, naming what is
+- **The claude.ai South connector** (`mcp__South__*` tools) -- what the
+  scheduled routine uses. It is the deployed `mcp` service, already signed
+  in, so it needs no variables on the execution environment.
+- **The local `south` MCP server** (`mcp__south__*`), configured with
+  `SOUTH_API_URL`, `SOUTH_AGENT_EMAIL` and `SOUTH_AGENT_PASSWORD` -- what a
+  pass run by hand from a checkout uses.
+
+Before doing anything else, call `platform_stats` on whichever is present.
+If it answers, use that server for the whole pass.
+
+If **neither** answers -- no South connector tools, and the local server is
+not configured or cannot sign in: **stop and say so, naming what is
 absent.** Do not fall back to reading the database, guessing at the board's
 contents, or picking work from the issue tracker instead. A pass that cannot
 see the board has nothing to triage, and inventing work is worse than
 reporting a missing password.
 
-Bootstrap note: `mcp-server/.venv` is gitignored, so a fresh checkout has no
+Bootstrap note for the local server: `mcp-server/.venv` is gitignored, so a fresh checkout has no
 environment. Create it before the server can start:
 
 ```bash
