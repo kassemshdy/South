@@ -17,6 +17,7 @@ from datetime import UTC, datetime
 from sqlalchemy.orm import Session
 
 from app.core.errors import NotFoundError, ValidationError
+from app.core.i18n import translate
 from app.models.enums import FeedbackStatus, UserRole
 from app.models.feedback import FeedbackComment, FeedbackTicket
 from app.models.user import User
@@ -31,6 +32,12 @@ from app.schemas.feedback import (
 from app.services import telegram_archive
 
 logger = logging.getLogger(__name__)
+
+
+def _clip(text: str | None) -> str | None:
+    if text and len(text) > telegram_archive.MAX_DETAIL:
+        return text[: telegram_archive.MAX_DETAIL] + "…"
+    return text
 
 
 class FeedbackService:
@@ -56,6 +63,12 @@ class FeedbackService:
             "Feedback ticket created",
             extra={"ticket_id": str(ticket.id), "reporter_id": str(reporter.id)},
         )
+        if reporter.role is UserRole.ADMIN:
+            # An owner's report reaches the chat through the commit hooks,
+            # which skip whatever an administrator saves -- and the triage
+            # routine signs in as one. Every new ticket is posted (the
+            # owners' request, 1 Nov 2026), so an admin's is sent here.
+            self._announce_created(ticket)
         return self._reload(ticket.id)
 
     def submit(self, reporter: User, payload: FeedbackSubmissionIn) -> FeedbackTicket:
@@ -127,21 +140,50 @@ class FeedbackService:
                 row.sort_order = position
 
         self._db.commit()
-        if (
-            payload.status is FeedbackStatus.NEEDS_APPROVAL
-            and origin_status is not FeedbackStatus.NEEDS_APPROVAL
-        ):
-            self._announce_awaiting_approval(ticket)
+        # Only arriving in a column is news: a reorder within one is not.
+        if origin_status is not payload.status:
+            if payload.status is FeedbackStatus.NEEDS_APPROVAL:
+                self._announce_awaiting_approval(ticket)
+            else:
+                self._announce_moved(ticket, origin_status)
         return self._reload(ticket.id)
+
+    def _announce_created(self, ticket: FeedbackTicket) -> None:
+        telegram_archive.notify(
+            telegram_archive.Notice(
+                title_key="telegram.kind.ticket",
+                rows=[
+                    ("title", ticket.title),
+                    ("description", _clip(ticket.description)),
+                ],
+                path=f"/admin/feedback?ticket={ticket.id}",
+            )
+        )
+
+    def _announce_moved(self, ticket: FeedbackTicket, origin: FeedbackStatus) -> None:
+        """Every status change is posted (the owners' request, 1 Nov
+        2026); arriving in NEEDS_APPROVAL has its own message, with the
+        latest comment and the approve button."""
+        moved = translate(
+            "telegram.ticket_moved",
+            locale="ar",
+            origin=translate(f"telegram.ticket_status.{origin.value}", locale="ar"),
+            destination=translate(f"telegram.ticket_status.{ticket.status.value}", locale="ar"),
+        )
+        telegram_archive.notify(
+            telegram_archive.Notice(
+                title_key="telegram.kind.ticket_moved",
+                rows=[("title", ticket.title), ("status", moved)],
+                path=f"/admin/feedback?ticket={ticket.id}",
+            )
+        )
 
     def _announce_awaiting_approval(self, ticket: FeedbackTicket) -> None:
         """Tell the chat a fixed ticket waits on a person, with the latest
         comment -- where the routine leaves the pull request and the develop
         link -- so the approval can be given from the message."""
         latest = max(ticket.comments, key=lambda c: c.created_at, default=None)
-        note = latest.body if latest is not None else None
-        if note and len(note) > telegram_archive.MAX_DETAIL:
-            note = note[: telegram_archive.MAX_DETAIL] + "…"
+        note = _clip(latest.body if latest is not None else None)
         telegram_archive.notify(
             telegram_archive.Notice(
                 title_key="telegram.kind.ticket_approval",
