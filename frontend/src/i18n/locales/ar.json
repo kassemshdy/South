@@ -1753,5 +1753,7 @@
   "feedback.rejectReasonPlaceholder": "اكتب ما ينقص أو ما يجب تعديله، ليُعاد العمل عليه.",
   "feedback.rejectConfirm": "ارفض وأعِده للتنفيذ",
   "feedback.rejected": "أُعيد البلاغ للتنفيذ",
-  "feedback.rejectFailed": "تعذّر الرفض"
+  "feedback.rejectFailed": "تعذّر الرفض",
+  "register.captchaRequired": "يرجى إتمام التحقق من أنك لست روبوتاً.",
+  "register.captchaUnavailable": "تعذّر تحميل التحقق من أنك لست روبوتاً. افتح الرابط في متصفح مثل Chrome أو Safari بدلاً من فتحه داخل تطبيق، ثم حاول مجدداً."
 }
