@@ -199,6 +199,7 @@ class FeedbackService:
                     ("telegram.button.approve", f"{path}&decision=approve"),
                     ("telegram.button.reject", f"{path}&decision=reject"),
                 ],
+                direct=True,
             )
         )
 
