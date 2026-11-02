@@ -76,9 +76,15 @@ interface TurnstileProps {
    * along", never as "the visitor is verified".
    */
   onToken: (token: string | null) => void
+  /**
+   * The check could not be shown or solved at all: the script did not load,
+   * or the widget reported an error. Not called for an expired token, which
+   * the widget renews by itself.
+   */
+  onUnavailable?: () => void
 }
 
-export function Turnstile({ onToken }: TurnstileProps) {
+export function Turnstile({ onToken, onUnavailable }: TurnstileProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const siteKey = turnstileSiteKey()
 
@@ -86,6 +92,8 @@ export function Turnstile({ onToken }: TurnstileProps) {
   // rendering the widget twice would leave an orphan iframe behind.
   const onTokenRef = useRef(onToken)
   onTokenRef.current = onToken
+  const onUnavailableRef = useRef(onUnavailable)
+  onUnavailableRef.current = onUnavailable
 
   useEffect(() => {
     if (!siteKey) {
@@ -104,14 +112,20 @@ export function Turnstile({ onToken }: TurnstileProps) {
           language: activeLocale(),
           callback: (token) => onTokenRef.current(token),
           'expired-callback': () => onTokenRef.current(null),
-          'error-callback': () => onTokenRef.current(null),
+          'error-callback': () => {
+            onTokenRef.current(null)
+            onUnavailableRef.current?.()
+          },
         })
       })
       .catch(() => {
         // Cloudflare unreachable. The server decides what that means: with a
         // secret configured it refuses the submission, which is the safer
         // failure and is asserted in the backend suite.
-        if (!cancelled) onTokenRef.current(null)
+        if (!cancelled) {
+          onTokenRef.current(null)
+          onUnavailableRef.current?.()
+        }
       })
 
     return () => {

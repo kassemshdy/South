@@ -309,5 +309,16 @@
   "registration.logo_required": "Add your business logo.",
   "telegram.kind.ticket_approval": "A fixed ticket is waiting for your approval",
   "telegram.label.mention": "Attention",
-  "telegram.button.approve": "Approve"
+  "telegram.button.approve": "Approve",
+  "telegram.kind.ticket_moved": "A ticket's status changed",
+  "telegram.label.status": "Status",
+  "telegram.ticket_moved": "From {origin} to {destination}",
+  "telegram.ticket_status.BACKLOG": "Backlog",
+  "telegram.ticket_status.TODO": "To do",
+  "telegram.ticket_status.IN_PROGRESS": "In progress",
+  "telegram.ticket_status.NEEDS_FEEDBACK": "Needs admin feedback",
+  "telegram.ticket_status.NEEDS_APPROVAL": "Waiting for approval",
+  "telegram.ticket_status.APPROVED": "Approved",
+  "telegram.ticket_status.DONE": "Done",
+  "telegram.button.reject": "Reject"
 }

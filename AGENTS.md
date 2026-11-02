@@ -119,10 +119,12 @@ because an agent hit them in this repo, not because they were predicted.
 ### The scheduled triage routine
 
 A Routine runs `triage-loop` on a schedule: one ticket per pass, a pull
-request, and a comment on the ticket saying what happened. It needs
-`SOUTH_API_URL`, `SOUTH_AGENT_EMAIL` and `SOUTH_AGENT_PASSWORD` on the
-execution environment, and **stops and says so when they are absent** rather
-than finding something else to do — an unconfigured pass that improvises is
+request, and a comment on the ticket saying what happened. It reads the
+board through the claude.ai **South connector** (the deployed `mcp`
+service); a pass run by hand can use the local server instead, with
+`SOUTH_API_URL`, `SOUTH_AGENT_EMAIL` and `SOUTH_AGENT_PASSWORD` set. It
+**stops and says so when neither answers** rather than finding something
+else to do — an unconfigured pass that improvises is
 how invented work becomes a pull request.
 
 It runs every three hours (the owners' decision, 31 Oct 2026). A fix whose
@@ -133,6 +135,15 @@ of the owner (`TELEGRAM_MENTION`) and an «اعتمِد» button to the ticket. 
 person approving it there moves it to `APPROVED`; the next pass releases
 approved tickets -- only when every commit waiting on develop belongs to one
 -- checks the live site and moves them to `DONE`.
+
+It does not have to wait for the schedule. Moving a ticket to `TODO` or
+`APPROVED` calls the routine's API trigger (`app/services/triage_trigger.py`,
+the owners' request of 1 Nov 2026), so a run starts within a minute. The
+call carries only the ticket's id and column -- never ticket text -- runs on
+the owners' Claude subscription rather than an API key, is skipped within
+five minutes of the last one, and does nothing without both
+`CLAUDE_TRIAGE_FIRE_URL` and `CLAUDE_TRIAGE_TOKEN` on the API. The schedule
+stays as the fallback for anything skipped.
 
 Three things it is not allowed to do, and none of them are oversights:
 approve or suspend a listing (the MCP server has no such tool), approve its

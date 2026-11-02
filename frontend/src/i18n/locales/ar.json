@@ -296,8 +296,8 @@
   "admin.partnersTabOpen": "الطلبات الجديدة",
   "admin.partnersHeading": "طلبات الشراكة",
   "admin.partnersSubtitle": "ما أرسله من يريدون دعم الجنوبيّين، الأحدث أولًا.",
-  "admin.pendingLabel": "بانتظار المراجعة",
-  "admin.pendingTalentLabel": "مواهب بانتظار المراجعة",
+  "admin.pendingLabel": "سلع ومنتجات بانتظار المراجعة",
+  "admin.pendingTalentLabel": "خدمات وطلبات توظيف بانتظار المراجعة",
   "admin.pendingTestimonialsLabel": "شهادات بانتظار المراجعة",
   "admin.portfolioTitle": "أعمال سابقة ({count})",
   "admin.queueEmpty": "لا توجد طلبات بانتظار المراجعة",
@@ -1747,5 +1747,13 @@
   "feedback.approve": "اعتمِد",
   "feedback.approveHint": "راجع التعديل على موقع التجربة، ثم اعتمده ليُنشر على الموقع المباشر في الإصدار التالي.",
   "feedback.approved": "تم الاعتماد",
-  "feedback.approveFailed": "تعذّر الاعتماد"
+  "feedback.approveFailed": "تعذّر الاعتماد",
+  "feedback.reject": "ارفض",
+  "feedback.rejectReasonLabel": "ما الذي يجب تغييره؟",
+  "feedback.rejectReasonPlaceholder": "اكتب ما ينقص أو ما يجب تعديله، ليُعاد العمل عليه.",
+  "feedback.rejectConfirm": "ارفض وأعِده للتنفيذ",
+  "feedback.rejected": "أُعيد البلاغ للتنفيذ",
+  "feedback.rejectFailed": "تعذّر الرفض",
+  "register.captchaRequired": "يرجى إتمام التحقق من أنك لست روبوتاً.",
+  "register.captchaUnavailable": "تعذّر تحميل التحقق من أنك لست روبوتاً. افتح الرابط في متصفح مثل Chrome أو Safari بدلاً من فتحه داخل تطبيق، ثم حاول مجدداً."
 }

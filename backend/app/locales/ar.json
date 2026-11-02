@@ -309,5 +309,16 @@
   "registration.logo_required": "أضف شعار نشاطك.",
   "telegram.kind.ticket_approval": "بلاغ تمّت معالجته بانتظار موافقتك",
   "telegram.label.mention": "للانتباه",
-  "telegram.button.approve": "اعتمِد"
+  "telegram.button.approve": "اعتمِد",
+  "telegram.kind.ticket_moved": "تغيّرت حالة بلاغ",
+  "telegram.label.status": "الحالة",
+  "telegram.ticket_moved": "من {origin} إلى {destination}",
+  "telegram.ticket_status.BACKLOG": "قائمة الانتظار",
+  "telegram.ticket_status.TODO": "للتنفيذ",
+  "telegram.ticket_status.IN_PROGRESS": "قيد التنفيذ",
+  "telegram.ticket_status.NEEDS_FEEDBACK": "بانتظار رد الإدارة",
+  "telegram.ticket_status.NEEDS_APPROVAL": "بانتظار الموافقة",
+  "telegram.ticket_status.APPROVED": "تمّت الموافقة",
+  "telegram.ticket_status.DONE": "منجزة",
+  "telegram.button.reject": "ارفض"
 }
