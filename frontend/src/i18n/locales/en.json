@@ -1753,5 +1753,7 @@
   "feedback.rejectReasonPlaceholder": "Write what is missing or wrong, so it can be redone.",
   "feedback.rejectConfirm": "Reject and send back to To do",
   "feedback.rejected": "Sent back to To do",
-  "feedback.rejectFailed": "Could not reject"
+  "feedback.rejectFailed": "Could not reject",
+  "register.captchaRequired": "Please complete the human verification.",
+  "register.captchaUnavailable": "The human verification could not load. Open the link in a browser such as Chrome or Safari rather than inside an app, then try again."
 }

@@ -38,7 +38,7 @@ import { Card, CardBody } from '@/components/ui/Card'
 import { Field } from '@/components/ui/Field'
 import { Input } from '@/components/ui/Input'
 import { AssistedListing } from '@/features/onboarding/AssistedListing'
-import { Turnstile } from '@/components/ui/Turnstile'
+import { Turnstile, turnstileSiteKey } from '@/components/ui/Turnstile'
 import { useT, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import type {
@@ -255,6 +255,10 @@ export function RegistrationShell({
   const [phoneError, setPhoneError] = useState<string | null>(null)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const [captchaRound, setCaptchaRound] = useState(0)
+  // The check could not load at all (blocked, offline, an in-app browser):
+  // said beside it, because a send would only be refused again.
+  const [captchaBroken, setCaptchaBroken] = useState(false)
+  const [captchaError, setCaptchaError] = useState<string | null>(null)
   // Bumped on every failed send. The errors it should reveal are state set in
   // the same handler, so the scroll waits for the render that shows them.
   const pageRef = useRef<HTMLDivElement>(null)
@@ -358,7 +362,16 @@ export function RegistrationShell({
     const values = requireIdentity()
     const scans = requireDocuments()
     setConsentError(consented ? null : t('validation.consentRequired'))
-    if (!phone || !values || !scans || !consented) return null
+    // With a site key the API refuses a send without a solved check, and
+    // says so in a toast that is easy to miss: stop here instead, beside the
+    // check itself (an applicant tried six times on 31 Oct 2026).
+    const captchaMissing = Boolean(turnstileSiteKey()) && !captchaToken
+    setCaptchaError(
+      captchaMissing
+        ? t(captchaBroken ? 'register.captchaUnavailable' : 'register.captchaRequired')
+        : null,
+    )
+    if (!phone || !values || !scans || !consented || captchaMissing) return null
     return { phone, identity: values, documents: scans }
   }
 
@@ -375,7 +388,16 @@ export function RegistrationShell({
 
   const resetCaptcha = () => {
     setCaptchaToken(null)
+    setCaptchaBroken(false)
     setCaptchaRound((round) => round + 1)
+  }
+
+  const onCaptchaToken = (token: string | null) => {
+    setCaptchaToken(token)
+    if (token) {
+      setCaptchaBroken(false)
+      setCaptchaError(null)
+    }
   }
 
   if (submitted) return <SubmittedPanel phone={loginPhone} />
@@ -591,7 +613,24 @@ export function RegistrationShell({
             resetCaptcha,
             // Remounted rather than reset in place: unmounting removes the
             // spent widget, and a new one renders with a new challenge.
-            captcha: <Turnstile key={captchaRound} onToken={setCaptchaToken} />,
+            captcha: (
+              <div className="space-y-2">
+                <Turnstile
+                  key={captchaRound}
+                  onToken={onCaptchaToken}
+                  onUnavailable={() => setCaptchaBroken(true)}
+                />
+                {captchaError ? (
+                  <p role="alert" className="text-center text-sm text-clay-600">
+                    {captchaError}
+                  </p>
+                ) : captchaBroken ? (
+                  <p className="text-center text-sm text-clay-600">
+                    {t('register.captchaUnavailable')}
+                  </p>
+                ) : null}
+              </div>
+            ),
           })}
         </CardBody>
       </Card>

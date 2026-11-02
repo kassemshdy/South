@@ -586,13 +586,17 @@ def test_a_configured_captcha_refuses_a_submission_with_no_token(
     category: Category,
     location: Location,
     monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     monkeypatch.setattr(get_settings(), "turnstile_secret_key", "secret")
 
-    refused = _register(client, "business", _business_payload(category, location)
-    )
+    with caplog.at_level("WARNING", logger="app.core.captcha"):
+        refused = _register(client, "business", _business_payload(category, location)
+        )
     assert refused.status_code == 422
     assert refused.json()["error"]["code"] == "captcha_required"
+    # Logged, so a refused applicant can be traced (31 Oct 2026).
+    assert "Captcha token missing" in caplog.text
 
 
 def test_a_captcha_cloudflare_rejects_refuses_the_submission(
