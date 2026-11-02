@@ -162,9 +162,11 @@ export function Header() {
           past the buyer's half of the site to find it -- while a buyer had
           the whole bar of sections. The owners asked for it at the top, in
           their own words; a strip of its own rather than a seventh item in
-          a row that already fills 1280px. */}
+          a row that already fills 1280px. It opens the shop application
+          itself (the owners' request, 2 Nov 2026), which carries its own
+          notice and steps; /offer keeps the three doors. */}
       <Link
-        to="/offer"
+        to="/register/business"
         className="flex h-9 items-center justify-center gap-2 bg-brand-700 px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
       >
         {t('nav.offer')}
