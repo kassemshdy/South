@@ -318,12 +318,6 @@ export interface OwnerBusiness extends BusinessDetail {
   owner_relation: OwnerRelation | null
   /** Whether visitors see the numbers; the owner always does. */
   phone_public: boolean
-  /** Visitors see initials instead of the photo. */
-  photo_hidden?: boolean
-  /** Whether the public page offers the CV for download. */
-  cv_public?: boolean
-  /** A private note to the team; never public. */
-  team_message?: string | null
   status: BusinessStatus
   rejection_reason: string | null
   submitted_at: string | null
@@ -602,6 +596,12 @@ export interface TalentDetail extends TalentSummary {
 export interface OwnerTalent extends TalentDetail {
   /** Whether visitors see the numbers; the owner always does. */
   phone_public: boolean
+  /** Visitors see initials instead of the photo. */
+  photo_hidden?: boolean
+  /** Whether the public page offers the CV for download. */
+  cv_public?: boolean
+  /** A private note to the team; never public. */
+  team_message?: string | null
   status: BusinessStatus
   rejection_reason: string | null
   submitted_at: string | null

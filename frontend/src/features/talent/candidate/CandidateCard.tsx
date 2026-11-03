@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { BadgeCheck, FileText, MapPin, MessageCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
@@ -73,14 +74,14 @@ export function CandidateCard({ talent }: { talent: TalentSummary }) {
       {meta.length > 0 || talent.location ? (
         <p className="mt-4 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-ink-500">
           {meta.map((part, index) => (
-            <span key={part} className="ltr-nums">
-              {index > 0 ? '· ' : ''}
-              {part}
-            </span>
+            <Fragment key={part}>
+              {index > 0 ? <span aria-hidden="true">·</span> : null}
+              <span className="ltr-nums">{part}</span>
+            </Fragment>
           ))}
           {talent.location ? (
             <span className="inline-flex items-center gap-1">
-              {meta.length > 0 ? '· ' : ''}
+              {meta.length > 0 ? <span aria-hidden="true">·</span> : null}
               <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               {talent.location.name_ar}
             </span>

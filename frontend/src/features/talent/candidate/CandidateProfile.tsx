@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import {
   BadgeCheck,
   Download,
@@ -208,9 +209,10 @@ export function CandidateProfile({ data }: { data: TalentDetail }) {
               <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-ink-500 sm:justify-start">
                 <AvailabilityBadge availability={data.availability} />
                 {meta.map((part) => (
-                  <span key={part} className="ltr-nums">
-                    · {part}
-                  </span>
+                  <Fragment key={part}>
+                    <span aria-hidden="true">·</span>
+                    <span className="ltr-nums">{part}</span>
+                  </Fragment>
                 ))}
               </div>
               <DisplacedBadge place={data.displaced_from} className="mx-auto sm:mx-0" />
