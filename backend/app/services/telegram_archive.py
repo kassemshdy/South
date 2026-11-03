@@ -88,6 +88,12 @@ ARCHIVED_TABLES = frozenset(
         "talent_skills",
         "talent_social_links",
         "talent_images",
+        "talent_work_types",
+        "talent_work_areas",
+        "talent_experiences",
+        "talent_education",
+        "talent_courses",
+        "employer_requests",
         "orders",
         "order_lines",
         "service_requests",
@@ -310,7 +316,18 @@ _KINDS = (
     (("service_requests",), "service_request"),
     (("talent_profiles",), "service"),
     (
-        ("talent_languages", "talent_skills", "talent_social_links", "talent_images"),
+        (
+            "talent_languages",
+            "talent_skills",
+            "talent_social_links",
+            "talent_images",
+            "talent_work_types",
+            "talent_work_areas",
+            "talent_experiences",
+            "talent_education",
+            "talent_courses",
+            "employer_requests",
+        ),
         "service_media",
     ),
     (("partner_requests",), "partner"),
@@ -496,6 +513,8 @@ class Message:
     #: Buttons in one row under the message: each its label and the address
     #: it opens.
     buttons: list[tuple[str, str]] = field(default_factory=list)
+    #: Another chat than the archive's, when set (a private one).
+    chat_id: str | None = None
 
 
 @dataclass
@@ -509,6 +528,9 @@ class Notice:
     #: Buttons in one row under the message, each a label key and the admin
     #: path it opens (approve and reject on a ticket waiting for approval).
     buttons: list[tuple[str, str]] = field(default_factory=list)
+    #: For the owner in person: sent to their private chat with the bot when
+    #: ``TELEGRAM_OWNER_CHAT_ID`` is set, else to the group like the rest.
+    direct: bool = False
 
 
 class TelegramArchive:
@@ -526,9 +548,11 @@ class TelegramArchive:
         autostart: bool = True,
         send_files: bool = False,
         mention: str = "",
+        owner_chat_id: str = "",
     ) -> None:
         self._base = f"https://api.telegram.org/bot{token}"
         self._chat_id = chat_id
+        self._owner_chat_id = owner_chat_id.strip()
         self._read_file = read_file
         # Text only unless TELEGRAM_SEND_FILES is on: the owners started with
         # details alone and may add the photos and ID scans later.
@@ -638,7 +662,8 @@ class TelegramArchive:
         # the link line alone.
         if self._base_url.startswith("https://"):
             buttons = [(_t(key), f"{self._base_url}{path}") for key, path in notice.buttons]
-        return Message("\n".join(lines), buttons=buttons)
+        chat = self._owner_chat_id if notice.direct and self._owner_chat_id else None
+        return Message("\n".join(lines), buttons=buttons, chat_id=chat)
 
     def send(self, batch: Batch | Notice) -> None:
         if isinstance(batch, Notice):
@@ -670,6 +695,7 @@ class TelegramArchive:
     def _send_message(self, message: Message) -> None:
         """With the shop's logo as the photo when it has one; text alone if
         the logo cannot be read or is too large for a photo."""
+        chat = message.chat_id or self._chat_id
         key = message.logo_key
         logo = None
         if key:
@@ -680,12 +706,12 @@ class TelegramArchive:
         if key and logo is not None and len(logo) <= MAX_PHOTO_BYTES:
             self._post(
                 "sendPhoto",
-                data={"chat_id": self._chat_id, "caption": message.text, "parse_mode": "HTML"},
+                data={"chat_id": chat, "caption": message.text, "parse_mode": "HTML"},
                 files={"photo": (key.rsplit("/", 1)[-1], logo)},
             )
             return
         data = {
-            "chat_id": self._chat_id,
+            "chat_id": chat,
             "text": message.text,
             "parse_mode": "HTML",
             # Every message ends with an admin link; Telegram's preview of
@@ -810,5 +836,6 @@ def configure(settings: Settings, session_factory: sessionmaker[Session]) -> Non
             base_url=settings.public_base_url,
             send_files=settings.telegram_send_files,
             mention=settings.telegram_mention,
+            owner_chat_id=settings.telegram_owner_chat_id,
         )
     )

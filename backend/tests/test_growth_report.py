@@ -131,6 +131,7 @@ def _report(**changes: object) -> GrowthReportOut:
         "orders_30d": 9,
         "service_requests_30d": 0,
         "views_30d": 100,
+        "contact_clicks_30d": 0,
         "orders_per_1000_views": 90.0,
         "median_approval_hours": 10.0,
         "approved_testimonials": 20,

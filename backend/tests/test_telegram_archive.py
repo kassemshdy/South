@@ -599,6 +599,37 @@ def test_every_ticket_status_has_a_name_for_the_chat() -> None:
         assert translate(key, locale="en") != key
 
 
+def test_an_approval_goes_to_the_owner_in_private_when_configured() -> None:
+    """The owners' request (2 Nov 2026): approvals reach the owner directly,
+    not the group; without the private chat they stay in the group."""
+    for owner, expected in (("12345", "12345"), ("", "-100")):
+        chats: list[str] = []
+
+        def handler(request: httpx.Request, chats: list[str] = chats) -> httpx.Response:
+            chats.append(dict(httpx.QueryParams(request.content.decode()))["chat_id"])
+            return httpx.Response(200, json={"ok": True, "result": {}})
+
+        archive = TelegramArchive(
+            token=TOKEN,
+            chat_id="-100",
+            read_file=lambda key: b"",
+            base_url=SITE,
+            client=httpx.Client(transport=httpx.MockTransport(handler)),
+            interval=0,
+            autostart=False,
+            owner_chat_id=owner,
+        )
+        archive.submit(
+            telegram_archive.Notice(
+                "telegram.kind.ticket_approval", [("title", "t")], direct=True
+            )
+        )
+        archive.submit(telegram_archive.Notice("telegram.kind.ticket_moved", [("title", "t")]))
+        archive.drain()
+        # The approval to the owner (or the group), every other notice to the group.
+        assert chats == [expected, "-100"]
+
+
 def test_no_button_without_a_public_https_address() -> None:
     """Telegram refuses a button to anything else, and the message with it."""
     fake = FakeTelegram()

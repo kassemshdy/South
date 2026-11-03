@@ -17,18 +17,21 @@ from app.core.dependencies import AdminUser, AppSettings, DbSession
 from app.core.errors import NotFoundError, PayloadTooLargeError, ValidationError
 from app.core.i18n import translate
 from app.core.uploads import read_at_most
-from app.models.enums import BusinessStatus, ImageKind
-from app.models.talent import TalentProfile
+from app.models.enums import BusinessStatus, EmployerRequestStatus, ImageKind
+from app.models.talent import EmployerRequest, TalentProfile
 from app.repositories.talent import TalentRepository
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.moderation import AdminTalentOut, PlaceChangeIn, RejectIn, SuspendIn
 from app.schemas.talent import (
     ConvertedOut,
     ConvertToBusinessIn,
+    EmployerRequestOut,
+    EmployerRequestStatusIn,
     TalentSkillChangeIn,
     TalentUpdateIn,
 )
 from app.services.account import AccountDeletionService
+from app.services.employer_request import EmployerRequestService
 from app.services.talent import TalentService
 from app.services.talent_conversion import TalentConversionService
 from app.services.talent_moderation import TalentModerationService
@@ -180,3 +183,52 @@ def delete_talent(profile_id: uuid.UUID, db: DbSession, admin: AdminUser) -> Mes
     The owner's account stays."""
     AccountDeletionService(db, get_storage()).delete_profile(_load(db, profile_id))
     return MessageResponse(message=translate("talent.deleted"))
+
+
+# --- Employer requests -------------------------------------------------------
+
+
+def _employer_request_out(request: EmployerRequest) -> EmployerRequestOut:
+    profile = request.profile
+    return EmployerRequestOut(
+        id=request.id,
+        profile_id=request.profile_id,
+        candidate_name=profile.display_name if profile else None,
+        candidate_slug=profile.slug if profile else None,
+        # The candidate's own number whatever they show the public: the team
+        # relays the request to them.
+        candidate_whatsapp=(profile.whatsapp or profile.phone) if profile else None,
+        employer_name=request.employer_name,
+        phone=request.phone,
+        company=request.company,
+        job_title=request.job_title,
+        message=request.message,
+        status=request.status,
+        created_at=request.created_at,
+    )
+
+
+@router.get("/employer-requests", response_model=list[EmployerRequestOut])
+def list_employer_requests(
+    admin: AdminUser,
+    db: DbSession,
+    settings: AppSettings,
+    status: Annotated[EmployerRequestStatus | None, Query()] = None,
+) -> list[EmployerRequestOut]:
+    """Every employer's request for a candidate, newest first."""
+    return [
+        _employer_request_out(request)
+        for request in EmployerRequestService(db, settings).list_all(status)
+    ]
+
+
+@router.post("/employer-requests/{request_id}/status", response_model=EmployerRequestOut)
+def set_employer_request_status(
+    request_id: uuid.UUID,
+    payload: EmployerRequestStatusIn,
+    admin: AdminUser,
+    db: DbSession,
+    settings: AppSettings,
+) -> EmployerRequestOut:
+    request = EmployerRequestService(db, settings).set_status(request_id, payload.status)
+    return _employer_request_out(request)

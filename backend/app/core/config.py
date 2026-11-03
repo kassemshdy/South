@@ -265,6 +265,11 @@ class Settings(BaseSettings):
     # and on a ticket waiting for approval, so it reaches that person rather
     # than sitting among the rest; empty mentions nobody.
     telegram_mention: str = ""
+    # The owner's own chat with the bot (a numeric id, not a username: a bot
+    # cannot message someone by name, and only after they have pressed Start
+    # on it). When set, a ticket waiting for approval goes there instead of
+    # the group (the owners' request, 2 Nov 2026). Empty: the group.
+    telegram_owner_chat_id: str = ""
     # Hours between copies of the database sent to the same chat as a plain
     # .sql file, without password hashes (app/services/telegram_db_backup.py);
     # every 3, the owners' choice of 31 Oct 2026; 0 turns them off.

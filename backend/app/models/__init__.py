@@ -41,11 +41,17 @@ from app.models.service_request import ServiceRequest
 from app.models.site_setting import SiteSetting
 from app.models.story import StoryImage
 from app.models.talent import (
+    EmployerRequest,
+    TalentCourse,
+    TalentEducation,
+    TalentExperience,
     TalentImage,
     TalentModerationAction,
     TalentProfile,
     TalentSkill,
     TalentSocialLink,
+    TalentWorkArea,
+    TalentWorkTypeRow,
 )
 from app.models.taxonomy import Category, Location
 from app.models.team import TeamMember
@@ -68,6 +74,7 @@ __all__ = [
     "Category",
     "Currency",
     "DiscardedApplication",
+    "EmployerRequest",
     "FeedbackAttachment",
     "FeedbackAttachmentKind",
     "FeedbackComment",
@@ -95,11 +102,16 @@ __all__ = [
     "SiteSetting",
     "SocialPlatform",
     "StoryImage",
+    "TalentCourse",
+    "TalentEducation",
+    "TalentExperience",
     "TalentImage",
     "TalentModerationAction",
     "TalentProfile",
     "TalentSkill",
     "TalentSocialLink",
+    "TalentWorkArea",
+    "TalentWorkTypeRow",
     "TeamMember",
     "Testimonial",
     "TestimonialStatus",

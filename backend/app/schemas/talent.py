@@ -12,10 +12,14 @@ from app.core.pins import check_pin
 from app.models.enums import (
     BusinessStatus,
     ContactChannel,
+    EducationLevel,
+    EmployerRequestStatus,
     EmploymentType,
     ImageKind,
     LanguageProficiency,
+    TalentAvailability,
     TalentKind,
+    TalentWorkType,
     WorkMode,
 )
 from app.schemas.business import SocialLinkIn, SocialLinkOut
@@ -105,6 +109,22 @@ class TalentSummaryOut(ORMModel):
     # payload carries, and test_identity.py pins that it needs the opt-in.
     displaced_from: str | None = None
     created_at: datetime
+    # When the profile last changed: "last updated" on a candidate's page.
+    updated_at: datetime | None = None
+
+    # --- Job seekers (the candidate directory, 3 Nov 2026) ---------------
+    # The job asked for: the card's subtitle.
+    desired_title: str | None = None
+    availability: TalentAvailability = TalentAvailability.NOW
+    education_level: EducationLevel | None = None
+    # A CV the public page may offer for download. The file itself is never
+    # in a payload; it is fetched from /talent/{slug}/cv.
+    has_cv: bool = False
+    # Approved with an identity document on file: the verified-ID badge.
+    id_verified: bool = False
+    # The taxonomy skill and the person's own extras, for the card's chips.
+    skill_tags: list[str] = Field(default_factory=list)
+    work_types: list[TalentWorkType] = Field(default_factory=list)
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -117,6 +137,32 @@ class TalentLanguageOut(ORMModel):
     name: str
     proficiency: LanguageProficiency
     sort_order: int
+
+
+class TalentExperienceOut(ORMModel):
+    id: uuid.UUID
+    title: str
+    employer: str | None = None
+    town: str | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    is_current: bool = False
+    description: str | None = None
+
+
+class TalentEducationOut(ORMModel):
+    id: uuid.UUID
+    degree: str | None = None
+    field: str | None = None
+    institution: str | None = None
+    graduation_year: int | None = None
+
+
+class TalentCourseOut(ORMModel):
+    id: uuid.UUID
+    name: str
+    issuer: str | None = None
+    year: int | None = None
 
 
 class TalentDetailOut(TalentSummaryOut):
@@ -156,6 +202,12 @@ class TalentDetailOut(TalentSummaryOut):
     languages: list[TalentLanguageOut] = Field(default_factory=list)
     social_links: list[SocialLinkOut] = Field(default_factory=list)
 
+    # Job seekers: where they can work and their history, newest first.
+    work_areas: list[LocationOut] = Field(default_factory=list)
+    experiences: list[TalentExperienceOut] = Field(default_factory=list)
+    education: list[TalentEducationOut] = Field(default_factory=list)
+    courses: list[TalentCourseOut] = Field(default_factory=list)
+
 
 class OwnerTalentOut(TalentDetailOut):
     """Adds the moderation state only the owner (and administrators) see.
@@ -168,6 +220,11 @@ class OwnerTalentOut(TalentDetailOut):
     # The owner's own numbers are always above, whatever this says; it is
     # whether visitors see them.
     phone_public: bool = True
+    # The owner's own choices, which the public payload above already obeys.
+    photo_hidden: bool = False
+    cv_public: bool = True
+    # A note to the team: the owner and staff only, never public.
+    team_message: str | None = None
     status: BusinessStatus
     rejection_reason: str | None = None
     submitted_at: datetime | None = None
@@ -185,6 +242,44 @@ class TalentLanguageIn(BaseModel):
         if not cleaned:
             raise ValueError(translate("talent.language_name_required"))
         return cleaned
+
+
+class TalentExperienceIn(BaseModel):
+    title: str = Field(min_length=1, max_length=120)
+    employer: str | None = Field(default=None, max_length=160)
+    town: str | None = Field(default=None, max_length=120)
+    start_date: date | None = None
+    end_date: date | None = None
+    is_current: bool = False
+    description: str | None = Field(default=None, max_length=600)
+
+    @field_validator("title", "employer", "town")
+    @classmethod
+    def _strip(cls, value: str | None) -> str | None:
+        return _strip_or_none(value)
+
+
+class TalentEducationIn(BaseModel):
+    degree: str | None = Field(default=None, max_length=160)
+    field: str | None = Field(default=None, max_length=160)
+    institution: str | None = Field(default=None, max_length=200)
+    graduation_year: int | None = Field(default=None, ge=1940, le=2100)
+
+    @field_validator("degree", "field", "institution")
+    @classmethod
+    def _strip(cls, value: str | None) -> str | None:
+        return _strip_or_none(value)
+
+
+class TalentCourseIn(BaseModel):
+    name: str = Field(min_length=1, max_length=160)
+    issuer: str | None = Field(default=None, max_length=160)
+    year: int | None = Field(default=None, ge=1940, le=2100)
+
+    @field_validator("name", "issuer")
+    @classmethod
+    def _strip(cls, value: str | None) -> str | None:
+        return _strip_or_none(value)
 
 
 class TalentProfileFieldsIn(BaseModel):
@@ -217,6 +312,24 @@ class TalentProfileFieldsIn(BaseModel):
     languages: list[TalentLanguageIn] | None = Field(default=None, max_length=20)
     # Optional; omitted leaves them as they are, an empty list clears them.
     social_links: list[SocialLinkIn] | None = Field(default=None, max_length=10)
+
+    # --- Job seekers. Each list replaces the stored one; omitted keeps it.
+    desired_title: str | None = Field(default=None, max_length=60)
+    availability: TalentAvailability | None = None
+    education_level: EducationLevel | None = None
+    work_types: list[TalentWorkType] | None = Field(default=None, max_length=4)
+    work_area_ids: list[uuid.UUID] | None = Field(default=None, max_length=30)
+    photo_hidden: bool | None = None
+    cv_public: bool | None = None
+    team_message: str | None = Field(default=None, max_length=2000)
+    experiences: list[TalentExperienceIn] | None = Field(default=None, max_length=30)
+    education: list[TalentEducationIn] | None = Field(default=None, max_length=15)
+    courses: list[TalentCourseIn] | None = Field(default=None, max_length=30)
+
+    @field_validator("desired_title")
+    @classmethod
+    def _strip_desired_title(cls, value: str | None) -> str | None:
+        return _strip_or_none(value)
 
     @field_validator("highest_degree", "specialization", "university")
     @classmethod
@@ -326,3 +439,47 @@ class TalentUpdateIn(TalentProfileFieldsIn):
     def _pin_in_lebanon(self) -> Self:
         check_pin(self.latitude, self.longitude)
         return self
+
+
+class EmployerRequestIn(BaseModel):
+    """An employer's "have a job for this candidate?" form on their page."""
+
+    employer_name: str = Field(min_length=2, max_length=160)
+    phone: str = Field(min_length=6, max_length=25)
+    company: str | None = Field(default=None, max_length=160)
+    job_title: str | None = Field(default=None, max_length=160)
+    message: str | None = Field(default=None, max_length=1000)
+
+    @field_validator("phone")
+    @classmethod
+    def _phone(cls, value: str) -> str:
+        normalized = normalize_optional_phone(value)
+        if not normalized:
+            raise ValueError(translate("employer_request.phone_required"))
+        return normalized
+
+    @field_validator("employer_name", "company", "job_title")
+    @classmethod
+    def _strip(cls, value: str | None) -> str | None:
+        return _strip_or_none(value)
+
+
+class EmployerRequestOut(ORMModel):
+    """The admin's log of employer requests (`/admin/employer-requests`)."""
+
+    id: uuid.UUID
+    profile_id: uuid.UUID
+    candidate_name: str | None = None
+    candidate_slug: str | None = None
+    candidate_whatsapp: str | None = None
+    employer_name: str
+    phone: str
+    company: str | None = None
+    job_title: str | None = None
+    message: str | None = None
+    status: EmployerRequestStatus
+    created_at: datetime
+
+
+class EmployerRequestStatusIn(BaseModel):
+    status: EmployerRequestStatus
