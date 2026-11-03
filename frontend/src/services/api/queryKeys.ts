@@ -59,7 +59,6 @@ export const queryKeys = {
   jobOpenings: ['job-openings'] as const,
   jobOpening: (slug: string) => ['job-openings', 'detail', slug] as const,
   adminJobOpenings: ['admin', 'job-openings'] as const,
-  adminJobApplications: (id: string) => ['admin', 'job-openings', id, 'applications'] as const,
   adminWorkshopRegistrations: (id: string) => ['admin', 'workshops', id, 'registrations'] as const,
   topRatedProducts: ['products', 'top-rated'] as const,
   topViewedProducts: ['products', 'top-viewed'] as const,

@@ -89,7 +89,8 @@ import type {
   WorkshopInput,
   WorkshopRegistration,
   AdminJobOpening,
-  JobApplication,
+  JobContactChannel,
+  JobContactStats,
   JobOpening,
   JobOfferInput,
   JobOpeningInput,
@@ -407,27 +408,16 @@ export const partnerApi = {
     }),
 }
 
-/** Job openings: anyone reads and applies with a CV; applications are staff-only. */
+/** Job openings: anyone reads them and applies by WhatsApp or a call. */
 export const jobApi = {
   list: () => apiRequest<JobOpening[]>('/api/job-openings'),
   bySlug: (slug: string) => apiRequest<JobOpening>(`/api/job-openings/${encodeURIComponent(slug)}`),
-  apply: (
-    slug: string,
-    payload: { full_name: string; email: string; phone_number: string },
-    cv: File,
-    captchaToken: string | null,
-  ) => {
-    const form = new FormData()
-    form.append('full_name', payload.full_name)
-    form.append('email', payload.email)
-    form.append('phone_number', payload.phone_number)
-    if (captchaToken) form.append('captcha_token', captchaToken)
-    form.append('cv', cv)
-    return apiRequest<{ message: string }>(
-      `/api/job-openings/${encodeURIComponent(slug)}/apply`,
-      { method: 'POST', formData: form },
-    )
-  },
+  /** A press of an open opening's WhatsApp or call button: a count, nothing more. */
+  contactClick: (slug: string, channel: JobContactChannel) =>
+    apiRequest<void>(`/api/job-openings/${encodeURIComponent(slug)}/contact-click`, {
+      method: 'POST',
+      body: { channel },
+    }),
   /** An employer offers a job; it waits as a draft for an administrator. */
   offer: (payload: JobOfferInput, idDocument: File, captchaToken: string | null) => {
     const form = new FormData()
@@ -1086,17 +1076,10 @@ export const adminApi = {
   },
   deleteJobOpeningCover: (id: string) =>
     apiRequest<AdminJobOpening>(`/api/admin/job-openings/${id}/image`, { method: 'DELETE' }),
-  jobApplications: (id: string) =>
-    apiRequest<JobApplication[]>(`/api/admin/job-openings/${id}/applications`),
-  downloadJobApplicationCv: (jobId: string, applicationId: string) =>
-    apiDownload(`/api/admin/job-openings/${jobId}/applications/${applicationId}/cv`),
+  jobContactClicks: (id: string) =>
+    apiRequest<JobContactStats>(`/api/admin/job-openings/${id}/contact-clicks`),
   downloadJobOfferIdDocument: (jobId: string) =>
     apiDownload(`/api/admin/job-openings/${jobId}/id-document`),
-  deleteJobApplication: (jobId: string, applicationId: string) =>
-    apiRequest<{ message: string }>(
-      `/api/admin/job-openings/${jobId}/applications/${applicationId}`,
-      { method: 'DELETE' },
-    ),
   uploadWorkshopCover: (id: string, file: File) => {
     const form = new FormData()
     form.append('file', file)

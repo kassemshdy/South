@@ -1,12 +1,17 @@
-"""Job openings: read and applied to by anyone, written by administrators.
+"""Job openings: read by anyone, written by administrators.
 
 The owners' request (29 Oct 2026, the job openings ticket). An opening is
-published by hand like a workshop and stays listed until it is unpublished
-or its deadline passes. Applying is the workshop sign-up's shape -- anonymous,
-behind a per-address and a site-wide limit and the captcha when one is
-configured -- plus a CV, which is checked before anything is stored and kept
-in a folder the media mount refuses. Applications are read by staff; the CV
-itself by reviewers and the manager (``RESTRICTED_READS``).
+published by hand like a workshop and stays listed until it is unpublished.
+
+Since the jobs redesign (31 Oct 2026) nobody applies through the site: an
+opening carries a number to contact by WhatsApp or a call, and a status --
+open, filled, no longer available -- that is separate from publishing. A
+closed opening keeps its page, so a shared link still opens and says so; an
+open one whose deadline has passed reads as no longer available. Presses of
+the two buttons are counted per day, with nothing about who pressed.
+
+Applications sent before the redesign stay in the database for staff, and
+are deleted with their opening; nothing writes new ones.
 """
 
 from __future__ import annotations
@@ -18,23 +23,27 @@ from typing import Annotated
 from fastapi import APIRouter, File, Form, Path, Response, UploadFile, status
 from fastapi.exceptions import RequestValidationError
 from pydantic import ValidationError as PydanticValidationError
-from sqlalchemy import Select, func, or_, select
+from sqlalchemy import Select, func, select
+from sqlalchemy.dialects.postgresql import insert
 
 from app.core.captcha import verify_captcha
-from app.core.dependencies import AdminUser, AppSettings, ClientIp, DbSession
+from app.core.dependencies import AdminUser, AppSettings, ClientIp, Crawler, DbSession
 from app.core.downloads import content_disposition
 from app.core.errors import ConflictError, NotFoundError, RateLimitedError
 from app.core.i18n import translate
+from app.core.phone import normalize_phone
 from app.core.rate_limit import DatabaseRateLimiter, RateLimitRule
 from app.core.uploads import read_at_most
-from app.models.enums import ImageKind
-from app.models.job import JobApplication, JobOpening
+from app.models.enums import ImageKind, JobContactChannel, JobStatus
+from app.models.job import JobContactClickDaily, JobOpening
+from app.models.site_setting import SiteSetting
 from app.models.taxonomy import Location
 from app.schemas.common import MessageResponse
 from app.schemas.job import (
     AdminJobOpeningOut,
-    JobApplicationIn,
-    JobApplicationOut,
+    JobContactClickIn,
+    JobContactDayOut,
+    JobContactStatsOut,
     JobOfferIn,
     JobOpeningIn,
     JobOpeningOut,
@@ -55,17 +64,49 @@ def _today() -> date:
     return datetime.now(UTC).date()
 
 
-def _open(db: DbSession) -> Select[tuple[JobOpening]]:
-    """Published, and not past its deadline: what a visitor may read and apply to."""
-    return select(JobOpening).where(
-        JobOpening.is_published.is_(True),
-        or_(JobOpening.deadline.is_(None), JobOpening.deadline >= _today()),
+def _published(db: DbSession) -> Select[tuple[JobOpening]]:
+    """What a visitor may read: every published opening, closed ones included."""
+    return select(JobOpening).where(JobOpening.is_published.is_(True))
+
+
+def effective_status(job: JobOpening) -> JobStatus:
+    """The status a visitor sees: an open opening past its deadline has closed."""
+    if job.status is JobStatus.ACTIVE and job.deadline is not None and job.deadline < _today():
+        return JobStatus.UNAVAILABLE
+    return job.status
+
+
+def _status_changed_at(job: JobOpening) -> datetime | None:
+    if job.status is JobStatus.ACTIVE and effective_status(job) is JobStatus.UNAVAILABLE:
+        assert job.deadline is not None
+        # It closed the day after its deadline.
+        return datetime(job.deadline.year, job.deadline.month, job.deadline.day, tzinfo=UTC)
+    return job.status_changed_at
+
+
+def _site_whatsapp(db: DbSession) -> str | None:
+    row = db.get(SiteSetting, "contact_whatsapp")
+    if row is None or not row.value:
+        return None
+    try:
+        return normalize_phone(row.value)
+    except Exception:
+        return row.value
+
+
+def _public_out(db: DbSession, job: JobOpening, fallback: str | None = None) -> JobOpeningOut:
+    return JobOpeningOut.model_validate(job).model_copy(
+        update={
+            "status": effective_status(job),
+            "status_changed_at": _status_changed_at(job),
+            "contact_phone": job.contact_phone or fallback or _site_whatsapp(db),
+        }
     )
 
 
 def open_slugs(db: DbSession) -> list[tuple[str, datetime]]:
-    """(slug, updated_at) of every open opening, for the sitemap."""
-    public = _open(db).subquery()
+    """(slug, updated_at) of every published opening, for the sitemap."""
+    public = _published(db).subquery()
     rows = db.execute(select(public.c.slug, public.c.updated_at)).all()
     return [(row[0], row[1]) for row in rows]
 
@@ -108,77 +149,60 @@ def _limit(db: DbSession, settings: AppSettings, client_ip: str | None, bucket: 
 
 @public_router.get("/job-openings", response_model=list[JobOpeningOut])
 def list_job_openings(db: DbSession) -> list[JobOpeningOut]:
-    """Open job openings, the newest first."""
-    stmt = _open(db).order_by(JobOpening.created_at.desc()).limit(MAX_LISTED)
-    return [JobOpeningOut.model_validate(job) for job in db.execute(stmt).unique().scalars()]
+    """Open openings first, the newest first; then closed ones, the latest closed first."""
+    stmt = _published(db).order_by(JobOpening.created_at.desc()).limit(MAX_LISTED)
+    fallback = _site_whatsapp(db)
+    jobs = [_public_out(db, job, fallback) for job in db.execute(stmt).unique().scalars()]
+    open_ = [job for job in jobs if job.status is JobStatus.ACTIVE]
+    closed = sorted(
+        (job for job in jobs if job.status is not JobStatus.ACTIVE),
+        key=lambda job: job.status_changed_at or job.created_at,
+        reverse=True,
+    )
+    return open_ + closed
+
+
+def _published_or_404(db: DbSession, slug: str) -> JobOpening:
+    job = db.execute(_published(db).where(JobOpening.slug == slug)).unique().scalar_one_or_none()
+    if job is None:
+        raise NotFoundError("job.not_found")
+    return job
 
 
 @public_router.get("/job-openings/{slug}", response_model=JobOpeningOut)
 def get_job_opening(slug: Annotated[str, Path(max_length=180)], db: DbSession) -> JobOpeningOut:
-    job = db.execute(_open(db).where(JobOpening.slug == slug)).unique().scalar_one_or_none()
-    if job is None:
-        raise NotFoundError("job.not_found")
-    return JobOpeningOut.model_validate(job)
+    """A published opening, open or closed: a shared link keeps working."""
+    return _public_out(db, _published_or_404(db, slug))
 
 
 @public_router.post(
-    "/job-openings/{slug}/apply",
-    response_model=MessageResponse,
-    status_code=status.HTTP_201_CREATED,
+    "/job-openings/{slug}/contact-click", status_code=204, response_class=Response
 )
-def apply_to_job(
+def count_job_contact_click(
     slug: Annotated[str, Path(max_length=180)],
+    payload: JobContactClickIn,
     db: DbSession,
-    settings: AppSettings,
-    client_ip: ClientIp,
-    full_name: Annotated[str, Form()],
-    email: Annotated[str, Form()],
-    phone_number: Annotated[str, Form()],
-    cv: Annotated[UploadFile, File(description="The applicant's CV: PDF, JPEG or PNG")],
-    captcha_token: Annotated[str | None, Form()] = None,
-) -> MessageResponse:
-    try:
-        payload = JobApplicationIn(
-            full_name=full_name,
-            email=email,
-            phone_number=phone_number,
-            captcha_token=captcha_token,
+    crawler: Crawler,
+) -> Response:
+    """Count a press of an open opening's WhatsApp or call button.
+
+    Stores an integer per opening, channel and day, and nothing about the
+    caller. A closed opening shows no buttons, so it counts nothing.
+    """
+    job = _published_or_404(db, slug)
+    if crawler or effective_status(job) is not JobStatus.ACTIVE:
+        return Response(status_code=204)
+    stmt = (
+        insert(JobContactClickDaily)
+        .values(id=uuid.uuid4(), job_id=job.id, channel=payload.channel, day=_today(), clicks=1)
+        .on_conflict_do_update(
+            constraint="uq_job_contact_click_daily",
+            set_={"clicks": JobContactClickDaily.clicks + 1},
         )
-    except PydanticValidationError as exc:
-        raise RequestValidationError(
-            [{**error, "loc": ("body", *error["loc"])} for error in exc.errors()]
-        ) from exc
-
-    job = db.execute(_open(db).where(JobOpening.slug == slug)).unique().scalar_one_or_none()
-    if job is None:
-        raise NotFoundError("job.not_found")
-
-    _limit(db, settings, client_ip, "job_apply")
-    verify_captcha(payload.captcha_token, settings, client_ip=client_ip)
-
-    # Read bounded, then refused before any row exists if it is not a document.
-    cvs = JobCvService(get_storage(), settings)
-    data = read_at_most(cv.file, settings.max_verification_doc_bytes)
-    content_type = cvs.validate(data)
-    key = cvs.store(job_id=job.id, data=data, content_type=content_type)
-    try:
-        db.add(
-            JobApplication(
-                job_id=job.id,
-                full_name=payload.full_name,
-                email=str(payload.email),
-                phone_number=payload.phone_number,
-                storage_key=key,
-                content_type=content_type,
-                original_filename=cv.filename[:255] if cv.filename else None,
-                size_bytes=len(data),
-            )
-        )
-        db.commit()
-    except Exception:
-        cvs.delete(key)
-        raise
-    return MessageResponse(message=translate("job.applied"))
+    )
+    db.execute(stmt)
+    db.commit()
+    return Response(status_code=204)
 
 
 @public_router.post(
@@ -269,13 +293,19 @@ def _check_location(db: DbSession, location_id: uuid.UUID | None) -> None:
         raise NotFoundError("taxonomy.location.not_found")
 
 
-def _admin_out(db: DbSession, job: JobOpening) -> AdminJobOpeningOut:
-    count = db.execute(
-        select(func.count()).select_from(JobApplication).where(JobApplication.job_id == job.id)
+def _admin_out(db: DbSession, job: JobOpening, fallback: str | None = None) -> AdminJobOpeningOut:
+    clicks = db.execute(
+        select(func.coalesce(func.sum(JobContactClickDaily.clicks), 0)).where(
+            JobContactClickDaily.job_id == job.id
+        )
     ).scalar_one()
+    public = _public_out(db, job, fallback)
     return AdminJobOpeningOut.model_validate(job).model_copy(
         update={
-            "application_count": int(count),
+            **public.model_dump(include={"status", "status_changed_at", "contact_phone"}),
+            "saved_status": job.status,
+            "own_contact_phone": job.contact_phone,
+            "contact_clicks": int(clicks),
             "has_id_document": job.id_document_storage_key is not None,
         }
     )
@@ -285,7 +315,8 @@ def _admin_out(db: DbSession, job: JobOpening) -> AdminJobOpeningOut:
 def admin_list_job_openings(db: DbSession, admin: AdminUser) -> list[AdminJobOpeningOut]:
     """Every opening, drafts and closed ones included, the newest first."""
     jobs = db.execute(select(JobOpening).order_by(JobOpening.created_at.desc())).unique()
-    return [_admin_out(db, job) for job in jobs.scalars()]
+    fallback = _site_whatsapp(db)
+    return [_admin_out(db, job, fallback) for job in jobs.scalars()]
 
 
 @admin_router.post("", response_model=AdminJobOpeningOut, status_code=status.HTTP_201_CREATED)
@@ -301,6 +332,7 @@ def create_job_opening(
         raise ConflictError("job.duplicate_slug", code="duplicate_slug")
     _check_location(db, payload.location_id)
     job = JobOpening(slug=slug, **payload.model_dump(exclude={"slug"}))
+    job.status_changed_at = datetime.now(UTC)
     db.add(job)
     db.commit()
     db.refresh(job)
@@ -319,6 +351,12 @@ def update_job_opening(
             raise ConflictError("job.duplicate_slug", code="duplicate_slug")
         data["slug"] = slug
     _check_location(db, data.get("location_id"))
+    if "status" in data and data["status"] is None:
+        del data["status"]
+    if "whatsapp_enabled" in data and data["whatsapp_enabled"] is None:
+        del data["whatsapp_enabled"]
+    if "status" in data and data["status"] is not job.status:
+        job.status_changed_at = datetime.now(UTC)
     for field, value in data.items():
         setattr(job, field, value)
     db.commit()
@@ -398,20 +436,6 @@ def delete_job_opening_cover(
     return _admin_out(db, job)
 
 
-@admin_router.get("/{job_id}/applications", response_model=list[JobApplicationOut])
-def list_job_applications(
-    job_id: uuid.UUID, db: DbSession, admin: AdminUser
-) -> list[JobApplicationOut]:
-    """Who applied, the latest first (the owners' decision, 30 Oct 2026)."""
-    _get_or_404(db, job_id)
-    rows = db.execute(
-        select(JobApplication)
-        .where(JobApplication.job_id == job_id)
-        .order_by(JobApplication.created_at.desc())
-    ).scalars()
-    return [JobApplicationOut.model_validate(row) for row in rows]
-
-
 @admin_router.get("/{job_id}/id-document")
 def download_job_offer_id_document(
     job_id: uuid.UUID, db: DbSession, admin: AdminUser, settings: AppSettings
@@ -431,48 +455,26 @@ def download_job_offer_id_document(
     )
 
 
-def _application_or_404(
-    db: DbSession, job_id: uuid.UUID, application_id: uuid.UUID
-) -> JobApplication:
-    application = db.get(JobApplication, application_id)
-    if application is None or application.job_id != job_id:
-        raise NotFoundError("job.application_not_found")
-    return application
-
-
-@admin_router.get("/{job_id}/applications/{application_id}/cv")
-def download_job_application_cv(
-    job_id: uuid.UUID,
-    application_id: uuid.UUID,
-    db: DbSession,
-    admin: AdminUser,
-    settings: AppSettings,
-) -> Response:
-    application = _application_or_404(db, job_id, application_id)
-    data = JobCvService(get_storage(), settings).read(application.storage_key)
-    filename = application.original_filename or f"cv-{application.id}"
-    return Response(
-        content=data,
-        media_type=application.content_type,
-        headers={
-            "Content-Disposition": content_disposition(filename),
-            "Cache-Control": "no-store",
-        },
+@admin_router.get("/{job_id}/contact-clicks", response_model=JobContactStatsOut)
+def job_contact_clicks(job_id: uuid.UUID, db: DbSession, admin: AdminUser) -> JobContactStatsOut:
+    """Presses of the opening's WhatsApp and call buttons, per day."""
+    _get_or_404(db, job_id)
+    rows = db.execute(
+        select(JobContactClickDaily.day, JobContactClickDaily.channel, JobContactClickDaily.clicks)
+        .where(JobContactClickDaily.job_id == job_id)
+        .order_by(JobContactClickDaily.day.desc())
+    ).all()
+    days: dict[date, JobContactDayOut] = {}
+    totals = {JobContactChannel.WHATSAPP: 0, JobContactChannel.CALL: 0}
+    for day, channel, clicks in rows:
+        entry = days.setdefault(day, JobContactDayOut(day=day))
+        if channel is JobContactChannel.WHATSAPP:
+            entry.whatsapp += clicks
+        else:
+            entry.call += clicks
+        totals[channel] += clicks
+    return JobContactStatsOut(
+        whatsapp=totals[JobContactChannel.WHATSAPP],
+        call=totals[JobContactChannel.CALL],
+        days=list(days.values()),
     )
-
-
-@admin_router.delete("/{job_id}/applications/{application_id}", response_model=MessageResponse)
-def delete_job_application(
-    job_id: uuid.UUID,
-    application_id: uuid.UUID,
-    db: DbSession,
-    admin: AdminUser,
-    settings: AppSettings,
-) -> MessageResponse:
-    """An application and its CV, gone for good (an applicant may ask)."""
-    application = _application_or_404(db, job_id, application_id)
-    key = application.storage_key
-    db.delete(application)
-    db.commit()
-    JobCvService(get_storage(), settings).delete(key)
-    return MessageResponse(message=translate("job.application_deleted"))

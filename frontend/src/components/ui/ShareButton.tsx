@@ -25,6 +25,7 @@ export function ShareButton({
   block = false,
   variant = 'outline',
   className,
+  label,
 }: {
   title: string
   text?: string | undefined
@@ -37,6 +38,8 @@ export function ShareButton({
   block?: boolean
   variant?: 'outline' | 'ghost'
   className?: string
+  /** The button's words; "share" by default. */
+  label?: string
 }) {
   const t = useT()
   const [copied, setCopied] = useState(false)
@@ -84,7 +87,7 @@ export function ShareButton({
       ) : (
         <>
           <Share2 className="h-4 w-4" aria-hidden="true" />
-          {t('business.share')}
+          {label ?? t('business.share')}
         </>
       )}
     </Button>
