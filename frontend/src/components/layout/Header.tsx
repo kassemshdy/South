@@ -388,6 +388,29 @@ export function Header() {
         </div>
       </div>
 
+      {/* On a desktop the headings are never hidden behind the menu button
+          (the owners' urgent request, 3 Nov 2026): when they do not fit
+          beside the logo they take a row of their own under it, wrapping if
+          they must. Phones and tablets keep the drawer. */}
+      {!fits ? (
+        <nav
+          className="hidden border-t border-ink-100 xl:block"
+          aria-label={t('nav.mainAria')}
+        >
+          <div className="mx-auto flex w-full max-w-screen-2xl flex-wrap items-center justify-center gap-x-1 gap-y-0.5 px-4 py-1.5">
+            {sections.map((section) => (
+              <Link
+                key={section.href}
+                to={section.href}
+                className="whitespace-nowrap rounded-lg px-2.5 py-2 text-[15px] font-medium text-ink-700 transition-colors hover:bg-sand-100 hover:text-ink-900"
+              >
+                {section.label}
+              </Link>
+            ))}
+          </div>
+        </nav>
+      ) : null}
+
       <div
         id="mobile-menu"
         className={cn(
