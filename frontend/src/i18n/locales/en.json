@@ -2078,5 +2078,8 @@
   "serviceOffers.range": "{from} – {to}",
   "serviceOffers.perUnit": "{amount} / {unit}",
   "serviceOffers.onRequest": "Price on request",
-  "serviceOffers.startingFrom": "From"
+  "serviceOffers.startingFrom": "From",
+  "feedback.board.total": "{count} tickets",
+  "feedback.board.search": "Search ticket titles",
+  "feedback.board.allPriorities": "All priorities"
 }
