@@ -127,13 +127,13 @@ test.describe('Private owner verification', () => {
     // Producer detail belongs to the listing, and is published.
     await expect(page.getByText(fixture.institutionName)).toBeVisible()
 
-    const downloadPromise = page.waitForEvent('download')
-    await page.getByRole('button', { name: t('admin.downloadDocument') }).click()
-    const download = await downloadPromise
-    expect(download.suggestedFilename()).toBe('id.pdf')
-
-    const cvDownloadPromise = page.waitForEvent('download')
-    await page.getByRole('button', { name: t('admin.downloadCv') }).click()
-    expect((await cvDownloadPromise).suggestedFilename()).toBe('cv.pdf')
+    // A PDF opens in a new tab (the owners' request, 3 Nov 2026).
+    for (const button of ['admin.downloadDocument', 'admin.downloadCv'] as const) {
+      const opened = page.waitForEvent('popup')
+      await page.getByRole('button', { name: t(button) }).click()
+      const tab = await opened
+      expect(tab.url()).toMatch(/^blob:/)
+      await tab.close()
+    }
   })
 })
