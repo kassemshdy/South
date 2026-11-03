@@ -2055,5 +2055,8 @@
   "adminNav.groupSite": "إعدادات الموقع",
   "adminNav.groupTaxonomy": "التصنيفات والمناطق",
   "adminNav.groupAccounts": "الحسابات والفريق",
-  "adminNav.groupReports": "التقارير والأدوات"
+  "adminNav.groupReports": "التقارير والأدوات",
+  "admin.previewLogo": "الشعار",
+  "admin.previewCover": "صورة الغلاف",
+  "admin.previewMissing": "لا توجد صورة"
 }

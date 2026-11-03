@@ -166,15 +166,22 @@ test.describe('Applying for a listing', () => {
     await expect(admin.getByText(fixture.residencePlace).first()).toBeVisible()
 
     // And both sides they attached, which is what the reviewer checks those
-    // against — downloaded here rather than merely present, because a
-    // document that cannot be opened is not evidence.
-    const frontDownload = admin.waitForEvent('download')
-    await admin.getByRole('button', { name: t('admin.downloadDocument') }).click()
-    expect((await frontDownload).suggestedFilename()).toBe('front.png')
-
-    const backDownload = admin.waitForEvent('download')
-    await admin.getByRole('button', { name: t('admin.downloadDocumentBack') }).click()
-    expect((await backDownload).suggestedFilename()).toBe('back.png')
+    // against -- opened here rather than merely present, because a document
+    // that cannot be opened is not evidence. An image opens in a popup on the
+    // page (the owners' request, 3 Nov 2026).
+    for (const [button, filename] of [
+      ['admin.downloadDocument', 'front.png'],
+      ['admin.downloadDocumentBack', 'back.png'],
+    ] as const) {
+      await admin.getByRole('button', { name: t(button) }).click()
+      const shown = admin.getByRole('dialog', { name: filename })
+      await expect(shown.locator('img')).toBeVisible()
+      await expect
+        .poll(() => shown.locator('img').evaluate((img: HTMLImageElement) => img.naturalWidth))
+        .toBeGreaterThan(0)
+      await admin.keyboard.press('Escape')
+      await expect(shown).toBeHidden()
+    }
 
     await admin.getByRole('button', { name: t('credentials.issue') }).click()
     await expect(admin.getByText(t('credentials.onceWarning'))).toBeVisible()

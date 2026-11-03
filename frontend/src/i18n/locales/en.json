@@ -2055,5 +2055,8 @@
   "adminNav.groupSite": "Site settings",
   "adminNav.groupTaxonomy": "Categories and places",
   "adminNav.groupAccounts": "Accounts and staff",
-  "adminNav.groupReports": "Reports and tools"
+  "adminNav.groupReports": "Reports and tools",
+  "admin.previewLogo": "Logo",
+  "admin.previewCover": "Cover",
+  "admin.previewMissing": "No image"
 }
