@@ -272,3 +272,23 @@ def test_clearing_the_video_link_removes_the_id(
 
     assert cleared.status_code == 200
     assert cleared.json()["youtube_video_id"] is None
+
+
+def _png(colour: tuple[int, int, int, int]) -> Image.Image:
+    """A transparent square with a solid mark in the middle."""
+    image = Image.new("RGBA", (40, 40), (0, 0, 0, 0))
+    for x in range(10, 30):
+        for y in range(10, 30):
+            image.putpixel((x, y), colour)
+    return image
+
+
+def test_a_white_logo_on_transparency_stays_visible() -> None:
+    """A white logo made for a dark header must not become a blank white
+    square (the "logo is not apparent in the panel" ticket, 31 Oct 2026)."""
+    from app.services.images import _flatten_colour
+
+    assert _flatten_colour(_png((255, 255, 255, 255))) != (255, 255, 255)
+    # A dark or coloured logo keeps the white background it always had.
+    assert _flatten_colour(_png((20, 120, 60, 255))) == (255, 255, 255)
+    assert _flatten_colour(Image.new("RGBA", (10, 10), (0, 0, 0, 0))) == (255, 255, 255)
