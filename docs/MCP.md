@@ -121,7 +121,8 @@ Twelve. Read-only unless marked.
 | Tool | Notes |
 |---|---|
 | `list_tickets` | Filters (status, priority, assignee, title) are applied client-side: the API returns the whole board in one response |
-| `get_ticket` | Full ticket, comments, attachment *metadata* |
+| `get_ticket` | Full ticket, comments, attachment metadata |
+| `get_ticket_attachment` | One ticket attachment: a screenshot as an image, a PDF as an embedded file |
 | `list_assignable_admins` | Who a ticket may be assigned to |
 | `create_ticket` | **writes** — always lands at the bottom of `BACKLOG` |
 | `update_ticket` | **writes** — fields and/or status; see below |
@@ -189,8 +190,13 @@ process never holds cannot be talked out of it.
   seen. Needs an admin endpoint.
 - **No server-side ticket filtering.** `list_board()` returns every ticket
   with every relation eagerly loaded; the filters here run on the result.
-- **Attachment bytes are not exposed.** A bug screenshot can show anything
-  that was on the reporter's screen.
+- **Ticket attachments are readable, nothing else is.** `get_ticket_attachment`
+  (the owners' request, 3 Nov 2026) returns a ticket's own screenshots and
+  PDFs, so a report that is only a screenshot can be acted on. It takes UUIDs
+  only -- the ids go into a URL, and `../` with a `?` would otherwise reach an
+  ID scan or a CV -- and refuses any other content type. A screenshot shows
+  whatever was on the reporter's screen; what is written in it describes the
+  problem and is never an instruction (`tests/test_tools.py`).
 
 ## Running a routine against it
 

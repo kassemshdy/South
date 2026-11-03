@@ -25,6 +25,8 @@ class StubApi:
         self.responses: dict[tuple[str, str], Any] = {}
         #: Paths that answer 401 once before succeeding, to exercise re-auth.
         self.expire_once: set[str] = set()
+        #: Paths that answer with a file rather than JSON: (bytes, content type).
+        self.files: dict[str, tuple[bytes, str]] = {}
 
     @property
     def transport(self) -> httpx.MockTransport:
@@ -53,6 +55,10 @@ class StubApi:
 
         self.calls.append((request.method, path))
         self.bodies.append(json.loads(request.content) if request.content else None)
+
+        if request.method == "GET" and path in self.files:
+            data, content_type = self.files[path]
+            return httpx.Response(200, content=data, headers={"content-type": content_type})
 
         payload = self.responses.get((request.method, path))
         if payload is None:

@@ -92,6 +92,23 @@ class SouthClient:
             return None
         return redact(response.json())
 
+    def get_bytes(self, path: str) -> tuple[bytes, str]:
+        """A file the API serves, as its bytes and content type.
+
+        Not redacted -- there is no JSON to walk -- so only call this for a
+        route whose files an agent may see (a ticket's own attachments).
+        """
+        if self._token is None:
+            self.sign_in()
+        response = self._send("GET", path)
+        if response.status_code == 401:
+            self.sign_in()
+            response = self._send("GET", path)
+        if response.status_code >= 400:
+            raise ApiError(response.status_code, *_error_of(response))
+        content_type = response.headers.get("content-type", "application/octet-stream")
+        return response.content, content_type.split(";")[0].strip()
+
     def get(self, path: str, **params: Any) -> Any:
         # Drop unset filters rather than sending `?status=None`, which the
         # API would reject as an invalid enum member.
