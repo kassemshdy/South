@@ -125,6 +125,30 @@ class ViewCounterService:
                 extra={"subject_type": subject_type.value, "subject_id": str(subject_id)},
             )
 
+    def record_contact_click(
+        self,
+        subject_type: ViewSubject,
+        subject_id: uuid.UUID,
+        *,
+        owner_id: uuid.UUID,
+        viewer: User | None,
+        crawler: bool = False,
+    ) -> None:
+        """Count one press of a contact button, on the same terms as a view:
+        not the owner's own, not a crawler's, and never failing the request."""
+        if crawler or (viewer is not None and viewer.id == owner_id):
+            return
+        try:
+            self._repo.record_contact_click(subject_type, subject_id, _today())
+            self._db.commit()
+        except SQLAlchemyError:
+            self._db.rollback()
+            logger.warning(
+                "Contact click counter write failed",
+                exc_info=True,
+                extra={"subject_type": subject_type.value, "subject_id": str(subject_id)},
+            )
+
     def forget(self, subject_type: ViewSubject, subject_id: uuid.UUID) -> None:
         """Drop a deleted listing's counters. Nothing cascades to them."""
         self._repo.purge(subject_type, subject_id)

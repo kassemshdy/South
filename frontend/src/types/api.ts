@@ -1188,6 +1188,7 @@ export interface GrowthReport {
   orders_30d: number
   service_requests_30d: number
   views_30d: number
+  contact_clicks_30d: number
   orders_per_1000_views: number | null
   median_approval_hours: number | null
   approved_testimonials: number

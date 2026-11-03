@@ -345,6 +345,13 @@ export const publicBusinessApi = {
   stats: () => apiRequest<PublicStats>('/api/businesses/stats'),
   bySlug: (slug: string) =>
     apiRequest<BusinessDetail>(`/api/businesses/${encodeURIComponent(slug)}`),
+  /** Counts a press of the WhatsApp or call button. Fire and forget: it must
+   *  never delay or break the link the visitor is following. */
+  countContactClick: (slug: string) => {
+    apiRequest<void>(`/api/businesses/${encodeURIComponent(slug)}/contact-click`, {
+      method: 'POST',
+    }).catch(() => undefined)
+  },
 }
 
 export const publicItemApi = {

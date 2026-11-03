@@ -21,7 +21,7 @@ import { ErrorState } from '@/components/ui/States'
 import { useSeo } from '@/hooks/useSeo'
 import { trackListingView } from '@/services/analytics'
 import { useT } from '@/i18n'
-import { publicItemApi } from '@/services/api/endpoints'
+import { publicBusinessApi, publicItemApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import { formatPrice, telHref, whatsappHref } from '@/utils/format'
 
@@ -192,7 +192,12 @@ export function ProductProfilePage() {
 
               {whatsapp ? (
                 <Button asChild variant="whatsapp" block>
-                  <a href={whatsapp} target="_blank" rel="noopener noreferrer">
+                  <a
+                href={whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => publicBusinessApi.countContactClick(data.business.slug)}
+              >
                     <MessageCircle className="h-5 w-5" aria-hidden="true" />
                     {t('business.whatsappCta')}
                   </a>
@@ -200,7 +205,7 @@ export function ProductProfilePage() {
               ) : null}
               {phone ? (
                 <Button asChild block>
-                  <a href={phone}>
+                  <a href={phone} onClick={() => publicBusinessApi.countContactClick(data.business.slug)}>
                     <Phone className="h-5 w-5" aria-hidden="true" />
                     {t('business.callCta')}
                   </a>

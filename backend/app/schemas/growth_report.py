@@ -59,6 +59,9 @@ class GrowthReportOut(BaseModel):
     orders_30d: int
     service_requests_30d: int
     views_30d: int
+    contact_clicks_30d: int = Field(
+        description="Presses of a shop's WhatsApp or call button, never people"
+    )
     orders_per_1000_views: float | None
     median_approval_hours: float | None
     approved_testimonials: int

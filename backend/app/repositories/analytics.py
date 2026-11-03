@@ -50,6 +50,27 @@ class ViewCounterRepository(BaseRepository[ListingViewDaily]):
         )
         self.db.execute(stmt)
 
+    def record_contact_click(
+        self, subject_type: ViewSubject, subject_id: uuid.UUID, day: date
+    ) -> None:
+        """Add one to today's contact clicks, creating the row if need be."""
+        stmt = (
+            insert(ListingViewDaily)
+            .values(
+                id=uuid.uuid4(),
+                subject_type=subject_type,
+                subject_id=subject_id,
+                day=day,
+                views=0,
+                contact_clicks=1,
+            )
+            .on_conflict_do_update(
+                constraint="uq_listing_view_daily_subject_day",
+                set_={"contact_clicks": ListingViewDaily.contact_clicks + 1},
+            )
+        )
+        self.db.execute(stmt)
+
     def series(
         self,
         subject_type: ViewSubject,

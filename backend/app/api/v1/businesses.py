@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Path, Query, status
+from fastapi import APIRouter, Path, Query, Response, status
 
 from app.api.serializers import business_detail, business_summary, owner_business, paginate
 from app.core.cache import cached
@@ -140,6 +140,33 @@ def get_business(
         crawler=crawler,
     )
     return payload
+
+
+@public_router.post(
+    "/businesses/{slug}/contact-click", status_code=204, response_class=Response
+)
+def count_contact_click(
+    slug: Annotated[str, Path(max_length=200)],
+    db: DbSession,
+    viewer: Viewer,
+    crawler: Crawler,
+) -> Response:
+    """Count a press of the WhatsApp or call button on an approved shop.
+
+    Stores an integer per shop per day and nothing about the caller. An
+    unknown or not-public slug is a 404, like the page itself.
+    """
+    business = BusinessRepository(db).get_by_slug(slug, public_only=True)
+    if business is None:
+        raise NotFoundError("business.not_public")
+    ViewCounterService(db).record_contact_click(
+        ViewSubject.BUSINESS,
+        business.id,
+        owner_id=business.owner_id,
+        viewer=viewer,
+        crawler=crawler,
+    )
+    return Response(status_code=204)
 
 
 # --- Owner -----------------------------------------------------------------
