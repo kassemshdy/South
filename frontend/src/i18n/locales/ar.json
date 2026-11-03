@@ -2035,5 +2035,8 @@
   "adminCarousel.close": "إغلاق",
   "adminCarousel.noLink": "بلا رابط",
   "feedback.board.showAllDone": "عرض الكل ({count})",
-  "feedback.board.showLatestDone": "عرض آخر {count} فقط"
+  "feedback.board.showLatestDone": "عرض آخر {count} فقط",
+  "admin.previewLogo": "الشعار",
+  "admin.previewCover": "صورة الغلاف",
+  "admin.previewMissing": "لا توجد صورة"
 }

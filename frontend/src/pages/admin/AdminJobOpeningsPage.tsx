@@ -13,6 +13,8 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
 import { useStaffCan } from '@/features/admin/staffAccess'
+import { ImagePreviewDialog } from '@/features/admin/ImagePreviewDialog'
+import { openPrivateFile, type PreviewImage } from '@/features/admin/openPrivateFile'
 import { useCropStep } from '@/features/images/ImageCropDialog'
 import { JOB_STATUS_LABELS, JOB_TYPE_LABELS, JobStatusBadge } from '@/features/jobs/JobCard'
 import { useLocationGroups } from '@/hooks/useTaxonomy'
@@ -336,16 +338,10 @@ function OfferedBy({ job }: { job: AdminJobOpening }) {
   const { t } = useI18n()
   const toast = useToast()
   const canReadId = useStaffCan('documents')
+  const [preview, setPreview] = useState<PreviewImage | null>(null)
   const download = useMutation({
     mutationFn: () => adminApi.downloadJobOfferIdDocument(job.id),
-    onSuccess: ({ blob, filename }) => {
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = filename ?? 'id'
-      link.click()
-      URL.revokeObjectURL(url)
-    },
+    onSuccess: (file) => openPrivateFile(file, setPreview, t('admin.jobDownloadId')),
     onError: (error) =>
       toast.error(t('admin.downloadDocumentFailed'), error instanceof ApiError ? error.message : undefined),
   })
@@ -366,6 +362,7 @@ function OfferedBy({ job }: { job: AdminJobOpening }) {
           {t('admin.jobDownloadId')}
         </Button>
       ) : null}
+      <ImagePreviewDialog image={preview} onClose={() => setPreview(null)} />
     </div>
   )
 }

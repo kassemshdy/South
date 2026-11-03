@@ -2035,5 +2035,8 @@
   "adminCarousel.close": "Close",
   "adminCarousel.noLink": "No link",
   "feedback.board.showAllDone": "Show all ({count})",
-  "feedback.board.showLatestDone": "Show the latest {count} only"
+  "feedback.board.showLatestDone": "Show the latest {count} only",
+  "admin.previewLogo": "Logo",
+  "admin.previewCover": "Cover",
+  "admin.previewMissing": "No image"
 }
