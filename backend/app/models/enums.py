@@ -257,6 +257,31 @@ class EmploymentType(str, enum.Enum):
     PART_TIME = "PART_TIME"
 
 
+class TalentAvailability(str, enum.Enum):
+    """When a job seeker can start. Public: shown as a badge on the card."""
+
+    NOW = "NOW"
+    WITHIN_MONTH = "WITHIN_MONTH"
+    EMPLOYED_OPEN = "EMPLOYED_OPEN"
+
+
+class TalentWorkType(str, enum.Enum):
+    """The kinds of work a job seeker will take; a person may take several."""
+
+    FULL_TIME = "FULL_TIME"
+    PART_TIME = "PART_TIME"
+    REMOTE = "REMOTE"
+    TRAINING = "TRAINING"
+
+
+class EmployerRequestStatus(str, enum.Enum):
+    """Where an employer's contact request stands, for the admin's log."""
+
+    NEW = "NEW"
+    CONTACTED = "CONTACTED"
+    HIRED = "HIRED"
+
+
 class ArticleSection(str, enum.Enum):
     """Which of the two "coming soon" nav pages a published article belongs to.
 
