@@ -70,7 +70,7 @@ export function AdminCarouselPage() {
   const apply = (data: AdminCarousel) => {
     queryClient.setQueryData(CAROUSEL_KEY, data)
     void queryClient.invalidateQueries({ queryKey: queryKeys.adminActivities })
-    void queryClient.invalidateQueries({ queryKey: ['carousel'] })
+    void queryClient.invalidateQueries({ queryKey: ['activities', 'carousel'] })
   }
   const fail = (error: unknown) => {
     toast.error(t('adminCarousel.failed'), error instanceof ApiError ? error.message : undefined)
