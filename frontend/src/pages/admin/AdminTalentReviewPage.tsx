@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowRight,
   Check,
+  MessageCircle,
   Download,
   ExternalLink,
   PauseCircle,
@@ -37,10 +38,50 @@ import { useI18n, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { adminApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import { formatDate, STATUS_KEYS } from '@/utils/format'
+import type { AdminTalent } from '@/types/api'
+import { formatDate, STATUS_KEYS, whatsappHref } from '@/utils/format'
 import { rejectSchema } from '@/utils/validation'
 
 type RejectValues = z.infer<ReturnType<typeof rejectSchema>>
+
+/** The owner's candidate choices on the admin payload (not yet on the
+ * shared `OwnerTalent` type). */
+type CandidateOwn = AdminTalent & {
+  photo_hidden?: boolean
+  cv_public?: boolean
+  team_message?: string | null
+}
+
+/** A dated history entry as one line, e.g. "2014 - present". */
+function years(start: string | null, end: string | null, current: boolean, present: string) {
+  const from = start ? start.slice(0, 4) : ''
+  const to = current ? present : end ? end.slice(0, 4) : ''
+  return from || to ? `${from} - ${to}` : ''
+}
+
+function candidateLines(data: CandidateOwn, present: string) {
+  const join = (parts: (string | null | undefined)[]) => parts.filter(Boolean).join(' · ')
+  const experiences = (data.experiences ?? []).map((entry) =>
+    [
+      join([entry.title, entry.employer, entry.town]),
+      years(entry.start_date, entry.end_date, entry.is_current, present),
+      entry.description,
+    ]
+      .filter(Boolean)
+      .join('\n'),
+  )
+  const education = (data.education ?? []).map((entry) =>
+    join([entry.degree, entry.field, entry.institution, entry.graduation_year?.toString()]),
+  )
+  const courses = (data.courses ?? []).map((course) =>
+    join([course.name, course.issuer, course.year?.toString()]),
+  )
+  return {
+    experiences: experiences.length ? experiences.join('\n\n') : null,
+    education: education.length ? education.join('\n') : null,
+    courses: courses.length ? courses.join('\n') : null,
+  }
+}
 type ConfirmAction = 'approve' | 'reject' | 'suspend' | 'reactivate' | null
 
 export function AdminTalentReviewPage() {
@@ -133,6 +174,11 @@ export function AdminTalentReviewPage() {
   }
 
   const data = talent.data
+  const own = data as CandidateOwn
+  const isCandidate = data.kind === 'JOB_SEEKER'
+  const lines = candidateLines(own, t('adminCandidate.present'))
+  // A reply to the team message, from the reviewer's own WhatsApp.
+  const replyHref = whatsappHref(data.whatsapp ?? data.phone ?? data.owner_phone)
 
   // A single Detail row rather than a chip list — the review page is a dense
   // read-through, and every other field here is one label + one value.
@@ -187,6 +233,27 @@ export function AdminTalentReviewPage() {
         ) : null}
       </header>
 
+      {/* The candidate's private note to the team, first: it is often a
+          question someone is waiting on (the owners' ticket, 31 Oct 2026). */}
+      {isCandidate && own.team_message ? (
+        <Card className="border-brand-300 bg-brand-50">
+          <CardBody className="space-y-3">
+            <p className="font-bold text-brand-900">{t('adminCandidate.teamMessageTitle')}</p>
+            <p className="whitespace-pre-line text-ink-900" dir="auto">
+              {own.team_message}
+            </p>
+            {replyHref ? (
+              <Button asChild size="sm">
+                <a href={replyHref} target="_blank" rel="noreferrer">
+                  <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                  {t('adminCandidate.replyWhatsapp')}
+                </a>
+              </Button>
+            ) : null}
+          </CardBody>
+        </Card>
+      ) : null}
+
       {/* Decision bar, pinned near the top: the admin's job on this page. */}
       <Card className="border-clay-200 bg-clay-50/40">
         <CardBody className="flex flex-wrap gap-3">
@@ -213,7 +280,7 @@ export function AdminTalentReviewPage() {
           {canModerate && data.status === 'APPROVED' ? (
             <Button size="lg" variant="outline" onClick={() => setConfirming('suspend')}>
               <PauseCircle className="h-5 w-5" aria-hidden="true" />
-              {t('admin.suspend')}
+              {t(isCandidate ? 'adminCandidate.suspend' : 'admin.suspend')}
             </Button>
           ) : null}
 
@@ -270,9 +337,55 @@ export function AdminTalentReviewPage() {
         <div className="space-y-6 lg:col-span-2">
           <Card>
             <CardHeader>
-              <h2 className="font-bold">{t('admin.infoTitle')}</h2>
+              <h2 className="font-bold">
+                {t(isCandidate ? 'adminCandidate.infoTitle' : 'admin.infoTitle')}
+              </h2>
             </CardHeader>
             <CardBody className="space-y-3">
+              {isCandidate ? (
+                <>
+                  <Detail labelKey="adminCandidate.desiredTitle" value={data.desired_title ?? null} />
+                  <Detail
+                    labelKey="adminCandidate.availability"
+                    value={
+                      data.availability
+                        ? t(`candidateForm.availability.${data.availability}`)
+                        : null
+                    }
+                  />
+                  <Detail
+                    labelKey="adminCandidate.workTypes"
+                    value={
+                      (data.work_types ?? [])
+                        .map((type) => t(`candidateForm.workType.${type}`))
+                        .join(' · ') || null
+                    }
+                  />
+                  <Detail
+                    labelKey="adminCandidate.workAreas"
+                    value={(data.work_areas ?? []).map((area) => area.name_ar).join(' · ') || null}
+                  />
+                  <Detail
+                    labelKey="adminCandidate.educationLevel"
+                    value={
+                      data.education_level
+                        ? t(`candidateForm.educationLevel.${data.education_level}`)
+                        : null
+                    }
+                  />
+                  <Detail labelKey="adminCandidate.experiences" value={lines.experiences} />
+                  <Detail labelKey="adminCandidate.education" value={lines.education} />
+                  <Detail labelKey="adminCandidate.courses" value={lines.courses} />
+                  <Detail
+                    labelKey="adminCandidate.photoHidden"
+                    value={t(own.photo_hidden ? 'adminCandidate.yes' : 'adminCandidate.no')}
+                  />
+                  <Detail
+                    labelKey="adminCandidate.cvPublic"
+                    value={t(own.cv_public === false ? 'adminCandidate.no' : 'adminCandidate.yes')}
+                  />
+                </>
+              ) : null}
               <Detail labelKey="admin.fieldBio" value={data.bio} />
               <Detail
                 labelKey="admin.fieldSkill"
@@ -348,7 +461,7 @@ export function AdminTalentReviewPage() {
               <h2 className="font-bold">{t('admin.accountTitle')}</h2>
             </CardHeader>
             <CardBody className="space-y-3">
-              <Detail labelKey="admin.ownerName" value={data.owner_display_name} />
+              <Detail labelKey="admin.ownerName" value={data.owner_display_name ?? data.owner_identity?.full_name ?? null} />
               <Detail labelKey="admin.ownerAccount" value={data.owner_phone} ltr />
               <Detail labelKey="admin.ownerPersonalPhone" value={data.owner_personal_phone} ltr />
               <OwnerWhatsappButton phone={data.owner_phone} />
@@ -483,7 +596,7 @@ export function AdminTalentReviewPage() {
               confirming === 'approve'
                 ? t('admin.confirmApproveTitle')
                 : confirming === 'suspend'
-                  ? t('admin.confirmSuspendTitle')
+                  ? t(isCandidate ? 'adminCandidate.confirmSuspendTitle' : 'admin.confirmSuspendTitle')
                   : t('admin.confirmReactivateTitle')
             }
             description={

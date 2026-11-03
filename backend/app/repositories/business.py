@@ -101,12 +101,7 @@ class BusinessRepository(BaseRepository[Business]):
         if with_products:
             # The products page lists shops (round 3): a shop belongs there
             # once it has something a visitor can buy.
-            stmt = stmt.where(
-                exists().where(
-                    BusinessItem.business_id == Business.id,
-                    BusinessItem.is_available.is_(True),
-                )
-            )
+            stmt = stmt.where(has_products())
 
         if origin is not None:
             # A shop belongs under a door if it came through it, or if any
@@ -215,12 +210,17 @@ class BusinessRepository(BaseRepository[Business]):
         *,
         status: BusinessStatus | None = None,
         q: str | None = None,
+        without_products: bool = False,
         page: int = 1,
         page_size: int = 20,
     ) -> Page[Business]:
         stmt = select(Business)
         if status is not None:
             stmt = stmt.where(Business.status == status)
+        if without_products:
+            # Shops with nothing on sale, for staff to contact (the owners'
+            # request, 3 Nov 2026).
+            stmt = stmt.where(~has_products())
         if q:
             matches: ColumnElement[bool] = Business.search_text.like(f"%{normalize_arabic(q)}%")
             digits = phone_digits(q)
@@ -238,7 +238,9 @@ class BusinessRepository(BaseRepository[Business]):
         # Newest first everywhere, the review queue included (the owners'
         # decision, 30 Oct 2026, replacing oldest-pending-first).
         order = (
-            nullslast(Business.submitted_at.desc())
+            # An application from the public form is created pending and has no
+            # submitted_at, so it counts from when it was created.
+            func.coalesce(Business.submitted_at, Business.created_at).desc()
             if status is BusinessStatus.PENDING_REVIEW
             else Business.created_at.desc()
         )
@@ -319,10 +321,27 @@ class BusinessRepository(BaseRepository[Business]):
         return {row[0]: row[1] for row in rows if row[0] is not None}
 
     def public_business_count(self) -> int:
+        """Shops a visitor can buy from: approved, with at least one product
+        on sale. A shop with nothing to sell is not counted (the owners'
+        request, 3 Nov 2026), so the shop count beside the product count means
+        shops with products."""
         return self.db.execute(
-            select(func.count()).select_from(self.public_query().subquery())
+            select(func.count()).select_from(
+                self.public_query().where(has_products()).subquery()
+            )
         ).scalar_one()
 
+
+
+def has_products() -> ColumnElement[bool]:
+    """The shop has at least one product a visitor can see: available and
+    with its photo, the same rule as ``ItemRepository.public_query``, so a
+    shop is counted only when the catalogue would show something of it."""
+    return exists().where(
+        BusinessItem.business_id == Business.id,
+        BusinessItem.is_available.is_(True),
+        BusinessItem.image_url.is_not(None),
+    )
 
 
 def make_repository(db: Session) -> BusinessRepository:

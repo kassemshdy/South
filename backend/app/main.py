@@ -34,6 +34,7 @@ from app.core.logging import configure_logging
 from app.core.middleware import RequestContextMiddleware, SecurityHeadersMiddleware
 from app.core.observability import configure_error_tracking
 from app.core.seo import (
+    SeoTags,
     business_json_ld,
     business_tags,
     default_tags,
@@ -47,6 +48,7 @@ from app.core.seo import (
 )
 from app.core.validation_messages import field_errors
 from app.database.session import SessionLocal
+from app.models.activity import Activity
 from app.models.business import Business
 from app.models.enums import ImageKind
 from app.models.site_setting import SiteSetting
@@ -91,7 +93,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 interval_hours=settings.db_backup_interval_hours,
             )
         )
-    # The hourly copy for the Telegram group, the owners' decision.
+    # The copy for the Telegram group every few hours, the owners' decision.
     telegram_copies: asyncio.Task[None] | None = None
     if (
         settings.is_production
@@ -336,6 +338,22 @@ def _register_exception_handlers(app: FastAPI) -> None:
         # from the catalogs, because pydantic writes its own messages in
         # English and knows nothing about the request locale. See
         # ``app/core/validation_messages.py``.
+        # Where and why, never the value: a rejected field can be a password
+        # or a phone number. Without this a 422 left no trace of its cause
+        # (four rejected screenshots on 30 Oct 2026).
+        logger.info(
+            "Request validation failed",
+            extra={
+                "path": request.url.path,
+                "fields": [
+                    {
+                        "loc": ".".join(str(part) for part in error.get("loc", ())),
+                        "type": error.get("type"),
+                    }
+                    for error in exc.errors()
+                ],
+            },
+        )
         return JSONResponse(
             {
                 "error": {
@@ -563,6 +581,29 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
                         )
                 finally:
                     db.close()
+            elif path.startswith("activities/"):
+                # A shared announcement shows its photograph and summary on
+                # WhatsApp and Facebook (the owners' ticket, 31 Oct 2026).
+                slug = path.removeprefix("activities/").split("/")[0]
+                db = SessionLocal()
+                try:
+                    activity = db.execute(
+                        select(Activity).where(
+                            Activity.slug == slug,
+                            Activity.is_archived.is_(False),
+                            Activity.image_url.is_not(None),
+                        )
+                    ).scalar_one_or_none()
+                    if activity is not None:
+                        tags = SeoTags(
+                            title=f"{activity.title} | {translate('app.name')}",
+                            description=(activity.summary or activity.body)[:300],
+                            canonical_url=f"{base_url}/activities/{quote(activity.slug)}",
+                            image_url=_absolute(activity.image_url),
+                            og_type="article",
+                        )
+                finally:
+                    db.close()
             elif path.startswith("talent/"):
                 slug = path.removeprefix("talent/").split("/")[0]
                 db = SessionLocal()
@@ -577,7 +618,7 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
                             skill_name=skill,
                             bio=profile.bio,
                             location_name=location,
-                            image_url=_absolute(profile.photo_url),
+                            image_url=_absolute(profile.public_photo_url),
                             canonical_url=url,
                         )
                         tags = replace(
@@ -588,8 +629,8 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
                                     job_title=skill,
                                     description=profile.bio,
                                     url=url,
-                                    image_url=_absolute(profile.photo_url)
-                                    if profile.photo_url
+                                    image_url=_absolute(profile.public_photo_url)
+                                    if profile.public_photo_url
                                     else None,
                                     location_name=location,
                                 ),

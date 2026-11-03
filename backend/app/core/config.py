@@ -261,10 +261,29 @@ class Settings(BaseSettings):
     # Off: messages carry the details and say how many files there are.
     # On: photos, ID scans, CVs and papers are attached as well.
     telegram_send_files: bool = False
+    # A Telegram username (without the @) mentioned on a new support ticket
+    # and on a ticket waiting for approval, so it reaches that person rather
+    # than sitting among the rest; empty mentions nobody.
+    telegram_mention: str = ""
+    # The owner's own chat with the bot (a numeric id, not a username: a bot
+    # cannot message someone by name, and only after they have pressed Start
+    # on it). When set, a ticket waiting for approval goes there instead of
+    # the group (the owners' request, 2 Nov 2026). Empty: the group.
+    telegram_owner_chat_id: str = ""
     # Hours between copies of the database sent to the same chat as a plain
     # .sql file, without password hashes (app/services/telegram_db_backup.py);
-    # 0 turns them off. Production only, and only with the two above set.
-    telegram_db_backup_hours: int = 1
+    # every 3, the owners' choice of 31 Oct 2026; 0 turns them off.
+    # Production only, and only with the two above set.
+    telegram_db_backup_hours: int = 3
+
+    # --- Triage routine trigger --------------------------------------------
+    # The scheduled triage routine's API trigger (app/services/triage_trigger.py):
+    # moving a ticket to To do or Approved starts a run at once instead of at
+    # the next scheduled one. Both come from the routine's settings on
+    # claude.ai; the token is a secret, set as a Railway variable only. Both
+    # unset means nothing is called.
+    claude_triage_fire_url: str | None = None
+    claude_triage_token: str | None = None
     # Fraction of requests traced. Performance data is far higher volume than
     # errors, so this stays low by default and is tuned per environment.
     sentry_traces_sample_rate: float = 0.0

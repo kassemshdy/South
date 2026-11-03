@@ -51,6 +51,7 @@ from app.schemas.registration import (
 from app.services.registration import (
     ApplicantDocument,
     ApplicantDocuments,
+    ApplicantLogo,
     RegistrationService,
 )
 
@@ -71,6 +72,9 @@ DocumentField = Annotated[
 DocumentBackField = Annotated[
     UploadFile | None, File(description="The back of the applicant's ID card")
 ]
+#: The shop's logo. Required for a business application; checked by the
+#: service so a missing one is refused like every other incomplete form.
+LogoField = Annotated[UploadFile | None, File(description="The shop's logo")]
 
 
 def _parse(model: type[ModelT], raw: str) -> ModelT:
@@ -104,6 +108,13 @@ def _document(file: UploadFile | None, limit: int) -> ApplicantDocument | None:
     return ApplicantDocument(data=data, original_filename=file.filename)
 
 
+def _logo(file: UploadFile | None, limit: int) -> ApplicantLogo | None:
+    if file is None:
+        return None
+    # Bounded for the same reason as the documents: an anonymous route.
+    return ApplicantLogo(data=read_at_most(file.file, limit), content_type=file.content_type)
+
+
 def _documents(
     front: UploadFile | None, back: UploadFile | None, limit: int
 ) -> ApplicantDocuments:
@@ -122,12 +133,14 @@ def register_business(
     application: ApplicationField,
     document: DocumentField = None,
     document_back: DocumentBackField = None,
+    logo: LogoField = None,
 ) -> RegistrationOut:
     """Apply to list a business. 202: received, not yet published."""
     RegistrationService(db, settings).register_business(
         _parse(BusinessRegistrationIn, application),
         client_ip=client_ip,
         documents=_documents(document, document_back, settings.max_verification_doc_bytes),
+        logo=_logo(logo, settings.max_upload_bytes),
     )
     return RegistrationOut(message=translate("registration.received"))
 

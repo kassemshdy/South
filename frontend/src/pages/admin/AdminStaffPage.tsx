@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
+import { StaffPermissionsMatrix } from '@/features/admin/StaffPermissionsMatrix'
 import { STAFF_ROLES } from '@/features/admin/staffAccess'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useT, type TranslationKey } from '@/i18n'
@@ -240,6 +241,8 @@ export function AdminStaffPage() {
           })}
         </ul>
       )}
+
+      <StaffPermissionsMatrix />
     </div>
   )
 }

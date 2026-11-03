@@ -99,6 +99,11 @@ class FeedbackStatus(str, enum.Enum):
     # Waiting on an answer from the owners' side (wording, a file, a
     # decision) before it can go further (the owners' request, 29 Oct 2026).
     NEEDS_FEEDBACK = "NEEDS_FEEDBACK"
+    # Fixed by the triage routine and on the develop site, waiting for a
+    # person to approve the release (the owners' request, 31 Oct 2026).
+    NEEDS_APPROVAL = "NEEDS_APPROVAL"
+    # Approved by a person from that column: the next release may ship it.
+    APPROVED = "APPROVED"
     DONE = "DONE"
 
 
@@ -252,6 +257,48 @@ class EmploymentType(str, enum.Enum):
     PART_TIME = "PART_TIME"
 
 
+class TalentAvailability(str, enum.Enum):
+    """When a job seeker can start. Public: shown as a badge on the card."""
+
+    NOW = "NOW"
+    WITHIN_MONTH = "WITHIN_MONTH"
+    EMPLOYED_OPEN = "EMPLOYED_OPEN"
+
+
+class TalentWorkType(str, enum.Enum):
+    """The kinds of work a job seeker will take; a person may take several."""
+
+    FULL_TIME = "FULL_TIME"
+    PART_TIME = "PART_TIME"
+    REMOTE = "REMOTE"
+    TRAINING = "TRAINING"
+
+
+class ActivityKind(str, enum.Enum):
+    """What an announcement is: shown in its meta line."""
+
+    ACTIVITY = "ACTIVITY"
+    CONSULTATION = "CONSULTATION"
+    WORKSHOP = "WORKSHOP"
+    TRAINING = "TRAINING"
+
+
+class EducationLevel(str, enum.Enum):
+    """The highest level a job seeker reached; the directory filters on it."""
+
+    SECONDARY_VOCATIONAL = "SECONDARY_VOCATIONAL"
+    UNIVERSITY = "UNIVERSITY"
+    POSTGRADUATE = "POSTGRADUATE"
+
+
+class EmployerRequestStatus(str, enum.Enum):
+    """Where an employer's contact request stands, for the admin's log."""
+
+    NEW = "NEW"
+    CONTACTED = "CONTACTED"
+    HIRED = "HIRED"
+
+
 class ArticleSection(str, enum.Enum):
     """Which of the two "coming soon" nav pages a published article belongs to.
 
@@ -292,6 +339,26 @@ class WorkshopMode(str, enum.Enum):
 
     ONLINE = "ONLINE"
     IN_PERSON = "IN_PERSON"
+
+
+class JobStatus(str, enum.Enum):
+    """Whether a published opening is still open (the jobs redesign, 31 Oct 2026).
+
+    Separate from publishing: an unpublished opening is gone from the site,
+    while a filled or unavailable one keeps its page, so a shared link still
+    opens and shows that it has closed.
+    """
+
+    ACTIVE = "ACTIVE"
+    FILLED = "FILLED"
+    UNAVAILABLE = "UNAVAILABLE"
+
+
+class JobContactChannel(str, enum.Enum):
+    """Which contact button on an opening was pressed."""
+
+    WHATSAPP = "WHATSAPP"
+    CALL = "CALL"
 
 
 class JobType(str, enum.Enum):

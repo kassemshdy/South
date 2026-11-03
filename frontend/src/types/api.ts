@@ -464,6 +464,79 @@ export interface TalentSummary {
    */
   displaced_from?: string | null
   created_at: string
+  /** When the profile last changed: a candidate's "last updated". */
+  updated_at?: string | null
+  // --- Job seekers (the candidate directory, 3 Nov 2026) ---
+  /** The job asked for: the card's subtitle. */
+  desired_title?: string | null
+  availability?: TalentAvailability
+  education_level?: EducationLevel | null
+  /** A CV the page offers; download it from `/api/talent/{slug}/cv`. */
+  has_cv?: boolean
+  /** Approved with an identity document on file. */
+  id_verified?: boolean
+  /** The taxonomy skill, then the person's own extras: the card's chips. */
+  skill_tags?: string[]
+  work_types?: TalentWorkType[]
+}
+
+export type TalentAvailability = 'NOW' | 'WITHIN_MONTH' | 'EMPLOYED_OPEN'
+export type TalentWorkType = 'FULL_TIME' | 'PART_TIME' | 'REMOTE' | 'TRAINING'
+export type EducationLevel = 'SECONDARY_VOCATIONAL' | 'UNIVERSITY' | 'POSTGRADUATE'
+export type ExperienceBand = '0-1' | '2-4' | '5-9' | '10+'
+export type EmployerRequestStatus = 'NEW' | 'CONTACTED' | 'HIRED'
+
+export interface TalentExperience {
+  id: string
+  title: string
+  employer: string | null
+  town: string | null
+  /** ISO dates (YYYY-MM-DD). */
+  start_date: string | null
+  end_date: string | null
+  /** "Until now"; end_date is then null. */
+  is_current: boolean
+  description: string | null
+}
+
+export interface TalentEducationEntry {
+  id: string
+  degree: string | null
+  field: string | null
+  institution: string | null
+  graduation_year: number | null
+}
+
+export interface TalentCourse {
+  id: string
+  name: string
+  issuer: string | null
+  year: number | null
+}
+
+/** An employer's request for a candidate, in the admin's log. */
+export interface EmployerRequest {
+  id: string
+  profile_id: string
+  candidate_name: string | null
+  candidate_slug: string | null
+  /** The candidate's own number, for the team to relay the request. */
+  candidate_whatsapp: string | null
+  employer_name: string
+  phone: string
+  company: string | null
+  job_title: string | null
+  message: string | null
+  status: EmployerRequestStatus
+  created_at: string
+}
+
+export interface EmployerRequestInput {
+  employer_name: string
+  phone: string
+  company?: string
+  job_title?: string
+  message?: string
 }
 
 export type LanguageProficiency = 'BASIC' | 'GOOD' | 'FLUENT' | 'NATIVE'
@@ -516,12 +589,23 @@ export interface TalentDetail extends TalentSummary {
   social_links: SocialLink[]
   images: TalentImage[]
   approved_at: string | null
+  /** Job seekers: where they can work and their history, newest first. */
+  work_areas?: LocationNode[]
+  experiences?: TalentExperience[]
+  education?: TalentEducationEntry[]
+  courses?: TalentCourse[]
 }
 
 /** The person's own view of their profile, including moderation state. */
 export interface OwnerTalent extends TalentDetail {
   /** Whether visitors see the numbers; the owner always does. */
   phone_public: boolean
+  /** Visitors see initials instead of the photo. */
+  photo_hidden?: boolean
+  /** Whether the public page offers the CV for download. */
+  cv_public?: boolean
+  /** A private note to the team; never public. */
+  team_message?: string | null
   status: BusinessStatus
   rejection_reason: string | null
   submitted_at: string | null
@@ -711,7 +795,7 @@ export interface PublicStats {
   total_talents: number
 }
 
-export type FeedbackStatus = 'BACKLOG' | 'TODO' | 'IN_PROGRESS' | 'NEEDS_FEEDBACK' | 'DONE'
+export type FeedbackStatus = 'BACKLOG' | 'TODO' | 'IN_PROGRESS' | 'NEEDS_FEEDBACK' | 'NEEDS_APPROVAL' | 'APPROVED' | 'DONE'
 
 export type FeedbackPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
 
@@ -762,6 +846,8 @@ export interface FeedbackTicketDetail extends FeedbackTicketSummary {
   page_path: string | null
   client_context: string | null
   resolved_at: string | null
+  /** Who sent it and how to call them back; administrators only. */
+  reporter_contact: { name: string | null; phone: string | null } | null
   attachments: FeedbackAttachment[]
   comments: FeedbackComment[]
 }
@@ -789,7 +875,7 @@ export type BusinessSortOption = SortOption | 'rating'
 
 /** The talent directory can also sort by years of experience, most first,
  * and services by their stars, rated first. */
-export type TalentSortOption = SortOption | 'experience' | 'rating'
+export type TalentSortOption = SortOption | 'experience' | 'rating' | 'best'
 
 /**
  * The products directory sorts by price as well, which the other two cannot:
@@ -836,6 +922,13 @@ export interface TalentQuery {
   work_mode?: Exclude<WorkMode, 'BOTH'>
   /** Only owners who chose to show they are displaced. */
   displaced?: boolean
+  // The candidate directory's filters (job seekers).
+  experience?: ExperienceBand
+  education?: EducationLevel
+  work_type?: TalentWorkType
+  available_now?: boolean
+  has_cv?: boolean
+  verified?: boolean
   sort?: TalentSortOption
   /** The visitor's position, for `nearest` only. Never put in the page URL. */
   lat?: number
@@ -1192,6 +1285,7 @@ export interface GrowthReport {
   orders_30d: number
   service_requests_30d: number
   views_30d: number
+  contact_clicks_30d: number
   orders_per_1000_views: number | null
   median_approval_hours: number | null
   approved_testimonials: number
@@ -1238,6 +1332,43 @@ export interface Activity {
   ends_at: string | null
   location: string | null
   image_url: string | null
+  /** The small copy, for lists; fall back to `image_url`. */
+  image_thumb_url?: string | null
+  kind: ActivityKind
+  /** A link out to sign up (a form, a WhatsApp chat); no button without one. */
+  register_url: string | null
+  /** The button's text; the catalog's own when null. */
+  register_label: string | null
+  /** Offer "add to calendar" (only meaningful with a start). */
+  show_calendar: boolean
+}
+
+export type ActivityKind = 'ACTIVITY' | 'CONSULTATION' | 'WORKSHOP' | 'TRAINING'
+
+/** One slide of the announcements carousel (home page and /activities). */
+export interface CarouselSlide {
+  id: string
+  title: string | null
+  image_url: string
+  image_thumb_url?: string | null
+  /** An activity's page (internal path), or a custom slide's link (external); null: not clickable. */
+  href: string | null
+  external: boolean
+}
+
+export interface AdminCarouselSlide extends CarouselSlide {
+  kind: 'ACTIVITY' | 'CUSTOM'
+  position: number
+  activity_id: string | null
+  link_url: string | null
+  ends_at: string | null
+  /** Why a visitor does not see it right now; null when they do. */
+  hidden_reason: 'ARCHIVED' | 'NO_IMAGE' | 'ENDED' | null
+}
+
+export interface AdminCarousel {
+  slides: AdminCarouselSlide[]
+  autoremove_expired: boolean
 }
 
 export interface AdminActivity extends Activity {
@@ -1245,6 +1376,7 @@ export interface AdminActivity extends Activity {
   sort_order: number
   created_at: string
   updated_at: string
+  in_carousel: boolean
 }
 
 export interface ActivityInput {
@@ -1255,6 +1387,12 @@ export interface ActivityInput {
   ends_at: string | null
   location: string | null
   sort_order: number
+  kind?: ActivityKind
+  register_url?: string | null
+  register_label?: string | null
+  show_calendar?: boolean
+  /** The form's "show in carousel" box (update only). */
+  in_carousel?: boolean
 }
 
 export type WorkshopMode = 'ONLINE' | 'IN_PERSON'
@@ -1322,14 +1460,48 @@ export interface JobOpening {
   location: LocationNode | null
   work_place: string | null
   work_mode: WorkMode | null
-  /** A thumbnail staff chose; null shows the plain card. */
+  /** A thumbnail staff chose; null shows the default green image. */
   cover_url?: string | null
+  created_at: string
+  /** Open, filled or no longer available; a past deadline reads as closed. */
+  status: JobStatus
+  status_changed_at: string | null
+  /** The number applicants contact: the opening's own or the site's WhatsApp. */
+  contact_phone: string | null
+  contact_name: string | null
+  whatsapp_enabled: boolean
+}
+
+export type JobStatus = 'ACTIVE' | 'FILLED' | 'UNAVAILABLE'
+export type JobContactChannel = 'WHATSAPP' | 'CALL'
+
+export interface JobContactStats {
+  whatsapp: number
+  call: number
+  days: { day: string; whatsapp: number; call: number }[]
+}
+
+/** An application sent through the old form, before applying moved to WhatsApp. */
+export interface JobApplication {
+  id: string
+  full_name: string
+  email: string
+  phone_number: string
+  original_filename: string | null
+  content_type: string
+  size_bytes: number
   created_at: string
 }
 
 export interface AdminJobOpening extends JobOpening {
+  /** Applications from the old form; read-only (3 Nov 2026). */
+  application_count?: number
   is_published: boolean
-  application_count: number
+  /** The status as saved; `status` may read as closed after a deadline. */
+  saved_status: JobStatus
+  /** The opening's own number; null when it falls back to the site's. */
+  own_contact_phone: string | null
+  contact_clicks: number
   updated_at: string
   /** Set when an employer offered the job on the public form. */
   submitter_name: string | null
@@ -1347,6 +1519,10 @@ export interface JobOpeningInput {
   location_id: string | null
   work_place: string | null
   work_mode: WorkMode | null
+  status: JobStatus
+  contact_phone: string | null
+  contact_name: string | null
+  whatsapp_enabled: boolean
 }
 
 /** An employer's offer from the public form; the ID scan travels beside it. */
@@ -1358,18 +1534,6 @@ export interface JobOfferInput {
   work_mode: WorkMode
   title: string
   description: string
-}
-
-/** An application as staff read it; the CV is downloaded separately. */
-export interface JobApplication {
-  id: string
-  full_name: string
-  email: string
-  phone_number: string
-  original_filename: string | null
-  content_type: string
-  size_bytes: number
-  created_at: string
 }
 
 /** The owner's view of their Shopify store's connection. Never the token. */

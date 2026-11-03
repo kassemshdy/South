@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
+import { useEffect } from 'react'
 
 import { pageCoverApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { PageCoverKey } from '@/types/api'
+import { readRemembered, writeRemembered } from '@/utils/rememberedQuery'
 
 /** The keys that are a video's preview rather than a page's photograph. */
 export const VIDEO_POSTER_KEYS = ['home_video', 'offer_video'] as const
@@ -29,6 +31,14 @@ export function useUploadedCover(key: PageCoverKey): string | null {
     queryKey: queryKeys.pageCovers,
     queryFn: pageCoverApi.all,
     staleTime: 10 * 60_000,
+    // The covers this browser saw last, so a refresh does not show the
+    // shipped photograph or video poster first and then swap; refetched at once.
+    initialData: () =>
+      readRemembered<Awaited<ReturnType<typeof pageCoverApi.all>>>('pageCovers'),
+    initialDataUpdatedAt: 0,
   })
+  useEffect(() => {
+    if (covers.data && covers.isFetchedAfterMount) writeRemembered('pageCovers', covers.data)
+  }, [covers.data, covers.isFetchedAfterMount])
   return covers.data?.[key] ?? null
 }

@@ -34,6 +34,9 @@ REDACTED_KEYS = frozenset(
         "access_token_enc",
         "api_key",
         "key_hash",
+        # A ticket reporter's name and phone, shown to administrators on the
+        # board; an agent triaging the ticket needs neither.
+        "reporter_contact",
     }
 )
 

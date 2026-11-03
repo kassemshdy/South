@@ -43,6 +43,9 @@ def verify_captcha(
         return
 
     if not token:
+        # Logged: a send with no solved check left nothing in the logs, so an
+        # applicant refused six times on 31 Oct 2026 could not be traced.
+        logger.warning("Captcha token missing")
         raise ValidationError("captcha.required", code="captcha_required")
 
     payload = {"secret": secret, "response": token}

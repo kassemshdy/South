@@ -1,4 +1,4 @@
-"""The database as a plain ``.sql`` file, sent to the Telegram group every hour.
+"""The database as a plain ``.sql`` file, sent to the Telegram group every 3 hours.
 
 The owners' decision (28 Oct 2026), beside the backups in the bucket
 (``app.services.db_backup``): a copy they can open and keep themselves,

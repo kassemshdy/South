@@ -222,7 +222,12 @@ export function BusinessProfilePage() {
           ) : null}
           {whatsapp ? (
             <Button asChild variant="whatsapp" size="lg" block>
-              <a href={whatsapp} target="_blank" rel="noopener noreferrer">
+              <a
+                href={whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => publicBusinessApi.countContactClick(data.slug)}
+              >
                 <MessageCircle className="h-5 w-5" aria-hidden="true" />
                 {t('business.whatsappCta')}
               </a>
@@ -230,7 +235,7 @@ export function BusinessProfilePage() {
           ) : null}
           {phone ? (
             <Button asChild size="lg" block>
-              <a href={phone}>
+              <a href={phone} onClick={() => publicBusinessApi.countContactClick(data.slug)}>
                 <Phone className="h-5 w-5" aria-hidden="true" />
                 {t('business.callCta')}
               </a>

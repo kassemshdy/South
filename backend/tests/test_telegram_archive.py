@@ -11,6 +11,8 @@ from __future__ import annotations
 import json
 import logging
 from collections.abc import Iterator
+from email import policy as email_policy
+from email.parser import BytesParser
 
 import httpx
 import pytest
@@ -39,11 +41,32 @@ def label(name: str) -> str:
 SITE = "https://site.test"
 
 
+def _multipart_field(request: httpx.Request, name: str) -> str:
+    """One text field of a multipart request, as Telegram would read it."""
+    message = BytesParser(policy=email_policy.HTTP).parsebytes(
+        f"Content-Type: {request.headers['content-type']}\r\n\r\n".encode() + request.content
+    )
+    for part in message.iter_parts():
+        if part.get_param("name", header="content-disposition") == name:
+            return bytes(part.get_payload(decode=True)).decode("utf-8")
+    raise AssertionError(f"no {name} field in the request")
+
+
 class FakeTelegram:
     def __init__(self) -> None:
         self.messages: list[str] = []
         self.documents: list[bytes] = []
         self.photos: list[bytes] = []
+        #: The text a photo carries: a listing with a logo is posted as that
+        #: photo, and every business application has one now.
+        self.captions: list[str] = []
+        #: The buttons under each message, as Telegram's inline keyboard.
+        self.buttons: list[list[dict[str, str]]] = []
+
+    @property
+    def texts(self) -> list[str]:
+        """Everything posted as words, whether a message or a caption."""
+        return self.messages + self.captions
 
     def handler(self, request: httpx.Request) -> httpx.Response:
         assert request.url.path.startswith(f"/bot{TOKEN}/")
@@ -53,8 +76,11 @@ class FakeTelegram:
             # No preview card under the admin link (the owners' request).
             assert json.loads(form["link_preview_options"]) == {"is_disabled": True}
             self.messages.append(form["text"])
+            if "reply_markup" in form:
+                self.buttons.append(json.loads(form["reply_markup"])["inline_keyboard"][0])
         elif request.url.path.endswith("/sendPhoto"):
             self.photos.append(request.content)
+            self.captions.append(_multipart_field(request, "caption"))
         else:
             self.documents.append(request.content)
         return httpx.Response(200, json={"ok": True})
@@ -151,13 +177,15 @@ def test_with_files_on_an_application_is_posted_with_its_id_scan(
 
     with SessionLocal() as session:
         business_id = session.execute(select(Business.id)).scalar_one()
-    text = "\n".join(fake.messages)
+    text = "\n".join(fake.texts)
     assert ar("identity.full_name") in text
     assert APPLICANT_E164 in text
     assert f"{label('link')}: {SITE}/admin/businesses/{business_id}" in text
     assert f"{label('shop')}: <b>{ar('business.applicant')}</b>" in text
     assert "password_hash" not in text
-    assert len(fake.documents) == 1, "the ID scan is attached"
+    # The ID scan, beside the logo's own files (every stored file goes).
+    scans = [document for document in fake.documents if b"/logo/" not in document]
+    assert len(scans) == 1, "the ID scan is attached"
 
 
 def test_an_order_is_posted(
@@ -295,13 +323,15 @@ def test_the_backfill_sends_a_business_with_its_owner_and_id_scan_once(
     business = db.execute(select(Business)).scalar_one()
     batch = telegram_backfill.business_batch(db, business)
     archive.send(batch)
-    text = "\n".join(fake.messages)
+    text = "\n".join(fake.texts)
     assert translate("telegram.past", locale="ar") in text.splitlines()[0]
     assert ar("identity.full_name") in text
     assert APPLICANT_E164 in text
     assert f"{SITE}/admin/businesses/{business.id}" in text
     assert f"{label('shop')}: <b>{ar('business.applicant')}</b>" in text
-    assert len(fake.documents) == 1, "the ID scan is attached"
+    # The ID scan, beside the logo's own files (every stored file goes).
+    scans = [document for document in fake.documents if b"/logo/" not in document]
+    assert len(scans) == 1, "the ID scan is attached"
 
     sent: list[Batch] = []
     monkeypatch.setenv("TELEGRAM_BACKFILL", "1")
@@ -414,3 +444,229 @@ def test_a_shop_description_keeps_its_line_breaks() -> None:
     message = archive.render(telegram_archive.Batch(name="Sam", phone=None, changes=[change]))
     assert message is not None
     assert f"{label('description')}: first line\nsecond line" in message.text
+
+
+def test_a_support_report_links_straight_to_its_ticket() -> None:
+    def no_business(_: str) -> None:
+        return None
+
+    Change = telegram_archive.Change
+    ticket = Change("created", "feedback_tickets", "t-1")
+    attachment = Change("created", "feedback_attachments", "a-1", refs={"ticket_id": "t-1"})
+    assert telegram_archive.admin_path(ticket, no_business) == "/admin/feedback?ticket=t-1"
+    assert telegram_archive.admin_path(attachment, no_business) == "/admin/feedback?ticket=t-1"
+
+
+def _mentioning(fake: FakeTelegram) -> TelegramArchive:
+    return TelegramArchive(
+        token=TOKEN,
+        chat_id="-100",
+        read_file=lambda key: b"",
+        base_url=SITE,
+        client=httpx.Client(transport=httpx.MockTransport(fake.handler)),
+        interval=0,
+        autostart=False,
+        mention="@someone",
+    )
+
+
+def test_a_new_support_report_mentions_the_configured_person() -> None:
+    fake = FakeTelegram()
+    archive = _mentioning(fake)
+    archive.submit(
+        Batch(
+            name="n",
+            phone="p",
+            changes=[
+                telegram_archive.Change(
+                    "created", "feedback_tickets", "t-1", {"title": "a title"}
+                )
+            ],
+        )
+    )
+    archive.drain()
+
+    assert fake.messages and "@someone" in fake.messages[0]
+
+
+def test_moving_a_ticket_to_approval_posts_its_note_link_and_mention(
+    client: TestClient, admin: User
+) -> None:
+    fake = FakeTelegram()
+    archive = _mentioning(fake)
+    telegram_archive.set_archive(archive)
+    try:
+        headers = admin_headers(client)
+        ticket = client.post(
+            "/api/admin/feedback/tickets", headers=headers, json={"title": "a bug"}
+        ).json()
+        client.post(
+            f"/api/admin/feedback/tickets/{ticket['id']}/comments",
+            headers=headers,
+            json={"body": "PR https://example.test/pull/1"},
+        )
+        for status in ("NEEDS_APPROVAL", "NEEDS_APPROVAL"):
+            moved = client.post(
+                f"/api/admin/feedback/tickets/{ticket['id']}/move",
+                headers=headers,
+                json={"status": status, "index": 0},
+            )
+            assert moved.status_code == 200, moved.text
+        archive.drain()
+    finally:
+        telegram_archive.set_archive(None)
+
+    # Once, though it was dropped there twice: only arriving is news.
+    approval = translate("telegram.kind.ticket_approval", locale="ar")
+    sent = [m for m in fake.messages if approval in m]
+    assert len(sent) == 1
+    text = sent[0]
+    assert translate("telegram.kind.ticket_approval", locale="ar") in text
+    assert "PR https://example.test/pull/1" in text
+    assert f"{SITE}/admin/feedback?ticket={ticket['id']}" in text
+    assert "@someone" in text
+    # And two buttons opening the same ticket with the decision to confirm.
+    assert fake.buttons == [
+        [
+            {
+                "text": translate("telegram.button.approve", locale="ar"),
+                "url": f"{SITE}/admin/feedback?ticket={ticket['id']}&decision=approve",
+            },
+            {
+                "text": translate("telegram.button.reject", locale="ar"),
+                "url": f"{SITE}/admin/feedback?ticket={ticket['id']}&decision=reject",
+            },
+        ]
+    ]
+
+
+def test_every_new_ticket_and_status_change_is_posted(
+    client: TestClient, admin: User
+) -> None:
+    """The owners' request (1 Nov 2026): an administrator's ticket, which
+    the commit hooks skip, and every move between columns -- but not a
+    reorder within one."""
+    fake = FakeTelegram()
+    archive = _mentioning(fake)
+    telegram_archive.set_archive(archive)
+    try:
+        headers = admin_headers(client)
+        ticket = client.post(
+            "/api/admin/feedback/tickets",
+            headers=headers,
+            json={"title": "a bug", "description": "what happened"},
+        ).json()
+        for status in ("IN_PROGRESS", "IN_PROGRESS", "DONE"):
+            moved = client.post(
+                f"/api/admin/feedback/tickets/{ticket['id']}/move",
+                headers=headers,
+                json={"status": status, "index": 0},
+            )
+            assert moved.status_code == 200, moved.text
+        archive.drain()
+    finally:
+        telegram_archive.set_archive(None)
+
+    link = f"{SITE}/admin/feedback?ticket={ticket['id']}"
+    created, started, done = fake.messages
+    assert translate("telegram.kind.ticket", locale="ar") in created
+    assert "a bug" in created and "what happened" in created and link in created
+    assert "@someone" in created
+
+    def status(origin: str, destination: str) -> str:
+        return translate(
+            "telegram.ticket_moved",
+            locale="ar",
+            origin=translate(f"telegram.ticket_status.{origin}", locale="ar"),
+            destination=translate(f"telegram.ticket_status.{destination}", locale="ar"),
+        )
+
+    for text, origin, destination in (
+        (started, "BACKLOG", "IN_PROGRESS"),
+        (done, "IN_PROGRESS", "DONE"),
+    ):
+        assert translate("telegram.kind.ticket_moved", locale="ar") in text
+        assert status(origin, destination) in text
+        assert "a bug" in text and link in text
+
+
+def test_every_ticket_status_has_a_name_for_the_chat() -> None:
+    from app.models.enums import FeedbackStatus
+
+    for status in FeedbackStatus:
+        key = f"telegram.ticket_status.{status.value}"
+        assert translate(key, locale="ar") != key
+        assert translate(key, locale="en") != key
+
+
+def test_an_approval_goes_to_the_owner_in_private_when_configured() -> None:
+    """The owners' request (2 Nov 2026): approvals reach the owner directly,
+    not the group; without the private chat they stay in the group."""
+    for owner, expected in (("12345", "12345"), ("", "-100")):
+        chats: list[str] = []
+
+        def handler(request: httpx.Request, chats: list[str] = chats) -> httpx.Response:
+            chats.append(dict(httpx.QueryParams(request.content.decode()))["chat_id"])
+            return httpx.Response(200, json={"ok": True, "result": {}})
+
+        archive = TelegramArchive(
+            token=TOKEN,
+            chat_id="-100",
+            read_file=lambda key: b"",
+            base_url=SITE,
+            client=httpx.Client(transport=httpx.MockTransport(handler)),
+            interval=0,
+            autostart=False,
+            owner_chat_id=owner,
+        )
+        archive.submit(
+            telegram_archive.Notice(
+                "telegram.kind.ticket_approval", [("title", "t")], direct=True
+            )
+        )
+        archive.submit(telegram_archive.Notice("telegram.kind.ticket_moved", [("title", "t")]))
+        archive.drain()
+        # The approval to the owner (or the group), every other notice to the group.
+        assert chats == [expected, "-100"]
+
+
+def test_no_button_without_a_public_https_address() -> None:
+    """Telegram refuses a button to anything else, and the message with it."""
+    fake = FakeTelegram()
+    archive = TelegramArchive(
+        token=TOKEN,
+        chat_id="-100",
+        read_file=lambda key: b"",
+        base_url="http://localhost:5173",
+        client=httpx.Client(transport=httpx.MockTransport(fake.handler)),
+        interval=0,
+        autostart=False,
+    )
+    archive.submit(
+        telegram_archive.Notice(
+            "telegram.kind.ticket_approval",
+            [("title", "t")],
+            path="/admin/feedback?ticket=1",
+            buttons=[("telegram.button.approve", "/admin/feedback?ticket=1")],
+        )
+    )
+    archive.drain()
+
+    assert fake.messages and fake.buttons == []
+
+
+def test_nothing_is_mentioned_when_no_one_is_configured() -> None:
+    fake = FakeTelegram()
+    archive = TelegramArchive(
+        token=TOKEN,
+        chat_id="-100",
+        read_file=lambda key: b"",
+        client=httpx.Client(transport=httpx.MockTransport(fake.handler)),
+        interval=0,
+        autostart=False,
+    )
+    archive.submit(telegram_archive.Notice("telegram.kind.ticket_approval", [("title", "t")]))
+    archive.drain()
+
+    assert "@" not in fake.messages[0]
+    assert label("mention") not in fake.messages[0]

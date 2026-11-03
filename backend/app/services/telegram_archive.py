@@ -88,6 +88,12 @@ ARCHIVED_TABLES = frozenset(
         "talent_skills",
         "talent_social_links",
         "talent_images",
+        "talent_work_types",
+        "talent_work_areas",
+        "talent_experiences",
+        "talent_education",
+        "talent_courses",
+        "employer_requests",
         "orders",
         "order_lines",
         "service_requests",
@@ -142,7 +148,15 @@ QUEUE_SIZE = 2000
 # Which listing or account a row belongs to, kept whether or not it changed,
 # so the message can link to the screen where it is reviewed.
 REF_COLUMNS = frozenset(
-    {"business_id", "item_id", "profile_id", "talent_profile_id", "user_id", "owner_id"}
+    {
+        "business_id",
+        "item_id",
+        "profile_id",
+        "talent_profile_id",
+        "user_id",
+        "owner_id",
+        "ticket_id",
+    }
 )
 
 # Where a visitor's own name and phone are, when nobody is signed in.
@@ -248,7 +262,9 @@ def admin_path(change: Change, business_of_item: Callable[[str], str | None]) ->
     if table == "partner_requests":
         return "/admin/partners"
     if table.startswith("feedback_"):
-        return "/admin/feedback"
+        # Straight to the ticket, not the whole board.
+        ticket_id = row_id if table == "feedback_tickets" else refs.get("ticket_id")
+        return f"/admin/feedback?ticket={ticket_id}" if ticket_id else "/admin/feedback"
     if table == "discarded_applications":
         return "/admin/applications"
     if table == "story_images":
@@ -302,7 +318,18 @@ _KINDS = (
     (("service_requests",), "service_request"),
     (("talent_profiles",), "service"),
     (
-        ("talent_languages", "talent_skills", "talent_social_links", "talent_images"),
+        (
+            "talent_languages",
+            "talent_skills",
+            "talent_social_links",
+            "talent_images",
+            "talent_work_types",
+            "talent_work_areas",
+            "talent_experiences",
+            "talent_education",
+            "talent_courses",
+            "employer_requests",
+        ),
         "service_media",
     ),
     (("partner_requests",), "partner"),
@@ -485,6 +512,27 @@ MAX_PHOTO_BYTES = 10 * 1024 * 1024  # sendPhoto's limit.
 class Message:
     text: str
     logo_key: str | None = None
+    #: Buttons in one row under the message: each its label and the address
+    #: it opens.
+    buttons: list[tuple[str, str]] = field(default_factory=list)
+    #: Another chat than the archive's, when set (a private one).
+    chat_id: str | None = None
+
+
+@dataclass
+class Notice:
+    """A message about something that changed rather than something added,
+    sent on purpose by a service -- the commit hooks post creations only."""
+
+    title_key: str
+    rows: list[tuple[str, str | None]]
+    path: str | None = None
+    #: Buttons in one row under the message, each a label key and the admin
+    #: path it opens (approve and reject on a ticket waiting for approval).
+    buttons: list[tuple[str, str]] = field(default_factory=list)
+    #: For the owner in person: sent to their private chat with the bot when
+    #: ``TELEGRAM_OWNER_CHAT_ID`` is set, else to the group like the rest.
+    direct: bool = False
 
 
 class TelegramArchive:
@@ -501,13 +549,17 @@ class TelegramArchive:
         interval: float = SEND_INTERVAL_SECONDS,
         autostart: bool = True,
         send_files: bool = False,
+        mention: str = "",
+        owner_chat_id: str = "",
     ) -> None:
         self._base = f"https://api.telegram.org/bot{token}"
         self._chat_id = chat_id
+        self._owner_chat_id = owner_chat_id.strip()
         self._read_file = read_file
         # Text only unless TELEGRAM_SEND_FILES is on: the owners started with
         # details alone and may add the photos and ID scans later.
         self._send_files = send_files
+        self._mention = mention.strip().lstrip("@")
         self._lookup = lookup
         self._shop = shop
         self._base_url = base_url.rstrip("/")
@@ -515,11 +567,11 @@ class TelegramArchive:
         self._interval = interval
         # Off in tests, which call ``drain`` to send on their own thread.
         self._autostart = autostart
-        self._queue: queue.Queue[Batch] = queue.Queue(maxsize=QUEUE_SIZE)
+        self._queue: queue.Queue[Batch | Notice] = queue.Queue(maxsize=QUEUE_SIZE)
         self._thread: threading.Thread | None = None
         self._lock = threading.Lock()
 
-    def submit(self, batch: Batch) -> None:
+    def submit(self, batch: Batch | Notice) -> None:
         try:
             self._queue.put_nowait(batch)
         except queue.Full:
@@ -580,6 +632,8 @@ class TelegramArchive:
             rows += [("instagram", shop.instagram), ("facebook", shop.facebook)]
         if path:
             rows.append(("link", f"{self._base_url}{path}"))
+        if kind == "ticket":
+            rows.append(("mention", self._at()))
         # Sent as HTML: the title, the shop, the product and a review's text
         # in bold (the owners' request, 28 Oct 2026), and everything else --
         # much of it typed by visitors -- escaped so it cannot add markup.
@@ -591,7 +645,32 @@ class TelegramArchive:
         ]
         return Message("\n".join(lines), shop.logo_key if shop else None)
 
-    def send(self, batch: Batch) -> None:
+    def _at(self) -> str | None:
+        return f"@{self._mention}" if self._mention else None
+
+    def render_notice(self, notice: Notice) -> Message:
+        rows = list(notice.rows)
+        if notice.path:
+            rows.append(("link", f"{self._base_url}{notice.path}"))
+        rows.append(("mention", self._at()))
+        lines = [f"<b>{_html(_t(notice.title_key))}</b>"] + [
+            f"{_html(_t(f'telegram.label.{label}'))}: {_html(value)}"
+            for label, value in rows
+            if value
+        ]
+        buttons: list[tuple[str, str]] = []
+        # Telegram refuses a button to anything but a public https address,
+        # and refuses the whole message with it -- so a local base URL gets
+        # the link line alone.
+        if self._base_url.startswith("https://"):
+            buttons = [(_t(key), f"{self._base_url}{path}") for key, path in notice.buttons]
+        chat = self._owner_chat_id if notice.direct and self._owner_chat_id else None
+        return Message("\n".join(lines), buttons=buttons, chat_id=chat)
+
+    def send(self, batch: Batch | Notice) -> None:
+        if isinstance(batch, Notice):
+            self._send_message(self.render_notice(batch))
+            return
         message = self.render(batch)
         if message is not None:
             self._send_message(message)
@@ -618,6 +697,7 @@ class TelegramArchive:
     def _send_message(self, message: Message) -> None:
         """With the shop's logo as the photo when it has one; text alone if
         the logo cannot be read or is too large for a photo."""
+        chat = message.chat_id or self._chat_id
         key = message.logo_key
         logo = None
         if key:
@@ -628,22 +708,23 @@ class TelegramArchive:
         if key and logo is not None and len(logo) <= MAX_PHOTO_BYTES:
             self._post(
                 "sendPhoto",
-                data={"chat_id": self._chat_id, "caption": message.text, "parse_mode": "HTML"},
+                data={"chat_id": chat, "caption": message.text, "parse_mode": "HTML"},
                 files={"photo": (key.rsplit("/", 1)[-1], logo)},
             )
             return
-        self._post(
-            "sendMessage",
-            data={
-                "chat_id": self._chat_id,
-                "text": message.text,
-                "parse_mode": "HTML",
-                # Every message ends with an admin link; Telegram's preview of
-                # it is the site's own share card, the same on every message
-                # (the owners asked for it gone, 29 Oct 2026).
-                "link_preview_options": NO_LINK_PREVIEW,
-            },
-        )
+        data = {
+            "chat_id": chat,
+            "text": message.text,
+            "parse_mode": "HTML",
+            # Every message ends with an admin link; Telegram's preview of
+            # it is the site's own share card, the same on every message
+            # (the owners asked for it gone, 29 Oct 2026).
+            "link_preview_options": NO_LINK_PREVIEW,
+        }
+        if message.buttons:
+            row = [{"text": label, "url": url} for label, url in message.buttons]
+            data["reply_markup"] = json.dumps({"inline_keyboard": [row]}, ensure_ascii=False)
+        self._post("sendMessage", data=data)
 
     def _post(
         self, method: str, *, data: dict[str, str], files: dict[str, Any] | None = None
@@ -729,6 +810,12 @@ def install_hooks(session_factory: sessionmaker[Session]) -> None:
     _installed.add(id(session_factory))
 
 
+def notify(notice: Notice) -> None:
+    """Queue ``notice`` for the chat; nothing at all when Telegram is off."""
+    if _archive is not None:
+        _archive.submit(notice)
+
+
 def set_archive(archive: TelegramArchive | None) -> None:
     global _archive
     _archive = archive
@@ -750,5 +837,7 @@ def configure(settings: Settings, session_factory: sessionmaker[Session]) -> Non
             shop=shop_lookup(session_factory),
             base_url=settings.public_base_url,
             send_files=settings.telegram_send_files,
+            mention=settings.telegram_mention,
+            owner_chat_id=settings.telegram_owner_chat_id,
         )
     )

@@ -115,6 +115,7 @@ class GrowthReportService:
                 unseen += 1
                 quiet.append(line)
 
+        contact_clicks_30 = self._contact_clicks_total(today - timedelta(days=29))
         views_total_30 = self._views_total(today - timedelta(days=29))
         orders_total_30 = sum(orders_30.values())
         weekly = WeeklySeries(
@@ -168,6 +169,7 @@ class GrowthReportService:
                 .where(ServiceRequest.created_at >= since_30)
             ),
             views_30d=views_total_30,
+            contact_clicks_30d=contact_clicks_30,
             orders_per_1000_views=(
                 round(orders_total_30 * 1000 / views_total_30, 1) if views_total_30 else None
             ),
@@ -276,6 +278,13 @@ class GrowthReportService:
     def _views_total(self, since: date) -> int:
         return self._count(
             select(func.coalesce(func.sum(ListingViewDaily.views), 0)).where(
+                ListingViewDaily.day >= since
+            )
+        )
+
+    def _contact_clicks_total(self, since: date) -> int:
+        return self._count(
+            select(func.coalesce(func.sum(ListingViewDaily.contact_clicks), 0)).where(
                 ListingViewDaily.day >= since
             )
         )

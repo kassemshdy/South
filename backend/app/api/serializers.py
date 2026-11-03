@@ -6,13 +6,15 @@ or the owner's login phone" is visible in a single place.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Sequence
-from typing import TypeVar
+from datetime import date
+from typing import Any, TypeVar
 
 from app.core.pagination import Page
 from app.models.article import Article
 from app.models.business import Business, BusinessItem
-from app.models.enums import ImageKind
+from app.models.enums import BusinessStatus, ImageKind, TalentKind
 from app.models.feedback import FeedbackAttachment, FeedbackComment, FeedbackTicket
 from app.models.talent import TalentProfile, TalentSkill
 from app.models.taxonomy import Category, Location
@@ -30,6 +32,7 @@ from app.schemas.common import PageMeta, PaginatedResponse
 from app.schemas.feedback import (
     FeedbackAttachmentOut,
     FeedbackCommentOut,
+    FeedbackReporterContactOut,
     FeedbackSubmissionOut,
     FeedbackTicketDetailOut,
     FeedbackTicketSummaryOut,
@@ -47,7 +50,10 @@ from app.schemas.moderation import (
 from app.schemas.product import ProductBusinessRef, ProductDetailOut, ProductSummaryOut
 from app.schemas.talent import (
     OwnerTalentOut,
+    TalentCourseOut,
     TalentDetailOut,
+    TalentEducationOut,
+    TalentExperienceOut,
     TalentImageOut,
     TalentLanguageOut,
     TalentSkillOut,
@@ -302,6 +308,42 @@ def _talent_gallery(profile: TalentProfile) -> list[TalentImageOut]:
     ]
 
 
+def _skill_tags(profile: TalentProfile) -> list[str]:
+    """The taxonomy skill, then the person's own extras, at most eight.
+
+    ``skills_text`` is free text; commas, the Arabic comma and new lines are
+    what people separate a list with.
+    """
+    tags: list[str] = []
+    if profile.skill is not None and profile.skill.slug != "other":
+        tags.append(profile.skill.name_ar)
+    elif profile.custom_skill_text:
+        tags.append(profile.custom_skill_text)
+    for part in re.split(r"[,\n\u060c;]+", profile.skills_text or ""):
+        cleaned = " ".join(part.split()).strip(" .-")
+        if cleaned and len(cleaned) <= 40 and cleaned not in tags:
+            tags.append(cleaned)
+    return tags[:8]
+
+
+def _cv_offered(profile: TalentProfile) -> bool:
+    """A job seeker's CV the public page may offer for download."""
+    return bool(
+        profile.kind is TalentKind.JOB_SEEKER
+        and profile.cv_public
+        and profile.owner is not None
+        and profile.owner.cv_document is not None
+    )
+
+
+def _id_verified(profile: TalentProfile) -> bool:
+    return bool(
+        profile.status is BusinessStatus.APPROVED
+        and profile.owner is not None
+        and profile.owner.verification_document is not None
+    )
+
+
 def talent_summary(profile: TalentProfile) -> TalentSummaryOut:
     phone, whatsapp = _public_numbers(profile)
     return TalentSummaryOut(
@@ -309,7 +351,7 @@ def talent_summary(profile: TalentProfile) -> TalentSummaryOut:
         display_name=profile.display_name,
         slug=profile.slug,
         kind=profile.kind,
-        photo_url=profile.photo_url,
+        photo_url=profile.public_photo_url,
         cover_url=profile.cover_url,
         phone=phone,
         whatsapp=whatsapp,
@@ -325,6 +367,16 @@ def talent_summary(profile: TalentProfile) -> TalentSummaryOut:
         location=location_out(profile.location),
         displaced_from=profile.owner.published_displacement,
         created_at=profile.created_at,
+        updated_at=profile.updated_at,
+        desired_title=profile.desired_title,
+        availability=profile.availability,
+        education_level=profile.education_level,
+        has_cv=_cv_offered(profile),
+        id_verified=_id_verified(profile),
+        skill_tags=_skill_tags(profile),
+        work_types=sorted(
+            (row.work_type for row in profile.work_types), key=lambda w: w.value
+        ),
     )
 
 
@@ -374,6 +426,25 @@ def talent_detail(
             for language in sorted(profile.languages, key=lambda item: item.sort_order)
         ],
         social_links=[SocialLinkOut.model_validate(link) for link in profile.social_links],
+        work_areas=[
+            out
+            for out in (location_out(area.location) for area in profile.work_areas)
+            if out is not None
+        ],
+        experiences=[
+            TalentExperienceOut.model_validate(entry) for entry in _timeline(profile)
+        ],
+        education=[TalentEducationOut.model_validate(entry) for entry in profile.education],
+        courses=[TalentCourseOut.model_validate(entry) for entry in profile.courses],
+    )
+
+
+def _timeline(profile: TalentProfile) -> list[Any]:
+    """Experience newest first: a current job, then by start date."""
+    return sorted(
+        profile.experiences,
+        key=lambda e: (e.is_current, e.start_date or date.min, -e.sort_order),
+        reverse=True,
     )
 
 
@@ -385,12 +456,16 @@ def owner_talent(profile: TalentProfile) -> OwnerTalentOut:
             # The owner's own numbers, shown or not to the public.
             "phone": profile.phone,
             "whatsapp": profile.whatsapp,
+            # And their own photo, hidden from the public or not.
+            "photo_url": profile.photo_url,
         },
         phone_public=profile.phone_public,
+        photo_hidden=profile.photo_hidden,
+        cv_public=profile.cv_public,
+        team_message=profile.team_message,
         status=profile.status,
         rejection_reason=profile.rejection_reason,
         submitted_at=profile.submitted_at,
-        updated_at=profile.updated_at,
     )
 
 
@@ -490,6 +565,10 @@ def feedback_ticket_detail(ticket: FeedbackTicket) -> FeedbackTicketDetailOut:
         page_path=ticket.page_path,
         client_context=ticket.client_context,
         resolved_at=ticket.resolved_at,
+        reporter_contact=FeedbackReporterContactOut(
+            name=ticket.reporter.full_name or ticket.reporter.display_name,
+            phone=ticket.reporter.phone_number,
+        ),
         attachments=[feedback_attachment_out(a) for a in ticket.attachments],
         comments=[feedback_comment_out(c) for c in ticket.comments],
     )

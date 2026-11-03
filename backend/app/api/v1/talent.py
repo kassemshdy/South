@@ -9,12 +9,13 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Path, Query, status
+from fastapi import APIRouter, Path, Query, Response, status
 
 from app.api.serializers import owner_talent, paginate, talent_detail, talent_summary
 from app.core.cache import cached
 from app.core.dependencies import (
     AppSettings,
+    ClientIp,
     Crawler,
     CurrentUser,
     DbSession,
@@ -22,14 +23,23 @@ from app.core.dependencies import (
     OwnTalentProfile,
     Viewer,
 )
+from app.core.downloads import content_disposition
 from app.core.errors import NotFoundError
 from app.core.i18n import translate
 from app.core.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
-from app.models.enums import TalentKind, ViewSubject, WorkMode
+from app.models.enums import (
+    EducationLevel,
+    TalentKind,
+    TalentWorkType,
+    VerificationDocumentKind,
+    ViewSubject,
+    WorkMode,
+)
 from app.repositories.geo import point_or_none
-from app.repositories.talent import TalentRepository
+from app.repositories.talent import ExperienceBand, TalentRepository
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.talent import (
+    EmployerRequestIn,
     OwnerTalentOut,
     TalentCreateIn,
     TalentDetailOut,
@@ -37,9 +47,12 @@ from app.schemas.talent import (
     TalentUpdateIn,
 )
 from app.services.analytics import ViewCounterService
+from app.services.employer_request import EmployerRequestService
 from app.services.talent import TalentService
 from app.services.talent_moderation import TalentModerationService
 from app.services.testimonial import TestimonialService
+from app.services.verification import VerificationDocumentService
+from app.storage.factory import get_storage
 
 public_router = APIRouter(tags=["talent"])
 owner_router = APIRouter(tags=["my-talent"])
@@ -64,8 +77,15 @@ def search_talent(
     displaced: Annotated[
         bool, Query(description="Only owners who chose to show they are displaced")
     ] = False,
+    # The candidate directory's filters (job seekers).
+    experience: Annotated[ExperienceBand | None, Query()] = None,
+    education: Annotated[EducationLevel | None, Query()] = None,
+    work_type: Annotated[TalentWorkType | None, Query()] = None,
+    available_now: Annotated[bool, Query()] = False,
+    has_cv: Annotated[bool, Query()] = False,
+    verified: Annotated[bool, Query()] = False,
     sort: Annotated[
-        Literal["newest", "name", "oldest", "experience", "nearest", "rating"], Query()
+        Literal["newest", "name", "oldest", "experience", "nearest", "rating", "best"], Query()
     ] = "newest",
     # The visitor's position, for "nearest" only -- see search_businesses.
     near_lat: Annotated[float | None, Query(ge=-90, le=90, alias="lat")] = None,
@@ -81,6 +101,12 @@ def search_talent(
         kind=kind,
         work_mode=work_mode,
         displaced=displaced,
+        experience=experience,
+        education=education,
+        work_type=work_type,
+        available_now=available_now,
+        has_cv=has_cv,
+        verified=verified,
         sort=sort,
         near=point_or_none(near_lat, near_lng),
         page=page,
@@ -119,6 +145,60 @@ def get_talent(
         ViewSubject.TALENT, profile.id, owner_id=profile.owner_id, viewer=viewer, crawler=crawler
     )
     return payload
+
+
+@public_router.post(
+    "/talent/{slug}/employer-requests",
+    response_model=MessageResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def place_employer_request(
+    slug: Annotated[str, Path(max_length=200)],
+    payload: EmployerRequestIn,
+    db: DbSession,
+    settings: AppSettings,
+    client_ip: ClientIp,
+) -> MessageResponse:
+    """An employer's contact request for an approved job seeker. Logged for
+    the team, who pass it on; see app.services.employer_request."""
+    profile = TalentRepository(db).get_by_slug(slug, public_only=True)
+    if profile is None:
+        raise NotFoundError("talent.not_public")
+    EmployerRequestService(db, settings).place(profile, payload, client_ip=client_ip)
+    return MessageResponse(message=translate("employer_request.received"))
+
+
+@public_router.get("/talent/{slug}/cv")
+def download_talent_cv(
+    slug: Annotated[str, Path(max_length=200)], db: DbSession, settings: AppSettings
+) -> Response:
+    """An approved job seeker's CV, only when they allow the download.
+
+    The file lives in private storage; this route is the one public way to
+    it, and answers 404 alike for no CV, a CV kept private and no profile.
+    """
+    profile = TalentRepository(db).get_by_slug(slug, public_only=True)
+    document = (
+        profile.owner.document_of(VerificationDocumentKind.CV)
+        if profile is not None
+        and profile.owner is not None
+        and profile.kind is TalentKind.JOB_SEEKER
+        and profile.cv_public
+        else None
+    )
+    if document is None:
+        raise NotFoundError("talent.cv_not_found")
+    data = VerificationDocumentService(get_storage(), settings).read_bytes(document)
+    return Response(
+        content=data,
+        media_type=document.content_type,
+        headers={
+            "Content-Disposition": content_disposition(
+                document.original_filename or f"{profile.slug if profile else 'cv'}.pdf"
+            ),
+            "Cache-Control": "private, no-store",
+        },
+    )
 
 
 # --- Owner -----------------------------------------------------------------

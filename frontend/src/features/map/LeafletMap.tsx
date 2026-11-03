@@ -37,6 +37,11 @@ export interface LeafletMapProps {
   onChange?: (pin: Pin) => void
   label: string
   className?: string
+  /**
+   * Draw a circle of this radius (metres) instead of a pin: a private
+   * person's page shows the area of their town, never their door.
+   */
+  areaRadius?: number
 }
 
 /**
@@ -48,10 +53,17 @@ export interface LeafletMapProps {
  * dragged. Laid out left-to-right whatever the page's direction, because a
  * map's controls and attribution assume it.
  */
-export default function LeafletMap({ value, onChange, label, className }: LeafletMapProps) {
+export default function LeafletMap({
+  value,
+  onChange,
+  label,
+  className,
+  areaRadius,
+}: LeafletMapProps) {
   const container = useRef<HTMLDivElement>(null)
   const map = useRef<L.Map | null>(null)
   const marker = useRef<L.Marker | null>(null)
+  const area = useRef<L.Circle | null>(null)
   const changeRef = useRef(onChange)
   changeRef.current = onChange
   const editable = Boolean(onChange)
@@ -93,6 +105,7 @@ export default function LeafletMap({ value, onChange, label, className }: Leafle
       instance.remove()
       map.current = null
       marker.current = null
+      area.current = null
     }
     // Built once; the pin is kept in step by the effect below.
   }, [])
@@ -103,9 +116,27 @@ export default function LeafletMap({ value, onChange, label, className }: Leafle
     if (!value) {
       marker.current?.remove()
       marker.current = null
+      area.current?.remove()
+      area.current = null
       return
     }
     const at: L.LatLngExpression = [value.lat, value.lng]
+    if (areaRadius) {
+      if (area.current) {
+        area.current.setLatLng(at)
+      } else {
+        area.current = L.circle(at, {
+          radius: areaRadius,
+          color: '#2563eb',
+          weight: 2,
+          dashArray: '6 6',
+          fillOpacity: 0.12,
+          interactive: false,
+        }).addTo(instance)
+      }
+      instance.fitBounds(area.current.getBounds(), { padding: [16, 16] })
+      return
+    }
     if (marker.current) {
       marker.current.setLatLng(at)
     } else {
@@ -124,7 +155,7 @@ export default function LeafletMap({ value, onChange, label, className }: Leafle
       marker.current = created.addTo(instance)
     }
     if (!instance.getBounds().contains(at)) instance.setView(at, Math.max(instance.getZoom(), 13))
-  }, [value, editable])
+  }, [value, editable, areaRadius])
 
   return (
     <div

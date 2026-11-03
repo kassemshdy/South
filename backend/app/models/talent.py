@@ -34,12 +34,16 @@ from app.database.base import Base, TimestampMixin, pg_enum, uuid_pk
 from app.models.enums import (
     BusinessStatus,
     ContactChannel,
+    EducationLevel,
+    EmployerRequestStatus,
     EmploymentType,
     ImageKind,
     LanguageProficiency,
     ModerationActionType,
     SocialPlatform,
+    TalentAvailability,
     TalentKind,
+    TalentWorkType,
     WorkMode,
 )
 
@@ -196,6 +200,38 @@ class TalentProfile(Base, TimestampMixin):
         index=True,
     )
 
+    # --- Job seekers (kind JOB_SEEKER) ----------------------------------
+    # The job asked for, in the person's words: the card's subtitle.
+    desired_title: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    availability: Mapped[TalentAvailability] = mapped_column(
+        pg_enum(TalentAvailability, "talent_availability"),
+        nullable=False,
+        default=TalentAvailability.NOW,
+        server_default=TalentAvailability.NOW.value,
+    )
+    # The highest level reached, for the directory's education filter.
+    education_level: Mapped[EducationLevel | None] = mapped_column(
+        pg_enum(EducationLevel, "education_level"), nullable=True
+    )
+    # With ``photo_hidden`` on, the photo is shown to nobody but staff: the
+    # public sees initials, and no public payload or URL may carry it.
+    photo_hidden: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    # A CV is private storage (``PRIVATE_MEDIA_FOLDERS``); ``cv_public`` only
+    # decides whether the public page offers the download.
+    cv_storage_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    cv_public: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
+    # A private note to the team, never published in any public schema.
+    team_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Last time the person said they were still looking; drives the stale
+    # filter. Null means never asked.
+    last_confirmed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     status: Mapped[BusinessStatus] = mapped_column(
         pg_enum(BusinessStatus, "business_status"),
         default=BusinessStatus.DRAFT,
@@ -235,6 +271,32 @@ class TalentProfile(Base, TimestampMixin):
         cascade="all, delete-orphan",
         order_by="TalentSocialLink.platform",
     )
+    work_types: Mapped[list[TalentWorkTypeRow]] = relationship(
+        back_populates="profile", cascade="all, delete-orphan"
+    )
+    work_areas: Mapped[list[TalentWorkArea]] = relationship(
+        back_populates="profile", cascade="all, delete-orphan"
+    )
+    experiences: Mapped[list[TalentExperience]] = relationship(
+        back_populates="profile",
+        cascade="all, delete-orphan",
+        order_by="TalentExperience.sort_order",
+    )
+    education: Mapped[list[TalentEducation]] = relationship(
+        back_populates="profile",
+        cascade="all, delete-orphan",
+        order_by="TalentEducation.sort_order",
+    )
+    courses: Mapped[list[TalentCourse]] = relationship(
+        back_populates="profile",
+        cascade="all, delete-orphan",
+        order_by="TalentCourse.sort_order",
+    )
+    employer_requests: Mapped[list[EmployerRequest]] = relationship(
+        back_populates="profile",
+        cascade="all, delete-orphan",
+        order_by="EmployerRequest.created_at.desc()",
+    )
     moderation_actions: Mapped[list[TalentModerationAction]] = relationship(
         back_populates="profile",
         cascade="all, delete-orphan",
@@ -254,6 +316,12 @@ class TalentProfile(Base, TimestampMixin):
     @property
     def is_public(self) -> bool:
         return self.status is BusinessStatus.APPROVED
+
+    @property
+    def public_photo_url(self) -> str | None:
+        """The photo a visitor may see: none when the person hid it. Every
+        public payload, page tag and sitemap reads the photo through here."""
+        return None if self.photo_hidden else self.photo_url
 
 
 class TalentLanguage(Base):
@@ -281,6 +349,132 @@ class TalentLanguage(Base):
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     profile: Mapped[TalentProfile] = relationship(back_populates="languages")
+
+
+class TalentWorkTypeRow(Base):
+    """One kind of work a job seeker will take (several allowed)."""
+
+    __tablename__ = "talent_work_types"
+    __table_args__ = (UniqueConstraint("profile_id", "work_type", name="uq_talent_work_type"),)
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    profile_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("talent_profiles.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    work_type: Mapped[TalentWorkType] = mapped_column(
+        pg_enum(TalentWorkType, "talent_work_type"), nullable=False
+    )
+
+    profile: Mapped[TalentProfile] = relationship(back_populates="work_types")
+
+
+class TalentWorkArea(Base):
+    """A town or district a job seeker can work in."""
+
+    __tablename__ = "talent_work_areas"
+    __table_args__ = (UniqueConstraint("profile_id", "location_id", name="uq_talent_work_area"),)
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    profile_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("talent_profiles.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    location_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("locations.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+
+    profile: Mapped[TalentProfile] = relationship(back_populates="work_areas")
+    location: Mapped[Location] = relationship()
+
+
+class TalentExperience(Base):
+    """One job in a person's history; the profile renders them as a timeline."""
+
+    __tablename__ = "talent_experiences"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    profile_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("talent_profiles.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    title: Mapped[str] = mapped_column(String(120), nullable=False)
+    employer: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    town: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    start_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    # True means "until now"; ``end_date`` is then ignored.
+    is_current: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    profile: Mapped[TalentProfile] = relationship(back_populates="experiences")
+
+
+class TalentEducation(Base):
+    """One degree or qualification."""
+
+    __tablename__ = "talent_education"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    profile_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("talent_profiles.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    degree: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    field: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    institution: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    graduation_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    profile: Mapped[TalentProfile] = relationship(back_populates="education")
+
+
+class TalentCourse(Base):
+    """A course or training the person completed."""
+
+    __tablename__ = "talent_courses"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    profile_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("talent_profiles.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(160), nullable=False)
+    issuer: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    year: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    profile: Mapped[TalentProfile] = relationship(back_populates="courses")
+
+
+class EmployerRequest(Base):
+    """An employer's contact form for a candidate, kept as the admin's log.
+
+    Private: the employer's details are theirs, and the log also gives the
+    platform its count of placements (status ``HIRED``).
+    """
+
+    __tablename__ = "employer_requests"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    profile_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("talent_profiles.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    employer_name: Mapped[str] = mapped_column(String(160), nullable=False)
+    phone: Mapped[str] = mapped_column(String(32), nullable=False)
+    company: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    job_title: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[EmployerRequestStatus] = mapped_column(
+        pg_enum(EmployerRequestStatus, "employer_request_status"),
+        nullable=False,
+        default=EmployerRequestStatus.NEW,
+        server_default=EmployerRequestStatus.NEW.value,
+        index=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    profile: Mapped[TalentProfile] = relationship(back_populates="employer_requests")
 
 
 class TalentSocialLink(Base):

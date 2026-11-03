@@ -9,6 +9,7 @@
 import { z } from 'zod'
 
 import type { TranslationKey } from '@/i18n'
+import { containsContactDetails, isPersonName } from '@/features/talent/form/candidateText'
 
 type Translate = (key: TranslationKey, params?: Record<string, string | number>) => string
 
@@ -308,6 +309,15 @@ export const itemSchema = (t: Translate) =>
  * "Other" skill is a seeded row with a real id, so the free-text requirement
  * can only be wired up once the skill list has loaded.
  */
+const optionalYear = (t: Translate) =>
+  z
+    .string()
+    .trim()
+    .refine(
+      (value) => !value || (/^\d{4}$/.test(value) && Number(value) >= 1940 && Number(value) <= 2100),
+      t('candidateForm.yearInvalid'),
+    )
+
 export const talentSchema = (t: Translate, otherSkillId?: string) =>
   z
     .object({
@@ -391,8 +401,74 @@ export const talentSchema = (t: Translate, otherSkillId?: string) =>
         )
         .max(20)
         .optional(),
+
+      // --- Job seekers (the candidate directory). Ignored for a service.
+      desired_title: z.string().trim().max(60).optional().or(z.literal('')),
+      availability: z.enum(['NOW', 'WITHIN_MONTH', 'EMPLOYED_OPEN']),
+      education_level: z
+        .enum(['SECONDARY_VOCATIONAL', 'UNIVERSITY', 'POSTGRADUATE'])
+        .optional()
+        .or(z.literal('')),
+      work_types: z.array(z.enum(['FULL_TIME', 'PART_TIME', 'REMOTE', 'TRAINING'])),
+      work_area_ids: z.array(z.string()).max(30),
+      photo_hidden: z.boolean(),
+      cv_public: z.boolean(),
+      // Shown or not to employers: a required choice, nothing preselected
+      // for a new candidate (the owners' ticket, 31 Oct 2026).
+      phone_choice: z.enum(['public', 'private']).optional().or(z.literal('')),
+      team_message: z.string().trim().max(2000).optional().or(z.literal('')),
+      no_experience: z.boolean(),
+      experiences: z
+        .array(
+          z.object({
+            title: z.string().trim().min(1, t('candidateForm.titleRequired')).max(120),
+            employer: z.string().trim().max(160),
+            town: z.string().trim().max(120),
+            start_date: z.string(),
+            end_date: z.string(),
+            is_current: z.boolean(),
+            description: z.string().trim().max(600),
+          }),
+        )
+        .max(30),
+      education: z
+        .array(
+          z.object({
+            degree: z.string().trim().max(160),
+            field: z.string().trim().max(160),
+            institution: z.string().trim().max(200),
+            graduation_year: optionalYear(t),
+          }),
+        )
+        .max(15),
+      courses: z
+        .array(
+          z.object({
+            name: z.string().trim().min(1, t('candidateForm.courseNameRequired')).max(160),
+            issuer: z.string().trim().max(160),
+            year: optionalYear(t),
+          }),
+        )
+        .max(30),
     })
     .superRefine((values, ctx) => {
+      if (values.kind === 'JOB_SEEKER') {
+        if (!isPersonName(values.display_name)) {
+          ctx.addIssue({ code: 'custom', path: ['display_name'], message: t('candidateForm.realName') })
+        }
+        if (containsContactDetails(values.bio)) {
+          ctx.addIssue({ code: 'custom', path: ['bio'], message: t('candidateForm.bioHasContact') })
+        } else if ((values.bio ?? '').length > 600) {
+          ctx.addIssue({ code: 'custom', path: ['bio'], message: t('candidateForm.bioTooLong') })
+        }
+        if (!values.phone_choice) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['phone_choice'],
+            message: t('candidateForm.phoneChoiceRequired'),
+          })
+        }
+      }
       if (otherSkillId && values.skill_id === otherSkillId && !values.custom_skill_text) {
         ctx.addIssue({
           code: 'custom',

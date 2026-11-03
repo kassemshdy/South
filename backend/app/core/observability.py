@@ -63,6 +63,8 @@ SENSITIVE_KEYS = frozenset(
         "key_hash",
         "state",
         "x-shopify-access-token",
+        # The triage routine's bearer token, held in a local while it is sent.
+        "claude_triage_token",
     }
 )
 

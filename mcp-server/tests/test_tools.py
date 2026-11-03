@@ -7,6 +7,7 @@ directly, so the argument schemas the model sees are exercised too.
 from __future__ import annotations
 
 import asyncio
+import base64
 from typing import Any
 
 import pytest
@@ -219,3 +220,59 @@ def test_every_tool_declares_whether_it_writes() -> None:
     for tool in tools_of(StubApi()):
         assert tool.annotations is not None, tool.name
         assert tool.annotations.read_only_hint is not None, tool.name
+
+
+# --- ticket attachments ------------------------------------------------------
+
+TICKET_ID = "11111111-1111-1111-1111-111111111111"
+ATTACHMENT_ID = "22222222-2222-2222-2222-222222222222"
+ATTACHMENT = f"{TICKETS}/{TICKET_ID}/attachments/{ATTACHMENT_ID}/download"
+
+
+def raw_call(stub: StubApi, tool: str, **arguments: Any) -> Any:
+    client = SouthClient(stub.config, transport=stub.transport)
+    result = asyncio.run(build_server(stub.config, client).call_tool(tool, arguments))
+    assert not result.is_error, result.content
+    return result.content
+
+
+def attachment(stub: StubApi, ticket_id: str = TICKET_ID) -> Any:
+    [content] = raw_call(
+        stub, "get_ticket_attachment", ticket_id=ticket_id, attachment_id=ATTACHMENT_ID
+    )
+    return content
+
+
+def test_a_screenshot_comes_back_as_an_image(stub: StubApi) -> None:
+    stub.files[ATTACHMENT] = (b"\x89PNG fake", "image/png")
+    content = attachment(stub)
+
+    assert content.type == "image" and content.mime_type == "image/png"
+    assert base64.b64decode(content.data) == b"\x89PNG fake"
+    assert stub.paths() == [ATTACHMENT]
+
+
+def test_a_pdf_comes_back_as_an_embedded_file(stub: StubApi) -> None:
+    stub.files[ATTACHMENT] = (b"%PDF-1.7 fake", "application/pdf")
+    content = attachment(stub)
+
+    assert content.type == "resource"
+    assert content.resource.mime_type == "application/pdf"
+    assert base64.b64decode(content.resource.blob) == b"%PDF-1.7 fake"
+
+
+def test_anything_else_is_not_handed_over(stub: StubApi) -> None:
+    stub.files[ATTACHMENT] = (b"<html>", "text/html")
+    content = attachment(stub)
+
+    assert content.type == "text" and "Unsupported" in content.text
+
+
+def test_an_id_cannot_steer_the_tool_to_another_file(stub: StubApi) -> None:
+    """The ids go into a URL. Without the UUID check, "../" and a "?" would
+    turn the request into one for an account's CV or ID scan."""
+    stub.files["/api/admin/users/u1/cv-document/download"] = (b"%PDF cv", "application/pdf")
+    content = attachment(stub, ticket_id="../../users/u1/cv-document/download?x=")
+
+    assert content.type == "text" and "UUID" in content.text
+    assert stub.paths() == []

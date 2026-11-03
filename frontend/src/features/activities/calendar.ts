@@ -1,7 +1,7 @@
 import type { Activity } from '@/types/api'
 
-/** An activity with no end is put in a calendar as two hours long. */
-const DEFAULT_LENGTH_MS = 2 * 60 * 60 * 1000
+/** An activity with no end is put in a calendar as one hour long (the owners' ticket, 31 Oct 2026). */
+const DEFAULT_LENGTH_MS = 60 * 60 * 1000
 
 /** `20261105T160000Z`: the UTC form both Google Calendar and iCalendar read. */
 function utcStamp(date: Date): string {
@@ -30,6 +30,26 @@ export function googleCalendarHref(activity: Activity, pageUrl: string): string 
   })
   if (activity.location) params.set('location', activity.location)
   return `https://calendar.google.com/calendar/render?${params.toString()}`
+}
+
+/**
+ * Outlook on the web / Office 365's own compose page, filled in. Times are
+ * sent as UTC ISO strings, which Outlook shows in the visitor's own zone --
+ * so an activity in Beirut appears at its Beirut time to someone there.
+ */
+export function outlookCalendarHref(activity: Activity, pageUrl: string): string | null {
+  const when = span(activity)
+  if (!when) return null
+  const params = new URLSearchParams({
+    path: '/calendar/action/compose',
+    rru: 'addevent',
+    subject: activity.title,
+    startdt: when.start.toISOString(),
+    enddt: when.end.toISOString(),
+    body: [activity.summary, pageUrl].filter(Boolean).join('\n\n'),
+  })
+  if (activity.location) params.set('location', activity.location)
+  return `https://outlook.office.com/calendar/0/deeplink/compose?${params.toString()}`
 }
 
 /** RFC 5545 text: backslash, semicolon, comma and newline escaped. */

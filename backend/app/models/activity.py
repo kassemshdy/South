@@ -13,10 +13,11 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Index, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.database.base import Base, TimestampMixin, uuid_pk
+from app.database.base import Base, TimestampMixin, pg_enum, uuid_pk
+from app.models.enums import ActivityKind
 
 
 class Activity(Base, TimestampMixin):
@@ -40,5 +41,49 @@ class Activity(Base, TimestampMixin):
     image_storage_key: Mapped[str | None] = mapped_column(String, nullable=True)
 
     is_archived: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    # Lower first; ties go to the newest.
+    # Lower first; ties go to the newest. Superseded for the carousel by
+    # CarouselSlide.position (the owners' ticket, 31 Oct 2026); kept so old
+    # rows keep their place in any list that still reads it.
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    # --- The activities redesign (the owners' ticket, 31 Oct 2026) -------
+    kind: Mapped[ActivityKind] = mapped_column(
+        pg_enum(ActivityKind, "activity_kind"),
+        nullable=False,
+        default=ActivityKind.ACTIVITY,
+        server_default=ActivityKind.ACTIVITY.value,
+    )
+    # A link out to wherever people sign up (a form, a WhatsApp chat).
+    register_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # The button's text; the catalog's own when empty.
+    register_label: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    show_calendar: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
+
+
+class CarouselSlide(Base):
+    """One slide of the announcements carousel, on the home page and /activities.
+
+    Either an activity's photograph (``activity_id``) or a custom slide with
+    its own image, title and link -- a partner banner, a campaign. One table
+    holds the order of both, so the two pages show the same slides in the
+    same order. Lower ``position`` first.
+    """
+
+    __tablename__ = "carousel_slides"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    position: Mapped[int] = mapped_column(Integer, nullable=False, default=0, index=True)
+    activity_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("activities.id", ondelete="CASCADE"), nullable=True, unique=True
+    )
+    image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    image_storage_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    title: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    link_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    activity: Mapped[Activity | None] = relationship()

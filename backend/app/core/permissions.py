@@ -39,13 +39,15 @@ RESTRICTED_READS: dict[str, frozenset[StaffRole]] = {
         "/api/admin/users/{user_id}/cv-document",
         "/api/admin/users/{user_id}/cv-document/download",
         "/api/admin/businesses/{business_id}/documents/{document_id}/download",
-        "/api/admin/job-openings/{job_id}/applications/{application_id}/cv",
         "/api/admin/job-openings/{job_id}/id-document",
+        "/api/admin/job-openings/{job_id}/applications/{application_id}/cv",
     )
 } | {
     # A spreadsheet of every account's identity and every customer's phone.
     "/api/admin/export/{dataset}.csv": frozenset({M}),
     "/api/admin/staff": frozenset({M}),
+    # Employers' names and numbers: the roles that act on the requests.
+    "/api/admin/employer-requests": frozenset({M, R, S}),
     # Whoever may issue an owner's password may see whether theirs is current.
     "/api/admin/users/{user_id}/credentials": frozenset({M, R, S}),
 }
@@ -105,6 +107,8 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     ("POST", "/api/admin/feedback/tickets/{ticket_id}/comments"): _SUPPORT,
     ("POST", "/api/admin/feedback/tickets/{ticket_id}/move"): _SUPPORT,
     ("POST", "/api/admin/discarded-applications/{application_id}/dismiss"): _SUPPORT,
+    # Marking an employer's request contacted or hired.
+    ("POST", "/api/admin/employer-requests/{request_id}/status"): _CREDENTIALS,
     # Adds it to the account: deciding it is that person is a review call.
     ("POST", "/api/admin/discarded-applications/{application_id}/attach"): _MODERATE,
     ("DELETE", "/api/admin/partners/{request_id}"): _SUPPORT,
@@ -133,7 +137,6 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     ("POST", "/api/admin/job-openings/{job_id}/unpublish"): _CONTENT,
     ("POST", "/api/admin/job-openings/{job_id}/image"): _CONTENT,
     ("DELETE", "/api/admin/job-openings/{job_id}/image"): _CONTENT,
-    ("DELETE", "/api/admin/job-openings/{job_id}/applications/{application_id}"): _MODERATE,
     ("PUT", "/api/admin/pages/{key}"): _CONTENT,
     ("PUT", "/api/admin/team/{slot}"): _CONTENT,
     ("POST", "/api/admin/team/{slot}/photo"): _CONTENT,
@@ -152,6 +155,13 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     ("PUT", "/api/admin/activities/{activity_id}"): _CONTENT,
     ("DELETE", "/api/admin/activities/{activity_id}"): _CONTENT,
     ("POST", "/api/admin/activities/{activity_id}/image"): _CONTENT,
+    # The announcements carousel (the owners' ticket, 31 Oct 2026).
+    ("PUT", "/api/admin/carousel/order"): _CONTENT,
+    ("POST", "/api/admin/carousel/activities"): _CONTENT,
+    ("POST", "/api/admin/carousel/custom"): _CONTENT,
+    ("PUT", "/api/admin/carousel/settings"): _CONTENT,
+    ("PUT", "/api/admin/carousel/{slide_id}"): _CONTENT,
+    ("DELETE", "/api/admin/carousel/{slide_id}"): _CONTENT,
     # The home page's Instagram reels.
     ("POST", "/api/admin/reels"): _CONTENT,
     ("PUT", "/api/admin/reels/order"): _CONTENT,

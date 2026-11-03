@@ -129,7 +129,7 @@ export function AdminUsersPage() {
                       <div>
                         <p className="ltr-nums font-semibold">{user.phone_number ?? user.email ?? '—'}</p>
                         <p className="text-sm text-ink-500">
-                          {user.display_name ?? t('admin.userNoName')} ·{' '}
+                          {user.display_name ?? user.identity?.full_name ?? t('admin.userNoName')} ·{' '}
                           {t('admin.userJoined', { date: formatDate(user.created_at, locale) })}
                         </p>
                       </div>

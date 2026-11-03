@@ -27,7 +27,8 @@ import { ErrorState } from '@/components/ui/States'
 import { useSeo } from '@/hooks/useSeo'
 import { trackListingView } from '@/services/analytics'
 import { useI18n, useT } from '@/i18n'
-import { EMPLOYMENT_TYPE_KEYS, PROFICIENCY_KEYS, WORK_MODE_KEYS } from '@/features/talent/labels'
+import { PROFICIENCY_KEYS, WORK_MODE_KEYS } from '@/features/talent/labels'
+import { serviceHeadline } from '@/features/talent/TalentCard'
 import { FollowLinks } from '@/features/social/FollowLinks'
 import { ListingMap } from '@/features/map/ListingMap'
 import { googleMapsHref, pinOf } from '@/features/map/types'
@@ -40,6 +41,7 @@ import {
   type ParsedList,
 } from '@/features/talent/profileText'
 import { ServiceRequestForm } from '@/features/talent/ServiceRequestForm'
+import { CandidateProfile } from '@/features/talent/candidate/CandidateProfile'
 import { TestimonialForm } from '@/features/testimonials/TestimonialForm'
 import { TestimonialList } from '@/features/testimonials/TestimonialList'
 import { publicTalentApi } from '@/services/api/endpoints'
@@ -56,6 +58,8 @@ export function TalentProfilePage() {
   const { locale } = useI18n()
   // The gallery photo open in the lightbox, if any.
   const [galleryIndex, setGalleryIndex] = useState<number | null>(null)
+  // The service a visitor tapped "request" on, written into the request form.
+  const [requested, setRequested] = useState<string | null>(null)
 
   const talent = useQuery({
     queryKey: queryKeys.talent(slug),
@@ -71,7 +75,7 @@ export function TalentProfilePage() {
         : `${data.display_name} | ${t('app.name')}`
       : t('app.name'),
     description: data?.bio ?? undefined,
-    image: data?.photo_url ?? null,
+    image: data?.cover_url ?? data?.photo_url ?? null,
     canonicalPath: `/talent/${encodeURIComponent(slug)}`,
   })
   useEffect(() => {
@@ -106,9 +110,17 @@ export function TalentProfilePage() {
     )
   }
 
+  // A job seeker's page is its own layout (the owners' ticket, 31 Oct 2026):
+  // no service request form, no testimonials, no "verified business" badge.
+  if (data.kind === 'JOB_SEEKER') return <CandidateProfile data={data} />
+
+  const headline = serviceHeadline(data)
+  // The owners' wording: asks about the service by name.
   const whatsapp = whatsappHref(
     data.whatsapp,
-    t('talent.whatsappMessage', { name: data.display_name }),
+    headline
+      ? t('talent.whatsappInquiry', { service: headline })
+      : t('talent.whatsappMessage', { name: data.display_name }),
   )
   const phone = telHref(data.phone)
   const profilePin = pinOf(data.latitude, data.longitude)
@@ -136,13 +148,6 @@ export function TalentProfilePage() {
       value: t('talent.remoteCapableValue'),
     })
   }
-  if (data.employment_type) {
-    quickFacts.push({
-      key: 'employment_type',
-      label: t('talent.employmentTypeLabel'),
-      value: t(EMPLOYMENT_TYPE_KEYS[data.employment_type]),
-    })
-  }
   if (data.years_experience !== null) {
     quickFacts.push({
       key: 'years_experience',
@@ -150,16 +155,13 @@ export function TalentProfilePage() {
       value: t('talent.yearsExperience', { count: data.years_experience }),
     })
   }
-  if (data.highest_degree) {
-    quickFacts.push({
-      key: 'highest_degree',
-      label: t('talent.degreeLabel'),
-      value: data.highest_degree,
-    })
-  }
-
+  // The degree is a qualification, not a fact about the service: it moved
+  // from the tiles into the collapsed qualifications (the owners' services
+  // redesign, 31 Oct 2026), as did "looking for", which belongs to a job
+  // application rather than a service.
   const shortQualifications = (
     [
+      ['highest_degree', 'talent.degreeLabel'],
       ['specialization', 'talent.specializationLabel'],
       ['university', 'talent.universityLabel'],
     ] as const
@@ -186,15 +188,22 @@ export function TalentProfilePage() {
     [
       ['experience', 'talent.experienceLabel'],
       ['professional_training', 'talent.professionalTrainingLabel'],
-      ['study_focus', 'talent.studyFocusLabel'],
-      ['hobbies', 'talent.hobbiesLabel'],
     ] as const
   ).flatMap(([key, labelKey]) => {
-    const value = data[key]
-    return value ? [{ key: key as string, label: t(labelKey), list: parseList(value) }] : []
+    const value = data[key]?.trim()
+    if (!value) return []
+    const list = parseList(value)
+    // A field that parses to nothing renders nothing: no heading over a
+    // lone bullet.
+    if (list.items.length === 0 && list.intro.length === 0) return []
+    return [{ key: key as string, label: t(labelKey), list }]
   })
 
-  const services = data.services_offered ? parseList(data.services_offered) : null
+  const parsedServices = data.services_offered?.trim() ? parseList(data.services_offered) : null
+  const services =
+    parsedServices && (parsedServices.items.length > 0 || parsedServices.intro.length > 0)
+      ? parsedServices
+      : null
   const skills = data.skills_text
     ? isChipList(data.skills_text)
       ? { chips: plainLines(data.skills_text), list: null }
@@ -207,21 +216,27 @@ export function TalentProfilePage() {
     skills !== null ||
     data.languages.length > 0
 
+  // Services and prices lead (the owners' services redesign, 31 Oct 2026);
+  // qualifications come last, and collapsed.
   const sections = [
+    services ? { id: 'services', label: t('talent.servicesPricesHeading') } : null,
     data.bio ? { id: 'about', label: t('talent.aboutHeading') } : null,
     data.youtube_video_id ? { id: 'video', label: t('talent.videoHeading') } : null,
-    services ? { id: 'services', label: t('talent.servicesLabel') } : null,
-    hasQualifications ? { id: 'qualifications', label: t('talent.professionalHeading') } : null,
     data.images.length > 0 ? { id: 'work', label: t('talent.portfolioHeading') } : null,
     data.kind === 'SERVICE' ? { id: 'reviews', label: t('testimonials.heading') } : null,
+    hasQualifications ? { id: 'qualifications', label: t('talent.qualificationsHeading') } : null,
   ].filter((section): section is { id: string; label: string } => section !== null)
+
+  // The same number as phone and WhatsApp is shown once, with both icons.
+  const digits = (value: string | null) => (value ?? '').replace(/\D/g, '')
+  const samePhone = Boolean(data.phone && data.whatsapp && digits(data.phone) === digits(data.whatsapp))
 
   /* Default order, most immediate first. The preferred channel is moved to
      the front of this rather than replacing it. WhatsApp's button is in the
      header, so here it is the number, like the phone. */
   const contactEntries: Record<ContactChannel, ReactNode | null> = {
     WHATSAPP:
-      whatsapp && data.whatsapp ? (
+      whatsapp && data.whatsapp && !samePhone ? (
         <a
           href={whatsapp}
           target="_blank"
@@ -233,13 +248,27 @@ export function TalentProfilePage() {
         </a>
       ) : null,
     PHONE: data.phone ? (
-      <a
-        href={phone ?? '#'}
-        className="flex items-center gap-3 text-ink-700 hover:text-brand-700"
-      >
-        <Phone className="h-5 w-5 shrink-0 text-brand-600" aria-hidden="true" />
-        <span className="ltr-nums">{data.phone}</span>
-      </a>
+      <div className="flex items-center gap-3 text-ink-700">
+        <span className="ltr-nums flex-1">{data.phone}</span>
+        {samePhone && whatsapp ? (
+          <a
+            href={whatsapp}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={t('business.whatsappAria')}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-olive-100 text-olive-700 hover:bg-olive-200"
+          >
+            <MessageCircle className="h-4 w-4" aria-hidden="true" />
+          </a>
+        ) : null}
+        <a
+          href={phone ?? '#'}
+          aria-label={t('business.callAria')}
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-sand-100 text-brand-700 hover:bg-sand-200"
+        >
+          <Phone className="h-4 w-4" aria-hidden="true" />
+        </a>
+      </div>
     ) : null,
     EMAIL: data.email ? (
       <a
@@ -263,11 +292,10 @@ export function TalentProfilePage() {
     ) : null,
   }
 
-  const contactOrder = data.preferred_contact
-    ? [
-        data.preferred_contact,
-        ...DEFAULT_CONTACT_ORDER.filter((channel) => channel !== data.preferred_contact),
-      ]
+  const preferred: ContactChannel | null =
+    samePhone && data.preferred_contact === 'WHATSAPP' ? 'PHONE' : data.preferred_contact
+  const contactOrder = preferred
+    ? [preferred, ...DEFAULT_CONTACT_ORDER.filter((channel) => channel !== preferred)]
     : DEFAULT_CONTACT_ORDER
 
   const hasStickyBar = Boolean(whatsapp || phone)
@@ -312,38 +340,26 @@ export function TalentProfilePage() {
                     the whole block, dir="auto" turned a Latin name into a
                     left-to-right header with its details reversed. */}
                 <div className="min-w-0 flex-1 space-y-2">
-                  <div className="flex flex-wrap justify-center gap-2 sm:justify-start">
-                    <Badge className="bg-olive-100 text-olive-700">
-                      <BadgeCheck className="h-3.5 w-3.5" aria-hidden="true" />
-                      {t('business.verified')}
-                    </Badge>
-                    <DisplacedBadge place={data.displaced_from} />
-                  </div>
+                  {/* Earned, not given: approved with an identity document
+                      on file (the owners' services redesign, 31 Oct 2026). */}
+                  {data.id_verified || data.displaced_from ? (
+                    <div className="flex flex-wrap justify-center gap-2 sm:justify-start">
+                      {data.id_verified ? (
+                        <Badge className="bg-olive-100 text-olive-700">
+                          <BadgeCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                          {t('business.verified')}
+                        </Badge>
+                      ) : null}
+                      <DisplacedBadge place={data.displaced_from} />
+                    </div>
+                  ) : null}
                   <h1 className="text-2xl leading-tight sm:text-3xl">
                     <bdi>{data.display_name}</bdi>
                   </h1>
-                  {skillLabel || data.skill_specialty ? (
+                  {/* The service headline: what this person does for you. */}
+                  {headline ? (
                     <p className="text-lg font-semibold text-brand-700">
-                      {data.skill ? (
-                        <Link
-                          to={`${directoryPath(data.kind)}?skill=${encodeURIComponent(data.skill.slug)}`}
-                          dir="auto"
-                          className="hover:underline"
-                        >
-                          {skillLabel}
-                        </Link>
-                      ) : null}
-                      {/* The taxonomy value links to a filtered list; the
-                          specialty does not, because nothing filters on free
-                          text. */}
-                      {data.skill && data.skill_specialty ? (
-                        <span className="text-ink-300" aria-hidden="true">
-                          {' · '}
-                        </span>
-                      ) : null}
-                      {data.skill_specialty ? (
-                        <bdi className="font-normal text-ink-600">{data.skill_specialty}</bdi>
-                      ) : null}
+                      <bdi>{headline}</bdi>
                     </p>
                   ) : null}
                   <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm text-ink-500 sm:justify-start">
@@ -371,7 +387,25 @@ export function TalentProfilePage() {
                         {t('talent.yearsExperience', { count: data.years_experience })}
                       </span>
                     ) : null}
+                    <span>
+                      {t('talent.memberSince', {
+                        date: formatDate(data.approved_at ?? data.created_at, locale),
+                      })}
+                    </span>
                   </div>
+                  {/* The skill links to the filtered list; skipped when it is
+                      the headline already. */}
+                  {data.skill && skillLabel && skillLabel !== headline ? (
+                    <div className="flex flex-wrap justify-center gap-2 sm:justify-start">
+                      <Link
+                        to={`${directoryPath(data.kind)}?skill=${encodeURIComponent(data.skill.slug)}`}
+                        dir="auto"
+                        className="rounded-full bg-sand-100 px-3 py-1 text-sm font-medium text-brand-700 hover:bg-sand-200"
+                      >
+                        {skillLabel}
+                      </Link>
+                    </div>
+                  ) : null}
                 </div>
               </div>
 
@@ -440,7 +474,7 @@ export function TalentProfilePage() {
         {sections.length > 1 ? (
           <nav
             aria-label={t('talent.sectionsLabel')}
-            className="mt-6 flex gap-2 overflow-x-auto rounded-xl border border-ink-100 bg-white p-2"
+            className="sticky top-[7.25rem] z-20 mt-6 flex gap-2 overflow-x-auto rounded-xl border border-ink-100 bg-white/95 p-2 shadow-card backdrop-blur"
           >
             {sections.map((section) => (
               <a
@@ -456,11 +490,54 @@ export function TalentProfilePage() {
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_20rem]">
           <div className="min-w-0 space-y-8">
+            {services ? (
+              <section
+                id="services"
+                aria-labelledby="services-heading"
+                className="scroll-mt-48 rounded-2xl border border-ink-100 bg-white p-5 sm:p-6"
+              >
+                <h2 id="services-heading" className="mb-1 text-xl">
+                  {t('talent.servicesPricesHeading')}
+                </h2>
+                {services.intro.map((line) => (
+                  <p key={line} className="text-sm text-ink-500" dir="auto">
+                    {line}
+                  </p>
+                ))}
+                <ul className="mt-3 grid gap-3 sm:grid-cols-2">
+                  {services.items.map((item, index) => (
+                    <li
+                      key={index}
+                      className="flex flex-col rounded-xl border border-ink-100 bg-sand-50 p-4"
+                    >
+                      <p className="font-semibold text-ink-800" dir="auto">
+                        {item.main}
+                      </p>
+                      {item.sub.map((line) => (
+                        <p key={line} className="mt-1 text-sm text-ink-500" dir="auto">
+                          {line}
+                        </p>
+                      ))}
+                      {/* Jumps to the request form with this service already
+                          written into it. */}
+                      <div className="mt-auto flex justify-end pt-3">
+                        <Button asChild size="sm" variant="outline">
+                          <a href="#request" onClick={() => setRequested(item.main)}>
+                            {t('talent.requestThisService')}
+                          </a>
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+
             {data.bio ? (
               <section
                 id="about"
                 aria-labelledby="bio-heading"
-                className="scroll-mt-24 rounded-2xl border border-ink-100 bg-white p-5 sm:p-6"
+                className="scroll-mt-48 rounded-2xl border border-ink-100 bg-white p-5 sm:p-6"
               >
                 <h2 id="bio-heading" className="mb-3 text-xl">
                   {t('talent.aboutHeading')}
@@ -476,7 +553,7 @@ export function TalentProfilePage() {
                 keep reading. Their own photo is the poster, so no third-party
                 request is made until someone taps. */}
             {data.youtube_video_id ? (
-              <section id="video" aria-labelledby="video-heading" className="scroll-mt-24">
+              <section id="video" aria-labelledby="video-heading" className="scroll-mt-48">
                 <h2 id="video-heading" className="mb-3 text-xl">
                   {t('talent.videoHeading')}
                 </h2>
@@ -489,46 +566,63 @@ export function TalentProfilePage() {
               </section>
             ) : null}
 
-            {services ? (
-              <section
-                id="services"
-                aria-labelledby="services-heading"
-                className="scroll-mt-24 rounded-2xl border border-ink-100 bg-white p-5 sm:p-6"
-              >
-                <h2 id="services-heading" className="mb-1 text-xl">
-                  {t('talent.servicesLabel')}
+            {data.images.length > 0 ? (
+              <section id="work" aria-labelledby="portfolio-heading" className="scroll-mt-48">
+                <h2 id="portfolio-heading" className="mb-3 text-xl">
+                  {t('talent.portfolioHeading')}
                 </h2>
-                {services.intro.map((line) => (
-                  <p key={line} className="text-sm text-ink-500" dir="auto">
-                    {line}
-                  </p>
-                ))}
-                <ul className="mt-3 grid gap-3 sm:grid-cols-2">
-                  {services.items.map((item, index) => (
-                    <li key={index} className="rounded-xl bg-sand-50 p-4">
-                      <p className="font-semibold text-ink-800" dir="auto">
-                        {item.main}
-                      </p>
-                      {item.sub.map((line) => (
-                        <p key={line} className="mt-1 text-sm text-ink-500" dir="auto">
-                          {line}
-                        </p>
-                      ))}
-                    </li>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {data.images.map((image, index) => (
+                    <button
+                      key={image.id}
+                      type="button"
+                      onClick={() => setGalleryIndex(index)}
+                      className="group overflow-hidden rounded-xl border border-ink-100 bg-sand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                    >
+                      <img
+                        src={image.url}
+                        alt={
+                          image.caption ??
+                          t('talent.portfolioImageAlt', { name: data.display_name })
+                        }
+                        loading="lazy"
+                        className="h-32 w-full object-cover transition-transform duration-300 group-hover:scale-105 sm:h-44"
+                      />
+                    </button>
                   ))}
-                </ul>
+                </div>
+                <GalleryLightbox
+                  title={t('talent.portfolioHeading')}
+                  images={data.images}
+                  index={galleryIndex}
+                  onIndexChange={setGalleryIndex}
+                />
               </section>
             ) : null}
 
+            {/* A service only, and always rendered there, as on a business
+                page: the form is the point, and the first person who wants
+                to leave one must have somewhere to do it. A job application
+                takes no testimonials. */}
+            {data.kind === 'SERVICE' ? (
+              <div id="reviews" className="scroll-mt-48 space-y-8">
+                <TestimonialList
+                  testimonials={data.testimonials}
+                  average={data.rating_average}
+                  count={data.rating_count}
+                />
+                <TestimonialForm slug={data.slug} target="talent" />
+              </div>
+            ) : null}
             {hasQualifications ? (
-              <section
+              <details
                 id="qualifications"
-                aria-labelledby="professional-heading"
-                className="scroll-mt-24 space-y-5 rounded-2xl border border-ink-100 bg-white p-5 sm:p-6"
+                className="group scroll-mt-48 rounded-2xl border border-ink-100 bg-white p-5 sm:p-6"
               >
-                <h2 id="professional-heading" className="text-xl">
-                  {t('talent.professionalHeading')}
-                </h2>
+                <summary className="cursor-pointer list-none text-xl font-bold marker:hidden">
+                  <h2 className="inline text-xl">{t('talent.qualificationsHeading')}</h2>
+                </summary>
+                <div className="mt-5 space-y-5">
                 {shortQualifications.length > 0 ? (
                   <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                     {shortQualifications.map(({ key, label, value }) => (
@@ -589,57 +683,10 @@ export function TalentProfilePage() {
                     </div>
                   </div>
                 ) : null}
-              </section>
-            ) : null}
-
-            {data.images.length > 0 ? (
-              <section id="work" aria-labelledby="portfolio-heading" className="scroll-mt-24">
-                <h2 id="portfolio-heading" className="mb-3 text-xl">
-                  {t('talent.portfolioHeading')}
-                </h2>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {data.images.map((image, index) => (
-                    <button
-                      key={image.id}
-                      type="button"
-                      onClick={() => setGalleryIndex(index)}
-                      className="group overflow-hidden rounded-xl border border-ink-100 bg-sand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-                    >
-                      <img
-                        src={image.url}
-                        alt={
-                          image.caption ??
-                          t('talent.portfolioImageAlt', { name: data.display_name })
-                        }
-                        loading="lazy"
-                        className="h-32 w-full object-cover transition-transform duration-300 group-hover:scale-105 sm:h-44"
-                      />
-                    </button>
-                  ))}
                 </div>
-                <GalleryLightbox
-                  title={t('talent.portfolioHeading')}
-                  images={data.images}
-                  index={galleryIndex}
-                  onIndexChange={setGalleryIndex}
-                />
-              </section>
+              </details>
             ) : null}
 
-            {/* A service only, and always rendered there, as on a business
-                page: the form is the point, and the first person who wants
-                to leave one must have somewhere to do it. A job application
-                takes no testimonials. */}
-            {data.kind === 'SERVICE' ? (
-              <div id="reviews" className="scroll-mt-24 space-y-8">
-                <TestimonialList
-                  testimonials={data.testimonials}
-                  average={data.rating_average}
-                  count={data.rating_count}
-                />
-                <TestimonialForm slug={data.slug} target="talent" />
-              </div>
-            ) : null}
           </div>
 
           <aside className="space-y-4">
@@ -657,7 +704,7 @@ export function TalentProfilePage() {
                   if (!entry) return null
                   return (
                     <div key={channel} className="space-y-1">
-                      {channel === data.preferred_contact ? (
+                      {channel === preferred ? (
                         <p className="text-xs font-semibold uppercase tracking-wide text-brand-600">
                           {t('talent.preferredBadge')}
                         </p>
@@ -685,8 +732,13 @@ export function TalentProfilePage() {
             {/* Beside the WhatsApp button, not instead of it: the message
                 gets a faster answer, the stored request is what survives the
                 answer not coming. The header's "request" button jumps here. */}
-            <div id="request" className="scroll-mt-24">
-              <ServiceRequestForm slug={slug} whatsappLink={whatsapp} callLink={phone} />
+            <div id="request" className="scroll-mt-48">
+              <ServiceRequestForm
+                slug={slug}
+                whatsappLink={whatsapp}
+                callLink={phone}
+                prefill={requested}
+              />
             </div>
 
             <Button asChild variant="outline" block>

@@ -18,6 +18,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { GitBranch, MessageSquare, Paperclip, Plus, Trash2, UserRound } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { useSearchParams } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -34,16 +35,31 @@ import { ApiError } from '@/services/api/client'
 import { feedbackApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { FeedbackPriority, FeedbackStatus, FeedbackTicketSummary } from '@/types/api'
-import { FEEDBACK_PRIORITY_KEYS, FEEDBACK_STATUS_KEYS, formatRelativeDate } from '@/utils/format'
+import {
+  FEEDBACK_PRIORITY_KEYS,
+  FEEDBACK_STATUS_KEYS,
+  formatRelativeDate,
+  telHref,
+  whatsappHref,
+} from '@/utils/format'
 import { commentSchema, type CommentValues } from '@/utils/validation'
 
-const STATUSES: FeedbackStatus[] = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'NEEDS_FEEDBACK', 'DONE']
+const STATUSES: FeedbackStatus[] = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'NEEDS_FEEDBACK', 'NEEDS_APPROVAL', 'APPROVED', 'DONE']
 
 const PRIORITY_TONES: Record<FeedbackPriority, string> = {
   LOW: 'bg-sand-100 text-ink-600',
   MEDIUM: 'bg-olive-100 text-olive-700',
   HIGH: 'bg-clay-100 text-clay-700',
   URGENT: 'bg-clay-600 text-white',
+}
+
+/** How many finished tickets the Done column shows before "show all". */
+const DONE_SHOWN = 10
+
+/** When a ticket last changed (moving it to Done is a change), for
+ * ordering the Done column newest first. */
+function doneAt(ticket: FeedbackTicketSummary): string {
+  return ticket.updated_at
 }
 
 function groupByStatus(
@@ -54,6 +70,8 @@ function groupByStatus(
     TODO: [],
     IN_PROGRESS: [],
     NEEDS_FEEDBACK: [],
+    NEEDS_APPROVAL: [],
+    APPROVED: [],
     DONE: [],
   }
   for (const ticket of [...tickets].sort((a, b) => a.sort_order - b.sort_order)) {
@@ -70,7 +88,25 @@ export function AdminFeedbackPage() {
     groupByStatus([]),
   )
   const [activeTicket, setActiveTicket] = useState<FeedbackTicketSummary | null>(null)
-  const [openTicketId, setOpenTicketId] = useState<string | null>(null)
+  // A link from the Telegram copy carries the ticket to open: ?ticket=<id>.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [openTicketId, setOpenTicketIdState] = useState<string | null>(() =>
+    searchParams.get('ticket'),
+  )
+  // The Telegram buttons add the decision to confirm: ?decision=approve|reject.
+  const [decision] = useState<Decision | null>(() => {
+    const value = searchParams.get('decision')
+    return value === 'approve' || value === 'reject' ? value : null
+  })
+  const setOpenTicketId = (id: string | null) => {
+    setOpenTicketIdState(id)
+    if (!id && (searchParams.has('ticket') || searchParams.has('decision'))) {
+      const next = new URLSearchParams(searchParams)
+      next.delete('ticket')
+      next.delete('decision')
+      setSearchParams(next, { replace: true })
+    }
+  }
 
   useSeo({ title: t('admin.feedbackHeading'), noIndex: true })
 
@@ -192,7 +228,11 @@ export function AdminFeedbackPage() {
       )}
 
       {openTicketId ? (
-        <TicketDetailDialog ticketId={openTicketId} onClose={() => setOpenTicketId(null)} />
+        <TicketDetailDialog
+          ticketId={openTicketId}
+          decision={openTicketId === searchParams.get('ticket') ? decision : null}
+          onClose={() => setOpenTicketId(null)}
+        />
       ) : null}
     </div>
   )
@@ -209,6 +249,15 @@ function BoardColumn({
 }) {
   const t = useT()
   const { setNodeRef, isOver } = useDroppable({ id: status })
+  const [showAllDone, setShowAllDone] = useState(false)
+  // Done grows without end; the column shows the most recently finished
+  // ten unless asked for all (the owners' request, 3 Nov 2026).
+  const limited = status === 'DONE' && !showAllDone && tickets.length > DONE_SHOWN
+  const shown = limited
+    ? [...tickets]
+        .sort((a, b) => doneAt(b).localeCompare(doneAt(a)))
+        .slice(0, DONE_SHOWN)
+    : tickets
 
   return (
     <div
@@ -223,13 +272,24 @@ function BoardColumn({
           {tickets.length}
         </span>
       </h2>
-      <SortableContext items={tickets.map((ticket) => ticket.id)} strategy={verticalListSortingStrategy}>
+      <SortableContext items={shown.map((ticket) => ticket.id)} strategy={verticalListSortingStrategy}>
         <ul className="flex flex-1 flex-col gap-2">
-          {tickets.map((ticket) => (
+          {shown.map((ticket) => (
             <TicketCard key={ticket.id} ticket={ticket} onOpen={() => onOpenTicket(ticket.id)} />
           ))}
         </ul>
       </SortableContext>
+      {status === 'DONE' && tickets.length > DONE_SHOWN ? (
+        <button
+          type="button"
+          onClick={() => setShowAllDone((value) => !value)}
+          className="rounded-lg px-2 py-1.5 text-sm font-semibold text-brand-700 hover:bg-sand-50"
+        >
+          {showAllDone
+            ? t('feedback.board.showLatestDone', { count: DONE_SHOWN })
+            : t('feedback.board.showAllDone', { count: tickets.length })}
+        </button>
+      ) : null}
     </div>
   )
 }
@@ -306,8 +366,22 @@ function TicketCardBody({
   )
 }
 
-function TicketDetailDialog({ ticketId, onClose }: { ticketId: string; onClose: () => void }) {
+type Decision = 'approve' | 'reject'
+
+function TicketDetailDialog({
+  ticketId,
+  decision,
+  onClose,
+}: {
+  ticketId: string
+  decision: Decision | null
+  onClose: () => void
+}) {
   const { t, locale } = useI18n()
+  // A Telegram link never decides anything on its own: «reject» opens the
+  // form for the reason, «approve» still takes a press of the button.
+  const [rejecting, setRejecting] = useState(decision === 'reject')
+  const [reason, setReason] = useState('')
   const toast = useToast()
   const queryClient = useQueryClient()
 
@@ -343,6 +417,35 @@ function TicketDetailDialog({ ticketId, onClose }: { ticketId: string; onClose: 
     onSuccess: invalidate,
   })
 
+  // The Telegram message's button opens this ticket: approving moves it to
+  // APPROVED, which the next release ships.
+  const approve = useMutation({
+    mutationFn: () => feedbackApi.move(ticketId, 'APPROVED', 0),
+    onSuccess: () => {
+      invalidate()
+      toast.success(t('feedback.approved'))
+    },
+    onError: (error) =>
+      toast.error(t('feedback.approveFailed'), error instanceof ApiError ? error.message : undefined),
+  })
+
+  // Rejecting writes the reason on the ticket first, then sends it back to
+  // To do -- which starts the triage routine again with that comment to read.
+  const reject = useMutation({
+    mutationFn: async (body: string) => {
+      await feedbackApi.addComment(ticketId, body)
+      await feedbackApi.move(ticketId, 'TODO', 0)
+    },
+    onSuccess: () => {
+      invalidate()
+      setRejecting(false)
+      setReason('')
+      toast.success(t('feedback.rejected'))
+    },
+    onError: (error) =>
+      toast.error(t('feedback.rejectFailed'), error instanceof ApiError ? error.message : undefined),
+  })
+
   const schema = useMemo(() => commentSchema(t), [t])
   const {
     register,
@@ -368,8 +471,94 @@ function TicketDetailDialog({ ticketId, onClose }: { ticketId: string; onClose: 
               <span>{formatRelativeDate(data.created_at, locale, t)}</span>
             </div>
 
+            {data.status === 'NEEDS_APPROVAL' ? (
+              <div className="space-y-3 rounded-xl bg-olive-50 p-3.5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-sm text-ink-700">{t('feedback.approveHint')}</p>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      loading={approve.isPending}
+                      autoFocus={decision === 'approve'}
+                      onClick={() => approve.mutate()}
+                    >
+                      {t('feedback.approve')}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      aria-expanded={rejecting}
+                      onClick={() => setRejecting((open) => !open)}
+                    >
+                      {t('feedback.reject')}
+                    </Button>
+                  </div>
+                </div>
+                {rejecting ? (
+                  <form
+                    onSubmit={(event) => {
+                      event.preventDefault()
+                      if (reason.trim()) reject.mutate(reason.trim())
+                    }}
+                    className="space-y-2"
+                    noValidate
+                  >
+                    <Field label={t('feedback.rejectReasonLabel')}>
+                      {(props) => (
+                        <Textarea
+                          {...props}
+                          value={reason}
+                          onChange={(event) => setReason(event.target.value)}
+                          rows={3}
+                          autoFocus
+                          placeholder={t('feedback.rejectReasonPlaceholder')}
+                        />
+                      )}
+                    </Field>
+                    <Button
+                      type="submit"
+                      variant="danger"
+                      size="sm"
+                      loading={reject.isPending}
+                      disabled={!reason.trim()}
+                    >
+                      {t('feedback.rejectConfirm')}
+                    </Button>
+                  </form>
+                ) : null}
+              </div>
+            ) : null}
+
             {data.description ? (
               <p className="whitespace-pre-line text-ink-700">{data.description}</p>
+            ) : null}
+
+            {data.reporter_contact && (data.reporter_contact.name || data.reporter_contact.phone) ? (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-700">
+                <span className="font-semibold">{t('feedback.sentBy')}:</span>
+                {data.reporter_contact.name ? <span dir="auto">{data.reporter_contact.name}</span> : null}
+                {data.reporter_contact.phone ? (
+                  <>
+                    <a
+                      href={telHref(data.reporter_contact.phone) ?? undefined}
+                      className="ltr-nums font-medium text-brand-700 underline-offset-2 hover:underline"
+                      dir="ltr"
+                    >
+                      {data.reporter_contact.phone}
+                    </a>
+                    {whatsappHref(data.reporter_contact.phone) ? (
+                      <a
+                        href={whatsappHref(data.reporter_contact.phone) ?? undefined}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-brand-700 underline-offset-2 hover:underline"
+                      >
+                        WhatsApp
+                      </a>
+                    ) : null}
+                  </>
+                ) : null}
+              </div>
             ) : null}
 
             {data.page_path ? (

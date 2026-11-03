@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { CalendarDays, CalendarPlus, Download, MapPin } from 'lucide-react'
+import { CalendarDays, CalendarPlus, ChevronDown, Download, ExternalLink, MapPin } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
 import { BackLink } from '@/components/ui/BackLink'
@@ -7,11 +8,17 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
-import { downloadIcs, googleCalendarHref } from '@/features/activities/calendar'
+import {
+  downloadIcs,
+  googleCalendarHref,
+  outlookCalendarHref,
+} from '@/features/activities/calendar'
+import { hasEnded, KIND_KEYS } from '@/features/activities/labels'
 import { useSeo } from '@/hooks/useSeo'
 import { useI18n } from '@/i18n'
 import { activityApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
+import type { Activity } from '@/types/api'
 import { formatDateTime } from '@/utils/format'
 
 /**
@@ -51,7 +58,10 @@ export function ActivityPage() {
   }
 
   const pageUrl = `${window.location.origin}${canonicalPath}`
-  const google = googleCalendarHref(data, pageUrl)
+  const ended = hasEnded(data)
+  // Both buttons go once it is over (the owners' ticket, 31 Oct 2026).
+  const offerCalendar = !ended && data.show_calendar && data.starts_at !== null
+  const register = !ended ? data.register_url : null
 
   return (
     <article className="container-page py-10">
@@ -65,7 +75,8 @@ export function ActivityPage() {
               className="aspect-[16/9] w-full rounded-2xl object-cover"
             />
           ) : null}
-          <h1 className="mt-6 text-2xl sm:text-3xl" dir="auto">
+          <p className="mt-6 text-sm font-semibold text-brand-700">{t(KIND_KEYS[data.kind])}</p>
+          <h1 className="mt-1 text-2xl sm:text-3xl" dir="auto">
             {data.title}
           </h1>
           {data.summary ? (
@@ -96,24 +107,22 @@ export function ActivityPage() {
                   {data.location}
                 </p>
               ) : null}
-              {google ? (
+              {ended ? (
+                <p className="rounded-xl bg-sand-100 px-4 py-3 font-semibold text-ink-700">
+                  {t('activitiesPage.activityEnded')}
+                </p>
+              ) : null}
+              {register || offerCalendar ? (
                 <div className="space-y-2 border-t border-ink-100 pt-4">
-                  <h2 className="text-lg">{t('activities.addToCalendar')}</h2>
-                  <Button asChild block>
-                    <a href={google} target="_blank" rel="noopener noreferrer">
-                      <CalendarPlus className="h-5 w-5" aria-hidden="true" />
-                      {t('activities.googleCalendar')}
-                    </a>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    block
-                    onClick={() => downloadIcs(data, pageUrl)}
-                  >
-                    <Download className="h-5 w-5" aria-hidden="true" />
-                    {t('activities.icsFile')}
-                  </Button>
+                  {register ? (
+                    <Button asChild block>
+                      <a href={register} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-5 w-5" aria-hidden="true" />
+                        {data.register_label ?? t('activitiesPage.register')}
+                      </a>
+                    </Button>
+                  ) : null}
+                  {offerCalendar ? <CalendarMenu activity={data} pageUrl={pageUrl} /> : null}
                 </div>
               ) : null}
               {!data.starts_at && !data.location ? (
@@ -124,5 +133,79 @@ export function ActivityPage() {
         </aside>
       </div>
     </article>
+  )
+}
+
+/** "Add to calendar": Google and Outlook open their own pages; anything else gets an .ics file. */
+function CalendarMenu({ activity, pageUrl }: { activity: Activity; pageUrl: string }) {
+  const { t } = useI18n()
+  const [open, setOpen] = useState(false)
+  const box = useRef<HTMLDivElement>(null)
+  const google = googleCalendarHref(activity, pageUrl)
+  const outlook = outlookCalendarHref(activity, pageUrl)
+
+  useEffect(() => {
+    if (!open) return
+    const close = (event: MouseEvent | KeyboardEvent) => {
+      if (event instanceof KeyboardEvent ? event.key === 'Escape' : !box.current?.contains(event.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', close)
+    document.addEventListener('keydown', close)
+    return () => {
+      document.removeEventListener('mousedown', close)
+      document.removeEventListener('keydown', close)
+    }
+  }, [open])
+
+  const item =
+    'flex w-full items-center gap-2 px-4 py-3 text-start text-ink-800 transition-colors hover:bg-sand-50'
+  return (
+    <div ref={box} className="relative">
+      <Button
+        type="button"
+        variant="outline"
+        block
+        aria-expanded={open}
+        aria-haspopup="menu"
+        onClick={() => setOpen((value) => !value)}
+      >
+        <CalendarPlus className="h-5 w-5" aria-hidden="true" />
+        {t('activitiesPage.addToCalendar')}
+        <ChevronDown className="h-4 w-4" aria-hidden="true" />
+      </Button>
+      {open ? (
+        <div
+          role="menu"
+          className="absolute inset-x-0 z-20 mt-2 overflow-hidden rounded-xl border border-ink-100 bg-white shadow-lift"
+        >
+          {google ? (
+            <a role="menuitem" href={google} target="_blank" rel="noopener noreferrer" className={item}>
+              <CalendarDays className="h-4 w-4" aria-hidden="true" />
+              {t('activities.googleCalendar')}
+            </a>
+          ) : null}
+          {outlook ? (
+            <a role="menuitem" href={outlook} target="_blank" rel="noopener noreferrer" className={item}>
+              <CalendarDays className="h-4 w-4" aria-hidden="true" />
+              {t('activitiesPage.outlook')}
+            </a>
+          ) : null}
+          <button
+            role="menuitem"
+            type="button"
+            className={item}
+            onClick={() => {
+              downloadIcs(activity, pageUrl)
+              setOpen(false)
+            }}
+          >
+            <Download className="h-4 w-4" aria-hidden="true" />
+            {t('activitiesPage.appleOther')}
+          </button>
+        </div>
+      ) : null}
+    </div>
   )
 }

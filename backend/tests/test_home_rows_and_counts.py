@@ -220,11 +220,14 @@ def test_most_ordered_counts_units_asked_for(
     assert [row["slug"] for row in rows] == [many.slug, once.slug]
 
 
-def test_featured_testimonials_are_published_ones_on_open_listings_best_first(
+def test_featured_testimonials_are_the_best_one_per_open_listing(
     client: TestClient, db: Session, category: Category, location: Location
 ) -> None:
     shop, _ = _shop_with_item(
         client, db, category, location, "03770713", ar("business.first"), ar("item.generic")
+    )
+    other, _ = _shop_with_item(
+        client, db, category, location, "03770715", ar("business.other_shop"), ar("item.generic")
     )
     hidden, _ = _shop_with_item(
         client, db, category, location, "03770714", ar("business.second"), ar("item.generic")
@@ -238,6 +241,8 @@ def test_featured_testimonials_are_published_ones_on_open_listings_best_first(
         (hidden, 5, TestimonialStatus.APPROVED, 4),
         (shop, 3, TestimonialStatus.APPROVED, 5),
         (shop, 2, TestimonialStatus.APPROVED, 6),
+        (other, 3, TestimonialStatus.APPROVED, 7),
+        (other, 4, TestimonialStatus.APPROVED, 8),
     ):
         db.add(
             Testimonial(
@@ -253,6 +258,7 @@ def test_featured_testimonials_are_published_ones_on_open_listings_best_first(
 
     rows = client.get("/api/testimonials/featured").json()
 
-    assert [row["body"] for row in rows] == ["5-APPROVED-2", "4-APPROVED-1", "3-APPROVED-5"]
+    # One per listing: the shop's 5 stands for it, the other shop's 4 for that one.
+    assert [row["body"] for row in rows] == ["5-APPROVED-2", "4-APPROVED-8"]
     assert rows[0]["subject_kind"] == "business" and rows[0]["subject_slug"] == shop.slug
     assert "status" not in rows[0] and "customer_phone" not in rows[0]

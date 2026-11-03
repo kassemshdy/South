@@ -64,6 +64,11 @@ const AdminLoginPage = lazy(() =>
 const AdminReviewPage = lazy(() =>
   import('@/pages/admin/AdminReviewPage').then((m) => ({ default: m.AdminReviewPage })),
 )
+const AdminEmployerRequestsPage = lazy(() =>
+  import('@/pages/admin/AdminEmployerRequestsPage').then((m) => ({
+    default: m.AdminEmployerRequestsPage,
+  })),
+)
 const AdminTalentReviewPage = lazy(() =>
   import('@/pages/admin/AdminTalentReviewPage').then((m) => ({
     default: m.AdminTalentReviewPage,
@@ -112,11 +117,19 @@ const AdminTestimonialsPage = lazy(() =>
     default: m.AdminTestimonialsPage,
   })),
 )
+const AdminShopsWithoutProductsPage = lazy(() =>
+  import('@/pages/admin/AdminShopsWithoutProductsPage').then((m) => ({
+    default: m.AdminShopsWithoutProductsPage,
+  })),
+)
 const AdminWorkshopsPage = lazy(() =>
   import('@/pages/admin/AdminWorkshopsPage').then((m) => ({ default: m.AdminWorkshopsPage })),
 )
 const AdminActivitiesPage = lazy(() =>
   import('@/pages/admin/AdminActivitiesPage').then((m) => ({ default: m.AdminActivitiesPage })),
+)
+const AdminCarouselPage = lazy(() =>
+  import('@/pages/admin/AdminCarouselPage').then((m) => ({ default: m.AdminCarouselPage })),
 )
 const AdminArticlesPage = lazy(() =>
   import('@/pages/admin/AdminArticlesPage').then((m) => ({ default: m.AdminArticlesPage })),
@@ -345,9 +358,12 @@ export function App() {
             <Route path="feedback" element={<AdminFeedbackPage />} />
             <Route path="testimonials" element={<AdminTestimonialsPage />} />
             <Route path="articles" element={<AdminArticlesPage />} />
+            <Route path="shops-without-products" element={<AdminShopsWithoutProductsPage />} />
             <Route path="workshops" element={<AdminWorkshopsPage />} />
             <Route path="activities" element={<AdminActivitiesPage />} />
+            <Route path="carousel" element={<AdminCarouselPage />} />
             <Route path="job-openings" element={<AdminJobOpeningsPage />} />
+            <Route path="employer-requests" element={<AdminEmployerRequestsPage />} />
           </Route>
 
           <Route path="*" element={<NotFoundPage />} />

@@ -119,16 +119,44 @@ because an agent hit them in this repo, not because they were predicted.
 ### The scheduled triage routine
 
 A Routine runs `triage-loop` on a schedule: one ticket per pass, a pull
-request, and a comment on the ticket saying what happened. It needs
-`SOUTH_API_URL`, `SOUTH_AGENT_EMAIL` and `SOUTH_AGENT_PASSWORD` on the
-execution environment, and **stops and says so when they are absent** rather
-than finding something else to do — an unconfigured pass that improvises is
+request, and a comment on the ticket saying what happened. It reads the
+board through the claude.ai **South connector** (the deployed `mcp`
+service); a pass run by hand can use the local server instead, with
+`SOUTH_API_URL`, `SOUTH_AGENT_EMAIL` and `SOUTH_AGENT_PASSWORD` set. It
+**stops and says so when neither answers** rather than finding something
+else to do — an unconfigured pass that improvises is
 how invented work becomes a pull request.
 
+A ticket filed by staff is built rather than skipped for want of detail
+(the owners' decision, 3 Nov 2026): the routine takes the most reasonable
+reading, lists its assumptions on the ticket and the pull request, flags
+any wording it had to write as a placeholder, and lets the develop site and
+the approval step correct it. Tickets from anyone else are still skipped
+with a question when they need a product decision.
+
+It runs every three hours (the owners' decision, 31 Oct 2026). A fix whose
+CI is green is merged into `develop-claude` and checked on the develop site;
+the ticket gets a comment with the pull request and the develop link and
+moves to `NEEDS_APPROVAL`, which posts it to the Telegram chat with a mention
+of the owner (`TELEGRAM_MENTION`) and an «اعتمِد» button to the ticket
+(to the owner's private chat instead when `TELEGRAM_OWNER_CHAT_ID` is set,
+the owners' request of 2 Nov 2026). A
+person approving it there moves it to `APPROVED`; the next pass releases
+approved tickets -- only when every commit waiting on develop belongs to one
+-- checks the live site and moves them to `DONE`.
+
+It does not have to wait for the schedule. Moving a ticket to `TODO` or
+`APPROVED` calls the routine's API trigger (`app/services/triage_trigger.py`,
+the owners' request of 1 Nov 2026), so a run starts within a minute. The
+call carries only the ticket's id and column -- never ticket text -- runs on
+the owners' Claude subscription rather than an API key, is skipped within
+five minutes of the last one, and does nothing without both
+`CLAUDE_TRIAGE_FIRE_URL` and `CLAUDE_TRIAGE_TOKEN` on the API. The schedule
+stays as the fallback for anything skipped.
+
 Three things it is not allowed to do, and none of them are oversights:
-approve or suspend a listing (the MCP server has no such tool), merge, or move
-a ticket to `DONE`. `DONE` means shipped, which a person decides after a
-merge.
+approve or suspend a listing (the MCP server has no such tool), approve its
+own fix, or release anything a person has not moved to `APPROVED`.
 
 The agent signs in as the existing administrator account, so the board cannot
 tell the routine's tickets and comments apart from that person's own. That is
@@ -235,6 +263,12 @@ Five things about it are load-bearing rather than incidental:
   number would be a way to put a file on somebody else's account. `VerificationDocumentService.validate`
   exists to make the "refused before anything is created" half possible, and
   `tests/test_registration.py` pins every clause of this paragraph.
+  **A business application also carries the shop's logo, and must** (the
+  owners' decision, 30 Oct 2026): a shop cannot be approved without one, so
+  it is asked for up front rather than added by the reviewer. The same rules
+  hold -- accepted only with an application that succeeds, refused before
+  anything is created when missing or not an image (`ImageService.validate`),
+  never stored for a number that already has an account.
 
 **Staff have roles, and one table decides what each may do.** Every
 `ADMIN` account carries a `StaffRole` -- manager, reviewer, support, content
@@ -377,9 +411,10 @@ for something that hands out sessions.
   `TELEGRAM_CHAT_ID`. Password hashes and session counters are never sent
   (`SKIPPED_COLUMNS`), and httpx is held at WARNING because a bot API URL
   carries the token -- `tests/test_telegram_archive.py` pins both. A new
-  table users write to belongs in `ARCHIVED_TABLES`. Every hour the live API
-  also sends the **whole database as a plain `.sql` file** to the same chat
-  (the owners' decision, 28 Oct 2026; `app/services/telegram_db_backup.py`):
+  table users write to belongs in `ARCHIVED_TABLES`. Every 3 hours the live
+  API also sends the **whole database as a plain `.sql` file** to the same
+  chat (the owners' decision, 28 Oct 2026; every 3 hours rather than every
+  hour since 31 Oct; `app/services/telegram_db_backup.py`):
   the `users` rows are written by the app's own `COPY` with `password_hash`
   emptied and `token_version` reset, so the file restores a whole site
   without anyone's password -- `tests/test_telegram_db_backup.py` pins it.
@@ -428,6 +463,9 @@ constrain how you work on it:
   ticket text is written by other people. Widen `REDACTED_KEYS` rather than
   loosening the strip — `mcp-server/tests/test_redaction.py` is the guard,
   the counterpart to `backend/tests/test_identity.py`.
+- **Ticket screenshots and PDFs are readable** through `get_ticket_attachment`
+  (UUID ids only, images and PDFs only); identity papers, CVs and business
+  documents are not.
 - **No tool moderates a listing or reads a personal document.** Approving,
   rejecting, suspending and the verification/CV downloads are deliberately
   absent, and a test asserts no tool name matches them.
@@ -617,8 +655,9 @@ login.
   as the run's `e2e-results` artifact on failure. Say which check failed and why before
   pushing a fix, and never merge a red PR to save a cycle.
 - `master-claude` auto-deploys the live services (`api`, `web`, on the `Postgres`
-  database). The staging services were removed on 2026-10-05, so `develop-claude`
-  no longer deploys anywhere: it is where pull requests are merged after CI, and a
-  release is a pull request from it into `master-claude`. Treat `master-claude` as
+  database). `develop-claude` deploys the develop preview (`api-develop`, demo
+  data, its own database and bucket; `docs/RAILWAY.md`): it is where pull
+  requests are merged after CI, and a release is a pull request from it into
+  `master-claude`. Treat `master-claude` as
   production: verify locally first, and check Railway deploy status/logs after
   pushing rather than assuming success.

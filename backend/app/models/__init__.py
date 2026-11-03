@@ -1,6 +1,6 @@
 """SQLAlchemy models. Importing this package registers every table on Base."""
 
-from app.models.activity import Activity
+from app.models.activity import Activity, CarouselSlide
 from app.models.analytics import ListingViewDaily
 from app.models.application import DiscardedApplication
 from app.models.article import Article
@@ -37,7 +37,7 @@ from app.models.integration import (
     ItemLink,
     StoreLink,
 )
-from app.models.job import JobApplication, JobOpening
+from app.models.job import JobApplication, JobContactClickDaily, JobOpening
 from app.models.order import Order, OrderLine
 from app.models.page import Page
 from app.models.page_cover import PageCover
@@ -47,11 +47,17 @@ from app.models.service_request import ServiceRequest
 from app.models.site_setting import SiteSetting
 from app.models.story import StoryImage
 from app.models.talent import (
+    EmployerRequest,
+    TalentCourse,
+    TalentEducation,
+    TalentExperience,
     TalentImage,
     TalentModerationAction,
     TalentProfile,
     TalentSkill,
     TalentSocialLink,
+    TalentWorkArea,
+    TalentWorkTypeRow,
 )
 from app.models.taxonomy import Category, Location
 from app.models.team import TeamMember
@@ -72,9 +78,11 @@ __all__ = [
     "BusinessItemImage",
     "BusinessSocialLink",
     "BusinessStatus",
+    "CarouselSlide",
     "Category",
     "Currency",
     "DiscardedApplication",
+    "EmployerRequest",
     "FeedbackAttachment",
     "FeedbackAttachmentKind",
     "FeedbackComment",
@@ -85,6 +93,7 @@ __all__ = [
     "IntegrationOutbox",
     "ItemLink",
     "JobApplication",
+    "JobContactClickDaily",
     "JobOpening",
     "ListingViewDaily",
     "Location",
@@ -105,11 +114,16 @@ __all__ = [
     "SocialPlatform",
     "StoreLink",
     "StoryImage",
+    "TalentCourse",
+    "TalentEducation",
+    "TalentExperience",
     "TalentImage",
     "TalentModerationAction",
     "TalentProfile",
     "TalentSkill",
     "TalentSocialLink",
+    "TalentWorkArea",
+    "TalentWorkTypeRow",
     "TeamMember",
     "Testimonial",
     "TestimonialStatus",

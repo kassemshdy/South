@@ -103,6 +103,13 @@ test.describe('Applying for a listing', () => {
     await page.getByRole('option').nth(1).click()
     // Every seller pins themselves on the map; a tap anywhere drops it.
     await dropPin(page, t('form.mapPinLabel'))
+    // The shop's logo travels with the application too: a shop cannot be
+    // approved without one.
+    await page.getByTestId('register-logo').setInputFiles({
+      name: 'logo.png',
+      mimeType: 'image/png',
+      buffer: PNG_BYTES,
+    })
 
     // The responsibility notice is on this page now (round 3), and nothing
     // is sent until it is agreed to.

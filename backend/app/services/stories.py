@@ -248,7 +248,7 @@ def home_story_groups(db: Session) -> list[StoryGroupOut]:
                     kind="talent",
                     slug=profile.slug,
                     name=profile.display_name,
-                    image_url=profile.photo_url,
+                    image_url=profile.public_photo_url,
                     stories=[_public(story) for story in stories],
                 ),
             )

@@ -1,6 +1,6 @@
 import { Handshake, ShieldCheck } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 
 import {
@@ -37,7 +37,8 @@ import { usePageText } from '@/hooks/usePageText'
 import { useSeo } from '@/hooks/useSeo'
 import { homeApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import type { HomeSectionId } from '@/types/api'
+import type { HomeLayout, HomeSectionId } from '@/types/api'
+import { readRemembered, writeRemembered } from '@/utils/rememberedQuery'
 
 const SECTIONS: Record<HomeSectionId, () => ReactNode> = {
   cover: () => <CoverSection />,
@@ -69,7 +70,17 @@ export function HomePage() {
   // The manager's review of the proposed page, on live data, saving
   // nothing: every proposed section in the proposed order.
   const preview = searchParams.get(PREVIEW_PARAM) === PREVIEW_VALUE
-  const layout = useQuery({ queryKey: queryKeys.homeLayout, queryFn: homeApi.layout })
+  const layout = useQuery({
+    queryKey: queryKeys.homeLayout,
+    queryFn: homeApi.layout,
+    // The order this browser saw last, so a refresh does not show the
+    // original three sections first and then jump; refetched at once.
+    initialData: () => readRemembered<HomeLayout>('homeLayout'),
+    initialDataUpdatedAt: 0,
+  })
+  useEffect(() => {
+    if (layout.data && layout.isFetchedAfterMount) writeRemembered('homeLayout', layout.data)
+  }, [layout.data, layout.isFetchedAfterMount])
 
   useSeo({
     title: t('home.seoTitle'),

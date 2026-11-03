@@ -7,6 +7,16 @@
 
 import { apiDownload, apiRequest } from '@/services/api/client'
 import type {
+  JobApplication,
+  EducationLevel,
+  EmployerRequest,
+  EmployerRequestInput,
+  EmployerRequestStatus,
+  TalentAvailability,
+  TalentCourse,
+  TalentEducationEntry,
+  TalentExperience,
+  TalentWorkType,
   SearchSuggestion,
   AdminReel,
   Reel,
@@ -76,12 +86,15 @@ import type {
   Activity,
   ActivityInput,
   AdminActivity,
+  AdminCarousel,
+  CarouselSlide,
   AdminWorkshop,
   Workshop,
   WorkshopInput,
   WorkshopRegistration,
   AdminJobOpening,
-  JobApplication,
+  JobContactChannel,
+  JobContactStats,
   JobOpening,
   JobOfferInput,
   JobOpeningInput,
@@ -197,6 +210,19 @@ export interface TalentPayload {
   work_mode?: WorkMode | null
   languages?: { name: string; proficiency: LanguageProficiency }[]
   social_links?: { platform: SocialPlatform; url: string }[]
+
+  // Job seekers (the candidate directory). Each list replaces the stored one.
+  desired_title?: string | null
+  availability?: TalentAvailability
+  education_level?: EducationLevel | null
+  work_types?: TalentWorkType[]
+  work_area_ids?: string[]
+  photo_hidden?: boolean
+  cv_public?: boolean
+  team_message?: string | null
+  experiences?: Omit<TalentExperience, 'id'>[]
+  education?: Omit<TalentEducationEntry, 'id'>[]
+  courses?: Omit<TalentCourse, 'id'>[]
 }
 
 /**
@@ -348,6 +374,13 @@ export const publicBusinessApi = {
   stats: () => apiRequest<PublicStats>('/api/businesses/stats'),
   bySlug: (slug: string) =>
     apiRequest<BusinessDetail>(`/api/businesses/${encodeURIComponent(slug)}`),
+  /** Counts a press of the WhatsApp or call button. Fire and forget: it must
+   *  never delay or break the link the visitor is following. */
+  countContactClick: (slug: string) => {
+    apiRequest<void>(`/api/businesses/${encodeURIComponent(slug)}/contact-click`, {
+      method: 'POST',
+    }).catch(() => undefined)
+  },
 }
 
 export const publicItemApi = {
@@ -379,27 +412,16 @@ export const partnerApi = {
     }),
 }
 
-/** Job openings: anyone reads and applies with a CV; applications are staff-only. */
+/** Job openings: anyone reads them and applies by WhatsApp or a call. */
 export const jobApi = {
   list: () => apiRequest<JobOpening[]>('/api/job-openings'),
   bySlug: (slug: string) => apiRequest<JobOpening>(`/api/job-openings/${encodeURIComponent(slug)}`),
-  apply: (
-    slug: string,
-    payload: { full_name: string; email: string; phone_number: string },
-    cv: File,
-    captchaToken: string | null,
-  ) => {
-    const form = new FormData()
-    form.append('full_name', payload.full_name)
-    form.append('email', payload.email)
-    form.append('phone_number', payload.phone_number)
-    if (captchaToken) form.append('captcha_token', captchaToken)
-    form.append('cv', cv)
-    return apiRequest<{ message: string }>(
-      `/api/job-openings/${encodeURIComponent(slug)}/apply`,
-      { method: 'POST', formData: form },
-    )
-  },
+  /** A press of an open opening's WhatsApp or call button: a count, nothing more. */
+  contactClick: (slug: string, channel: JobContactChannel) =>
+    apiRequest<void>(`/api/job-openings/${encodeURIComponent(slug)}/contact-click`, {
+      method: 'POST',
+      body: { channel },
+    }),
   /** An employer offers a job; it waits as a draft for an administrator. */
   offer: (payload: JobOfferInput, idDocument: File, captchaToken: string | null) => {
     const form = new FormData()
@@ -439,7 +461,11 @@ export const workshopApi = {
 
 /** Development activities: kept ones with a photograph, for anyone. */
 export const activityApi = {
-  list: () => apiRequest<Activity[]>('/api/activities'),
+  /** Upcoming first, then undated, then finished; page with offset ("load more"). */
+  list: (params: { limit?: number; offset?: number } = {}) =>
+    apiRequest<Activity[]>('/api/activities', { query: { ...params } }),
+  /** The shared carousel, in the administrators' order. */
+  carousel: () => apiRequest<CarouselSlide[]>('/api/carousel'),
   bySlug: (slug: string) => apiRequest<Activity>(`/api/activities/${encodeURIComponent(slug)}`),
 }
 
@@ -492,6 +518,14 @@ export const publicTalentApi = {
     apiRequest<Paginated<TalentSummary>>('/api/talent', { query: { ...query } }),
   latest: (limit = 8) => apiRequest<TalentSummary[]>('/api/talent/latest', { query: { limit } }),
   bySlug: (slug: string) => apiRequest<TalentDetail>(`/api/talent/${encodeURIComponent(slug)}`),
+  /** A job seeker's CV, when `has_cv`: a plain link the browser downloads. */
+  cvUrl: (slug: string) => `/api/talent/${encodeURIComponent(slug)}/cv`,
+  /** An employer's "have a job for them?" form; logged for the team. */
+  employerRequest: (slug: string, payload: EmployerRequestInput) =>
+    apiRequest<{ message: string }>(
+      `/api/talent/${encodeURIComponent(slug)}/employer-requests`,
+      { method: 'POST', body: payload },
+    ),
 }
 
 /**
@@ -570,7 +604,7 @@ export const testimonialApi = {
   listMine: (businessId: string) =>
     apiRequest<OwnerTestimonial[]>(`/api/businesses/${businessId}/testimonials`),
   listMyTalent: () => apiRequest<OwnerTestimonial[]>('/api/my/talent/testimonials'),
-  /** The home page's three best published testimonials. */
+  /** The home page's six best published testimonials, one per listing. */
   featured: () => apiRequest<FeaturedTestimonial[]>('/api/testimonials/featured'),
 }
 
@@ -756,6 +790,16 @@ export interface AdminUserFilters {
   sort?: 'newest' | 'oldest' | 'name' | 'listings'
 }
 
+export const adminEmployerRequestsApi = {
+  list: (status?: EmployerRequestStatus) =>
+    apiRequest<EmployerRequest[]>('/api/admin/employer-requests', { query: { status } }),
+  setStatus: (id: string, status: EmployerRequestStatus) =>
+    apiRequest<EmployerRequest>(`/api/admin/employer-requests/${id}/status`, {
+      method: 'POST',
+      body: { status },
+    }),
+}
+
 export const adminApi = {
   stats: () => apiRequest<PlatformStats>('/api/admin/stats'),
   growth: (days: number) =>
@@ -850,7 +894,13 @@ export const adminApi = {
     apiRequest<AttachedApplication>(`/api/admin/discarded-applications/${id}/attach`, {
       method: 'POST',
     }),
-  businesses: (params: { status?: BusinessStatus; q?: string; page?: number; page_size?: number }) =>
+  businesses: (params: {
+    status?: BusinessStatus
+    q?: string
+    without_products?: boolean
+    page?: number
+    page_size?: number
+  }) =>
     apiRequest<Paginated<AdminBusiness>>('/api/admin/businesses', { query: { ...params } }),
   pending: (page = 1) =>
     apiRequest<Paginated<AdminBusiness>>('/api/admin/businesses/pending', { query: { page } }),
@@ -1059,17 +1109,15 @@ export const adminApi = {
   },
   deleteJobOpeningCover: (id: string) =>
     apiRequest<AdminJobOpening>(`/api/admin/job-openings/${id}/image`, { method: 'DELETE' }),
+  jobContactClicks: (id: string) =>
+    apiRequest<JobContactStats>(`/api/admin/job-openings/${id}/contact-clicks`),
+  /** Applications sent through the old form, read-only. */
   jobApplications: (id: string) =>
     apiRequest<JobApplication[]>(`/api/admin/job-openings/${id}/applications`),
   downloadJobApplicationCv: (jobId: string, applicationId: string) =>
     apiDownload(`/api/admin/job-openings/${jobId}/applications/${applicationId}/cv`),
   downloadJobOfferIdDocument: (jobId: string) =>
     apiDownload(`/api/admin/job-openings/${jobId}/id-document`),
-  deleteJobApplication: (jobId: string, applicationId: string) =>
-    apiRequest<{ message: string }>(
-      `/api/admin/job-openings/${jobId}/applications/${applicationId}`,
-      { method: 'DELETE' },
-    ),
   uploadWorkshopCover: (id: string, file: File) => {
     const form = new FormData()
     form.append('file', file)
@@ -1093,6 +1141,36 @@ export const adminApi = {
       formData: form,
     })
   },
+  carousel: () => apiRequest<AdminCarousel>('/api/admin/carousel'),
+  reorderCarousel: (slideIds: string[]) =>
+    apiRequest<AdminCarousel>('/api/admin/carousel/order', {
+      method: 'PUT',
+      body: { slide_ids: slideIds },
+    }),
+  addActivitySlide: (activityId: string) =>
+    apiRequest<AdminCarousel>('/api/admin/carousel/activities', {
+      method: 'POST',
+      body: { activity_id: activityId },
+    }),
+  addCustomSlide: (file: File, title: string | null, linkUrl: string | null) => {
+    const form = new FormData()
+    form.append('file', file)
+    if (title) form.append('title', title)
+    if (linkUrl) form.append('link_url', linkUrl)
+    return apiRequest<AdminCarousel>('/api/admin/carousel/custom', {
+      method: 'POST',
+      formData: form,
+    })
+  },
+  updateCustomSlide: (id: string, body: { title?: string | null; link_url?: string | null }) =>
+    apiRequest<AdminCarousel>(`/api/admin/carousel/${id}`, { method: 'PUT', body }),
+  deleteSlide: (id: string) =>
+    apiRequest<AdminCarousel>(`/api/admin/carousel/${id}`, { method: 'DELETE' }),
+  carouselSettings: (autoremoveExpired: boolean) =>
+    apiRequest<AdminCarousel>('/api/admin/carousel/settings', {
+      method: 'PUT',
+      body: { autoremove_expired: autoremoveExpired },
+    }),
   workshopRegistrations: (id: string) =>
     apiRequest<WorkshopRegistration[]>(`/api/admin/workshops/${id}/registrations`),
   articles: (section?: ArticleSection) =>
@@ -1246,23 +1324,28 @@ function applicationForm(application: unknown, documents: ApplicantDocuments): F
 }
 
 export const registrationApi = {
+  /** `logo` is required by the API: a shop cannot be approved without one. */
   business: (
     applicant: Applicant,
     business: BusinessPayload,
+    logo: File,
     captcha_token: string | null,
-  ) =>
-    apiRequest<RegistrationResult>('/api/register/business', {
+  ) => {
+    const form = applicationForm(
+      {
+        login_phone: applicant.phone,
+        identity: applicant.identity,
+        business,
+        captcha_token,
+      },
+      applicant.documents,
+    )
+    form.append('logo', logo)
+    return apiRequest<RegistrationResult>('/api/register/business', {
       method: 'POST',
-      formData: applicationForm(
-        {
-          login_phone: applicant.phone,
-          identity: applicant.identity,
-          business,
-          captcha_token,
-        },
-        applicant.documents,
-      ),
-    }),
+      formData: form,
+    })
+  },
   talent: (applicant: Applicant, talent: TalentPayload, captcha_token: string | null) =>
     apiRequest<RegistrationResult>('/api/register/talent', {
       method: 'POST',

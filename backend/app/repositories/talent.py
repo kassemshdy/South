@@ -10,20 +10,44 @@ from __future__ import annotations
 import uuid
 from typing import Any, Literal
 
-from sqlalchemy import ColumnElement, Select, func, nullslast, or_, select
+from sqlalchemy import ColumnElement, Select, case, func, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.core.arabic import normalize_arabic
 from app.core.pagination import Page
-from app.models.enums import BusinessStatus, TalentKind, WorkMode
-from app.models.talent import TalentProfile, TalentSkill
+from app.models.enums import (
+    BusinessStatus,
+    EducationLevel,
+    TalentAvailability,
+    TalentKind,
+    TalentWorkType,
+    VerificationDocumentKind,
+    WorkMode,
+)
+from app.models.talent import TalentProfile, TalentSkill, TalentWorkArea, TalentWorkTypeRow
 from app.models.taxonomy import Location
 from app.models.user import User
+from app.models.verification import OwnerVerificationDocument
 from app.repositories.admin_search import phone_digits, phone_match
 from app.repositories.base import BaseRepository
 from app.repositories.geo import Point, nearest_first
 
-SortOption = Literal["newest", "name", "oldest", "experience", "nearest", "rating"]
+SortOption = Literal["newest", "name", "oldest", "experience", "nearest", "rating", "best"]
+ExperienceBand = Literal["0-1", "2-4", "5-9", "10+"]
+
+# Years of experience per band, inclusive; None is open-ended.
+_BANDS: dict[str, tuple[int, int | None]] = {
+    "0-1": (0, 1),
+    "2-4": (2, 4),
+    "5-9": (5, 9),
+    "10+": (10, None),
+}
+
+
+def _owner_has(kind: VerificationDocumentKind) -> ColumnElement[bool]:
+    return TalentProfile.owner_id.in_(
+        select(OwnerVerificationDocument.user_id).where(OwnerVerificationDocument.kind == kind)
+    )
 
 
 class TalentSkillRepository(BaseRepository[TalentSkill]):
@@ -62,6 +86,15 @@ class TalentRepository(BaseRepository[TalentProfile]):
             selectinload(TalentProfile.images),
             selectinload(TalentProfile.languages),
             selectinload(TalentProfile.social_links),
+            # The candidate directory: chips, badges and the profile's lists.
+            joinedload(TalentProfile.owner).selectinload(User.documents),
+            selectinload(TalentProfile.work_types),
+            selectinload(TalentProfile.work_areas)
+            .joinedload(TalentWorkArea.location)
+            .joinedload(Location.parent),
+            selectinload(TalentProfile.experiences),
+            selectinload(TalentProfile.education),
+            selectinload(TalentProfile.courses),
         ).execution_options(populate_existing=True)
         # populate_existing: an update replaces the whole languages
         # collection, then reloads the same profile by primary key. Without
@@ -109,7 +142,38 @@ class TalentRepository(BaseRepository[TalentProfile]):
         kind: TalentKind | None = None,
         work_mode: WorkMode | None = None,
         displaced: bool = False,
+        experience: ExperienceBand | None = None,
+        education: EducationLevel | None = None,
+        work_type: TalentWorkType | None = None,
+        available_now: bool = False,
+        has_cv: bool = False,
+        verified: bool = False,
     ) -> Select[tuple[TalentProfile]]:
+        if experience is not None:
+            low, high = _BANDS[experience]
+            stmt = stmt.where(TalentProfile.years_experience >= low)
+            if high is not None:
+                stmt = stmt.where(TalentProfile.years_experience <= high)
+        if education is not None:
+            stmt = stmt.where(TalentProfile.education_level == education)
+        if work_type is not None:
+            stmt = stmt.where(
+                TalentProfile.id.in_(
+                    select(TalentWorkTypeRow.profile_id).where(
+                        TalentWorkTypeRow.work_type == work_type
+                    )
+                )
+            )
+        if available_now:
+            stmt = stmt.where(TalentProfile.availability == TalentAvailability.NOW)
+        if has_cv:
+            # Only a CV the page offers: on file and the person allows it.
+            stmt = stmt.where(
+                TalentProfile.cv_public.is_(True), _owner_has(VerificationDocumentKind.CV)
+            )
+        if verified:
+            stmt = stmt.where(_owner_has(VerificationDocumentKind.IDENTITY))
+
         if displaced:
             # Only holders who chose to show it: the filter must not reveal
             # by omission what the badge would not show.
@@ -158,6 +222,16 @@ class TalentRepository(BaseRepository[TalentProfile]):
                 nearest_first(TalentProfile.latitude, TalentProfile.longitude, near),
                 TalentProfile.created_at.desc(),
             )
+        if sort == "best":
+            # Available now and complete first, then the newest: the
+            # candidate directory's default (the owners' ticket, 31 Oct 2026).
+            return stmt.order_by(
+                (TalentProfile.availability == TalentAvailability.NOW).desc(),
+                (TalentProfile.desired_title.is_not(None)).desc(),
+                (TalentProfile.years_experience.is_not(None)).desc(),
+                (TalentProfile.bio.is_not(None)).desc(),
+                TalentProfile.created_at.desc(),
+            )
         if sort == "name":
             return stmt.order_by(TalentProfile.display_name.asc())
         if sort == "oldest":
@@ -188,6 +262,12 @@ class TalentRepository(BaseRepository[TalentProfile]):
         kind: TalentKind | None = None,
         work_mode: WorkMode | None = None,
         displaced: bool = False,
+        experience: ExperienceBand | None = None,
+        education: EducationLevel | None = None,
+        work_type: TalentWorkType | None = None,
+        available_now: bool = False,
+        has_cv: bool = False,
+        verified: bool = False,
         sort: SortOption = "newest",
         near: Point | None = None,
         page: int = 1,
@@ -202,6 +282,12 @@ class TalentRepository(BaseRepository[TalentProfile]):
             kind=kind,
             work_mode=work_mode,
             displaced=displaced,
+            experience=experience,
+            education=education,
+            work_type=work_type,
+            available_now=available_now,
+            has_cv=has_cv,
+            verified=verified,
         )
 
         total = int(
@@ -248,7 +334,9 @@ class TalentRepository(BaseRepository[TalentProfile]):
         # Newest first everywhere, the review queue included (the owners'
         # decision, 30 Oct 2026, replacing oldest-pending-first).
         order = (
-            nullslast(TalentProfile.submitted_at.desc())
+            # An application from the public form is created pending and has no
+            # submitted_at, so it counts from when it was created.
+            func.coalesce(TalentProfile.submitted_at, TalentProfile.created_at).desc()
             if status is BusinessStatus.PENDING_REVIEW
             else TalentProfile.created_at.desc()
         )
@@ -286,7 +374,12 @@ class TalentRepository(BaseRepository[TalentProfile]):
     def approved_slugs(self) -> list[tuple[str, object, str | None]]:
         """(slug, updated_at, photo) for the sitemap — APPROVED only."""
         rows = self.db.execute(
-            select(TalentProfile.slug, TalentProfile.updated_at, TalentProfile.photo_url)
+            select(
+                TalentProfile.slug,
+                TalentProfile.updated_at,
+                # A hidden photo stays out of the sitemap too.
+                case((TalentProfile.photo_hidden, None), else_=TalentProfile.photo_url),
+            )
             .where(TalentProfile.status == BusinessStatus.APPROVED)
             .order_by(TalentProfile.updated_at.desc())
         ).all()

@@ -30,6 +30,8 @@ export const FEEDBACK_STATUS_KEYS: Record<FeedbackStatus, TranslationKey> = {
   TODO: 'feedback.status.TODO',
   IN_PROGRESS: 'feedback.status.IN_PROGRESS',
   NEEDS_FEEDBACK: 'feedback.status.NEEDS_FEEDBACK',
+  NEEDS_APPROVAL: 'feedback.status.NEEDS_APPROVAL',
+  APPROVED: 'feedback.status.APPROVED',
   DONE: 'feedback.status.DONE',
 }
 

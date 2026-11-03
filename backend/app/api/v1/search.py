@@ -93,7 +93,7 @@ def suggest(
             kind="service",
             label=profile.display_name,
             slug=profile.slug,
-            image_url=profile.photo_url,
+            image_url=profile.public_photo_url,
             detail=profile.skill.name_ar if profile.skill else None,
         )
         for profile in people
