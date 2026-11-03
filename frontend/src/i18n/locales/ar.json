@@ -2049,6 +2049,13 @@
   "adminShops.noProductsWhatsapp": "مرحبًا، محلّكم «{name}» منشور على دليل الجنوب لكن لا يظهر فيه أي منتج بعد. هل نساعدكم في إضافة منتجاتكم؟",
   "adminShops.approvedOn": "اعتُمد {date}",
   "adminShops.call": "اتصال",
+  "adminNav.groupListings": "الإدراجات",
+  "adminNav.groupOrdersJobs": "الطلبات والوظائف",
+  "adminNav.groupContent": "المحتوى",
+  "adminNav.groupSite": "إعدادات الموقع",
+  "adminNav.groupTaxonomy": "التصنيفات والمناطق",
+  "adminNav.groupAccounts": "الحسابات والفريق",
+  "adminNav.groupReports": "التقارير والأدوات",
   "admin.previewLogo": "الشعار",
   "admin.previewCover": "صورة الغلاف",
   "admin.previewMissing": "لا توجد صورة"
