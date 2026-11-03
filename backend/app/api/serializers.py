@@ -55,6 +55,7 @@ from app.schemas.talent import (
     TalentDetailOut,
     TalentEducationOut,
     TalentExperienceOut,
+    TalentFaqOut,
     TalentImageOut,
     TalentLanguageOut,
     TalentServiceOfferOut,
@@ -452,6 +453,7 @@ def talent_detail(
         service_offers=[
             TalentServiceOfferOut.model_validate(offer) for offer in profile.service_offers
         ],
+        faqs=[TalentFaqOut.model_validate(faq) for faq in profile.faqs],
         education=[TalentEducationOut.model_validate(entry) for entry in profile.education],
         courses=[TalentCourseOut.model_validate(entry) for entry in profile.courses],
     )

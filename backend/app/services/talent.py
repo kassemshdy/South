@@ -18,6 +18,7 @@ from app.models.talent import (
     TalentCourse,
     TalentEducation,
     TalentExperience,
+    TalentFaq,
     TalentLanguage,
     TalentProfile,
     TalentServiceOffer,
@@ -167,6 +168,7 @@ class TalentService:
                 "work_area_ids",
                 "experiences",
                 "service_offers",
+                "faqs",
                 "education",
                 "courses",
             )
@@ -319,6 +321,12 @@ class TalentService:
                         price_unit=offer.price_unit,
                         sort_order=index,
                     )
+                )
+        if "faqs" in data:
+            profile.faqs.clear()
+            for index, faq in enumerate(payload.faqs or []):
+                profile.faqs.append(
+                    TalentFaq(question=faq.question, answer=faq.answer, sort_order=index)
                 )
         if "education" in data:
             profile.education.clear()

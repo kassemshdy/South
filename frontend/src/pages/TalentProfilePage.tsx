@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import {
   BadgeCheck,
+  ChevronDown,
   Globe,
   Mail,
   MapPin,
@@ -219,12 +220,14 @@ export function TalentProfilePage() {
   // Services and prices lead (the owners' services redesign, 31 Oct 2026);
   // qualifications come last, and collapsed.
   const offers = data.kind === 'SERVICE' ? (data.service_offers ?? []) : []
+  const faqs = data.kind === 'SERVICE' ? (data.faqs ?? []) : []
   const sections = [
     services || offers.length > 0 ? { id: 'services', label: t('talent.servicesPricesHeading') } : null,
     data.bio ? { id: 'about', label: t('talent.aboutHeading') } : null,
     data.youtube_video_id ? { id: 'video', label: t('talent.videoHeading') } : null,
     data.images.length > 0 ? { id: 'work', label: t('talent.portfolioHeading') } : null,
     data.kind === 'SERVICE' ? { id: 'reviews', label: t('testimonials.heading') } : null,
+    faqs.length > 0 ? { id: 'faq', label: t('serviceFaqs.publicHeading') } : null,
     hasQualifications ? { id: 'qualifications', label: t('talent.qualificationsHeading') } : null,
   ].filter((section): section is { id: string; label: string } => section !== null)
 
@@ -657,9 +660,39 @@ export function TalentProfilePage() {
                   testimonials={data.testimonials}
                   average={data.rating_average}
                   count={data.rating_count}
+                  breakdown
                 />
                 <TestimonialForm slug={data.slug} target="talent" />
               </div>
+            ) : null}
+
+            {/* The provider's own answers, one opened at a time. */}
+            {faqs.length > 0 ? (
+              <section
+                id="faq"
+                aria-labelledby="faq-heading"
+                className="scroll-mt-48 rounded-2xl border border-ink-100 bg-white p-5 sm:p-6"
+              >
+                <h2 id="faq-heading" className="mb-3 text-xl">
+                  {t('serviceFaqs.publicHeading')}
+                </h2>
+                <div className="divide-y divide-ink-100">
+                  {faqs.map((faq) => (
+                    <details key={faq.id} className="group py-3">
+                      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold text-ink-800">
+                        <span dir="auto">{faq.question}</span>
+                        <ChevronDown
+                          className="h-4 w-4 shrink-0 text-ink-400 transition-transform group-open:rotate-180"
+                          aria-hidden="true"
+                        />
+                      </summary>
+                      <p className="mt-2 whitespace-pre-line text-ink-600" dir="auto">
+                        {faq.answer}
+                      </p>
+                    </details>
+                  ))}
+                </div>
+              </section>
             ) : null}
             {hasQualifications ? (
               <details

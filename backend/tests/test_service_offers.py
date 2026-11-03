@@ -123,3 +123,29 @@ def test_best_puts_rated_verified_and_priced_providers_first(
 
 def test_offers_are_archived_like_the_rest_of_a_profile() -> None:
     assert "talent_service_offers" in telegram_archive.ARCHIVED_TABLES
+
+
+def test_the_owner_answers_questions_and_visitors_read_them(
+    client: TestClient, db: Session, location: Location
+) -> None:
+    profile = _candidate(db, location, "03971020", kind=TalentKind.SERVICE)
+    headers = sign_in(client, "03971020")
+    saved = client.put(
+        "/api/my/talent",
+        headers=headers,
+        json={
+            "faqs": [
+                {"question": " Do you travel? ", "answer": "Across the South."},
+                {"question": "Do you invoice?", "answer": "Yes."},
+            ]
+        },
+    )
+    assert saved.status_code == 200, saved.text
+    public = client.get(f"/api/talent/{profile.slug}").json()
+    assert [f["question"] for f in public["faqs"]] == ["Do you travel?", "Do you invoice?"]
+
+    empty = client.put(
+        "/api/my/talent", headers=headers, json={"faqs": [{"question": "Q", "answer": ""}]}
+    )
+    assert empty.status_code == 422
+    assert "talent_faqs" in telegram_archive.ARCHIVED_TABLES
