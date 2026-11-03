@@ -19,6 +19,7 @@ const LABELS: Record<HomeSectionId, TranslationKey> = {
   search: 'admin.homeSectionSearch',
   categories: 'admin.homeSectionCategories',
   stories: 'admin.homeSectionStories',
+  reels: 'admin.homeSectionReels',
   stats: 'admin.homeSectionStats',
   products: 'admin.homeSectionProducts',
   category_products: 'admin.homeSectionCategoryProducts',

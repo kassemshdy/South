@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState, ErrorState, InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
+import { PHOTO_ASPECT, PHOTO_RATIOS } from '@/features/images/shapes'
+import { useCropper } from '@/features/images/useCropper'
 import { useT } from '@/i18n'
 import { useApplyServerFieldErrors } from '@/utils/serverFieldErrors'
 import { ApiError } from '@/services/api/client'
@@ -200,9 +202,11 @@ function ItemRow({
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const t = useT()
+  const cropper = useCropper()
 
   return (
     <Card className={item.is_available ? '' : 'opacity-70'}>
+      {cropper.dialog}
       <CardBody className="flex gap-4 p-4">
         <button
           type="button"
@@ -226,7 +230,7 @@ function ItemRow({
           disabled={uploading}
           onChange={(event) => {
             const file = event.target.files?.[0]
-            if (file) onUploadImage(file)
+            if (file) cropper.crop(file, { aspect: PHOTO_ASPECT, ratios: PHOTO_RATIOS }, onUploadImage)
             event.target.value = ''
           }}
         />
@@ -326,6 +330,7 @@ function ItemForm({
   // attach the files to; uploaded right after the main photo.
   const [extraFiles, setExtraFiles] = useState<File[]>([])
 
+  const cropper = useCropper()
   const pickFile = (file: File) => {
     setSelectedFile(file)
     setPreviewUrl(URL.createObjectURL(file))
@@ -395,6 +400,7 @@ function ItemForm({
 
   return (
     <section className="space-y-5">
+      {cropper.dialog}
       <div>
         <button
           type="button"
@@ -442,7 +448,7 @@ function ItemForm({
             aria-label={t('items.photoLabel')}
             onChange={(event) => {
               const file = event.target.files?.[0]
-              if (file) pickFile(file)
+              if (file) cropper.crop(file, { aspect: PHOTO_ASPECT, ratios: PHOTO_RATIOS }, pickFile)
               event.target.value = ''
             }}
           />

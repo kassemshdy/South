@@ -43,6 +43,7 @@ import type {
   CredentialState,
   HomeLayout,
   HomeStory,
+  Reel,
   IssuedPassword,
   LanguageProficiency,
   LocationNode,
@@ -346,6 +347,7 @@ export const siteSettingsApi = {
 }
 
 export const homeApi = {
+  reels: () => apiRequest<Reel[]>('/api/reels'),
   layout: () => apiRequest<HomeLayout>('/api/home/layout'),
   stories: () => apiRequest<HomeStory[]>('/api/home/stories'),
 }
@@ -660,6 +662,20 @@ export const adminApi = {
       method: 'POST',
       body: { category_id },
     }),
+  reels: () => apiRequest<Reel[]>('/api/admin/reels'),
+  createReel: (body: { instagram_url: string; title: string | null; sort_order: number }) =>
+    apiRequest<Reel>('/api/admin/reels', { method: 'POST', body }),
+  updateReel: (
+    id: string,
+    body: Partial<{ instagram_url: string; title: string | null; sort_order: number; is_published: boolean }>,
+  ) => apiRequest<Reel>(`/api/admin/reels/${id}`, { method: 'PATCH', body }),
+  uploadReelCover: (id: string, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return apiRequest<Reel>(`/api/admin/reels/${id}/cover`, { method: 'POST', formData: form })
+  },
+  deleteReel: (id: string) =>
+    apiRequest<{ message: string }>(`/api/admin/reels/${id}`, { method: 'DELETE' }),
   saveHomeLayout: (layout: HomeLayout) =>
     apiRequest<HomeLayout>('/api/admin/home/layout', { method: 'PUT', body: layout }),
   setTalentSkill: (profileId: string, skill_id: string, custom_skill_text: string | null) =>

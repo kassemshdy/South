@@ -149,5 +149,32 @@ def youtube_video_id(raw: str) -> str:
     return candidate
 
 
+_INSTAGRAM_CODE = re.compile(r"^[A-Za-z0-9_-]{5,40}$")
+#: The post paths an embed exists for; ``reels`` and ``tv`` are aliases of
+#: ``reel``, and ``p`` is an ordinary post (a collab video can be either).
+_INSTAGRAM_KINDS = {"reel": "reel", "reels": "reel", "tv": "reel", "p": "p"}
+
+
+def instagram_post(raw: str) -> tuple[str, str]:
+    """``(kind, code)`` of an Instagram reel or post link: ``("reel", "C8x…")``.
+
+    Like ``youtube_video_id``, only the shortcode is kept, and the page
+    composes ``instagram.com/<kind>/<code>/embed`` itself, so nothing anyone
+    pasted reaches a visitor's browser.
+    """
+    url = normalize_url(raw, field=LazyText("url.field.video"))
+    parsed = urlparse(url)
+    host = _base_host(parsed.netloc.split(":")[0])
+    if host not in PLATFORM_HOSTS[SocialPlatform.INSTAGRAM]:
+        raise ValidationError("url.invalid_instagram", code="invalid_instagram_url")
+    segments = [segment for segment in parsed.path.split("/") if segment]
+    # instagram.com/<user>/reel/<code> is the collab-share form of the same link.
+    for index, segment in enumerate(segments[:-1]):
+        kind = _INSTAGRAM_KINDS.get(segment)
+        if kind and _INSTAGRAM_CODE.match(segments[index + 1]):
+            return kind, segments[index + 1]
+    raise ValidationError("url.invalid_instagram", code="invalid_instagram_url")
+
+
 def normalize_maps_url(raw: str) -> str:
     return normalize_url(raw, field=LazyText("url.field.maps"))

@@ -3,6 +3,8 @@ import { ArrowLeft, ArrowRight, ImagePlus, Loader2, Trash2 } from 'lucide-react'
 import { useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/Button'
+import { COVER_ASPECT, LOGO_ASPECT, PHOTO_ASPECT, PHOTO_RATIOS } from '@/features/images/shapes'
+import { useCropper } from '@/features/images/useCropper'
 import { useToast } from '@/components/ui/Toast'
 import { useT } from '@/i18n'
 import { ApiError } from '@/services/api/client'
@@ -73,18 +75,30 @@ export function ImageManager({ business, maxGallery = 10 }: ImageManagerProps) {
     onSuccess: invalidate,
   })
 
+  const cropper = useCropper()
+
+  // Cropped to the shape it is shown in first; the size check runs on the
+  // crop, which is what is sent (and is far smaller than a phone photo).
   const handleFile = (file: File | undefined, kind: ImageKind) => {
     if (!file) return
     if (!ACCEPTED.split(',').includes(file.type)) {
       toast.error(t('images.badType'), t('images.badTypeDescription'))
       return
     }
-    if (file.size > MAX_BYTES) {
-      toast.error(t('images.tooLarge'), t('images.tooLargeDescription'))
-      return
-    }
-    setUploadingKind(kind)
-    upload.mutate({ file, kind })
+    const shape =
+      kind === 'LOGO'
+        ? { aspect: LOGO_ASPECT }
+        : kind === 'COVER'
+          ? { aspect: COVER_ASPECT }
+          : { aspect: PHOTO_ASPECT, ratios: PHOTO_RATIOS }
+    cropper.crop(file, shape, (cropped) => {
+      if (cropped.size > MAX_BYTES) {
+        toast.error(t('images.tooLarge'), t('images.tooLargeDescription'))
+        return
+      }
+      setUploadingKind(kind)
+      upload.mutate({ file: cropped, kind })
+    })
   }
 
   const move = (index: number, direction: -1 | 1) => {
@@ -100,6 +114,7 @@ export function ImageManager({ business, maxGallery = 10 }: ImageManagerProps) {
 
   return (
     <div className="space-y-8">
+      {cropper.dialog}
       <div className="grid gap-6 sm:grid-cols-2">
         <SingleImageSlot
           label={t('images.logoTitle')}

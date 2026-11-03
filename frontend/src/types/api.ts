@@ -549,6 +549,7 @@ export type HomeSectionId =
   | 'search'
   | 'categories'
   | 'stories'
+  | 'reels'
   | 'stats'
   | 'products'
   | 'category_products'
@@ -564,6 +565,18 @@ export interface HomeSection {
 
 export interface HomeLayout {
   sections: HomeSection[]
+}
+
+/** A collab reel an administrator added: a cover and an Instagram post. */
+export interface Reel {
+  id: string
+  title: string | null
+  instagram_kind: 'reel' | 'p'
+  instagram_code: string
+  cover_url: string | null
+  sort_order: number
+  is_published: boolean
+  created_at: string
 }
 
 /** A published listing with an introduction video, for the stories row. */

@@ -18,6 +18,7 @@ from app.api.v1 import (
     page_covers,
     pages,
     partners,
+    reels,
     registration,
     service_requests,
     site_settings,
@@ -61,6 +62,7 @@ api_router.include_router(team.admin_router)
 api_router.include_router(pages.admin_router)
 api_router.include_router(site_settings.admin_router)
 api_router.include_router(home.admin_router)
+api_router.include_router(reels.admin_router)
 api_router.include_router(testimonials.admin_router)
 
 api_router.include_router(feedback.router)
@@ -93,5 +95,6 @@ api_router.include_router(team.public_router)
 api_router.include_router(pages.public_router)
 api_router.include_router(site_settings.public_router)
 api_router.include_router(home.public_router)
+api_router.include_router(reels.public_router)
 
 __all__ = ["api_router"]

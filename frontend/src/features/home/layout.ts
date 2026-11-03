@@ -16,6 +16,7 @@ export const PROPOSED_ORDER: HomeSectionId[] = [
   'search',
   'categories',
   'stories',
+  'reels',
   'stats',
   'products',
   'category_products',

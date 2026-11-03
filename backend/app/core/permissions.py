@@ -98,6 +98,10 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     ("DELETE", "/api/admin/page-covers/{page_key}"): _CONTENT,
     # The home page's section order: the editorial pages' people.
     ("PUT", "/api/admin/home/layout"): _CONTENT,
+    ("POST", "/api/admin/reels"): _CONTENT,
+    ("PATCH", "/api/admin/reels/{reel_id}"): _CONTENT,
+    ("POST", "/api/admin/reels/{reel_id}/cover"): _CONTENT,
+    ("DELETE", "/api/admin/reels/{reel_id}"): _CONTENT,
     ("PUT", "/api/admin/pages/{key}"): _CONTENT,
     ("PUT", "/api/admin/team/{slot}"): _CONTENT,
     ("POST", "/api/admin/team/{slot}/photo"): _CONTENT,

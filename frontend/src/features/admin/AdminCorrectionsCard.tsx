@@ -4,6 +4,8 @@ import { useRef, type RefObject } from 'react'
 
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody, CardHeader } from '@/components/ui/Card'
+import { COVER_ASPECT, LOGO_ASPECT } from '@/features/images/shapes'
+import { useCropper } from '@/features/images/useCropper'
 import { useToast } from '@/components/ui/Toast'
 import { useT } from '@/i18n'
 import { ApiError } from '@/services/api/client'
@@ -24,6 +26,7 @@ export function AdminCorrectionsCard({ business }: { business: AdminBusiness }) 
   const queryClient = useQueryClient()
   const logoInput = useRef<HTMLInputElement>(null)
   const coverInput = useRef<HTMLInputElement>(null)
+  const cropper = useCropper()
 
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.adminBusiness(business.id) })
@@ -65,7 +68,11 @@ export function AdminCorrectionsCard({ business }: { business: AdminBusiness }) 
         aria-label={t(kind === 'LOGO' ? 'images.logoTitle' : 'images.coverTitle')}
         onChange={(event) => {
           const file = event.target.files?.[0]
-          if (file) image.mutate({ file, kind })
+          if (file) {
+            cropper.crop(file, { aspect: kind === 'LOGO' ? LOGO_ASPECT : COVER_ASPECT }, (cropped) =>
+              image.mutate({ file: cropped, kind }),
+            )
+          }
           event.target.value = ''
         }}
       />
@@ -84,6 +91,7 @@ export function AdminCorrectionsCard({ business }: { business: AdminBusiness }) 
 
   return (
     <Card>
+      {cropper.dialog}
       <CardHeader>
         <h2 className="text-lg font-bold">{t('admin.correctionsTitle')}</h2>
       </CardHeader>

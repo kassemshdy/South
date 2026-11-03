@@ -10,7 +10,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query'
-import { Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Play, Search } from 'lucide-react'
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -30,7 +30,7 @@ import {
   taxonomyApi,
 } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import type { ArticleSection, Category, GoodsOrigin, HomeStory, ProductQuery } from '@/types/api'
+import type { ArticleSection, Category, GoodsOrigin, HomeStory, ProductQuery, Reel } from '@/types/api'
 import { cn } from '@/utils/cn'
 import { formatDate } from '@/utils/format'
 
@@ -176,6 +176,150 @@ export function StoriesSection() {
         </DialogContent>
       </Dialog>
     </section>
+  )
+}
+
+/**
+ * Collab reels an administrator added: tall covers in a row; opening one
+ * plays Instagram's own embed in a pop-up. Only the post's kind and
+ * shortcode come from the API, so the frame's address is composed here.
+ */
+export function ReelsSection() {
+  const t = useT()
+  const reels = useQuery({ queryKey: queryKeys.reels, queryFn: homeApi.reels })
+  const [index, setIndex] = useState<number | null>(null)
+  if (!reels.data || reels.data.length === 0) return null
+  const list = reels.data
+  return (
+    <Band>
+      <SectionHeading title={t('home.reelsTitle')} />
+      <ul className="flex gap-4 overflow-x-auto pb-2">
+        {list.map((reel, i) => (
+          <li key={reel.id} className="shrink-0">
+            <button
+              type="button"
+              onClick={() => setIndex(i)}
+              className="group relative block aspect-[9/16] w-40 overflow-hidden rounded-2xl bg-brand-800 shadow-card sm:w-48"
+            >
+              {reel.cover_url ? (
+                <img src={reel.cover_url} alt="" loading="lazy" className="h-full w-full object-cover" />
+              ) : null}
+              <span className="absolute inset-0 flex items-center justify-center" aria-hidden="true">
+                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-brand-700 transition-transform group-hover:scale-110">
+                  <Play className="h-5 w-5 fill-current" />
+                </span>
+              </span>
+              {reel.title ? (
+                <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink-900/90 to-transparent p-3 text-start text-sm font-semibold text-white">
+                  {reel.title}
+                </span>
+              ) : (
+                <span className="sr-only">{t('home.storyPlay')}</span>
+              )}
+            </button>
+          </li>
+        ))}
+      </ul>
+      <ReelPlayer reels={list} index={index} onIndex={setIndex} />
+    </Band>
+  )
+}
+
+/**
+ * Full-screen vertical player, Al Jazeera / Instagram style: one reel at a
+ * time on a dark ground, previous and next by arrow buttons, a swipe or the
+ * keyboard. Instagram's own embed plays the video; only its kind and
+ * shortcode come from the API, so the frame's address is composed here.
+ */
+function ReelPlayer({
+  reels,
+  index,
+  onIndex,
+}: {
+  reels: Reel[]
+  index: number | null
+  onIndex: (index: number | null) => void
+}) {
+  const t = useT()
+  const [touchX, setTouchX] = useState<number | null>(null)
+  const reel = index === null ? null : reels[index]
+  const go = (by: -1 | 1) => {
+    if (index === null) return
+    const next = index + by
+    if (next >= 0 && next < reels.length) onIndex(next)
+  }
+  const postUrl = (r: Reel) =>
+    `https://www.instagram.com/${r.instagram_kind}/${encodeURIComponent(r.instagram_code)}/`
+  return (
+    <Dialog open={reel !== null && reel !== undefined} onOpenChange={(next) => (next ? null : onIndex(null))}>
+      <DialogContent
+        title={reel?.title ?? t('home.reelsTitle')}
+        className="max-w-lg border-0 bg-ink-900 text-white"
+      >
+        {reel ? (
+          <div
+            className="flex flex-col items-center gap-3"
+            onKeyDown={(event) => {
+              // Arrow keys follow reading direction: in Arabic, left is next.
+              const rtl = document.documentElement.dir === 'rtl'
+              if (event.key === 'ArrowLeft') go(rtl ? 1 : -1)
+              if (event.key === 'ArrowRight') go(rtl ? -1 : 1)
+            }}
+            onTouchStart={(event) => setTouchX(event.touches[0]?.clientX ?? null)}
+            onTouchEnd={(event) => {
+              const end = event.changedTouches[0]?.clientX
+              if (touchX === null || end === undefined) return
+              const rtl = document.documentElement.dir === 'rtl'
+              if (Math.abs(end - touchX) > 50) go((end < touchX) === rtl ? -1 : 1)
+              setTouchX(null)
+            }}
+          >
+            <div className="flex w-full items-center gap-2">
+              <button
+                type="button"
+                aria-label={t('gallery.previous')}
+                disabled={index === 0}
+                onClick={() => go(-1)}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30"
+              >
+                <ChevronRight className="h-6 w-6 rtl:hidden ltr:rotate-180" aria-hidden="true" />
+                <ChevronRight className="hidden h-6 w-6 rtl:block" aria-hidden="true" />
+              </button>
+              <iframe
+                key={reel.id}
+                src={`${postUrl(reel)}embed`}
+                title={reel.title ?? t('home.reelsTitle')}
+                className="h-[72vh] max-h-[680px] min-w-0 flex-1 rounded-xl border-0 bg-white"
+                allow="encrypted-media; picture-in-picture"
+              />
+              <button
+                type="button"
+                aria-label={t('gallery.next')}
+                disabled={index === reels.length - 1}
+                onClick={() => go(1)}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30"
+              >
+                <ChevronLeft className="h-6 w-6 rtl:block ltr:hidden" aria-hidden="true" />
+                <ChevronLeft className="hidden h-6 w-6 rotate-180 ltr:block" aria-hidden="true" />
+              </button>
+            </div>
+            <div className="flex w-full items-center justify-between text-sm">
+              <span className="ltr-nums text-white/70">
+                {(index ?? 0) + 1} / {reels.length}
+              </span>
+              <a
+                href={postUrl(reel)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-wheat-300 hover:underline"
+              >
+                {t('home.reelOpenInstagram')}
+              </a>
+            </div>
+          </div>
+        ) : null}
+      </DialogContent>
+    </Dialog>
   )
 }
 
