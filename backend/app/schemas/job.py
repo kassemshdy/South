@@ -95,6 +95,22 @@ class AdminJobOpeningOut(JobOpeningOut):
     submitter_name: str | None = None
     submitter_phone: str | None = None
     has_id_document: bool = False
+    #: Applications sent through the old form, before applying moved to
+    #: WhatsApp and calls; kept readable (the owners' decision, 3 Nov 2026).
+    application_count: int = 0
+
+
+class JobApplicationOut(ORMModel):
+    """The staff view of an application from the old form; there is no other."""
+
+    id: uuid.UUID
+    full_name: str
+    email: str
+    phone_number: str
+    original_filename: str | None = None
+    content_type: str
+    size_bytes: int
+    created_at: datetime
 
 
 class JobOfferIn(BaseModel):
