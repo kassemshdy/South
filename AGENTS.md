@@ -127,6 +127,13 @@ service); a pass run by hand can use the local server instead, with
 else to do — an unconfigured pass that improvises is
 how invented work becomes a pull request.
 
+A ticket filed by staff is built rather than skipped for want of detail
+(the owners' decision, 3 Nov 2026): the routine takes the most reasonable
+reading, lists its assumptions on the ticket and the pull request, flags
+any wording it had to write as a placeholder, and lets the develop site and
+the approval step correct it. Tickets from anyone else are still skipped
+with a question when they need a product decision.
+
 It runs every three hours (the owners' decision, 31 Oct 2026). A fix whose
 CI is green is merged into `develop-claude` and checked on the develop site;
 the ticket gets a comment with the pull request and the develop link and
