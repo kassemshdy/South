@@ -19,6 +19,7 @@ import {
   LayoutList,
   Menu as MenuIcon,
   Newspaper,
+  PackageX,
   PhoneCall,
   ShoppingBag,
   ShieldCheck,
@@ -46,6 +47,7 @@ const NAV: {
 }[] = [
   { to: '/admin', labelKey: 'admin.navDashboard', icon: BarChart3, end: true },
   { to: '/admin/businesses', labelKey: 'admin.navBusinesses', icon: Store, end: false },
+  { to: '/admin/shops-without-products', labelKey: 'adminShops.noProductsNav', icon: PackageX, end: false },
   { to: '/admin/talent', labelKey: 'admin.navTalent', icon: UserRound, end: false },
   { to: '/admin/categories', labelKey: 'admin.navCategories', icon: FolderTree, end: false },
   { to: '/admin/talent-skills', labelKey: 'admin.navTalentSkills', icon: Sparkles, end: false },

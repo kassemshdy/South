@@ -7,10 +7,11 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.core.arabic import build_search_text, normalize_arabic
-from app.models.business import Business
+from app.models.business import Business, BusinessItem
 from app.models.enums import BusinessStatus, LocationType
 from app.models.taxonomy import Category, Location
-from tests.conftest import sign_in
+from app.models.user import User
+from tests.conftest import admin_headers, sign_in
 from tests.samples import ar
 
 
@@ -240,7 +241,7 @@ def test_build_search_text_skips_empty_parts() -> None:
 
 
 def test_public_stats_counts_only_approved_businesses_and_distinct_towns(
-    client: TestClient, db: Session, category: Category, location: Location
+    client: TestClient, db: Session, category: Category, location: Location, admin: User
 ) -> None:
     town_a = Location(name_ar=ar("location.qana"), slug="qana-stats", type=LocationType.TOWN, parent_id=location.id)
     town_b = Location(name_ar=ar("location.qana"), slug="qana-stats-2", type=LocationType.TOWN, parent_id=location.id)
@@ -288,12 +289,36 @@ def test_public_stats_counts_only_approved_businesses_and_distinct_towns(
     )
     assert hidden_item.status_code == 201, hidden_item.text
 
+    # Two of the approved shops put a product on sale; the other two have
+    # nothing to sell, and a shop with nothing to sell is not counted (the
+    # owners' request, 3 Nov 2026).
+    for business_id, phone in ((approved_ids[0], "03910001"), (approved_ids[1], "03910002")):
+        item = client.post(
+            f"/api/businesses/{business_id}/items",
+            headers=sign_in(client, phone),
+            json={"title": ar("item.generic"), "price": "5.00", "currency": "USD"},
+        )
+        assert item.status_code == 201, item.text
+        # The catalogue shows a product once it has its photo.
+        row = db.get(BusinessItem, item.json()["id"])
+        assert row is not None
+        row.image_url = "/media/items/photo.jpg"
+        db.commit()
+
     stats = client.get("/api/businesses/stats")
     assert stats.status_code == 200, stats.text
     # The three directories, and only those. It used to count towns instead of
     # products, which measured the map rather than what is in the directory.
     assert stats.json() == {
-        "total_businesses": 4,
-        "total_products": 0,
+        "total_businesses": 2,
+        "total_products": 2,
         "total_talents": 0,
     }
+
+    # Staff see the two without products, to contact them.
+    without = client.get(
+        "/api/admin/businesses",
+        headers=admin_headers(client),
+        params={"status": "APPROVED", "without_products": True},
+    ).json()
+    assert {row["id"] for row in without["items"]} == set(approved_ids[2:])
