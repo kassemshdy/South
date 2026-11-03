@@ -13,7 +13,7 @@ import {
   UserCog,
   X,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { useSiteSections } from '@/components/layout/navigation'
@@ -79,6 +79,48 @@ const NAV_LINK =
 
 const MENU_ITEM =
   'flex cursor-pointer select-none items-center gap-2.5 rounded-lg px-3 py-2.5 text-[15px] text-ink-700 outline-none data-[highlighted]:bg-sand-100 data-[highlighted]:text-ink-900'
+
+/**
+ * Whether the full row of headings fits beside the logo.
+ *
+ * Administrators choose which headings the menu shows (`/admin/menu`), so the
+ * row's width is not known when the page is written: six headings fit at
+ * 1280px, eleven do not, and an overflowing row pushed the whole page sideways
+ * -- an RTL page scrolled to a blank strip with the logo cut off. So the row
+ * is measured rather than assumed: below `xl` the drawer is used as before,
+ * and from `xl` up the row is shown only while it actually fits; otherwise
+ * the same drawer takes over. Measured again whenever the bar or the row
+ * changes size (a resize, the web font arriving, a heading renamed).
+ */
+function useRowFits() {
+  const barRef = useRef<HTMLDivElement>(null)
+  const logoRef = useRef<HTMLAnchorElement>(null)
+  const navRef = useRef<HTMLElement>(null)
+  const [fits, setFits] = useState(true)
+
+  useLayoutEffect(() => {
+    const bar = barRef.current
+    const logo = logoRef.current
+    const nav = navRef.current
+    if (!bar || !logo || !nav) return
+    const measure = () => {
+      // Below `xl` the row is display:none and measures 0: it "fits", and
+      // the `xl:` classes it would affect do not apply there anyway.
+      const style = getComputedStyle(bar)
+      const available =
+        bar.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+      const gap = parseFloat(style.columnGap) || 0
+      setFits(nav.scrollWidth + logo.offsetWidth + gap <= available)
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(bar)
+    observer.observe(nav)
+    return () => observer.disconnect()
+  }, [])
+
+  return { barRef, logoRef, navRef, fits }
+}
 
 function CartLink() {
   const t = useT()
@@ -147,6 +189,8 @@ export function Header() {
   const t = useT()
   const sections = useSiteSections()
 
+  const { barRef, logoRef, navRef, fits } = useRowFits()
+
   const handleSignOut = () => {
     signOut()
     setMenuOpen(false)
@@ -172,7 +216,10 @@ export function Header() {
         {t('nav.offer')}
         <ArrowLeft className="h-4 w-4 ltr:rotate-180" aria-hidden="true" />
       </Link>
-      <div className="container-page flex h-20 items-center justify-between gap-4">
+      <div
+        ref={barRef}
+        className="container-page relative flex h-20 items-center justify-between gap-4 overflow-hidden"
+      >
         {/* The hit area is the bar's full height and reaches a little past
             the artwork on each side. Sizing it to the image alone left a
             106x40 target in a 64px bar — the logo looked dead to anyone whose
@@ -182,6 +229,7 @@ export function Header() {
             rather than inherited from the anchor, so the whole padded area
             reads as clickable and not just the image inside it. */}
         <Link
+          ref={logoRef}
           to="/"
           className="-mx-2 flex h-full shrink-0 cursor-pointer items-center px-2"
         >
@@ -209,7 +257,18 @@ export function Header() {
           />
         </Link>
 
-        <nav className="hidden items-center gap-1 xl:flex" aria-label={t('nav.mainAria')}>
+        {/* When it does not fit, the row stays in the page only to be
+            measured: invisible (so neither seen, tabbed to nor read out) and
+            out of the flow, while the drawer below takes its place. */}
+        <nav
+          ref={navRef}
+          className={cn(
+            'hidden items-center gap-1 xl:flex',
+            !fits && 'pointer-events-none invisible absolute end-0 top-0',
+          )}
+          aria-label={t('nav.mainAria')}
+          aria-hidden={fits ? undefined : true}
+        >
           {sections.map((section) => (
             <Link key={section.href} to={section.href} className={NAV_LINK}>
               {section.label}
@@ -308,7 +367,7 @@ export function Header() {
           )}
         </nav>
 
-        <div className="flex items-center gap-1 xl:hidden">
+        <div className={cn('flex items-center gap-1', fits && 'xl:hidden')}>
           <CartLink />
           <FavouritesLink />
           <Button asChild variant="ghost" size="icon" aria-label={t('nav.searchAria')}>
@@ -331,7 +390,11 @@ export function Header() {
 
       <div
         id="mobile-menu"
-        className={cn('border-t border-ink-100 bg-white xl:hidden', menuOpen ? 'block' : 'hidden')}
+        className={cn(
+          'border-t border-ink-100 bg-white',
+          fits && 'xl:hidden',
+          menuOpen ? 'block' : 'hidden',
+        )}
       >
         <nav className="container-page flex flex-col gap-1 py-3" aria-label={t('nav.mobileAria')}>
           {sections.map((section) => (
