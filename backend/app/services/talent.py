@@ -4,20 +4,37 @@ from __future__ import annotations
 
 import logging
 import uuid
+from datetime import date
 
 from sqlalchemy.orm import Session
 
 from app.core.arabic import build_search_text
+from app.core.candidate_text import contains_contact_details, is_person_name
 from app.core.errors import ConflictError, NotFoundError, ValidationError
 from app.core.i18n import LazyJoin
 from app.core.urls import normalize_social_url, normalize_url, youtube_video_id
 from app.models.enums import BusinessStatus, TalentKind, ViewSubject, WorkMode
-from app.models.talent import TalentLanguage, TalentProfile, TalentSocialLink
+from app.models.talent import (
+    TalentCourse,
+    TalentEducation,
+    TalentExperience,
+    TalentLanguage,
+    TalentProfile,
+    TalentSocialLink,
+    TalentWorkArea,
+    TalentWorkTypeRow,
+)
 from app.models.user import User
 from app.repositories.talent import TalentRepository, TalentSkillRepository
 from app.repositories.taxonomy import LocationRepository
 from app.schemas.business import SocialLinkIn
-from app.schemas.talent import TalentCreateIn, TalentLanguageIn, TalentUpdateIn
+from app.schemas.talent import (
+    TalentCreateIn,
+    TalentEducationIn,
+    TalentExperienceIn,
+    TalentLanguageIn,
+    TalentUpdateIn,
+)
 from app.services.analytics import ViewCounterService
 from app.services.slug import unique_slug
 
@@ -51,6 +68,8 @@ class TalentService:
             raise ConflictError("talent.already_exists", code="talent_profile_exists")
 
         self._validate_taxonomy(payload.skill_id, payload.location_id)
+        kind = payload.kind or TalentKind.SERVICE
+        self._check_candidate_text(kind, payload.display_name, payload.bio)
 
         profile = TalentProfile(
             owner_id=owner.id,
@@ -91,9 +110,17 @@ class TalentService:
             employment_type=payload.employment_type,
             remote_capable=_remote_capable(payload.work_mode, payload.remote_capable),
             work_mode=payload.work_mode,
+            desired_title=payload.desired_title,
+            education_level=payload.education_level,
+            team_message=payload.team_message,
         )
+        for flag in ("availability", "photo_hidden", "cv_public"):
+            value = getattr(payload, flag)
+            if value is not None:
+                setattr(profile, flag, value)
         if payload.languages is not None:
             self._apply_languages(profile, payload.languages)
+        self._apply_candidate_lists(profile, payload.model_dump(exclude_unset=True), payload)
         if payload.social_links:
             self._apply_social_links(profile, payload.social_links)
         # Add (and flush) before deriving the haystack: on a transient object
@@ -132,6 +159,21 @@ class TalentService:
         # dicts, which setattr would happily assign and then fail on flush.
         languages = data.pop("languages", None)
         social_links = data.pop("social_links", None)
+        lists = {
+            key: data.pop(key)
+            for key in ("work_types", "work_area_ids", "experiences", "education", "courses")
+            if key in data
+        }
+        # Not nullable: an explicit null means "no change".
+        for flag in ("availability", "photo_hidden", "cv_public"):
+            if flag in data and data[flag] is None:
+                data.pop(flag)
+
+        self._check_candidate_text(
+            data.get("kind") or profile.kind,
+            data.get("display_name"),
+            data.get("bio"),
+        )
 
         if "work_mode" in data:
             data["remote_capable"] = _remote_capable(
@@ -145,6 +187,7 @@ class TalentService:
             self._apply_languages(profile, payload.languages or [])
         if social_links is not None:
             self._apply_social_links(profile, payload.social_links or [])
+        self._apply_candidate_lists(profile, lists, payload)
 
         # The slug is part of the public URL; renaming must not break links that
         # are already shared, so it is only derived once at creation.
@@ -216,6 +259,74 @@ class TalentService:
             )
 
     # --- internals ---------------------------------------------------------
+
+    @staticmethod
+    def _check_candidate_text(
+        kind: TalentKind, display_name: str | None, bio: str | None
+    ) -> None:
+        """A job seeker's name is a person's name, and their bio carries no
+        contact details (see app.core.candidate_text). Checked only on what
+        is being saved, so an older profile can still be edited elsewhere."""
+        if kind is not TalentKind.JOB_SEEKER:
+            return
+        if display_name is not None and not is_person_name(display_name):
+            raise ValidationError("talent.name_not_person", code="name_not_person")
+        if contains_contact_details(bio):
+            raise ValidationError("talent.bio_has_contact", code="bio_has_contact")
+
+    def _apply_candidate_lists(
+        self,
+        profile: TalentProfile,
+        data: dict[str, object],
+        payload: TalentCreateIn | TalentUpdateIn,
+    ) -> None:
+        """Replace each list the request carried, as languages are."""
+        if "work_types" in data:
+            profile.work_types.clear()
+            for work_type in dict.fromkeys(payload.work_types or []):
+                profile.work_types.append(TalentWorkTypeRow(work_type=work_type))
+        if "work_area_ids" in data:
+            ids = list(dict.fromkeys(payload.work_area_ids or []))
+            for location_id in ids:
+                if self._locations.get(location_id) is None:
+                    raise ValidationError("talent.unknown_location", code="unknown_location")
+            profile.work_areas.clear()
+            for location_id in ids:
+                profile.work_areas.append(TalentWorkArea(location_id=location_id))
+        if "experiences" in data:
+            self._apply_experiences(profile, payload.experiences or [])
+            # Counted from the entries unless the person gave a number.
+            if payload.years_experience is None and profile.experiences:
+                profile.years_experience = _years_from(payload.experiences or [])
+        if "education" in data:
+            profile.education.clear()
+            for index, row in enumerate(payload.education or []):
+                profile.education.append(_education_row(row, index))
+        if "courses" in data:
+            profile.courses.clear()
+            for index, course in enumerate(payload.courses or []):
+                profile.courses.append(
+                    TalentCourse(
+                        name=course.name, issuer=course.issuer, year=course.year, sort_order=index
+                    )
+                )
+
+    @staticmethod
+    def _apply_experiences(profile: TalentProfile, entries: list[TalentExperienceIn]) -> None:
+        profile.experiences.clear()
+        for index, entry in enumerate(entries):
+            profile.experiences.append(
+                TalentExperience(
+                    title=entry.title,
+                    employer=entry.employer,
+                    town=entry.town,
+                    start_date=entry.start_date,
+                    end_date=None if entry.is_current else entry.end_date,
+                    is_current=entry.is_current,
+                    description=entry.description,
+                    sort_order=index,
+                )
+            )
 
     def _reload(self, profile_id: uuid.UUID) -> TalentProfile:
         profile = self._repo.get_with_relations(profile_id)
@@ -302,10 +413,46 @@ class TalentService:
             # name would match, hiding exactly the profiles this field
             # exists to describe.
             profile.skill_specialty,
+            # The job a candidate is asking for is what an employer types.
+            profile.desired_title,
             location,
             profile.skills_text,
             profile.services_offered,
         )
+
+
+def _education_row(row: TalentEducationIn, index: int) -> TalentEducation:
+    return TalentEducation(
+        degree=row.degree,
+        field=row.field,
+        institution=row.institution,
+        graduation_year=row.graduation_year,
+        sort_order=index,
+    )
+
+
+def _years_from(entries: list[TalentExperienceIn]) -> int:
+    """Whole years covered by the entries, overlaps counted once."""
+    today = date.today()
+    spans = sorted(
+        (entry.start_date, today if entry.is_current else (entry.end_date or entry.start_date))
+        for entry in entries
+        if entry.start_date is not None
+    )
+    total = 0
+    current_start: date | None = None
+    current_end: date | None = None
+    for start, end in spans:
+        end = max(start, end)
+        if current_end is None or start > current_end:
+            if current_start is not None and current_end is not None:
+                total += (current_end - current_start).days
+            current_start, current_end = start, end
+        else:
+            current_end = max(current_end, end)
+    if current_start is not None and current_end is not None:
+        total += (current_end - current_start).days
+    return min(70, total // 365)
 
 
 def _remote_capable(work_mode: WorkMode | None, fallback: bool) -> bool:

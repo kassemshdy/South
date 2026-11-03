@@ -10,6 +10,7 @@ import { BusinessCardSkeleton } from '@/components/ui/Skeleton'
 import { ErrorState, NoSearchResults } from '@/components/ui/States'
 import { Pagination } from '@/features/businesses/Pagination'
 import { TalentCard } from '@/features/talent/TalentCard'
+import { CandidateDirectory } from '@/features/talent/candidate/CandidateDirectory'
 import { WORK_MODE_KEYS } from '@/features/talent/labels'
 import { useLocationGroups, useTalentSkills } from '@/hooks/useTaxonomy'
 import { PageBanner } from '@/components/layout/PageBanner'
@@ -43,6 +44,8 @@ const SORT_KEYS: Record<TalentSortOption, TranslationKey> = {
   rating: 'directory.sortRating',
   name: 'talent.sortName',
   oldest: 'directory.sortOldest',
+  // The candidate directory's default; not offered on services.
+  best: 'candidate.sortBest',
 }
 
 /**
@@ -84,7 +87,16 @@ export function LegacyTalentRedirect() {
   return <Navigate to={`/services${search}`} replace />
 }
 
+/**
+ * Job seekers have their own directory (the owners' ticket, 31 Oct 2026);
+ * services keep this one. Two components rather than a branch inside one, so
+ * moving between /services and /jobs remounts instead of reusing hooks.
+ */
 export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
+  return kind === 'JOB_SEEKER' ? <CandidateDirectory /> : <TalentDirectory kind={kind} />
+}
+
+function TalentDirectory({ kind }: { kind: TalentKind }) {
   const page_ = KIND_PAGES[kind]
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -308,6 +320,7 @@ export function TalentDirectoryPage({ kind }: { kind: TalentKind }) {
               <SelectContent>
                 {(Object.keys(SORT_KEYS) as TalentSortOption[])
                   .filter((option) => option !== 'rating' || kind === 'SERVICE')
+                  .filter((option) => option !== 'best')
                   .map((option) => (
                     <SelectItem key={option} value={option}>
                       {t(SORT_KEYS[option])}

@@ -460,6 +460,79 @@ export interface TalentSummary {
    */
   displaced_from?: string | null
   created_at: string
+  /** When the profile last changed: a candidate's "last updated". */
+  updated_at?: string | null
+  // --- Job seekers (the candidate directory, 3 Nov 2026) ---
+  /** The job asked for: the card's subtitle. */
+  desired_title?: string | null
+  availability?: TalentAvailability
+  education_level?: EducationLevel | null
+  /** A CV the page offers; download it from `/api/talent/{slug}/cv`. */
+  has_cv?: boolean
+  /** Approved with an identity document on file. */
+  id_verified?: boolean
+  /** The taxonomy skill, then the person's own extras: the card's chips. */
+  skill_tags?: string[]
+  work_types?: TalentWorkType[]
+}
+
+export type TalentAvailability = 'NOW' | 'WITHIN_MONTH' | 'EMPLOYED_OPEN'
+export type TalentWorkType = 'FULL_TIME' | 'PART_TIME' | 'REMOTE' | 'TRAINING'
+export type EducationLevel = 'SECONDARY_VOCATIONAL' | 'UNIVERSITY' | 'POSTGRADUATE'
+export type ExperienceBand = '0-1' | '2-4' | '5-9' | '10+'
+export type EmployerRequestStatus = 'NEW' | 'CONTACTED' | 'HIRED'
+
+export interface TalentExperience {
+  id: string
+  title: string
+  employer: string | null
+  town: string | null
+  /** ISO dates (YYYY-MM-DD). */
+  start_date: string | null
+  end_date: string | null
+  /** "Until now"; end_date is then null. */
+  is_current: boolean
+  description: string | null
+}
+
+export interface TalentEducationEntry {
+  id: string
+  degree: string | null
+  field: string | null
+  institution: string | null
+  graduation_year: number | null
+}
+
+export interface TalentCourse {
+  id: string
+  name: string
+  issuer: string | null
+  year: number | null
+}
+
+/** An employer's request for a candidate, in the admin's log. */
+export interface EmployerRequest {
+  id: string
+  profile_id: string
+  candidate_name: string | null
+  candidate_slug: string | null
+  /** The candidate's own number, for the team to relay the request. */
+  candidate_whatsapp: string | null
+  employer_name: string
+  phone: string
+  company: string | null
+  job_title: string | null
+  message: string | null
+  status: EmployerRequestStatus
+  created_at: string
+}
+
+export interface EmployerRequestInput {
+  employer_name: string
+  phone: string
+  company?: string
+  job_title?: string
+  message?: string
 }
 
 export type LanguageProficiency = 'BASIC' | 'GOOD' | 'FLUENT' | 'NATIVE'
@@ -512,12 +585,23 @@ export interface TalentDetail extends TalentSummary {
   social_links: SocialLink[]
   images: TalentImage[]
   approved_at: string | null
+  /** Job seekers: where they can work and their history, newest first. */
+  work_areas?: LocationNode[]
+  experiences?: TalentExperience[]
+  education?: TalentEducationEntry[]
+  courses?: TalentCourse[]
 }
 
 /** The person's own view of their profile, including moderation state. */
 export interface OwnerTalent extends TalentDetail {
   /** Whether visitors see the numbers; the owner always does. */
   phone_public: boolean
+  /** Visitors see initials instead of the photo. */
+  photo_hidden?: boolean
+  /** Whether the public page offers the CV for download. */
+  cv_public?: boolean
+  /** A private note to the team; never public. */
+  team_message?: string | null
   status: BusinessStatus
   rejection_reason: string | null
   submitted_at: string | null
@@ -787,7 +871,7 @@ export type BusinessSortOption = SortOption | 'rating'
 
 /** The talent directory can also sort by years of experience, most first,
  * and services by their stars, rated first. */
-export type TalentSortOption = SortOption | 'experience' | 'rating'
+export type TalentSortOption = SortOption | 'experience' | 'rating' | 'best'
 
 /**
  * The products directory sorts by price as well, which the other two cannot:
@@ -834,6 +918,13 @@ export interface TalentQuery {
   work_mode?: Exclude<WorkMode, 'BOTH'>
   /** Only owners who chose to show they are displaced. */
   displaced?: boolean
+  // The candidate directory's filters (job seekers).
+  experience?: ExperienceBand
+  education?: EducationLevel
+  work_type?: TalentWorkType
+  available_now?: boolean
+  has_cv?: boolean
+  verified?: boolean
   sort?: TalentSortOption
   /** The visitor's position, for `nearest` only. Never put in the page URL. */
   lat?: number

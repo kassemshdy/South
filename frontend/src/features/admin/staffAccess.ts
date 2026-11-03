@@ -15,6 +15,7 @@ export type StaffAction =
   | 'support' // tickets, partner requests, set-aside applications
   | 'content' // pages, articles, covers, team, categories and places
   | 'manage' // staff, export, permanent deletes, site settings
+  | 'employerRequests' // read employers' requests for candidates and mark them
 
 const ALLOWED: Record<StaffAction, StaffRole[]> = {
   moderate: ['MANAGER', 'REVIEWER'],
@@ -23,6 +24,7 @@ const ALLOWED: Record<StaffAction, StaffRole[]> = {
   support: ['MANAGER', 'SUPPORT'],
   content: ['MANAGER', 'EDITOR'],
   manage: ['MANAGER'],
+  employerRequests: ['MANAGER', 'REVIEWER', 'SUPPORT'],
 }
 
 export const STAFF_ROLES: StaffRole[] = ['MANAGER', 'REVIEWER', 'SUPPORT', 'EDITOR', 'VIEWER']

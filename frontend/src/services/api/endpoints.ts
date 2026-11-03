@@ -7,6 +7,15 @@
 
 import { apiDownload, apiRequest } from '@/services/api/client'
 import type {
+  EducationLevel,
+  EmployerRequest,
+  EmployerRequestInput,
+  EmployerRequestStatus,
+  TalentAvailability,
+  TalentCourse,
+  TalentEducationEntry,
+  TalentExperience,
+  TalentWorkType,
   SearchSuggestion,
   AdminReel,
   Reel,
@@ -194,6 +203,19 @@ export interface TalentPayload {
   work_mode?: WorkMode | null
   languages?: { name: string; proficiency: LanguageProficiency }[]
   social_links?: { platform: SocialPlatform; url: string }[]
+
+  // Job seekers (the candidate directory). Each list replaces the stored one.
+  desired_title?: string | null
+  availability?: TalentAvailability
+  education_level?: EducationLevel | null
+  work_types?: TalentWorkType[]
+  work_area_ids?: string[]
+  photo_hidden?: boolean
+  cv_public?: boolean
+  team_message?: string | null
+  experiences?: Omit<TalentExperience, 'id'>[]
+  education?: Omit<TalentEducationEntry, 'id'>[]
+  courses?: Omit<TalentCourse, 'id'>[]
 }
 
 /**
@@ -496,6 +518,14 @@ export const publicTalentApi = {
     apiRequest<Paginated<TalentSummary>>('/api/talent', { query: { ...query } }),
   latest: (limit = 8) => apiRequest<TalentSummary[]>('/api/talent/latest', { query: { limit } }),
   bySlug: (slug: string) => apiRequest<TalentDetail>(`/api/talent/${encodeURIComponent(slug)}`),
+  /** A job seeker's CV, when `has_cv`: a plain link the browser downloads. */
+  cvUrl: (slug: string) => `/api/talent/${encodeURIComponent(slug)}/cv`,
+  /** An employer's "have a job for them?" form; logged for the team. */
+  employerRequest: (slug: string, payload: EmployerRequestInput) =>
+    apiRequest<{ message: string }>(
+      `/api/talent/${encodeURIComponent(slug)}/employer-requests`,
+      { method: 'POST', body: payload },
+    ),
 }
 
 /**
@@ -742,6 +772,16 @@ export interface AdminUserFilters {
   role?: 'OWNER' | 'ADMIN'
   active?: boolean
   sort?: 'newest' | 'oldest' | 'name' | 'listings'
+}
+
+export const adminEmployerRequestsApi = {
+  list: (status?: EmployerRequestStatus) =>
+    apiRequest<EmployerRequest[]>('/api/admin/employer-requests', { query: { status } }),
+  setStatus: (id: string, status: EmployerRequestStatus) =>
+    apiRequest<EmployerRequest>(`/api/admin/employer-requests/${id}/status`, {
+      method: 'POST',
+      body: { status },
+    }),
 }
 
 export const adminApi = {

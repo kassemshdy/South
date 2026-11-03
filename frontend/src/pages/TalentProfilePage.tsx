@@ -40,6 +40,7 @@ import {
   type ParsedList,
 } from '@/features/talent/profileText'
 import { ServiceRequestForm } from '@/features/talent/ServiceRequestForm'
+import { CandidateProfile } from '@/features/talent/candidate/CandidateProfile'
 import { TestimonialForm } from '@/features/testimonials/TestimonialForm'
 import { TestimonialList } from '@/features/testimonials/TestimonialList'
 import { publicTalentApi } from '@/services/api/endpoints'
@@ -105,6 +106,10 @@ export function TalentProfilePage() {
       </div>
     )
   }
+
+  // A job seeker's page is its own layout (the owners' ticket, 31 Oct 2026):
+  // no service request form, no testimonials, no "verified business" badge.
+  if (data.kind === 'JOB_SEEKER') return <CandidateProfile data={data} />
 
   const whatsapp = whatsappHref(
     data.whatsapp,

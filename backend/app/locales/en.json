@@ -320,5 +320,12 @@
   "telegram.ticket_status.NEEDS_APPROVAL": "Waiting for approval",
   "telegram.ticket_status.APPROVED": "Approved",
   "telegram.ticket_status.DONE": "Done",
-  "telegram.button.reject": "Reject"
+  "telegram.button.reject": "Reject",
+  "talent.name_not_person": "Write your real name.",
+  "talent.bio_has_contact": "Put contact numbers in their own fields, not in the bio.",
+  "talent.cv_not_found": "No CV is available to download.",
+  "employer_request.received": "Your request was received. The Janoubona team will contact the candidate.",
+  "employer_request.rate_limited": "Too many requests have been sent. Please try again later.",
+  "employer_request.not_found": "The request was not found.",
+  "employer_request.phone_required": "A phone number is required."
 }
