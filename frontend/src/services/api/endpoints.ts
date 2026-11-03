@@ -82,6 +82,8 @@ import type {
   Activity,
   ActivityInput,
   AdminActivity,
+  AdminCarousel,
+  CarouselSlide,
   AdminWorkshop,
   Workshop,
   WorkshopInput,
@@ -465,7 +467,11 @@ export const workshopApi = {
 
 /** Development activities: kept ones with a photograph, for anyone. */
 export const activityApi = {
-  list: () => apiRequest<Activity[]>('/api/activities'),
+  /** Upcoming first, then undated, then finished; page with offset ("load more"). */
+  list: (params: { limit?: number; offset?: number } = {}) =>
+    apiRequest<Activity[]>('/api/activities', { query: { ...params } }),
+  /** The shared carousel, in the administrators' order. */
+  carousel: () => apiRequest<CarouselSlide[]>('/api/carousel'),
   bySlug: (slug: string) => apiRequest<Activity>(`/api/activities/${encodeURIComponent(slug)}`),
 }
 
@@ -1114,6 +1120,36 @@ export const adminApi = {
       formData: form,
     })
   },
+  carousel: () => apiRequest<AdminCarousel>('/api/admin/carousel'),
+  reorderCarousel: (slideIds: string[]) =>
+    apiRequest<AdminCarousel>('/api/admin/carousel/order', {
+      method: 'PUT',
+      body: { slide_ids: slideIds },
+    }),
+  addActivitySlide: (activityId: string) =>
+    apiRequest<AdminCarousel>('/api/admin/carousel/activities', {
+      method: 'POST',
+      body: { activity_id: activityId },
+    }),
+  addCustomSlide: (file: File, title: string | null, linkUrl: string | null) => {
+    const form = new FormData()
+    form.append('file', file)
+    if (title) form.append('title', title)
+    if (linkUrl) form.append('link_url', linkUrl)
+    return apiRequest<AdminCarousel>('/api/admin/carousel/custom', {
+      method: 'POST',
+      formData: form,
+    })
+  },
+  updateCustomSlide: (id: string, body: { title?: string | null; link_url?: string | null }) =>
+    apiRequest<AdminCarousel>(`/api/admin/carousel/${id}`, { method: 'PUT', body }),
+  deleteSlide: (id: string) =>
+    apiRequest<AdminCarousel>(`/api/admin/carousel/${id}`, { method: 'DELETE' }),
+  carouselSettings: (autoremoveExpired: boolean) =>
+    apiRequest<AdminCarousel>('/api/admin/carousel/settings', {
+      method: 'PUT',
+      body: { autoremove_expired: autoremoveExpired },
+    }),
   workshopRegistrations: (id: string) =>
     apiRequest<WorkshopRegistration[]>(`/api/admin/workshops/${id}/registrations`),
   articles: (section?: ArticleSection) =>

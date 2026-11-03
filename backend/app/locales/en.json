@@ -327,5 +327,10 @@
   "employer_request.received": "Your request was received. The Janoubona team will contact the candidate.",
   "employer_request.rate_limited": "Too many requests have been sent. Please try again later.",
   "employer_request.not_found": "The request was not found.",
-  "employer_request.phone_required": "A phone number is required."
+  "employer_request.phone_required": "A phone number is required.",
+  "activity.link_scheme": "The link must start with http:// or https://.",
+  "carousel.needs_image": "Add a thumbnail before showing the activity in the carousel.",
+  "carousel.not_found": "The slide was not found.",
+  "carousel.archived": "An archived activity cannot be shown in the carousel.",
+  "carousel.not_custom": "An activity's slide is edited from the activity itself."
 }

@@ -74,13 +74,25 @@ def test_no_photograph_no_announcement(client: TestClient, admin: User) -> None:
     assert client.get(f"/api/activities/{bare['slug']}").status_code == 404
 
 
-def test_ordered_by_sort_order_then_newest(client: TestClient, admin: User) -> None:
+def test_upcoming_first_then_undated_then_finished(client: TestClient, admin: User) -> None:
+    """The owners' ticket of 31 Oct 2026: upcoming and current first, the
+    soonest first; finished ones last, the most recent first."""
     headers = admin_headers(client)
-    _create(client, headers, slug="older")
-    _create(client, headers, slug="newer")
-    _create(client, headers, slug="pinned", sort_order=-1)
+    now = datetime.now(UTC)
+
+    def at(days: int) -> str:
+        return (now + timedelta(days=days)).isoformat()
+
+    _create(client, headers, slug="later", starts_at=at(10))
+    _create(client, headers, slug="soon", starts_at=at(2))
+    _create(client, headers, slug="undated")
+    _create(client, headers, slug="long-ago", starts_at=at(-30), ends_at=at(-29))
+    _create(client, headers, slug="last-week", starts_at=at(-7), ends_at=at(-6))
+    _create(client, headers, slug="running", starts_at=at(-1), ends_at=at(3))
     slugs = [a["slug"] for a in client.get("/api/activities").json()]
-    assert slugs == ["pinned", "newer", "older"]
+    assert slugs == ["running", "soon", "later", "undated", "last-week", "long-ago"]
+    page = [a["slug"] for a in client.get("/api/activities?limit=2&offset=2").json()]
+    assert page == ["later", "undated"]
 
 
 def test_staff_write_edit_and_delete(client: TestClient, admin: User) -> None:
@@ -149,3 +161,119 @@ def test_the_carousel_arrives_shown_after_the_slogan_on_a_saved_layout(
         [*(HomeSection(**s) for s in saved), HomeSection(id="activities", visible=False)]
     )
     assert next(s for s in hidden if s.id == "activities").visible is False
+
+
+
+# --- The carousel (the owners' ticket, 31 Oct 2026) ------------------------
+
+
+def _slides(client: TestClient) -> list[str | None]:
+    return [slide["title"] for slide in client.get("/api/carousel").json()]
+
+
+def test_a_new_photograph_puts_the_activity_first_in_the_carousel(
+    client: TestClient, admin: User
+) -> None:
+    headers = admin_headers(client)
+    first = _create(client, headers, slug="first", title="First one")
+    second = _create(client, headers, slug="second", title="Second one")
+    assert _slides(client) == ["Second one", "First one"]
+    assert first["in_carousel"] and second["in_carousel"]
+    slide = client.get("/api/carousel").json()[0]
+    assert slide["href"] == "/activities/second" and slide["external"] is False
+
+
+def test_taking_a_slide_out_keeps_the_activity_listed(client: TestClient, admin: User) -> None:
+    headers = admin_headers(client)
+    activity = _create(client, headers, slug="kept", title="Kept one")
+    removed = client.put(
+        f"/api/admin/activities/{activity['id']}", headers=headers, json={"in_carousel": False}
+    )
+    assert removed.json()["in_carousel"] is False
+    assert _slides(client) == []
+    assert [a["slug"] for a in client.get("/api/activities").json()] == ["kept"]
+    # A later edit does not put it back on its own.
+    client.put(f"/api/admin/activities/{activity['id']}", headers=headers, json={"location": "x"})
+    assert _slides(client) == []
+
+
+def test_archiving_takes_it_out_of_the_carousel(client: TestClient, admin: User) -> None:
+    headers = admin_headers(client)
+    activity = _create(client, headers, slug="gone", title="Gone")
+    client.put(
+        f"/api/admin/activities/{activity['id']}", headers=headers, json={"is_archived": True}
+    )
+    assert _slides(client) == []
+    assert client.get("/api/admin/carousel", headers=headers).json()["slides"] == []
+
+
+def test_finished_activities_leave_unless_the_setting_is_off(
+    client: TestClient, admin: User
+) -> None:
+    headers = admin_headers(client)
+    now = datetime.now(UTC)
+    _create(
+        client,
+        headers,
+        slug="done",
+        title="Done",
+        starts_at=(now - timedelta(days=3)).isoformat(),
+        ends_at=(now - timedelta(days=2)).isoformat(),
+    )
+    assert _slides(client) == []
+    managed = client.get("/api/admin/carousel", headers=headers).json()
+    assert managed["autoremove_expired"] is True
+    assert managed["slides"][0]["hidden_reason"] == "ENDED"
+    client.put("/api/admin/carousel/settings", headers=headers, json={"autoremove_expired": False})
+    assert _slides(client) == ["Done"]
+
+
+def test_custom_slides_are_added_reordered_and_removed(client: TestClient, admin: User) -> None:
+    headers = admin_headers(client)
+    _create(client, headers, slug="a", title="Activity A")
+    added = client.post(
+        "/api/admin/carousel/custom",
+        headers=headers,
+        files={"file": ("b.jpg", _jpeg(), "image/jpeg")},
+        data={"title": "Partner", "link_url": "https://partner.example"},
+    )
+    assert added.status_code == 200, added.text
+    assert _slides(client) == ["Partner", "Activity A"]
+    custom = client.get("/api/carousel").json()[0]
+    assert custom["href"] == "https://partner.example" and custom["external"] is True
+
+    ids = [slide["id"] for slide in added.json()["slides"]]
+    client.put("/api/admin/carousel/order", headers=headers, json={"slide_ids": ids[::-1]})
+    assert _slides(client) == ["Activity A", "Partner"]
+
+    client.delete(f"/api/admin/carousel/{ids[0]}", headers=headers)
+    assert _slides(client) == ["Activity A"]
+
+    refused = client.post(
+        "/api/admin/carousel/custom",
+        headers=headers,
+        files={"file": ("b.jpg", _jpeg(), "image/jpeg")},
+        data={"link_url": "javascript:alert(1)"},
+    )
+    assert refused.status_code == 422
+
+
+def test_registration_link_must_be_http(client: TestClient, admin: User) -> None:
+    headers = admin_headers(client)
+    bad = client.post(
+        "/api/admin/activities", headers=headers, json=_body(register_url="javascript:x")
+    )
+    assert bad.status_code == 422
+    good = _create(
+        client,
+        headers,
+        slug="reg",
+        register_url="https://forms.example/x",
+        register_label="  ",
+        kind="WORKSHOP",
+    )
+    public = client.get("/api/activities/reg").json()
+    assert public["register_url"] == "https://forms.example/x"
+    assert public["register_label"] is None and public["kind"] == "WORKSHOP"
+    assert public["show_calendar"] is True and good["kind"] == "WORKSHOP"
+

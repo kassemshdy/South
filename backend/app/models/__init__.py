@@ -1,6 +1,6 @@
 """SQLAlchemy models. Importing this package registers every table on Base."""
 
-from app.models.activity import Activity
+from app.models.activity import Activity, CarouselSlide
 from app.models.analytics import ListingViewDaily
 from app.models.application import DiscardedApplication
 from app.models.article import Article
@@ -71,6 +71,7 @@ __all__ = [
     "BusinessItemImage",
     "BusinessSocialLink",
     "BusinessStatus",
+    "CarouselSlide",
     "Category",
     "Currency",
     "DiscardedApplication",

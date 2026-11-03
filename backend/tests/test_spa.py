@@ -528,3 +528,16 @@ def test_pages_may_ask_for_the_visitors_position(spa_client: TestClient) -> None
     policy = spa_client.get("/products").headers["permissions-policy"]
     assert "geolocation=(self)" in policy
     assert "camera=()" in policy and "microphone=()" in policy
+
+
+def test_an_activity_url_shares_its_photograph_and_summary(
+    spa_client: TestClient, client: TestClient, admin: User
+) -> None:
+    """A shared announcement shows its photograph and summary on WhatsApp
+    and Facebook (the owners' activities ticket, 31 Oct 2026)."""
+    from tests.test_activities import _create
+
+    activity = _create(client, admin_headers(client), slug="shared", summary="A short summary")
+    html = spa_client.get("/activities/shared").text
+    assert f'property="og:image" content="https://example.test{activity["image_url"]}"' in html
+    assert 'property="og:description" content="A short summary"' in html

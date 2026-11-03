@@ -274,6 +274,15 @@ class TalentWorkType(str, enum.Enum):
     TRAINING = "TRAINING"
 
 
+class ActivityKind(str, enum.Enum):
+    """What an announcement is: shown in its meta line."""
+
+    ACTIVITY = "ACTIVITY"
+    CONSULTATION = "CONSULTATION"
+    WORKSHOP = "WORKSHOP"
+    TRAINING = "TRAINING"
+
+
 class EducationLevel(str, enum.Enum):
     """The highest level a job seeker reached; the directory filters on it."""
 
