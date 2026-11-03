@@ -1326,6 +1326,43 @@ export interface Activity {
   ends_at: string | null
   location: string | null
   image_url: string | null
+  /** The small copy, for lists; fall back to `image_url`. */
+  image_thumb_url?: string | null
+  kind: ActivityKind
+  /** A link out to sign up (a form, a WhatsApp chat); no button without one. */
+  register_url: string | null
+  /** The button's text; the catalog's own when null. */
+  register_label: string | null
+  /** Offer "add to calendar" (only meaningful with a start). */
+  show_calendar: boolean
+}
+
+export type ActivityKind = 'ACTIVITY' | 'CONSULTATION' | 'WORKSHOP' | 'TRAINING'
+
+/** One slide of the announcements carousel (home page and /activities). */
+export interface CarouselSlide {
+  id: string
+  title: string | null
+  image_url: string
+  image_thumb_url?: string | null
+  /** An activity's page (internal path), or a custom slide's link (external); null: not clickable. */
+  href: string | null
+  external: boolean
+}
+
+export interface AdminCarouselSlide extends CarouselSlide {
+  kind: 'ACTIVITY' | 'CUSTOM'
+  position: number
+  activity_id: string | null
+  link_url: string | null
+  ends_at: string | null
+  /** Why a visitor does not see it right now; null when they do. */
+  hidden_reason: 'ARCHIVED' | 'NO_IMAGE' | 'ENDED' | null
+}
+
+export interface AdminCarousel {
+  slides: AdminCarouselSlide[]
+  autoremove_expired: boolean
 }
 
 export interface AdminActivity extends Activity {
@@ -1333,6 +1370,7 @@ export interface AdminActivity extends Activity {
   sort_order: number
   created_at: string
   updated_at: string
+  in_carousel: boolean
 }
 
 export interface ActivityInput {
@@ -1343,6 +1381,12 @@ export interface ActivityInput {
   ends_at: string | null
   location: string | null
   sort_order: number
+  kind?: ActivityKind
+  register_url?: string | null
+  register_label?: string | null
+  show_calendar?: boolean
+  /** The form's "show in carousel" box (update only). */
+  in_carousel?: boolean
 }
 
 export type WorkshopMode = 'ONLINE' | 'IN_PERSON'

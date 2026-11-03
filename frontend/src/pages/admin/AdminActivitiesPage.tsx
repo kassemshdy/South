@@ -1,5 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Archive, ArchiveRestore, ImagePlus, Megaphone, Pencil, Plus, Trash2 } from 'lucide-react'
+import {
+  Archive,
+  ArchiveRestore,
+  GalleryHorizontal,
+  ImagePlus,
+  Megaphone,
+  Pencil,
+  Plus,
+  Trash2,
+} from 'lucide-react'
 import { useRef, useState, type FormEvent } from 'react'
 
 import { Badge } from '@/components/ui/Badge'
@@ -16,7 +25,7 @@ import { useI18n } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { adminApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import type { ActivityInput, AdminActivity } from '@/types/api'
+import type { ActivityInput, ActivityKind, AdminActivity } from '@/types/api'
 import { formatDateTime } from '@/utils/format'
 
 interface FormState {
@@ -26,7 +35,13 @@ interface FormState {
   starts_at: string
   ends_at: string
   location: string
+  /** Kept as stored; the carousel manager now sets the order. */
   sort_order: string
+  kind: ActivityKind
+  register_url: string
+  register_label: string
+  show_calendar: boolean
+  in_carousel: boolean
 }
 
 const EMPTY: FormState = {
@@ -37,6 +52,22 @@ const EMPTY: FormState = {
   ends_at: '',
   location: '',
   sort_order: '0',
+  kind: 'ACTIVITY',
+  register_url: '',
+  register_label: '',
+  show_calendar: true,
+  in_carousel: false,
+}
+
+export const ACTIVITY_KINDS: ActivityKind[] = ['ACTIVITY', 'CONSULTATION', 'WORKSHOP', 'TRAINING']
+
+const SELECT_CLASS =
+  'w-full rounded-xl border border-ink-100 bg-white px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none'
+
+/** Empty, or an http(s) address: the same rule the API applies. */
+function validLink(value: string): boolean {
+  const trimmed = value.trim()
+  return !trimmed || /^https?:\/\//i.test(trimmed)
 }
 
 /** An ISO instant as the `datetime-local` input wants it, in local time. */
@@ -57,6 +88,10 @@ function toPayload(form: FormState): ActivityInput {
     ends_at: form.ends_at ? new Date(form.ends_at).toISOString() : null,
     location: blank(form.location),
     sort_order: Number.parseInt(form.sort_order, 10) || 0,
+    kind: form.kind,
+    register_url: blank(form.register_url),
+    register_label: blank(form.register_label),
+    show_calendar: form.show_calendar,
   }
 }
 
@@ -96,7 +131,13 @@ export function AdminActivitiesPage() {
   })
   const uploadImage = useMutation({
     mutationFn: ({ id, file }: { id: string; file: File }) => adminApi.uploadActivityImage(id, file),
-    onSuccess: refresh,
+    onSuccess: (updated) => {
+      // The open form shows the new thumbnail and its carousel state.
+      setEditing((current) =>
+        current !== null && current !== 'new' && current.id === updated.id ? updated : current,
+      )
+      refresh()
+    },
     onError: fail,
     onSettled: () => setUploadingId(null),
   })
@@ -119,7 +160,15 @@ export function AdminActivitiesPage() {
 
       {editing !== null ? (
         <ActivityForm
+          key={editing === 'new' ? 'new' : `${editing.id}:${editing.image_url ?? ''}`}
           activity={editing === 'new' ? null : editing}
+          uploading={
+            editing !== 'new' && uploadImage.isPending && uploadingId === editing.id
+          }
+          onPickImage={(id) => {
+            setUploadingId(id)
+            fileRef.current?.click()
+          }}
           onDone={() => {
             setEditing(null)
             refresh()
@@ -170,8 +219,15 @@ export function AdminActivitiesPage() {
                       {!activity.image_url ? (
                         <Badge className="bg-clay-50 text-clay-800">{t('admin.activityNeedsImage')}</Badge>
                       ) : null}
+                      {activity.in_carousel ? (
+                        <Badge className="bg-sea-50 text-sea-700">
+                          <GalleryHorizontal className="h-3.5 w-3.5" aria-hidden="true" />
+                          {t('adminActivity.inCarouselBadge')}
+                        </Badge>
+                      ) : null}
                     </div>
                     <p className="mt-1 text-sm text-ink-500">
+                      {t(`adminActivity.kind.${activity.kind ?? 'ACTIVITY'}`)} ·{' '}
                       {activity.starts_at ? formatDateTime(activity.starts_at, locale) : t('admin.activityNoDate')}
                       {activity.location ? ` · ${activity.location}` : null}
                     </p>
@@ -250,7 +306,17 @@ export function AdminActivitiesPage() {
   )
 }
 
-function ActivityForm({ activity, onDone }: { activity: AdminActivity | null; onDone: () => void }) {
+function ActivityForm({
+  activity,
+  uploading,
+  onPickImage,
+  onDone,
+}: {
+  activity: AdminActivity | null
+  uploading: boolean
+  onPickImage: (id: string) => void
+  onDone: () => void
+}) {
   const { t } = useI18n()
   const toast = useToast()
   const [form, setForm] = useState<FormState>(() =>
@@ -263,16 +329,28 @@ function ActivityForm({ activity, onDone }: { activity: AdminActivity | null; on
           ends_at: toLocalInput(activity.ends_at),
           location: activity.location ?? '',
           sort_order: String(activity.sort_order),
+          kind: activity.kind ?? 'ACTIVITY',
+          register_url: activity.register_url ?? '',
+          register_label: activity.register_label ?? '',
+          show_calendar: activity.show_calendar ?? true,
+          in_carousel: activity.in_carousel ?? false,
         }
       : EMPTY,
   )
+  const linkInvalid = !validLink(form.register_url)
+  const hasImage = Boolean(activity?.image_url)
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }))
 
   const save = useMutation({
     mutationFn: () =>
       activity
-        ? adminApi.updateActivity(activity.id, toPayload(form))
+        ? adminApi.updateActivity(activity.id, {
+            ...toPayload(form),
+            // Only sent when it changed, so saving an untouched form never
+            // puts back a slide someone took out on the carousel screen.
+            ...(form.in_carousel !== activity.in_carousel ? { in_carousel: form.in_carousel } : {}),
+          })
         : adminApi.createActivity(toPayload(form)),
     onSuccess: () => {
       toast.success(t('admin.activitySaved'))
@@ -284,6 +362,7 @@ function ActivityForm({ activity, onDone }: { activity: AdminActivity | null; on
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
+    if (linkInvalid) return
     save.mutate()
   }
 
@@ -362,20 +441,121 @@ function ActivityForm({ activity, onDone }: { activity: AdminActivity | null; on
                 />
               )}
             </Field>
-            <Field label={t('admin.activityOrderLabel')} hint={t('admin.activityOrderHint')}>
+            <Field label={t('adminActivity.kindLabel')}>
+              {(props) => (
+                <select
+                  {...props}
+                  className={SELECT_CLASS}
+                  value={form.kind}
+                  onChange={(event) => set('kind', event.target.value as ActivityKind)}
+                >
+                  {ACTIVITY_KINDS.map((kind) => (
+                    <option key={kind} value={kind}>
+                      {t(`adminActivity.kind.${kind}`)}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </Field>
+            <Field
+              label={t('adminActivity.registerUrlLabel')}
+              hint={t('adminActivity.registerUrlHint')}
+              error={linkInvalid ? t('adminActivity.registerUrlInvalid') : undefined}
+            >
               {(props) => (
                 <Input
                   {...props}
-                  type="number"
-                  inputMode="numeric"
+                  type="url"
+                  inputMode="url"
                   dir="ltr"
-                  min={-1000}
-                  max={1000}
-                  value={form.sort_order}
-                  onChange={(event) => set('sort_order', event.target.value)}
+                  maxLength={500}
+                  placeholder="https://"
+                  value={form.register_url}
+                  onChange={(event) => set('register_url', event.target.value)}
                 />
               )}
             </Field>
+            <Field label={t('adminActivity.registerLabelLabel')}>
+              {(props) => (
+                <Input
+                  {...props}
+                  maxLength={60}
+                  dir="auto"
+                  placeholder={t('adminActivity.registerLabelDefault')}
+                  value={form.register_label}
+                  onChange={(event) => set('register_label', event.target.value)}
+                />
+              )}
+            </Field>
+          </div>
+          <label className="flex items-start gap-2 text-sm text-ink-700">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 accent-brand-600"
+              checked={form.show_calendar}
+              onChange={(event) => set('show_calendar', event.target.checked)}
+            />
+            <span>
+              {t('adminActivity.showCalendarLabel')}
+              <span className="block text-xs text-ink-500">{t('adminActivity.showCalendarHint')}</span>
+            </span>
+          </label>
+
+          <div className="rounded-xl border border-ink-100 p-4">
+            <p className="text-sm font-semibold text-ink-900">{t('adminActivity.thumbnailLabel')}</p>
+            <p className="text-xs text-ink-500">{t('adminActivity.thumbnailHint')}</p>
+            {activity ? (
+              <div className="mt-3 flex flex-wrap items-center gap-4">
+                {activity.image_url ? (
+                  <img
+                    src={activity.image_thumb_url ?? activity.image_url}
+                    alt=""
+                    className="aspect-video w-48 rounded-lg object-cover"
+                  />
+                ) : (
+                  <div className="flex aspect-video w-48 items-center justify-center rounded-lg bg-sand-100 text-ink-500">
+                    <ImagePlus className="h-6 w-6" aria-hidden="true" />
+                  </div>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  loading={uploading}
+                  onClick={() => onPickImage(activity.id)}
+                >
+                  <ImagePlus className="h-4 w-4" aria-hidden="true" />
+                  {activity.image_url
+                    ? t('adminActivity.thumbnailReplace')
+                    : t('adminActivity.thumbnailUpload')}
+                </Button>
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-ink-500">{t('adminActivity.thumbnailAfterSave')}</p>
+            )}
+            <label
+              className={`mt-4 flex items-start gap-2 text-sm ${
+                activity && hasImage ? 'text-ink-700' : 'text-ink-400'
+              }`}
+            >
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 accent-brand-600"
+                disabled={!activity || !hasImage}
+                checked={activity ? form.in_carousel : false}
+                onChange={(event) => set('in_carousel', event.target.checked)}
+              />
+              <span>
+                {t('adminActivity.inCarouselLabel')}
+                <span className="block text-xs text-ink-500">
+                  {!activity
+                    ? t('adminActivity.inCarouselAuto')
+                    : hasImage
+                      ? t('adminActivity.inCarouselAuto')
+                      : t('adminActivity.inCarouselNeedsImage')}
+                </span>
+              </span>
+            </label>
           </div>
           <div className="flex gap-2">
             <Button type="submit" loading={save.isPending}>
