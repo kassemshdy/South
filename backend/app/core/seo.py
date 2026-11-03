@@ -255,10 +255,27 @@ def product_json_ld(
     available: bool,
     business_name: str,
     business_url: str,
-    category_name: str | None = None,
+    location_name: str | None = None,
 ) -> dict[str, Any]:
     """A product, with an Offer only when it has a price -- an offer with no
-    price is invalid, and a made-up one would be worse."""
+    price is invalid, and a made-up one would be worse.
+
+    No ``category``: Google reads it as its own product taxonomy and flags
+    a shop's category name as invalid on every product (Search Console,
+    3 Nov 2026). A product the owner did not describe gets a sentence naming
+    it, its shop and its town, so it is not reported as missing one.
+    """
+    if not clean_text(description):
+        description = (
+            translate(
+                "seo.product.description",
+                name=name,
+                shop=business_name,
+                location=location_name,
+            )
+            if location_name
+            else translate("seo.product.description_no_location", name=name, shop=business_name)
+        )
     offer = (
         {
             "@type": "Offer",
@@ -285,7 +302,6 @@ def product_json_ld(
             "description": clean_text(description),
             "url": url,
             "image": image_url,
-            "category": category_name,
             "brand": {"@type": "Brand", "name": clean_text(business_name)},
             "offers": offer,
         }
