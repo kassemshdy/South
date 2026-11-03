@@ -7,8 +7,16 @@ import { Button } from '@/components/ui/Button'
 import { useT } from '@/i18n'
 import type { TalentSummary } from '@/types/api'
 import { CardImage } from '@/components/ui/CardImage'
+import { CandidateCard } from '@/features/talent/candidate/CandidateCard'
 
 export function TalentCard({ talent }: { talent: TalentSummary }) {
+  // A job seeker gets the candidate card wherever a talent card is drawn
+  // (the directory, the homepage, search): initials, never the silhouette.
+  if (talent.kind === 'JOB_SEEKER') return <CandidateCard talent={talent} />
+  return <ServiceCard talent={talent} />
+}
+
+function ServiceCard({ talent }: { talent: TalentSummary }) {
   const t = useT()
   const profileUrl = `/talent/${encodeURIComponent(talent.slug)}`
   // An "Other" profile shows the person's own words; every other profile shows

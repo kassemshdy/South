@@ -64,6 +64,11 @@ const AdminLoginPage = lazy(() =>
 const AdminReviewPage = lazy(() =>
   import('@/pages/admin/AdminReviewPage').then((m) => ({ default: m.AdminReviewPage })),
 )
+const AdminEmployerRequestsPage = lazy(() =>
+  import('@/pages/admin/AdminEmployerRequestsPage').then((m) => ({
+    default: m.AdminEmployerRequestsPage,
+  })),
+)
 const AdminTalentReviewPage = lazy(() =>
   import('@/pages/admin/AdminTalentReviewPage').then((m) => ({
     default: m.AdminTalentReviewPage,
@@ -344,6 +349,7 @@ export function App() {
             <Route path="workshops" element={<AdminWorkshopsPage />} />
             <Route path="activities" element={<AdminActivitiesPage />} />
             <Route path="job-openings" element={<AdminJobOpeningsPage />} />
+            <Route path="employer-requests" element={<AdminEmployerRequestsPage />} />
           </Route>
 
           <Route path="*" element={<NotFoundPage />} />

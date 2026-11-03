@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { AlertTriangle, Plus, Trash2 } from 'lucide-react'
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form'
 
 import { Button } from '@/components/ui/Button'
@@ -14,12 +14,41 @@ import { pinOf } from '@/features/map/types'
 import { useLocationGroups, useTalentSkills } from '@/hooks/useTaxonomy'
 import { useT } from '@/i18n'
 import { useApplyServerFieldErrors } from '@/utils/serverFieldErrors'
+import { ApiError } from '@/services/api/client'
 import type { TalentPayload } from '@/services/api/endpoints'
 import type { ContactChannel, OwnerTalent, SocialPlatform, TalentKind } from '@/types/api'
 import { PLATFORM_KEYS } from '@/utils/format'
 import { talentSchema, type TalentValues } from '@/utils/validation'
 
+import {
+  CandidateEducation,
+  CandidateExperience,
+  CandidateLookingFor,
+  CandidatePhoneChoice,
+  CandidatePrivacy,
+} from './form/CandidateSections'
 import { LANGUAGE_PROFICIENCIES, PROFICIENCY_KEYS, WORK_MODE_KEYS, WORK_MODES } from './labels'
+
+/** The owner's own candidate choices. Declared here until `OwnerTalent`
+ * carries them (they were added to `OwnerBusiness` by mistake). */
+type CandidateOwnFields = {
+  photo_hidden?: boolean
+  cv_public?: boolean
+  team_message?: string | null
+}
+
+/** `<input type="month">` holds YYYY-MM; the API stores a date. */
+function toMonth(date: string | null | undefined): string {
+  return date ? date.slice(0, 7) : ''
+}
+
+function fromMonth(month: string): string | null {
+  return month ? `${month}-01` : null
+}
+
+function toYear(value: string): number | null {
+  return value ? Number(value) : null
+}
 
 interface TalentFormProps {
   profile?: OwnerTalent | undefined
@@ -93,6 +122,7 @@ export function TalentForm({
   const skills = useTalentSkills()
   const { groups } = useLocationGroups()
   const t = useT()
+  const own = profile as (OwnerTalent & CandidateOwnFields) | undefined
   const otherSkillId = skills.data?.find((skill) => skill.slug === 'other')?.id
   const schema = useMemo(() => talentSchema(t, otherSkillId), [t, otherSkillId])
 
@@ -101,6 +131,7 @@ export function TalentForm({
     handleSubmit,
     control,
     setError,
+    setValue,
     getValues,
     formState: { errors },
   } = useForm<TalentValues>({
@@ -155,6 +186,40 @@ export function TalentForm({
           name: language.name,
           proficiency: language.proficiency,
         })) ?? [],
+      desired_title: profile?.desired_title ?? '',
+      availability: profile?.availability ?? 'NOW',
+      education_level: profile?.education_level ?? '',
+      work_types: profile?.work_types ?? [],
+      work_area_ids: profile?.work_areas?.map((area) => area.id) ?? [],
+      photo_hidden: own?.photo_hidden ?? false,
+      cv_public: own?.cv_public ?? true,
+      // Nothing preselected for a new candidate: each one decides.
+      phone_choice: profile ? (profile.phone_public ? 'public' : 'private') : '',
+      team_message: own?.team_message ?? '',
+      no_experience: false,
+      experiences:
+        profile?.experiences?.map((entry) => ({
+          title: entry.title,
+          employer: entry.employer ?? '',
+          town: entry.town ?? '',
+          start_date: toMonth(entry.start_date),
+          end_date: toMonth(entry.end_date),
+          is_current: entry.is_current,
+          description: entry.description ?? '',
+        })) ?? [],
+      education:
+        profile?.education?.map((entry) => ({
+          degree: entry.degree ?? '',
+          field: entry.field ?? '',
+          institution: entry.institution ?? '',
+          graduation_year: entry.graduation_year ? String(entry.graduation_year) : '',
+        })) ?? [],
+      courses:
+        profile?.courses?.map((course) => ({
+          name: course.name,
+          issuer: course.issuer ?? '',
+          year: course.year ? String(course.year) : '',
+        })) ?? [],
     },
   })
 
@@ -170,7 +235,20 @@ export function TalentForm({
 
   useApplyServerFieldErrors(serverError, setError, getValues)
 
+  // The API's own checks on a job seeker's name and bio, placed on the input.
+  useEffect(() => {
+    if (!(serverError instanceof ApiError)) return
+    if (serverError.code === 'name_not_person') {
+      setError('display_name', { type: 'server', message: serverError.message })
+    } else if (serverError.code === 'bio_has_contact') {
+      setError('bio', { type: 'server', message: serverError.message })
+    }
+  }, [serverError, setError])
+
+  const isCandidate = kind === 'JOB_SEEKER'
+
   const submit = handleSubmit((values) => {
+    const candidate = values.kind === 'JOB_SEEKER'
     onSubmit({
       kind: values.kind as TalentKind,
       display_name: values.display_name,
@@ -185,7 +263,8 @@ export function TalentForm({
       longitude: values.pin?.lng ?? null,
       phone: values.phone || null,
       whatsapp: values.whatsapp || null,
-      phone_public: values.phone_public,
+      // A job seeker answers the either/or question instead of the checkbox.
+      phone_public: candidate ? values.phone_choice === 'public' : values.phone_public,
       email: values.email || null,
       website: values.website || null,
       video_url: values.video_url || null,
@@ -216,6 +295,40 @@ export function TalentForm({
         const url = values[key]?.trim()
         return url ? [{ platform, url }] : []
       }),
+      // Job seekers only. Each list is sent whole: an omitted key means
+      // "leave as is", so clearing the last entry has to be an empty list.
+      ...(candidate
+        ? {
+            desired_title: values.desired_title || null,
+            availability: values.availability,
+            education_level: values.education_level || null,
+            work_types: values.work_types,
+            work_area_ids: values.work_area_ids,
+            photo_hidden: values.photo_hidden,
+            cv_public: values.cv_public,
+            team_message: values.team_message || null,
+            experiences: (values.no_experience ? [] : values.experiences).map((entry) => ({
+              title: entry.title,
+              employer: entry.employer || null,
+              town: entry.town || null,
+              start_date: fromMonth(entry.start_date),
+              end_date: entry.is_current ? null : fromMonth(entry.end_date),
+              is_current: entry.is_current,
+              description: entry.description || null,
+            })),
+            education: values.education.map((entry) => ({
+              degree: entry.degree || null,
+              field: entry.field || null,
+              institution: entry.institution || null,
+              graduation_year: toYear(entry.graduation_year),
+            })),
+            courses: values.courses.map((course) => ({
+              name: course.name,
+              issuer: course.issuer || null,
+              year: toYear(course.year),
+            })),
+          }
+        : {}),
     })
   }, onInvalid ? () => onInvalid() : undefined)
 
@@ -305,11 +418,16 @@ export function TalentForm({
             {...props}
             {...register('bio')}
             rows={6}
+            maxLength={isCandidate ? 600 : undefined}
             placeholder={t('talentForm.bioPlaceholder')}
             invalid={Boolean(errors.bio)}
           />
         )}
       </Field>
+
+      {isCandidate ? (
+        <CandidateLookingFor control={control} register={register} errors={errors} />
+      ) : null}
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label={t('talentForm.skill')} required error={errors.skill_id?.message}>
@@ -456,7 +574,11 @@ export function TalentForm({
         </Field>
       </div>
 
-      <PhonePublicToggle registration={register('phone_public')} />
+      {isCandidate ? (
+        <CandidatePhoneChoice register={register} errors={errors} />
+      ) : (
+        <PhonePublicToggle registration={register('phone_public')} />
+      )}
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label={t('form.email')} error={errors.email?.message}>
@@ -572,6 +694,10 @@ export function TalentForm({
           <p className="mt-1 text-sm text-ink-500">{t('talentForm.professionalHint')}</p>
         </div>
 
+        {/* A job seeker gives these as dated entries in the sections below;
+            the free-text fields stay for a service. */}
+        {!isCandidate ? (
+          <>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label={t('talentForm.highestDegree')} error={errors.highest_degree?.message}>
             {(props) => <Input {...props} {...register('highest_degree')} />}
@@ -631,6 +757,8 @@ export function TalentForm({
         >
           {(props) => <Textarea {...props} {...register('professional_training')} rows={2} />}
         </Field>
+          </>
+        ) : null}
 
         <Field
           label={t('talentForm.skillsText')}
@@ -640,13 +768,15 @@ export function TalentForm({
           {(props) => <Textarea {...props} {...register('skills_text')} rows={2} />}
         </Field>
 
-        <Field
-          label={t('talentForm.servicesOffered')}
-          hint={t('talentForm.servicesOfferedHint')}
-          error={errors.services_offered?.message}
-        >
-          {(props) => <Textarea {...props} {...register('services_offered')} rows={3} />}
-        </Field>
+        {!isCandidate ? (
+          <Field
+            label={t('talentForm.servicesOffered')}
+            hint={t('talentForm.servicesOfferedHint')}
+            error={errors.services_offered?.message}
+          >
+            {(props) => <Textarea {...props} {...register('services_offered')} rows={3} />}
+          </Field>
+        ) : null}
 
         <Field
           label={t('talentForm.hobbies')}
@@ -656,6 +786,7 @@ export function TalentForm({
           {(props) => <Textarea {...props} {...register('hobbies')} rows={2} />}
         </Field>
 
+        {!isCandidate ? (
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label={t('talentForm.employmentType')} error={errors.employment_type?.message}>
             {(props) => (
@@ -685,6 +816,7 @@ export function TalentForm({
             </label>
           ) : null}
         </div>
+        ) : null}
 
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
@@ -762,6 +894,23 @@ export function TalentForm({
           )}
         </div>
       </section>
+
+      {isCandidate ? (
+        <>
+          <CandidateExperience
+            control={control}
+            register={register}
+            errors={errors}
+            setValue={setValue}
+          />
+          <CandidateEducation control={control} register={register} errors={errors} />
+          <CandidatePrivacy
+            register={register}
+            errors={errors}
+            cvOnAccountPage={identityElsewhere}
+          />
+        </>
+      ) : null}
 
       {/* Identity is set on the account, not here: one legal name per
           person, however many listings they own. Hidden on the public

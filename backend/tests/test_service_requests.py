@@ -245,10 +245,14 @@ def test_no_admin_route_exposes_a_service_request(
     assert detail.status_code == 200
     assert ar("service_request.customer") not in detail.text
 
+    # An employer's request for a candidate is the exception, and a different
+    # table: the owners asked for it to be logged for the team (the candidate
+    # directory ticket, 31 Oct 2026). Service requests stay out.
     routes = [
         route.path
         for route in client.app.routes  # type: ignore[attr-defined]
         if "requests" in getattr(route, "path", "")
+        and "employer-requests" not in getattr(route, "path", "")
     ]
     assert all(not path.startswith("/api/admin") for path in routes)
 
