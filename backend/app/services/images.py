@@ -256,5 +256,6 @@ def _flatten_colour(image: Image.Image) -> tuple[int, int, int]:
     # to white so they never count as dark.
     opaque = alpha.point(lambda a: 255 if a > 32 else 0)
     visible = Image.composite(grey, Image.new("L", image.size, 255), opaque)
-    darkest, _ = visible.getextrema()
+    darkest = visible.getextrema()[0]
+    assert isinstance(darkest, int | float)  # one band: (min, max) of numbers
     return _DARK if darkest >= _LIGHT_THRESHOLD else _WHITE
