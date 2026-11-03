@@ -1,13 +1,14 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { LocateFixed, SlidersHorizontal, X } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
-import { Navigate, useLocation, useSearchParams } from 'react-router-dom'
+import { LayoutGrid, LocateFixed, SearchX, SlidersHorizontal, Star, X } from 'lucide-react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/Button'
 import { LocationCombobox } from '@/components/ui/LocationCombobox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 import { BusinessCardSkeleton } from '@/components/ui/Skeleton'
-import { ErrorState, NoSearchResults } from '@/components/ui/States'
+import { EmptyState, ErrorState } from '@/components/ui/States'
+import { CategoryIcon } from '@/features/home/categoryIcon'
 import { Pagination } from '@/features/businesses/Pagination'
 import { TalentCard } from '@/features/talent/TalentCard'
 import { CandidateDirectory } from '@/features/talent/candidate/CandidateDirectory'
@@ -151,6 +152,9 @@ function TalentDirectory({ kind }: { kind: TalentKind }) {
     [kind],
   )
   const { groups } = useLocationGroups()
+  const categoryTiles = [...(skills.data ?? [])]
+    .filter((item) => countOfKind(item) > 0)
+    .sort((a, b) => countOfKind(b) - countOfKind(a))
 
   const results = useQuery({
     queryKey: queryKeys.talents({
@@ -207,7 +211,9 @@ function TalentDirectory({ kind }: { kind: TalentKind }) {
         title={t(page_.titleKey)}
         subtitle={
           results.data
-            ? t('talent.resultCount', { count: results.data.meta.total })
+            ? t(kind === 'SERVICE' ? 'talent.providerCount' : 'talent.resultCount', {
+                count: results.data.meta.total,
+              })
             : t('talent.introFallback')
         }
       />
@@ -216,6 +222,34 @@ function TalentDirectory({ kind }: { kind: TalentKind }) {
             directory was an island: a search that came up empty here left
             the browser's back button as the only way across. */}
         <BrowseSwitcher current={page_.browseKey} />
+
+        {/* Most visitors browse by category before they search (the owners'
+            services redesign, 31 Oct 2026): the skills with providers in
+            them, the fullest first, one tap to narrow the list. */}
+        {kind === 'SERVICE' && categoryTiles.length > 0 ? (
+          <nav aria-label={t('talent.categoriesLabel')} className="-mx-4 mb-6 overflow-x-auto px-4">
+            <ul className="flex gap-3">
+              <li className="shrink-0">
+                <CategoryTile
+                  active={!skill}
+                  label={t('talent.allSkills')}
+                  icon={<LayoutGrid className="h-6 w-6" aria-hidden="true" />}
+                  onClick={() => updateParams({ skill: '' })}
+                />
+              </li>
+              {categoryTiles.map((item) => (
+                <li key={item.id} className="shrink-0">
+                  <CategoryTile
+                    active={skill === item.slug}
+                    label={item.name_ar}
+                    icon={<CategoryIcon name={item.icon} className="h-6 w-6" />}
+                    onClick={() => updateParams({ skill: skill === item.slug ? '' : item.slug })}
+                  />
+                </li>
+              ))}
+            </ul>
+          </nav>
+        ) : null}
 
         {/* The home page's box, suggesting as someone types; a plain search
             narrows this directory rather than leaving it. */}
@@ -344,6 +378,17 @@ function TalentDirectory({ kind }: { kind: TalentKind }) {
             <LocateFixed className="h-4 w-4" aria-hidden="true" />
             {t('directory.sortNearest')}
           </Button>
+          {kind === 'SERVICE' ? (
+            <Button
+              variant={sort === 'rating' ? 'primary' : 'outline'}
+              size="sm"
+              aria-pressed={sort === 'rating'}
+              onClick={() => chooseSort(sort === 'rating' ? 'newest' : 'rating')}
+            >
+              <Star className="h-4 w-4" aria-hidden="true" />
+              {t('directory.sortRating')}
+            </Button>
+          ) : null}
           <DisplacedFilterButton
             active={displaced}
             onToggle={() => updateParams({ displaced: displaced ? '' : '1' })}
@@ -378,10 +423,60 @@ function TalentDirectory({ kind }: { kind: TalentKind }) {
               />
             </>
           ) : (
-            <NoSearchResults onReset={hasFilters ? resetFilters : undefined} />
+            <EmptyState
+              icon={<SearchX className="h-7 w-7" aria-hidden="true" />}
+              title={t(kind === 'SERVICE' ? 'talent.noProvidersTitle' : 'states.noResultsTitle')}
+              description={t('states.noResultsDescription')}
+              action={
+                hasFilters ? (
+                  <Button variant="outline" onClick={resetFilters}>
+                    {t('states.clearFilters')}
+                  </Button>
+                ) : null
+              }
+            />
           )}
         </div>
+
+        {/* The way in for someone with a service of their own, where a
+            visitor who has scrolled the whole list ends up. */}
+        {kind === 'SERVICE' ? (
+          <aside className="mt-10 flex flex-col items-center gap-4 rounded-2xl bg-brand-800 px-6 py-8 text-center text-white sm:flex-row sm:justify-between sm:text-start">
+            <p className="text-lg font-bold">{t('talent.signupBannerTitle')}</p>
+            <Button asChild variant="secondary">
+              <Link to="/register/talent?kind=SERVICE">{t('talent.signupBannerCta')}</Link>
+            </Button>
+          </aside>
+        ) : null}
       </div>
     </>
+  )
+}
+
+function CategoryTile({
+  active,
+  label,
+  icon,
+  onClick,
+}: {
+  active: boolean
+  label: string
+  icon: ReactNode
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`flex h-24 w-28 flex-col items-center justify-center gap-2 rounded-2xl border px-2 text-center text-sm font-semibold transition-colors ${
+        active
+          ? 'border-brand-700 bg-brand-700 text-white'
+          : 'border-ink-100 bg-white text-ink-800 hover:border-brand-300 hover:bg-sand-50'
+      }`}
+    >
+      {icon}
+      <span className="line-clamp-2 leading-tight">{label}</span>
+    </button>
   )
 }

@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { Check, Send } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/Button'
 import { Field } from '@/components/ui/Field'
@@ -37,11 +37,14 @@ export function ServiceRequestForm({
   slug,
   whatsappLink,
   callLink,
+  prefill = null,
 }: {
   slug: string
   /** Ready `wa.me` / `tel:` links, offered once the request is stored. */
   whatsappLink: string | null
   callLink: string | null
+  /** A service the visitor chose on the page, written into the request. */
+  prefill?: string | null
 }) {
   const t = useT()
   const toast = useToast()
@@ -50,6 +53,9 @@ export function ServiceRequestForm({
   const [details, setDetails] = useState('')
   const [sent, setSent] = useState(false)
   const [contactOpen, setContactOpen] = useState(false)
+  useEffect(() => {
+    if (prefill) setDetails(prefill)
+  }, [prefill])
   // The API answers a rejected request with a sentence per bad field; without
   // this the reader got only "check the fields below", which named none.
   const { fieldErrors, showErrorsFrom, clearFieldErrors } = useServerFieldErrors()
