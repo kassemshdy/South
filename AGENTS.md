@@ -455,6 +455,9 @@ constrain how you work on it:
   ticket text is written by other people. Widen `REDACTED_KEYS` rather than
   loosening the strip — `mcp-server/tests/test_redaction.py` is the guard,
   the counterpart to `backend/tests/test_identity.py`.
+- **Ticket screenshots and PDFs are readable** through `get_ticket_attachment`
+  (UUID ids only, images and PDFs only); identity papers, CVs and business
+  documents are not.
 - **No tool moderates a listing or reads a personal document.** Approving,
   rejecting, suspending and the verification/CV downloads are deliberately
   absent, and a test asserts no tool name matches them.
