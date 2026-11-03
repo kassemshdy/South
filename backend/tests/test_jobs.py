@@ -160,6 +160,42 @@ def test_deleting_an_opening_removes_applications_sent_before_the_redesign(
     assert db.query(JobApplication).count() == 0
 
 
+def test_applications_sent_before_the_redesign_stay_readable_by_reviewers(
+    client: TestClient, db: Session, admin: User
+) -> None:
+    """Applying moved to WhatsApp and calls, but what people already sent is
+    not lost: staff still list it, and reviewers read the CV (the owners'
+    decision, 3 Nov 2026)."""
+    manager = admin_headers(client)
+    job = _create(client, manager)
+    key = f"{FOLDER}/kept.pdf"
+    get_storage().save(key=key, data=PDF, content_type="application/pdf")
+    db.add(
+        JobApplication(
+            job_id=job["id"],
+            full_name=ar("order.customer"),
+            email="applicant@example.com",
+            phone_number="+9613123456",
+            storage_key=key,
+            original_filename="cv.pdf",
+            content_type="application/pdf",
+            size_bytes=len(PDF),
+        )
+    )
+    db.commit()
+
+    listed = client.get("/api/admin/job-openings", headers=manager).json()
+    assert listed[0]["application_count"] == 1
+    rows = client.get(f"/api/admin/job-openings/{job['id']}/applications", headers=manager)
+    assert rows.status_code == 200 and rows.json()[0]["email"] == "applicant@example.com"
+    cv = f"/api/admin/job-openings/{job['id']}/applications/{rows.json()[0]['id']}/cv"
+    assert client.get(cv, headers=manager).content == PDF
+
+    support = _invite(client, manager, "SUPPORT", "support-cv@example.com")
+    assert client.get(cv, headers=support).status_code == 403
+    assert client.get(cv).status_code == 401
+
+
 def test_content_editors_write_openings_and_support_cannot(
     client: TestClient, admin: User
 ) -> None:
