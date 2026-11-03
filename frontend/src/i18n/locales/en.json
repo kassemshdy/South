@@ -2040,5 +2040,12 @@
   "admin.jobNoApplications": "No applications yet.",
   "admin.jobDownloadCv": "Download CV",
   "admin.jobWhatsappMessage": "Hello {name}, about your application for “{title}” on Janoubona.",
-  "admin.jobEmail": "Email"
+  "admin.jobEmail": "Email",
+  "adminNav.groupListings": "Listings",
+  "adminNav.groupOrdersJobs": "Orders and jobs",
+  "adminNav.groupContent": "Content",
+  "adminNav.groupSite": "Site settings",
+  "adminNav.groupTaxonomy": "Categories and places",
+  "adminNav.groupAccounts": "Accounts and staff",
+  "adminNav.groupReports": "Reports and tools"
 }

@@ -2040,5 +2040,12 @@
   "admin.jobNoApplications": "لا توجد طلبات بعد.",
   "admin.jobDownloadCv": "تنزيل السيرة الذاتية",
   "admin.jobWhatsappMessage": "مرحبًا {name}، بخصوص طلبك على فرصة «{title}» في منصة جنوبنا.",
-  "admin.jobEmail": "مراسلة بالبريد"
+  "admin.jobEmail": "مراسلة بالبريد",
+  "adminNav.groupListings": "الإدراجات",
+  "adminNav.groupOrdersJobs": "الطلبات والوظائف",
+  "adminNav.groupContent": "المحتوى",
+  "adminNav.groupSite": "إعدادات الموقع",
+  "adminNav.groupTaxonomy": "التصنيفات والمناطق",
+  "adminNav.groupAccounts": "الحسابات والفريق",
+  "adminNav.groupReports": "التقارير والأدوات"
 }
