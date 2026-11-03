@@ -120,6 +120,9 @@ const AdminWorkshopsPage = lazy(() =>
 const AdminActivitiesPage = lazy(() =>
   import('@/pages/admin/AdminActivitiesPage').then((m) => ({ default: m.AdminActivitiesPage })),
 )
+const AdminCarouselPage = lazy(() =>
+  import('@/pages/admin/AdminCarouselPage').then((m) => ({ default: m.AdminCarouselPage })),
+)
 const AdminArticlesPage = lazy(() =>
   import('@/pages/admin/AdminArticlesPage').then((m) => ({ default: m.AdminArticlesPage })),
 )
@@ -348,6 +351,7 @@ export function App() {
             <Route path="articles" element={<AdminArticlesPage />} />
             <Route path="workshops" element={<AdminWorkshopsPage />} />
             <Route path="activities" element={<AdminActivitiesPage />} />
+            <Route path="carousel" element={<AdminCarouselPage />} />
             <Route path="job-openings" element={<AdminJobOpeningsPage />} />
             <Route path="employer-requests" element={<AdminEmployerRequestsPage />} />
           </Route>
