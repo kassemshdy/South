@@ -39,8 +39,8 @@ RESTRICTED_READS: dict[str, frozenset[StaffRole]] = {
         "/api/admin/users/{user_id}/cv-document",
         "/api/admin/users/{user_id}/cv-document/download",
         "/api/admin/businesses/{business_id}/documents/{document_id}/download",
-        "/api/admin/job-openings/{job_id}/applications/{application_id}/cv",
         "/api/admin/job-openings/{job_id}/id-document",
+        "/api/admin/job-openings/{job_id}/applications/{application_id}/cv",
     )
 } | {
     # A spreadsheet of every account's identity and every customer's phone.
@@ -137,7 +137,6 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     ("POST", "/api/admin/job-openings/{job_id}/unpublish"): _CONTENT,
     ("POST", "/api/admin/job-openings/{job_id}/image"): _CONTENT,
     ("DELETE", "/api/admin/job-openings/{job_id}/image"): _CONTENT,
-    ("DELETE", "/api/admin/job-openings/{job_id}/applications/{application_id}"): _MODERATE,
     ("PUT", "/api/admin/pages/{key}"): _CONTENT,
     ("PUT", "/api/admin/team/{slot}"): _CONTENT,
     ("POST", "/api/admin/team/{slot}/photo"): _CONTENT,

@@ -1,40 +1,38 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
-import { Banknote, Briefcase, Building2, CalendarClock, Check, MapPin, Send } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
-import { useParams } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { Banknote, Briefcase, Building2, CalendarClock, Copy, MapPin, MessageCircle, Phone } from 'lucide-react'
+import { useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
 
-import { BackLink } from '@/components/ui/BackLink'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
-import { Field } from '@/components/ui/Field'
-import { Input } from '@/components/ui/Input'
+import { ShareButton } from '@/components/ui/ShareButton'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
-import { useToast } from '@/components/ui/Toast'
-import { Turnstile } from '@/components/ui/Turnstile'
-import { JOB_TYPE_LABELS } from '@/features/jobs/JobCard'
-import { WORK_MODE_LABELS } from '@/pages/JobOfferPage'
+import {
+  JOB_TYPE_LABELS,
+  JobStatusBadge,
+  JobThumbnail,
+  WORK_MODE_KEYS,
+  WorkModeIcon,
+  usePostedLabel,
+} from '@/features/jobs/JobCard'
 import { useSeo } from '@/hooks/useSeo'
 import { useI18n } from '@/i18n'
-import { ApiError } from '@/services/api/client'
 import { jobApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import { formatDate } from '@/utils/format'
+import type { JobContactChannel, JobOpening } from '@/types/api'
+import { formatDate, telHref, whatsappHref } from '@/utils/format'
 
 /**
- * One opening and its application form: name, email, phone and a CV (PDF or
- * a photo), behind the captcha when one is configured. The application and
- * the CV reach the admin page only.
+ * One opening (the jobs redesign, 31 Oct 2026). Nobody applies through the
+ * site any more: the card where the form was carries the number to contact,
+ * by WhatsApp or a call. A filled or no-longer-available opening keeps its
+ * page, so a shared link still opens, and says it has closed instead.
  */
 export function VacancyPage() {
   const { slug = '' } = useParams()
   const { t, locale } = useI18n()
-  const toast = useToast()
-  const [fullName, setFullName] = useState('')
-  const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
-  const [cv, setCv] = useState<File | null>(null)
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const posted = usePostedLabel()
 
   const job = useQuery({
     queryKey: queryKeys.jobOpening(slug),
@@ -47,13 +45,6 @@ export function VacancyPage() {
     description: data?.description.slice(0, 160),
     image: data?.cover_url ?? null,
     canonicalPath: `/vacancies/${encodeURIComponent(slug)}`,
-  })
-
-  const apply = useMutation({
-    mutationFn: () =>
-      jobApi.apply(slug, { full_name: fullName, email, phone_number: phone }, cv as File, captchaToken),
-    onError: (error) =>
-      toast.error(t('vacancies.failed'), error instanceof ApiError ? error.message : undefined),
   })
 
   if (job.isLoading) {
@@ -71,147 +62,218 @@ export function VacancyPage() {
     )
   }
 
-  const submit = (event: FormEvent) => {
-    event.preventDefault()
-    if (cv) apply.mutate()
-  }
+  const chip = 'inline-flex items-center gap-1.5 rounded-full bg-sand-100 px-3 py-1 text-sm text-ink-700'
+  const open = data.status === 'ACTIVE'
 
   return (
-    <article className="container-page py-10">
-      <BackLink fallback="/vacancies" />
+    <article className={`container-page py-10 ${open ? 'pb-28 lg:pb-10' : ''}`}>
+      <Link to="/vacancies" className="text-sm font-semibold text-brand-700 hover:underline">
+        {t('vacancies.back')}
+      </Link>
       <div className="mt-4 grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          {data.cover_url ? (
-            <img
-              src={data.cover_url}
-              alt=""
-              className="mb-6 aspect-[16/9] w-full rounded-2xl object-cover"
-            />
-          ) : null}
-          <h1 className="text-2xl sm:text-3xl" dir="auto">
+          <div className="relative aspect-video overflow-hidden rounded-2xl">
+            <JobThumbnail job={data} className={open ? '' : 'grayscale'} />
+          </div>
+          <h1 className="mt-6 text-2xl sm:text-3xl" dir="auto">
             {data.title}
           </h1>
-          <ul className="mt-4 space-y-2 text-ink-700">
-            <li className="flex items-center gap-2">
-              <Briefcase className="h-5 w-5 shrink-0 text-clay-600" aria-hidden="true" />
+          <ul className="mt-4 flex flex-wrap gap-2">
+            <li>
+              <JobStatusBadge status={data.status} className="shadow-none" />
+            </li>
+            <li className={chip}>
+              <Briefcase className="h-4 w-4 text-clay-600" aria-hidden="true" />
               {t(JOB_TYPE_LABELS[data.job_type])}
             </li>
-            {data.employer_name ? (
-              <li className="flex items-center gap-2" dir="auto">
-                <Building2 className="h-5 w-5 shrink-0 text-clay-600" aria-hidden="true" />
-                {data.employer_name}
+            {data.work_mode ? (
+              <li className={chip}>
+                <WorkModeIcon mode={data.work_mode} className="h-4 w-4 text-clay-600" />
+                {t(WORK_MODE_KEYS[data.work_mode])}
               </li>
             ) : null}
             {data.location ? (
-              <li className="flex items-center gap-2">
-                <MapPin className="h-5 w-5 shrink-0 text-clay-600" aria-hidden="true" />
+              <li className={chip}>
+                <MapPin className="h-4 w-4 text-clay-600" aria-hidden="true" />
                 {data.location.name_ar}
               </li>
             ) : null}
-            {data.work_place || data.work_mode ? (
-              <li className="flex items-center gap-2" dir="auto">
-                <MapPin className="h-5 w-5 shrink-0 text-clay-600" aria-hidden="true" />
-                {[data.work_place, data.work_mode ? t(WORK_MODE_LABELS[data.work_mode]) : null]
-                  .filter(Boolean)
-                  .join(t('common.listSeparator'))}
-              </li>
-            ) : null}
-            {data.salary ? (
-              <li className="flex items-center gap-2" dir="auto">
-                <Banknote className="h-5 w-5 shrink-0 text-clay-600" aria-hidden="true" />
-                {data.salary}
-              </li>
-            ) : null}
-            {data.deadline ? (
-              <li className="flex items-center gap-2">
-                <CalendarClock className="h-5 w-5 shrink-0 text-clay-600" aria-hidden="true" />
-                {t('vacancies.deadline', { date: formatDate(data.deadline, locale) })}
-              </li>
-            ) : null}
+            <li className={chip}>
+              <CalendarClock className="h-4 w-4 text-clay-600" aria-hidden="true" />
+              {posted(data.created_at)}
+            </li>
           </ul>
-          <p className="mt-6 whitespace-pre-line leading-loose text-ink-700" dir="auto">
-            {data.description}
-          </p>
+          {data.employer_name || data.work_place || data.salary ? (
+            <ul className="mt-4 space-y-2 text-ink-700">
+              {data.employer_name ? (
+                <li className="flex items-center gap-2" dir="auto">
+                  <Building2 className="h-5 w-5 shrink-0 text-clay-600" aria-hidden="true" />
+                  {data.employer_name}
+                </li>
+              ) : null}
+              {data.work_place ? (
+                <li className="flex items-center gap-2" dir="auto">
+                  <MapPin className="h-5 w-5 shrink-0 text-clay-600" aria-hidden="true" />
+                  {data.work_place}
+                </li>
+              ) : null}
+              {data.salary ? (
+                <li className="flex items-center gap-2" dir="auto">
+                  <Banknote className="h-5 w-5 shrink-0 text-clay-600" aria-hidden="true" />
+                  {data.salary}
+                </li>
+              ) : null}
+            </ul>
+          ) : null}
+          <section className="mt-8" aria-labelledby="about-heading">
+            <h2 id="about-heading" className="mb-3 text-xl">
+              {t('vacancies.aboutHeading')}
+            </h2>
+            <p className="whitespace-pre-line leading-loose text-ink-700" dir="auto">
+              {data.description}
+            </p>
+          </section>
         </div>
 
-        <aside>
-          <Card>
-            <CardBody className="p-5">
-              {apply.isSuccess ? (
-                <div className="text-center">
-                  <Check className="mx-auto h-10 w-10 text-olive-700" aria-hidden="true" />
-                  <h2 className="mt-3 text-xl">{t('vacancies.sentTitle')}</h2>
-                  <p className="mt-2 text-ink-500">{apply.data.message}</p>
-                </div>
-              ) : (
-                <form onSubmit={submit} className="space-y-4">
-                  <h2 className="text-xl">{t('vacancies.applyTitle')}</h2>
-                  <Field label={t('vacancies.nameLabel')} required>
-                    {(props) => (
-                      <Input
-                        {...props}
-                        required
-                        minLength={2}
-                        maxLength={80}
-                        autoComplete="name"
-                        value={fullName}
-                        onChange={(event) => setFullName(event.target.value)}
-                      />
-                    )}
-                  </Field>
-                  <Field label={t('vacancies.emailLabel')} required>
-                    {(props) => (
-                      <Input
-                        {...props}
-                        required
-                        type="email"
-                        dir="ltr"
-                        autoComplete="email"
-                        maxLength={254}
-                        value={email}
-                        onChange={(event) => setEmail(event.target.value)}
-                      />
-                    )}
-                  </Field>
-                  <Field label={t('vacancies.phoneLabel')} required>
-                    {(props) => (
-                      <Input
-                        {...props}
-                        required
-                        type="tel"
-                        inputMode="tel"
-                        dir="ltr"
-                        autoComplete="tel"
-                        minLength={6}
-                        maxLength={20}
-                        value={phone}
-                        onChange={(event) => setPhone(event.target.value)}
-                      />
-                    )}
-                  </Field>
-                  <Field label={t('vacancies.cvLabel')} required>
-                    {(props) => (
-                      <input
-                        {...props}
-                        required
-                        type="file"
-                        accept="application/pdf,image/jpeg,image/png"
-                        onChange={(event) => setCv(event.target.files?.[0] ?? null)}
-                        className="block w-full text-sm text-ink-700 file:me-3 file:rounded-lg file:border-0 file:bg-sand-100 file:px-3 file:py-2 file:font-semibold file:text-brand-800"
-                      />
-                    )}
-                  </Field>
-                  <Turnstile onToken={setCaptchaToken} />
-                  <Button type="submit" block loading={apply.isPending} disabled={!cv}>
-                    <Send className="h-5 w-5" aria-hidden="true" />
-                    {t('vacancies.submit')}
-                  </Button>
-                </form>
-              )}
-            </CardBody>
-          </Card>
+        <aside className="lg:sticky lg:top-[7.75rem] lg:self-start">
+          <ContactCard job={data} deadline={data.deadline ? formatDate(data.deadline, locale) : null} />
+          <div className="mt-3">
+            <ShareButton
+              title={data.title}
+              text={data.description.slice(0, 160)}
+              block
+              label={t('vacancies.share')}
+            />
+          </div>
         </aside>
       </div>
+
+      {open ? <MobileContactBar job={data} /> : null}
     </article>
+  )
+}
+
+function useContactLinks(job: JobOpening) {
+  const { t } = useI18n()
+  const url = typeof window === 'undefined' ? '' : window.location.href
+  const whatsapp =
+    job.whatsapp_enabled && job.contact_phone
+      ? whatsappHref(job.contact_phone, t('vacancies.whatsappApply', { title: job.title, url }))
+      : null
+  const call = telHref(job.contact_phone)
+  // Counted, never awaited: the link opens whatever the counter does.
+  const count = (channel: JobContactChannel) => {
+    void jobApi.contactClick(job.slug, channel).catch(() => undefined)
+  }
+  return { whatsapp, call, count }
+}
+
+function ContactCard({ job, deadline }: { job: JobOpening; deadline: string | null }) {
+  const { t } = useI18n()
+  const { whatsapp, call, count } = useContactLinks(job)
+  const [copied, setCopied] = useState(false)
+
+  if (job.status !== 'ACTIVE') {
+    return (
+      <Card>
+        <CardBody className="space-y-4 p-5 text-center">
+          <JobStatusBadge status={job.status} />
+          <p className="text-ink-700">
+            {job.status === 'FILLED' ? t('vacancies.filledMessage') : t('vacancies.unavailableMessage')}
+          </p>
+          <Button asChild variant="outline" block>
+            <Link to="/vacancies">{t('vacancies.browseOpen')}</Link>
+          </Button>
+        </CardBody>
+      </Card>
+    )
+  }
+
+  const copy = async () => {
+    if (!job.contact_phone) return
+    try {
+      await navigator.clipboard.writeText(job.contact_phone)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2500)
+    } catch {
+      /* the number is on screen regardless */
+    }
+  }
+
+  return (
+    <Card className="border-brand-200">
+      <CardBody className="space-y-4 p-5">
+        <div>
+          <h2 className="text-xl">{t('vacancies.applyHeading')}</h2>
+          <p className="mt-1 text-sm text-ink-500">{t('vacancies.applyInstructions')}</p>
+        </div>
+        {job.contact_name || job.contact_phone ? (
+          <div className="space-y-1">
+            {job.contact_name ? (
+              <p className="font-semibold text-ink-800" dir="auto">
+                {job.contact_name}
+              </p>
+            ) : null}
+            {job.contact_phone ? (
+              <div className="flex items-center justify-between gap-2">
+                <span className="ltr-nums text-lg font-bold text-ink-900" dir="ltr">
+                  {job.contact_phone}
+                </span>
+                <Button type="button" size="sm" variant="outline" onClick={() => void copy()}>
+                  <Copy className="h-4 w-4" aria-hidden="true" />
+                  {copied ? t('vacancies.numberCopied') : t('vacancies.copyNumber')}
+                </Button>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+        {whatsapp ? (
+          <Button asChild variant="whatsapp" block className="min-h-12 text-base">
+            <a href={whatsapp} target="_blank" rel="noopener noreferrer" onClick={() => count('WHATSAPP')}>
+              <MessageCircle className="h-5 w-5" aria-hidden="true" />
+              {t('business.whatsappCta')}
+            </a>
+          </Button>
+        ) : null}
+        {call ? (
+          <Button asChild variant="outline" block>
+            <a href={call} onClick={() => count('CALL')}>
+              <Phone className="h-4 w-4" aria-hidden="true" />
+              {t('business.callCta')}
+            </a>
+          </Button>
+        ) : null}
+        {deadline ? (
+          <p className="text-center text-sm text-ink-500">{t('vacancies.deadline', { date: deadline })}</p>
+        ) : null}
+      </CardBody>
+    </Card>
+  )
+}
+
+/** On a phone the card scrolls away; both buttons stay under the thumb. */
+function MobileContactBar({ job }: { job: JobOpening }) {
+  const { t } = useI18n()
+  const { whatsapp, call, count } = useContactLinks(job)
+  if (!whatsapp && !call) return null
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 gap-2 border-t border-ink-100 bg-white/95 px-4 pb-4 pt-3 shadow-lift backdrop-blur lg:hidden">
+      {whatsapp ? (
+        <Button asChild variant="whatsapp" block className={call ? 'col-span-2' : 'col-span-3'}>
+          <a href={whatsapp} target="_blank" rel="noopener noreferrer" onClick={() => count('WHATSAPP')}>
+            <MessageCircle className="h-4 w-4" aria-hidden="true" />
+            {t('talent.stickyWhatsapp')}
+          </a>
+        </Button>
+      ) : null}
+      {call ? (
+        <Button asChild variant="outline" block className={whatsapp ? '' : 'col-span-3'}>
+          <a href={call} onClick={() => count('CALL')}>
+            <Phone className="h-4 w-4" aria-hidden="true" />
+            {t('talent.stickyCall')}
+          </a>
+        </Button>
+      ) : null}
+    </div>
   )
 }
