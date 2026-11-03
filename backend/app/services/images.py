@@ -16,6 +16,7 @@ import uuid
 from dataclasses import dataclass
 
 from PIL import Image, UnidentifiedImageError
+from pillow_heif import register_heif_opener
 
 from app.core.config import Settings
 from app.core.errors import PayloadTooLargeError, UnsupportedMediaTypeError
@@ -24,8 +25,25 @@ from app.storage.base import StorageBackend, StoredFile
 
 logger = logging.getLogger(__name__)
 
-ALLOWED_FORMATS = {"JPEG", "PNG", "WEBP"}
-ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/webp"}
+# HEIC/HEIF is what phones save photos as; it is decoded and re-encoded as
+# JPEG like everything else, so nothing downstream ever sees one (the owners'
+# request, 3 Nov 2026, after owners' product photos were refused).
+register_heif_opener()
+
+ALLOWED_FORMATS = {"JPEG", "PNG", "WEBP", "HEIF"}
+ALLOWED_CONTENT_TYPES = {
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+    "image/heic",
+    "image/heif",
+    "image/heic-sequence",
+    "image/heif-sequence",
+    # What a browser sends for a file type it does not know, which is how a
+    # .heic file arrives from most desktop browsers. Decoding decides.
+    "application/octet-stream",
+}
 
 
 @dataclass(frozen=True)
