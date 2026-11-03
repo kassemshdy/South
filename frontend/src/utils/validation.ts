@@ -457,6 +457,14 @@ export const talentSchema = (t: Translate, otherSkillId?: string) =>
             }),
         )
         .max(20),
+      faqs: z
+        .array(
+          z.object({
+            question: z.string().trim().min(1, t('serviceFaqs.questionRequired')).max(200),
+            answer: z.string().trim().min(1, t('serviceFaqs.answerRequired')).max(1000),
+          }),
+        )
+        .max(15),
       education: z
         .array(
           z.object({

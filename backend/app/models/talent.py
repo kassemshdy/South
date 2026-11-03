@@ -287,6 +287,13 @@ class TalentProfile(Base, TimestampMixin):
         cascade="all, delete-orphan",
         order_by="TalentServiceOffer.sort_order",
     )
+    # Questions a visitor would ask, answered by the provider (services
+    # redesign, 3 Nov 2026).
+    faqs: Mapped[list[TalentFaq]] = relationship(
+        back_populates="profile",
+        cascade="all, delete-orphan",
+        order_by="TalentFaq.sort_order",
+    )
     experiences: Mapped[list[TalentExperience]] = relationship(
         back_populates="profile",
         cascade="all, delete-orphan",
@@ -463,6 +470,22 @@ class TalentServiceOffer(Base):
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     profile: Mapped[TalentProfile] = relationship(back_populates="service_offers")
+
+
+class TalentFaq(Base):
+    """One question and its answer on a provider's profile. Public."""
+
+    __tablename__ = "talent_faqs"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    profile_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("talent_profiles.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    question: Mapped[str] = mapped_column(String(200), nullable=False)
+    answer: Mapped[str] = mapped_column(String(1000), nullable=False)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    profile: Mapped[TalentProfile] = relationship(back_populates="faqs")
 
 
 class TalentCourse(Base):

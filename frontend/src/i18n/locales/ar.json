@@ -2081,5 +2081,18 @@
   "serviceOffers.startingFrom": "يبدأ من",
   "feedback.board.total": "{count} تذكرة",
   "feedback.board.search": "ابحث في عناوين التذاكر",
-  "feedback.board.allPriorities": "كل الأولويات"
+  "feedback.board.allPriorities": "كل الأولويات",
+  "serviceFaqs.heading": "أسئلة شائعة",
+  "serviceFaqs.publicHeading": "أسئلة شائعة",
+  "serviceFaqs.hint": "أجب عن الأسئلة التي يطرحها عليك الزبائن عادةً، فتظهر على صفحتك.",
+  "serviceFaqs.add": "إضافة سؤال",
+  "serviceFaqs.remove": "حذف السؤال",
+  "serviceFaqs.question": "السؤال",
+  "serviceFaqs.answer": "الجواب",
+  "serviceFaqs.questionRequired": "اكتب السؤال",
+  "serviceFaqs.answerRequired": "اكتب الجواب",
+  "testimonials.breakdown": "توزيع التقييمات",
+  "testimonials.starsLevel": "{stars} ★",
+  "talent.verifiedOnly": "موثّق فقط",
+  "talent.showMore": "عرض المزيد ({count})"
 }

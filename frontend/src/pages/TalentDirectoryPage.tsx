@@ -1,5 +1,5 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { LayoutGrid, LocateFixed, SearchX, SlidersHorizontal, Star, X } from 'lucide-react'
+import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
+import { BadgeCheck, LayoutGrid, LocateFixed, SearchX, SlidersHorizontal, Star, X } from 'lucide-react'
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom'
 
@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { BusinessCardSkeleton } from '@/components/ui/Skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 import { CategoryIcon } from '@/features/home/categoryIcon'
-import { Pagination } from '@/features/businesses/Pagination'
 import { TalentCard } from '@/features/talent/TalentCard'
 import { CandidateDirectory } from '@/features/talent/candidate/CandidateDirectory'
 import { WORK_MODE_KEYS } from '@/features/talent/labels'
@@ -109,7 +108,8 @@ function TalentDirectory({ kind }: { kind: TalentKind }) {
   // Services only: a job application is not asked how it is delivered.
   const workMode = kind === 'SERVICE' ? workModeFrom(searchParams.get('work_mode')) : undefined
   const chosenSort = searchParams.get('sort') as TalentSortOption | null
-  const page = Number(searchParams.get('page') ?? '1')
+  // Only providers with an ID on file (the services redesign, 3 Nov 2026).
+  const verified = kind === 'SERVICE' && searchParams.get('verified') === '1'
   // The filters on screen, never the search text: see services/analytics.ts.
   useEffect(() => {
     trackDirectoryView({ directory: kind === 'JOB_SEEKER' ? 'job_seekers' : 'services', skill, location, displaced })
@@ -157,20 +157,25 @@ function TalentDirectory({ kind }: { kind: TalentKind }) {
     .filter((item) => countOfKind(item) > 0)
     .sort((a, b) => countOfKind(b) - countOfKind(a))
 
-  const results = useQuery({
-    queryKey: queryKeys.talents({
+  // "Show more" rather than numbered pages (the services redesign): each
+  // press appends the next 24 to the grid.
+  const results = useInfiniteQuery({
+    queryKey: [
+      ...queryKeys.talents({
       q,
       skill,
       location,
       sort,
       lat: near?.lat,
       lng: near?.lng,
-      page,
       kind,
       work_mode: workMode,
       displaced,
-    }),
-    queryFn: () =>
+        verified,
+      }),
+      'more',
+    ],
+    queryFn: ({ pageParam }) =>
       publicTalentApi.search({
         kind,
         q: q || undefined,
@@ -178,14 +183,20 @@ function TalentDirectory({ kind }: { kind: TalentKind }) {
         location: location || undefined,
         work_mode: workMode,
         displaced: displaced || undefined,
+        verified: verified || undefined,
         sort,
         lat: near?.lat,
         lng: near?.lng,
-        page,
+        page: pageParam,
         page_size: 24,
       }),
+    initialPageParam: 1,
+    getNextPageParam: (last) =>
+      last.meta.page < last.meta.total_pages ? last.meta.page + 1 : undefined,
     placeholderData: keepPreviousData,
   })
+  const talents = results.data?.pages.flatMap((page) => page.items) ?? []
+  const total = results.data?.pages[0]?.meta.total ?? 0
 
   const updateParams = useCallback(
     (changes: Record<string, string>) => {
@@ -202,7 +213,8 @@ function TalentDirectory({ kind }: { kind: TalentKind }) {
     [searchParams, setSearchParams],
   )
 
-  const hasFilters = Boolean(q || skill || location || workMode || displaced) || chosenSort !== null
+  const hasFilters =
+    Boolean(q || skill || location || workMode || displaced || verified) || chosenSort !== null
   const resetFilters = () => setSearchParams(new URLSearchParams())
 
   return (
@@ -213,7 +225,7 @@ function TalentDirectory({ kind }: { kind: TalentKind }) {
         subtitle={
           results.data
             ? t(kind === 'SERVICE' ? 'talent.providerCount' : 'talent.resultCount', {
-                count: results.data.meta.total,
+                count: total,
               })
             : t('talent.introFallback')
         }
@@ -390,6 +402,17 @@ function TalentDirectory({ kind }: { kind: TalentKind }) {
               {t('directory.sortRating')}
             </Button>
           ) : null}
+          {kind === 'SERVICE' ? (
+            <Button
+              variant={verified ? 'primary' : 'outline'}
+              size="sm"
+              aria-pressed={verified}
+              onClick={() => updateParams({ verified: verified ? '' : '1' })}
+            >
+              <BadgeCheck className="h-4 w-4" aria-hidden="true" />
+              {t('talent.verifiedOnly')}
+            </Button>
+          ) : null}
           <DisplacedFilterButton
             active={displaced}
             onToggle={() => updateParams({ displaced: displaced ? '' : '1' })}
@@ -411,17 +434,25 @@ function TalentDirectory({ kind }: { kind: TalentKind }) {
             </div>
           ) : results.isError ? (
             <ErrorState error={results.error} onRetry={() => void results.refetch()} />
-          ) : results.data && results.data.items.length > 0 ? (
+          ) : talents.length > 0 ? (
             <>
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {results.data.items.map((talent) => (
+                {talents.map((talent) => (
                   <TalentCard key={talent.id} talent={talent} />
                 ))}
               </div>
-              <Pagination
-                meta={results.data.meta}
-                onChange={(nextPage) => updateParams({ page: String(nextPage) })}
-              />
+              {results.hasNextPage ? (
+                <div className="mt-8 flex justify-center">
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    loading={results.isFetchingNextPage}
+                    onClick={() => void results.fetchNextPage()}
+                  >
+                    {t('talent.showMore', { count: total - talents.length })}
+                  </Button>
+                </div>
+              ) : null}
             </>
           ) : (
             <EmptyState

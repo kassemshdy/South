@@ -16,6 +16,7 @@ import type {
   TalentCourse,
   TalentEducationEntry,
   TalentExperience,
+  TalentFaq,
   TalentServiceOffer,
   TalentWorkType,
   SearchSuggestion,
@@ -221,6 +222,7 @@ export interface TalentPayload {
   experiences?: Omit<TalentExperience, 'id'>[]
   /** Services: replaces the stored list; omitted keeps it. */
   service_offers?: Omit<TalentServiceOffer, 'id'>[]
+  faqs?: Omit<TalentFaq, 'id'>[]
   education?: Omit<TalentEducationEntry, 'id'>[]
   courses?: Omit<TalentCourse, 'id'>[]
 }

@@ -479,6 +479,12 @@ export interface TalentSummary {
   starting_price_currency?: Currency | null
 }
 
+export interface TalentFaq {
+  id: string
+  question: string
+  answer: string
+}
+
 /** One service a provider offers, with its price (services redesign). */
 export interface TalentServiceOffer {
   id: string
@@ -605,6 +611,8 @@ export interface TalentDetail extends TalentSummary {
   work_areas?: LocationNode[]
   experiences?: TalentExperience[]
   service_offers?: TalentServiceOffer[]
+  /** Questions a visitor would ask, answered by the provider. */
+  faqs?: TalentFaq[]
   education?: TalentEducationEntry[]
   courses?: TalentCourse[]
 }

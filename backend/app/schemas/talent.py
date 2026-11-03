@@ -166,6 +166,12 @@ class TalentServiceOfferOut(ORMModel):
     price_unit: str | None = None
 
 
+class TalentFaqOut(ORMModel):
+    id: uuid.UUID
+    question: str
+    answer: str
+
+
 class TalentEducationOut(ORMModel):
     id: uuid.UUID
     degree: str | None = None
@@ -222,6 +228,7 @@ class TalentDetailOut(TalentSummaryOut):
     work_areas: list[LocationOut] = Field(default_factory=list)
     experiences: list[TalentExperienceOut] = Field(default_factory=list)
     service_offers: list[TalentServiceOfferOut] = Field(default_factory=list)
+    faqs: list[TalentFaqOut] = Field(default_factory=list)
     education: list[TalentEducationOut] = Field(default_factory=list)
     courses: list[TalentCourseOut] = Field(default_factory=list)
 
@@ -302,6 +309,16 @@ class TalentServiceOfferIn(BaseModel):
         return self
 
 
+class TalentFaqIn(BaseModel):
+    question: str = Field(min_length=1, max_length=200)
+    answer: str = Field(min_length=1, max_length=1000)
+
+    @field_validator("question", "answer")
+    @classmethod
+    def _strip(cls, value: str) -> str:
+        return value.strip()
+
+
 class TalentEducationIn(BaseModel):
     degree: str | None = Field(default=None, max_length=160)
     field: str | None = Field(default=None, max_length=160)
@@ -368,6 +385,7 @@ class TalentProfileFieldsIn(BaseModel):
     experiences: list[TalentExperienceIn] | None = Field(default=None, max_length=30)
     # Services: replaces the stored list; omitted keeps it.
     service_offers: list[TalentServiceOfferIn] | None = Field(default=None, max_length=20)
+    faqs: list[TalentFaqIn] | None = Field(default=None, max_length=15)
     education: list[TalentEducationIn] | None = Field(default=None, max_length=15)
     courses: list[TalentCourseIn] | None = Field(default=None, max_length=30)
 
