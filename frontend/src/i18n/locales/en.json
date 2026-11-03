@@ -2048,5 +2048,12 @@
   "adminShops.noProductsEmpty": "Every approved shop has at least one product.",
   "adminShops.noProductsWhatsapp": "Hello, your shop “{name}” is published on the South directory but has no products yet. Can we help you add them?",
   "adminShops.approvedOn": "Approved {date}",
-  "adminShops.call": "Call"
+  "adminShops.call": "Call",
+  "adminNav.groupListings": "Listings",
+  "adminNav.groupOrdersJobs": "Orders and jobs",
+  "adminNav.groupContent": "Content",
+  "adminNav.groupSite": "Site settings",
+  "adminNav.groupTaxonomy": "Categories and places",
+  "adminNav.groupAccounts": "Accounts and staff",
+  "adminNav.groupReports": "Reports and tools"
 }
