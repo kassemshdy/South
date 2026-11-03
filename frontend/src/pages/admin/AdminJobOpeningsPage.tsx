@@ -93,6 +93,7 @@ export function AdminJobOpeningsPage() {
   const canEdit = useStaffCan('content')
   const [editing, setEditing] = useState<AdminJobOpening | 'new' | null>(null)
   const [openClicks, setOpenClicks] = useState<string | null>(null)
+  const [openApplications, setOpenApplications] = useState<string | null>(null)
   const [tab, setTab] = useState<JobStatus | 'ALL'>('ALL')
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploadingId, setUploadingId] = useState<string | null>(null)
@@ -234,6 +235,17 @@ export function AdminJobOpeningsPage() {
                         <MousePointerClick className="h-4 w-4" aria-hidden="true" />
                         {t('admin.jobContactClicks', { count: job.contact_clicks })}
                       </Button>
+                      {job.application_count ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setOpenApplications(openApplications === job.id ? null : job.id)
+                          }
+                        >
+                          {t('admin.jobApplications', { count: job.application_count })}
+                        </Button>
+                      ) : null}
                       {canEdit ? (
                         <>
                           <Select
@@ -302,6 +314,7 @@ export function AdminJobOpeningsPage() {
                   </div>
                   {job.submitter_name ? <OfferedBy job={job} /> : null}
                   {openClicks === job.id ? <ContactClicks job={job} /> : null}
+                  {openApplications === job.id ? <Applications job={job} /> : null}
                 </CardBody>
               </Card>
             </li>
@@ -367,6 +380,90 @@ function OfferedBy({ job }: { job: AdminJobOpening }) {
         </Button>
       ) : null}
     </div>
+  )
+}
+
+/** Applications sent through the old form, before applying moved to
+ * WhatsApp and calls: read-only, kept so nobody's application is lost. */
+function Applications({ job }: { job: AdminJobOpening }) {
+  const { t, locale } = useI18n()
+  const toast = useToast()
+  const canReadCv = useStaffCan('documents')
+  const applications = useQuery({
+    queryKey: queryKeys.adminJobApplications(job.id),
+    queryFn: () => adminApi.jobApplications(job.id),
+  })
+  const download = useMutation({
+    mutationFn: (applicationId: string) => adminApi.downloadJobApplicationCv(job.id, applicationId),
+    onSuccess: ({ blob, filename }) => {
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename ?? 'cv'
+      link.click()
+      URL.revokeObjectURL(url)
+    },
+    onError: (error) =>
+      toast.error(t('admin.downloadDocumentFailed'), error instanceof ApiError ? error.message : undefined),
+  })
+
+  if (applications.isLoading) return <Skeleton className="h-20 rounded-xl" />
+  if (applications.isError)
+    return <ErrorState error={applications.error} onRetry={() => void applications.refetch()} />
+  const rows = applications.data ?? []
+  if (rows.length === 0) return <p className="text-sm text-ink-500">{t('admin.jobNoApplications')}</p>
+
+  return (
+    <ul className="divide-y divide-ink-100 rounded-xl ring-1 ring-ink-100">
+      {rows.map((row) => {
+        const wa = whatsappHref(
+          row.phone_number,
+          t('admin.jobWhatsappMessage', { name: row.full_name, title: job.title }),
+        )
+        return (
+          <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 px-3 py-3">
+            <div className="min-w-0">
+              <p className="font-semibold" dir="auto">
+                {row.full_name}
+              </p>
+              <p className="text-sm text-ink-500" dir="ltr">
+                {row.phone_number} · {row.email}
+              </p>
+              <p className="text-xs text-ink-400">{formatDate(row.created_at, locale)}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {canReadCv ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  loading={download.isPending && download.variables === row.id}
+                  onClick={() => download.mutate(row.id)}
+                >
+                  <Download className="h-4 w-4" aria-hidden="true" />
+                  {t('admin.jobDownloadCv')}
+                </Button>
+              ) : null}
+              {wa ? (
+                <a
+                  href={wa}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-9 items-center rounded-xl px-3 text-sm font-semibold text-olive-700 hover:bg-sand-100"
+                >
+                  {t('admin.workshopContact')}
+                </a>
+              ) : null}
+              <a
+                href={`mailto:${row.email}`}
+                className="inline-flex min-h-9 items-center rounded-xl px-3 text-sm font-semibold text-brand-700 hover:bg-sand-100"
+              >
+                {t('admin.jobEmail')}
+              </a>
+            </div>
+          </li>
+        )
+      })}
+    </ul>
   )
 }
 

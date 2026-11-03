@@ -7,6 +7,7 @@
 
 import { apiDownload, apiRequest } from '@/services/api/client'
 import type {
+  JobApplication,
   EducationLevel,
   EmployerRequest,
   EmployerRequestInput,
@@ -1078,6 +1079,11 @@ export const adminApi = {
     apiRequest<AdminJobOpening>(`/api/admin/job-openings/${id}/image`, { method: 'DELETE' }),
   jobContactClicks: (id: string) =>
     apiRequest<JobContactStats>(`/api/admin/job-openings/${id}/contact-clicks`),
+  /** Applications sent through the old form, read-only. */
+  jobApplications: (id: string) =>
+    apiRequest<JobApplication[]>(`/api/admin/job-openings/${id}/applications`),
+  downloadJobApplicationCv: (jobId: string, applicationId: string) =>
+    apiDownload(`/api/admin/job-openings/${jobId}/applications/${applicationId}/cv`),
   downloadJobOfferIdDocument: (jobId: string) =>
     apiDownload(`/api/admin/job-openings/${jobId}/id-document`),
   uploadWorkshopCover: (id: string, file: File) => {

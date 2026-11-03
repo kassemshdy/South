@@ -2035,5 +2035,10 @@
   "adminCarousel.close": "إغلاق",
   "adminCarousel.noLink": "بلا رابط",
   "feedback.board.showAllDone": "عرض الكل ({count})",
-  "feedback.board.showLatestDone": "عرض آخر {count} فقط"
+  "feedback.board.showLatestDone": "عرض آخر {count} فقط",
+  "admin.jobApplications": "الطلبات ({count})",
+  "admin.jobNoApplications": "لا توجد طلبات بعد.",
+  "admin.jobDownloadCv": "تنزيل السيرة الذاتية",
+  "admin.jobWhatsappMessage": "مرحبًا {name}، بخصوص طلبك على فرصة «{title}» في منصة جنوبنا.",
+  "admin.jobEmail": "مراسلة بالبريد"
 }

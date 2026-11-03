@@ -35,12 +35,13 @@ from app.core.phone import normalize_phone
 from app.core.rate_limit import DatabaseRateLimiter, RateLimitRule
 from app.core.uploads import read_at_most
 from app.models.enums import ImageKind, JobContactChannel, JobStatus
-from app.models.job import JobContactClickDaily, JobOpening
+from app.models.job import JobApplication, JobContactClickDaily, JobOpening
 from app.models.site_setting import SiteSetting
 from app.models.taxonomy import Location
 from app.schemas.common import MessageResponse
 from app.schemas.job import (
     AdminJobOpeningOut,
+    JobApplicationOut,
     JobContactClickIn,
     JobContactDayOut,
     JobContactStatsOut,
@@ -307,6 +308,11 @@ def _admin_out(db: DbSession, job: JobOpening, fallback: str | None = None) -> A
             "own_contact_phone": job.contact_phone,
             "contact_clicks": int(clicks),
             "has_id_document": job.id_document_storage_key is not None,
+            "application_count": int(
+                db.execute(
+                    select(func.count()).where(JobApplication.job_id == job.id)
+                ).scalar_one()
+            ),
         }
     )
 
@@ -434,6 +440,46 @@ def delete_job_opening_cover(
     job.cover_url, job.cover_storage_key = None, None
     db.commit()
     return _admin_out(db, job)
+
+
+@admin_router.get("/{job_id}/applications", response_model=list[JobApplicationOut])
+def list_job_applications(
+    job_id: uuid.UUID, db: DbSession, admin: AdminUser
+) -> list[JobApplicationOut]:
+    """Applications sent through the old form, the latest first. Read-only:
+    applying moved to WhatsApp and calls, and these stay readable rather
+    than lost (the owners' decision, 3 Nov 2026)."""
+    _get_or_404(db, job_id)
+    rows = db.execute(
+        select(JobApplication)
+        .where(JobApplication.job_id == job_id)
+        .order_by(JobApplication.created_at.desc())
+    ).scalars()
+    return [JobApplicationOut.model_validate(row) for row in rows]
+
+
+@admin_router.get("/{job_id}/applications/{application_id}/cv")
+def download_job_application_cv(
+    job_id: uuid.UUID,
+    application_id: uuid.UUID,
+    db: DbSession,
+    admin: AdminUser,
+    settings: AppSettings,
+) -> Response:
+    application = db.get(JobApplication, application_id)
+    if application is None or application.job_id != job_id:
+        raise NotFoundError("job.application_not_found")
+    data = JobCvService(get_storage(), settings).read(application.storage_key)
+    return Response(
+        content=data,
+        media_type=application.content_type,
+        headers={
+            "Content-Disposition": content_disposition(
+                application.original_filename or f"cv-{application.id}"
+            ),
+            "Cache-Control": "no-store",
+        },
+    )
 
 
 @admin_router.get("/{job_id}/id-document")

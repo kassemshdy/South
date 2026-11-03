@@ -1475,7 +1475,21 @@ export interface JobContactStats {
   days: { day: string; whatsapp: number; call: number }[]
 }
 
+/** An application sent through the old form, before applying moved to WhatsApp. */
+export interface JobApplication {
+  id: string
+  full_name: string
+  email: string
+  phone_number: string
+  original_filename: string | null
+  content_type: string
+  size_bytes: number
+  created_at: string
+}
+
 export interface AdminJobOpening extends JobOpening {
+  /** Applications from the old form; read-only (3 Nov 2026). */
+  application_count?: number
   is_published: boolean
   /** The status as saved; `status` may read as closed after a deadline. */
   saved_status: JobStatus
