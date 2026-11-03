@@ -424,7 +424,8 @@ def test_a_product_page_carries_product_structured_data(
     assert isinstance(seller, dict)
     assert seller["url"] == f"https://example.test/business/{quote(approved_slug)}"
     assert isinstance(product["image"], str) and product["image"].startswith("https://")
-    assert product["category"], "the shop's category says what kind of product it is"
+    assert "category" not in product, "Google reads it as its own taxonomy"
+    assert product["description"], "an undescribed product still gets a sentence"
 
 
 def test_a_shop_page_carries_local_business_structured_data(

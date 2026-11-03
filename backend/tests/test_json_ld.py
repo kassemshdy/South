@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from decimal import Decimal
 
+from app.core.i18n import translate
 from app.core.seo import (
     SeoTags,
     business_json_ld,
@@ -37,7 +38,31 @@ def test_a_product_with_no_price_has_no_offer() -> None:
         business_url="https://x/b",
     )
     assert "offers" not in data
-    assert "image" not in data and "description" not in data
+    assert "image" not in data
+
+
+def test_an_undescribed_product_gets_a_sentence_and_no_category() -> None:
+    """Search Console flagged both on every product (3 Nov 2026): a missing
+    description, and a shop category in Google's own taxonomy field."""
+    common = {
+        "name": "Olive oil",
+        "url": "https://x/p",
+        "image_url": None,
+        "price": None,
+        "currency": "USD",
+        "available": True,
+        "business_name": "Rouh",
+        "business_url": "https://x/b",
+    }
+    placed = product_json_ld(description=" ", location_name="Tyre", **common)
+    assert placed["description"] == translate(
+        "seo.product.description", name="Olive oil", shop="Rouh", location="Tyre"
+    )
+    assert product_json_ld(description=None, **common)["description"] == translate(
+        "seo.product.description_no_location", name="Olive oil", shop="Rouh"
+    )
+    assert product_json_ld(description="Cold pressed", **common)["description"] == "Cold pressed"
+    assert "category" not in placed
 
 
 def test_a_sold_out_product_says_so() -> None:
