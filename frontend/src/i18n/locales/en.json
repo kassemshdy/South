@@ -2036,6 +2036,11 @@
   "adminCarousel.noLink": "No link",
   "feedback.board.showAllDone": "Show all ({count})",
   "feedback.board.showLatestDone": "Show the latest {count} only",
+  "admin.jobApplications": "Applications ({count})",
+  "admin.jobNoApplications": "No applications yet.",
+  "admin.jobDownloadCv": "Download CV",
+  "admin.jobWhatsappMessage": "Hello {name}, about your application for “{title}” on Janoubona.",
+  "admin.jobEmail": "Email",
   "admin.previewLogo": "Logo",
   "admin.previewCover": "Cover",
   "admin.previewMissing": "No image"
