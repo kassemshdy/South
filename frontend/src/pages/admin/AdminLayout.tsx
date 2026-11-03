@@ -8,6 +8,7 @@ import {
   Download,
   FileText,
   FolderTree,
+  GalleryHorizontal,
   GraduationCap,
   Handshake,
   Inbox,
@@ -64,6 +65,7 @@ const NAV: {
   { to: '/admin/articles', labelKey: 'admin.navArticles', icon: Newspaper, end: false },
   { to: '/admin/workshops', labelKey: 'admin.navWorkshops', icon: GraduationCap, end: false },
   { to: '/admin/activities', labelKey: 'admin.navActivities', icon: Megaphone, end: false },
+  { to: '/admin/carousel', labelKey: 'adminCarousel.nav', icon: GalleryHorizontal, end: false },
   { to: '/admin/job-openings', labelKey: 'admin.navJobOpenings', icon: Briefcase, end: false },
   {
     to: '/admin/employer-requests',

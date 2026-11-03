@@ -156,6 +156,13 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     ("PUT", "/api/admin/activities/{activity_id}"): _CONTENT,
     ("DELETE", "/api/admin/activities/{activity_id}"): _CONTENT,
     ("POST", "/api/admin/activities/{activity_id}/image"): _CONTENT,
+    # The announcements carousel (the owners' ticket, 31 Oct 2026).
+    ("PUT", "/api/admin/carousel/order"): _CONTENT,
+    ("POST", "/api/admin/carousel/activities"): _CONTENT,
+    ("POST", "/api/admin/carousel/custom"): _CONTENT,
+    ("PUT", "/api/admin/carousel/settings"): _CONTENT,
+    ("PUT", "/api/admin/carousel/{slide_id}"): _CONTENT,
+    ("DELETE", "/api/admin/carousel/{slide_id}"): _CONTENT,
     # The home page's Instagram reels.
     ("POST", "/api/admin/reels"): _CONTENT,
     ("PUT", "/api/admin/reels/order"): _CONTENT,

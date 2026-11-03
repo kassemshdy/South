@@ -33,6 +33,7 @@ from app.core.logging import configure_logging
 from app.core.middleware import RequestContextMiddleware, SecurityHeadersMiddleware
 from app.core.observability import configure_error_tracking
 from app.core.seo import (
+    SeoTags,
     business_json_ld,
     business_tags,
     default_tags,
@@ -46,6 +47,7 @@ from app.core.seo import (
 )
 from app.core.validation_messages import field_errors
 from app.database.session import SessionLocal
+from app.models.activity import Activity
 from app.models.business import Business
 from app.models.enums import ImageKind
 from app.models.site_setting import SiteSetting
@@ -555,6 +557,29 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
                                     rating_count=business.rating_count or 0,
                                 ),
                             ),
+                        )
+                finally:
+                    db.close()
+            elif path.startswith("activities/"):
+                # A shared announcement shows its photograph and summary on
+                # WhatsApp and Facebook (the owners' ticket, 31 Oct 2026).
+                slug = path.removeprefix("activities/").split("/")[0]
+                db = SessionLocal()
+                try:
+                    activity = db.execute(
+                        select(Activity).where(
+                            Activity.slug == slug,
+                            Activity.is_archived.is_(False),
+                            Activity.image_url.is_not(None),
+                        )
+                    ).scalar_one_or_none()
+                    if activity is not None:
+                        tags = SeoTags(
+                            title=f"{activity.title} | {translate('app.name')}",
+                            description=(activity.summary or activity.body)[:300],
+                            canonical_url=f"{base_url}/activities/{quote(activity.slug)}",
+                            image_url=_absolute(activity.image_url),
+                            og_type="article",
                         )
                 finally:
                     db.close()
