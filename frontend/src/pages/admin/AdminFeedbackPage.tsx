@@ -15,7 +15,7 @@ import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } 
 import { CSS } from '@dnd-kit/utilities'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { GitBranch, MessageSquare, Paperclip, Plus, Trash2, UserRound } from 'lucide-react'
+import { Clock, GitBranch, MessageSquare, Paperclip, Plus, Search, Trash2, UserRound } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useSearchParams } from 'react-router-dom'
@@ -45,6 +45,27 @@ import {
 import { commentSchema, type CommentValues } from '@/utils/validation'
 
 const STATUSES: FeedbackStatus[] = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'NEEDS_FEEDBACK', 'NEEDS_APPROVAL', 'APPROVED', 'DONE']
+
+/** A colour per column, so the row reads at a glance. */
+const STATUS_DOTS: Record<FeedbackStatus, string> = {
+  BACKLOG: 'bg-ink-300',
+  TODO: 'bg-sky-500',
+  IN_PROGRESS: 'bg-amber-500',
+  NEEDS_FEEDBACK: 'bg-clay-500',
+  NEEDS_APPROVAL: 'bg-violet-500',
+  APPROVED: 'bg-olive-500',
+  DONE: 'bg-brand-700',
+}
+
+/** The card's leading edge: the priority, readable without the badge. */
+const PRIORITY_EDGES: Record<FeedbackPriority, string> = {
+  LOW: 'border-s-ink-200',
+  MEDIUM: 'border-s-olive-400',
+  HIGH: 'border-s-clay-400',
+  URGENT: 'border-s-clay-600',
+}
+
+const PRIORITIES: FeedbackPriority[] = ['URGENT', 'HIGH', 'MEDIUM', 'LOW']
 
 const PRIORITY_TONES: Record<FeedbackPriority, string> = {
   LOW: 'bg-sand-100 text-ink-600',
@@ -88,6 +109,15 @@ export function AdminFeedbackPage() {
     groupByStatus([]),
   )
   const [activeTicket, setActiveTicket] = useState<FeedbackTicketSummary | null>(null)
+  // Narrows what the columns show; the order and the drag targets are the
+  // whole board's, so moving a card with a filter on puts it where it was.
+  const [query, setQuery] = useState('')
+  const [priority, setPriority] = useState<FeedbackPriority | null>(null)
+  const needle = query.trim().toLowerCase()
+  const visible = (ticket: FeedbackTicketSummary) =>
+    (!priority || ticket.priority === priority) &&
+    (!needle || ticket.title.toLowerCase().includes(needle))
+  const total = STATUSES.reduce((sum, status) => sum + columns[status].length, 0)
   // A link from the Telegram copy carries the ticket to open: ?ticket=<id>.
   const [searchParams, setSearchParams] = useSearchParams()
   const [openTicketId, setOpenTicketIdState] = useState<string | null>(() =>
@@ -196,10 +226,57 @@ export function AdminFeedbackPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl">{t('admin.feedbackHeading')}</h1>
-        <p className="mt-2 text-ink-500">{t('admin.feedbackSubtitle')}</p>
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl">{t('admin.feedbackHeading')}</h1>
+          <p className="mt-2 text-ink-500">{t('admin.feedbackSubtitle')}</p>
+        </div>
+        <span className="ltr-nums rounded-full bg-sand-100 px-3 py-1 text-sm font-semibold text-ink-600">
+          {t('feedback.board.total', { count: total })}
+        </span>
       </header>
+
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-ink-100 bg-white p-3">
+        <label className="relative min-w-[14rem] flex-1">
+          <span className="sr-only">{t('feedback.board.search')}</span>
+          <Search
+            className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400"
+            aria-hidden="true"
+          />
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={t('feedback.board.search')}
+            className="h-10 w-full rounded-xl border border-ink-200 bg-sand-50 ps-9 pe-3 text-sm focus:border-brand-500 focus:bg-white focus:outline-none"
+          />
+        </label>
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label={t('feedback.priorityLabel')}>
+          <button
+            type="button"
+            aria-pressed={priority === null}
+            onClick={() => setPriority(null)}
+            className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${
+              priority === null ? 'bg-brand-800 text-white' : 'bg-sand-100 text-ink-600 hover:bg-sand-200'
+            }`}
+          >
+            {t('feedback.board.allPriorities')}
+          </button>
+          {PRIORITIES.map((value) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={priority === value}
+              onClick={() => setPriority(priority === value ? null : value)}
+              className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${
+                priority === value ? 'bg-brand-800 text-white' : 'bg-sand-100 text-ink-600 hover:bg-sand-200'
+              }`}
+            >
+              {t(FEEDBACK_PRIORITY_KEYS[value])}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {board.isLoading ? (
         <InlineSpinner />
@@ -211,12 +288,16 @@ export function AdminFeedbackPage() {
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
         >
-          <div className="grid gap-4 overflow-x-auto pb-2 sm:grid-cols-2 lg:grid-cols-5">
+          {/* One row of columns that scrolls sideways, as a board does,
+              rather than a grid that wraps the last columns under the
+              first. Each column scrolls on its own. */}
+          <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-3 sm:mx-0 sm:snap-none sm:px-0">
             {STATUSES.map((status) => (
               <BoardColumn
                 key={status}
                 status={status}
                 tickets={columns[status]}
+                visible={visible}
                 onOpenTicket={setOpenTicketId}
               />
             ))}
@@ -241,10 +322,12 @@ export function AdminFeedbackPage() {
 function BoardColumn({
   status,
   tickets,
+  visible,
   onOpenTicket,
 }: {
   status: FeedbackStatus
   tickets: FeedbackTicketSummary[]
+  visible: (ticket: FeedbackTicketSummary) => boolean
   onOpenTicket: (id: string) => void
 }) {
   const t = useT()
@@ -252,45 +335,54 @@ function BoardColumn({
   const [showAllDone, setShowAllDone] = useState(false)
   // Done grows without end; the column shows the most recently finished
   // ten unless asked for all (the owners' request, 3 Nov 2026).
-  const limited = status === 'DONE' && !showAllDone && tickets.length > DONE_SHOWN
+  const matching = tickets.filter(visible)
+  const limited = status === 'DONE' && !showAllDone && matching.length > DONE_SHOWN
   const shown = limited
-    ? [...tickets]
+    ? [...matching]
         .sort((a, b) => doneAt(b).localeCompare(doneAt(a)))
         .slice(0, DONE_SHOWN)
-    : tickets
+    : matching
 
   return (
-    <div
+    <section
       ref={setNodeRef}
-      className={`flex min-h-[16rem] flex-col gap-3 rounded-2xl border-2 p-3 transition-colors ${
-        isOver ? 'border-clay-300 bg-sand-50' : 'border-ink-100 bg-white'
+      aria-label={t(FEEDBACK_STATUS_KEYS[status])}
+      className={`flex max-h-[calc(100dvh-16rem)] w-[85vw] shrink-0 snap-start flex-col rounded-2xl border transition-colors sm:w-auto sm:min-w-[13rem] sm:flex-1 sm:basis-0 ${
+        isOver ? 'border-clay-300 bg-clay-50/60' : 'border-ink-100 bg-sand-50'
       }`}
     >
-      <h2 className="flex items-center justify-between px-1 text-sm font-bold text-ink-700">
-        {t(FEEDBACK_STATUS_KEYS[status])}
-        <span className="rounded-full bg-sand-100 px-2 py-0.5 text-xs text-ink-500">
-          {tickets.length}
+      <h2 className="flex items-center gap-2 border-b border-ink-100 px-3 py-3 text-sm font-bold text-ink-800">
+        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${STATUS_DOTS[status]}`} aria-hidden="true" />
+        <span className="flex-1 truncate">{t(FEEDBACK_STATUS_KEYS[status])}</span>
+        <span className="ltr-nums rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-ink-500 ring-1 ring-ink-100">
+          {matching.length === tickets.length ? tickets.length : `${matching.length}/${tickets.length}`}
         </span>
       </h2>
       <SortableContext items={shown.map((ticket) => ticket.id)} strategy={verticalListSortingStrategy}>
-        <ul className="flex flex-1 flex-col gap-2">
+        <ul className="flex min-h-[5rem] flex-1 flex-col gap-2 overflow-y-auto p-2">
           {shown.map((ticket) => (
             <TicketCard key={ticket.id} ticket={ticket} onOpen={() => onOpenTicket(ticket.id)} />
           ))}
+          {shown.length === 0 ? (
+            <li
+              className="flex flex-1 items-center justify-center rounded-xl border-2 border-dashed border-ink-100"
+              aria-hidden="true"
+            />
+          ) : null}
         </ul>
       </SortableContext>
-      {status === 'DONE' && tickets.length > DONE_SHOWN ? (
+      {status === 'DONE' && matching.length > DONE_SHOWN ? (
         <button
           type="button"
           onClick={() => setShowAllDone((value) => !value)}
-          className="rounded-lg px-2 py-1.5 text-sm font-semibold text-brand-700 hover:bg-sand-50"
+          className="border-t border-ink-100 px-3 py-2.5 text-sm font-semibold text-brand-700 hover:bg-white"
         >
           {showAllDone
             ? t('feedback.board.showLatestDone', { count: DONE_SHOWN })
-            : t('feedback.board.showAllDone', { count: tickets.length })}
+            : t('feedback.board.showAllDone', { count: matching.length })}
         </button>
       ) : null}
-    </div>
+    </section>
   )
 }
 
@@ -321,18 +413,22 @@ function TicketCardBody({
   ticket: FeedbackTicketSummary
   dragging?: boolean
 }) {
-  const t = useT()
+  const { t, locale } = useI18n()
   return (
     <div
-      className={`rounded-xl border border-ink-100 bg-white p-3 shadow-card ${dragging ? 'shadow-lift' : ''}`}
+      className={`rounded-xl border border-s-4 border-ink-100 bg-white p-3 shadow-card transition-shadow hover:shadow-lift ${PRIORITY_EDGES[ticket.priority]} ${dragging ? 'rotate-1 shadow-lift' : ''}`}
     >
-      <div className="mb-1.5 flex items-start justify-between gap-2">
-        <p className="text-sm font-semibold text-ink-900">{ticket.title}</p>
+      <p className="line-clamp-3 text-sm font-semibold leading-snug text-ink-900" dir="auto">
+        {ticket.title}
+      </p>
+      <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-500">
         <Badge className={PRIORITY_TONES[ticket.priority]}>
           {t(FEEDBACK_PRIORITY_KEYS[ticket.priority])}
         </Badge>
-      </div>
-      <div className="flex flex-wrap items-center gap-3 text-xs text-ink-500">
+        <span className="inline-flex items-center gap-1">
+          <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+          {formatRelativeDate(ticket.updated_at, locale, t)}
+        </span>
         {/* Shown as plain text rather than a link: the repository is not
             configured anywhere the frontend can see, and a card that silently
             linked to the wrong repo would be worse than one that does not
@@ -356,9 +452,9 @@ function TicketCardBody({
           </span>
         ) : null}
         {ticket.assignee ? (
-          <span className="inline-flex items-center gap-1 truncate">
+          <span className="inline-flex min-w-0 items-center gap-1">
             <UserRound className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-            {ticket.assignee.display_name ?? ticket.assignee.email}
+            <span className="truncate">{ticket.assignee.display_name ?? ticket.assignee.email}</span>
           </span>
         ) : null}
       </div>

@@ -195,7 +195,7 @@ export function AdminLayout() {
   const CurrentIcon = current?.icon ?? MenuIcon
 
   return (
-    <div className="container-page py-8 print:block print:py-0 lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-start lg:gap-8">
+    <div className="w-full px-4 py-8 sm:px-6 lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-start lg:gap-8 lg:px-8 print:block print:py-0">
       <div className="mb-6 print:hidden lg:sticky lg:top-24 lg:mb-0">
         {/* On a phone the menu folds behind one button naming the current
             page; from lg up it is always open, as a sidebar on the start side. */}

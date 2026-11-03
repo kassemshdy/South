@@ -130,7 +130,7 @@ export function AdminSiteSettingsPage() {
   }
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="space-y-6">
       <h1 className="text-3xl">{t('nav.contact')}</h1>
 
       {current.isLoading ? (

@@ -86,7 +86,7 @@ export function AdminLocationsPage() {
   const parents = (locations.data ?? []).filter((item) => item.type !== 'TOWN')
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="space-y-6">
       <header>
         <h1 className="text-3xl">{t('admin.locationsHeading')}</h1>
         <p className="mt-2 text-ink-500">{t('admin.locationsSubtitle')}</p>

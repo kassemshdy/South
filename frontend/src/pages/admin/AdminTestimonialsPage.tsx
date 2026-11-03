@@ -99,7 +99,7 @@ export function AdminTestimonialsPage() {
   })
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="space-y-6">
       <header>
         <h1 className="text-3xl">{t('admin.testimonialsHeading')}</h1>
         <p className="mt-2 text-ink-500">{t('admin.testimonialsSubtitle')}</p>

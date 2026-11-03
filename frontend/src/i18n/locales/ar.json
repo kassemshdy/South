@@ -2078,5 +2078,8 @@
   "serviceOffers.range": "{from} – {to}",
   "serviceOffers.perUnit": "{amount} / {unit}",
   "serviceOffers.onRequest": "السعر عند الطلب",
-  "serviceOffers.startingFrom": "يبدأ من"
+  "serviceOffers.startingFrom": "يبدأ من",
+  "feedback.board.total": "{count} تذكرة",
+  "feedback.board.search": "ابحث في عناوين التذاكر",
+  "feedback.board.allPriorities": "كل الأولويات"
 }
