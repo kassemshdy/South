@@ -875,7 +875,13 @@ export const adminApi = {
     apiRequest<AttachedApplication>(`/api/admin/discarded-applications/${id}/attach`, {
       method: 'POST',
     }),
-  businesses: (params: { status?: BusinessStatus; q?: string; page?: number; page_size?: number }) =>
+  businesses: (params: {
+    status?: BusinessStatus
+    q?: string
+    without_products?: boolean
+    page?: number
+    page_size?: number
+  }) =>
     apiRequest<Paginated<AdminBusiness>>('/api/admin/businesses', { query: { ...params } }),
   pending: (page = 1) =>
     apiRequest<Paginated<AdminBusiness>>('/api/admin/businesses/pending', { query: { page } }),
