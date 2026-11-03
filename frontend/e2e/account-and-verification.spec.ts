@@ -132,7 +132,7 @@ test.describe('Private owner verification', () => {
       const opened = page.waitForEvent('popup')
       await page.getByRole('button', { name: t(button) }).click()
       const tab = await opened
-      expect(tab.url()).toMatch(/^blob:/)
+      await expect.poll(() => tab.url()).toMatch(/^blob:/)
       await tab.close()
     }
   })
