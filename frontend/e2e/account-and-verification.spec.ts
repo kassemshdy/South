@@ -127,13 +127,27 @@ test.describe('Private owner verification', () => {
     // Producer detail belongs to the listing, and is published.
     await expect(page.getByText(fixture.institutionName)).toBeVisible()
 
-    // A PDF opens in a new tab (the owners' request, 3 Nov 2026).
-    for (const button of ['admin.downloadDocument', 'admin.downloadCv'] as const) {
-      const opened = page.waitForEvent('popup')
+    // A PDF opens in a new tab (the owners' request, 3 Nov 2026). Headless
+    // Chromium has no PDF viewer, so the tab itself proves nothing: record
+    // what the page asks to open, and check that it is the PDF.
+    await page.evaluate(() => {
+      const opened: string[] = []
+      Object.assign(window, { __opened: opened })
+      window.open = ((url?: string | URL) => {
+        opened.push(String(url))
+        return window
+      }) as typeof window.open
+    })
+    for (const [index, button] of (['admin.downloadDocument', 'admin.downloadCv'] as const).entries()) {
       await page.getByRole('button', { name: t(button) }).click()
-      const tab = await opened
-      await expect.poll(() => tab.url()).toMatch(/^blob:/)
-      await tab.close()
+      await expect
+        .poll(() => page.evaluate(() => (window as unknown as { __opened: string[] }).__opened.length))
+        .toBe(index + 1)
+      const type = await page.evaluate(async (i) => {
+        const url = (window as unknown as { __opened: string[] }).__opened[i]
+        return (await (await fetch(url)).blob()).type
+      }, index)
+      expect(type).toBe('application/pdf')
     }
   })
 })
