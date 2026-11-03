@@ -129,6 +129,7 @@ class TalentRepository(BaseRepository[TalentProfile]):
             .joinedload(Location.parent),
             selectinload(TalentProfile.experiences),
             selectinload(TalentProfile.service_offers),
+            selectinload(TalentProfile.faqs),
             selectinload(TalentProfile.education),
             selectinload(TalentProfile.courses),
         ).execution_options(populate_existing=True)

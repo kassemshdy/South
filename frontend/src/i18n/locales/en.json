@@ -2081,5 +2081,18 @@
   "serviceOffers.startingFrom": "From",
   "feedback.board.total": "{count} tickets",
   "feedback.board.search": "Search ticket titles",
-  "feedback.board.allPriorities": "All priorities"
+  "feedback.board.allPriorities": "All priorities",
+  "serviceFaqs.heading": "Frequently asked questions",
+  "serviceFaqs.publicHeading": "Frequently asked questions",
+  "serviceFaqs.hint": "Answer the questions customers usually ask you; they appear on your page.",
+  "serviceFaqs.add": "Add a question",
+  "serviceFaqs.remove": "Remove this question",
+  "serviceFaqs.question": "Question",
+  "serviceFaqs.answer": "Answer",
+  "serviceFaqs.questionRequired": "Write the question",
+  "serviceFaqs.answerRequired": "Write the answer",
+  "testimonials.breakdown": "Ratings by stars",
+  "testimonials.starsLevel": "{stars} ★",
+  "talent.verifiedOnly": "Verified only",
+  "talent.showMore": "Show more ({count})"
 }

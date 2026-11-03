@@ -27,6 +27,7 @@ import {
   CandidatePhoneChoice,
   CandidatePrivacy,
 } from './form/CandidateSections'
+import { FaqSection } from './form/FaqSection'
 import { plainPrice, ServiceOffersSection } from './form/ServiceOffersSection'
 import { LANGUAGE_PROFICIENCIES, PROFICIENCY_KEYS, WORK_MODE_KEYS, WORK_MODES } from './labels'
 
@@ -217,6 +218,7 @@ export function TalentForm({
           currency: offer.currency,
           price_unit: offer.price_unit ?? '',
         })) ?? [],
+      faqs: profile?.faqs?.map((faq) => ({ question: faq.question, answer: faq.answer })) ?? [],
       education:
         profile?.education?.map((entry) => ({
           degree: entry.degree ?? '',
@@ -299,6 +301,7 @@ export function TalentForm({
               currency: offer.currency,
               price_unit: offer.price_unit || null,
             })),
+            faqs: values.faqs.map((faq) => ({ question: faq.question, answer: faq.answer })),
           }),
       hobbies: values.hobbies || null,
       employment_type: (values.employment_type || null) as TalentPayload['employment_type'],
@@ -791,6 +794,8 @@ export function TalentForm({
         </Field>
 
         {!isCandidate ? <ServiceOffersSection control={control} register={register} errors={errors} /> : null}
+
+        {!isCandidate ? <FaqSection control={control} register={register} errors={errors} /> : null}
 
         {!isCandidate ? (
           <Field
