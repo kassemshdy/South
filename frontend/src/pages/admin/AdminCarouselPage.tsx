@@ -46,7 +46,7 @@ function validLink(value: string): boolean {
 }
 
 /**
- * «شريط العرض» (the owners' activities ticket, 31 Oct 2026): the slides at
+ * The carousel manager (the owners' activities ticket, 31 Oct 2026): the slides at
  * the top of the home page and /activities, in one order set here. A slide
  * is an activity's photograph or a custom image with an optional link.
  * Every member of staff reads this screen; content staff change it, and the
