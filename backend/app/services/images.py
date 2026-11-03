@@ -223,7 +223,7 @@ class ImageService:
         # once re-encoded as JPEG.
         if image.mode in ("RGBA", "LA", "P"):
             image = image.convert("RGBA")
-            background = Image.new("RGB", image.size, (255, 255, 255))
+            background = Image.new("RGB", image.size, _flatten_colour(image))
             background.paste(image, mask=image.split()[-1])
             image = background
         elif image.mode != "RGB":
@@ -234,3 +234,27 @@ class ImageService:
         buffer = io.BytesIO()
         image.save(buffer, format="JPEG", quality=variant.quality, optimize=True, progressive=True)
         return buffer.getvalue(), image.width, image.height
+
+
+#: What a transparent image is flattened onto: white, unless the drawing
+#: itself is so light it would vanish into it -- a white logo made for a dark
+#: Instagram header turned into a blank white square on 31 Oct 2026 (the
+#: "logo is not apparent in the panel" ticket). That one goes onto the
+#: site's dark ink instead.
+_WHITE = (255, 255, 255)
+_DARK = (31, 41, 38)
+_LIGHT_THRESHOLD = 225
+
+
+def _flatten_colour(image: Image.Image) -> tuple[int, int, int]:
+    """White, or dark when every visible pixel is near-white."""
+    alpha = image.getchannel("A")
+    if alpha.getbbox() is None:  # fully transparent: nothing to protect
+        return _WHITE
+    grey = image.convert("L")
+    # The lightness of the visible pixels only: transparent ones are masked
+    # to white so they never count as dark.
+    opaque = alpha.point(lambda a: 255 if a > 32 else 0)
+    visible = Image.composite(grey, Image.new("L", image.size, 255), opaque)
+    darkest, _ = visible.getextrema()
+    return _DARK if darkest >= _LIGHT_THRESHOLD else _WHITE
