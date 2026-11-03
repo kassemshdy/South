@@ -1456,6 +1456,7 @@
   "growth.kpiOrders30": "Orders, last 30 days",
   "growth.kpiRequests30": "Service requests, last 30 days",
   "growth.kpiViews30": "Views, last 30 days",
+  "growth.kpiContactClicks30": "Contact-seller clicks, last 30 days",
   "growth.kpiPerThousand": "Orders per 1,000 views",
   "growth.kpiShops": "Published shops",
   "growth.kpiTalents": "Published service providers",

@@ -66,3 +66,8 @@ class ListingViewDaily(Base):
     subject_id: Mapped[uuid.UUID] = mapped_column(PgUUID(as_uuid=True), nullable=False)
     day: Mapped[date] = mapped_column(Date, nullable=False)
     views: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # Presses of the WhatsApp / call buttons on a shop's page: a proxy for how
+    # many people tried to buy. Counted, like views, with nothing about who.
+    contact_clicks: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )

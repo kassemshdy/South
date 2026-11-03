@@ -137,6 +137,10 @@ function Report({ data }: { data: GrowthReport }) {
     },
     { labelKey: "growth.kpiViews30", value: String(data.views_30d) },
     {
+      labelKey: "growth.kpiContactClicks30",
+      value: String(data.contact_clicks_30d),
+    },
+    {
       labelKey: "growth.kpiPerThousand",
       value:
         data.orders_per_1000_views === null

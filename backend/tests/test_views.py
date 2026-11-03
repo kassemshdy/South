@@ -35,6 +35,16 @@ OWNER_PHONE = "03960001"
 OTHER_PHONE = "03960002"
 
 
+def _clicks(db: Session, subject_id: uuid.UUID) -> list[int]:
+    return list(
+        db.execute(
+            select(ListingViewDaily.contact_clicks)
+            .where(ListingViewDaily.subject_id == subject_id)
+            .order_by(ListingViewDaily.day)
+        ).scalars()
+    )
+
+
 def _counts(db: Session, subject_type: ViewSubject, subject_id: uuid.UUID) -> list[int]:
     return list(
         db.execute(
@@ -83,6 +93,53 @@ def approved_business(
 
 
 # --- Counting --------------------------------------------------------------
+
+
+def test_a_contact_click_is_counted_apart_from_views(
+    client: TestClient, db: Session, approved_business: Business
+) -> None:
+    url = f"/api/businesses/{approved_business.slug}/contact-click"
+
+    assert client.post(url).status_code == 204
+    assert client.post(url).status_code == 204
+
+    assert _clicks(db, approved_business.id) == [2]
+    assert _counts(db, ViewSubject.BUSINESS, approved_business.id) == [0]
+
+
+def test_the_owners_own_contact_click_is_not_counted(
+    client: TestClient,
+    db: Session,
+    approved_business: Business,
+    owner_headers: dict[str, str],
+) -> None:
+    url = f"/api/businesses/{approved_business.slug}/contact-click"
+
+    assert client.post(url, headers=owner_headers).status_code == 204
+
+    assert _clicks(db, approved_business.id) == []
+
+
+def test_a_crawler_contact_click_is_not_counted(
+    client: TestClient, db: Session, approved_business: Business
+) -> None:
+    url = f"/api/businesses/{approved_business.slug}/contact-click"
+
+    client.post(url, headers={"User-Agent": "Googlebot/2.1"})
+
+    assert _clicks(db, approved_business.id) == []
+
+
+def test_a_contact_click_on_a_listing_that_is_not_public_is_refused(
+    client: TestClient, db: Session, approved_business: Business
+) -> None:
+    approved_business.status = BusinessStatus.SUSPENDED
+    db.commit()
+
+    response = client.post(f"/api/businesses/{approved_business.slug}/contact-click")
+
+    assert response.status_code == 404
+    assert _clicks(db, approved_business.id) == []
 
 
 def test_a_visitor_view_is_counted(
@@ -459,6 +516,7 @@ def test_the_counter_table_stores_nothing_about_a_visitor() -> None:
         "subject_id",
         "day",
         "views",
+        "contact_clicks",
     }
 
 
