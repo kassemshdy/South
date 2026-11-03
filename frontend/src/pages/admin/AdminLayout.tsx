@@ -59,6 +59,9 @@ const GROUPS: { labelKey: TranslationKey; icon: typeof BarChart3; items: NavItem
     icon: Store,
     items: [
       { to: '/admin/businesses', labelKey: 'admin.navBusinesses', icon: Store },
+      // Beside the shops: a reviewer moves between a shop and its owner's
+      // account all the time (the owners' request, 3 Nov 2026).
+      { to: '/admin/users', labelKey: 'admin.navUsers', icon: Users },
       { to: '/admin/talent', labelKey: 'admin.navTalent', icon: UserRound },
       { to: '/admin/applications', labelKey: 'admin.navApplications', icon: Inbox },
       { to: '/admin/shops-without-products', labelKey: 'adminShops.noProductsNav', icon: PackageX },
@@ -116,7 +119,6 @@ const GROUPS: { labelKey: TranslationKey; icon: typeof BarChart3; items: NavItem
     labelKey: 'adminNav.groupAccounts',
     icon: Users,
     items: [
-      { to: '/admin/users', labelKey: 'admin.navUsers', icon: Users },
       { to: '/admin/staff', labelKey: 'admin.navStaff', icon: ShieldCheck, needs: 'manage' },
     ],
   },
