@@ -39,14 +39,15 @@ function workModeFrom(value: string | null): WorkModeFilter | undefined {
 
 const SORT_KEYS: Record<TalentSortOption, TranslationKey> = {
   newest: 'directory.sortNewest',
+  // Services: rated, ID on file, priced and filled-in providers first (the
+  // services redesign, 3 Nov 2026). Newest stays the default.
+  best: 'candidate.sortBest',
   nearest: 'directory.sortNearest',
   experience: 'talent.sortExperience',
   // Services only: a job application takes no testimonials.
   rating: 'directory.sortRating',
   name: 'talent.sortName',
   oldest: 'directory.sortOldest',
-  // The candidate directory's default; not offered on services.
-  best: 'candidate.sortBest',
 }
 
 /**
@@ -354,7 +355,7 @@ function TalentDirectory({ kind }: { kind: TalentKind }) {
               <SelectContent>
                 {(Object.keys(SORT_KEYS) as TalentSortOption[])
                   .filter((option) => option !== 'rating' || kind === 'SERVICE')
-                  .filter((option) => option !== 'best')
+                  .filter((option) => option !== 'best' || kind === 'SERVICE')
                   .map((option) => (
                     <SelectItem key={option} value={option}>
                       {t(SORT_KEYS[option])}

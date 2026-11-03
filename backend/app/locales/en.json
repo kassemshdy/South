@@ -331,5 +331,6 @@
   "carousel.archived": "An archived activity cannot be shown in the carousel.",
   "carousel.not_custom": "An activity's slide is edited from the activity itself.",
   "seo.product.description": "{name} from {shop} in {location}, on Janoubona.",
-  "seo.product.description_no_location": "{name} from {shop}, on Janoubona."
+  "seo.product.description_no_location": "{name} from {shop}, on Janoubona.",
+  "talent.service_price_range": "The higher price must not be below the lower one."
 }

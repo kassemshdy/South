@@ -318,6 +318,13 @@ const optionalYear = (t: Translate) =>
       t('candidateForm.yearInvalid'),
     )
 
+/** Empty, or a price with at most two decimals. */
+const optionalPrice = (t: Translate) =>
+  z
+    .string()
+    .trim()
+    .refine((value) => value === '' || /^\d{1,10}(\.\d{1,2})?$/.test(value), t('serviceOffers.priceInvalid'))
+
 export const talentSchema = (t: Translate, otherSkillId?: string) =>
   z
     .object({
@@ -431,6 +438,25 @@ export const talentSchema = (t: Translate, otherSkillId?: string) =>
           }),
         )
         .max(30),
+      // Services: each with its own price (the services redesign).
+      service_offers: z
+        .array(
+          z
+            .object({
+              title: z.string().trim().min(1, t('serviceOffers.titleRequired')).max(120),
+              description: z.string().trim().max(500),
+              price_from: optionalPrice(t),
+              price_to: optionalPrice(t),
+              currency: z.enum(['USD', 'LBP']),
+              price_unit: z.string().trim().max(40),
+            })
+            .superRefine((offer, ctx) => {
+              if (offer.price_from && offer.price_to && Number(offer.price_to) < Number(offer.price_from)) {
+                ctx.addIssue({ code: 'custom', path: ['price_to'], message: t('serviceOffers.rangeBackwards') })
+              }
+            }),
+        )
+        .max(20),
       education: z
         .array(
           z.object({

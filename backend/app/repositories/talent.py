@@ -24,13 +24,48 @@ from app.models.enums import (
     VerificationDocumentKind,
     WorkMode,
 )
-from app.models.talent import TalentProfile, TalentSkill, TalentWorkArea, TalentWorkTypeRow
+from app.models.talent import (
+    TalentProfile,
+    TalentServiceOffer,
+    TalentSkill,
+    TalentWorkArea,
+    TalentWorkTypeRow,
+)
 from app.models.taxonomy import Location
 from app.models.user import User
 from app.models.verification import OwnerVerificationDocument
 from app.repositories.admin_search import phone_digits, phone_match
 from app.repositories.base import BaseRepository
 from app.repositories.geo import Point, nearest_first
+
+
+def best_service_score() -> ColumnElement[float | None]:
+    """"best match" on the services page (the owners' services redesign).
+
+    Ratings count most, weighed by how many there are, so one five-star
+    review does not outrank twenty fours; then an ID on file, priced
+    services, and a profile filled in. Each part is something the provider
+    controls or a visitor can see on the page.
+    """
+    rating = func.coalesce(TalentProfile.rating_average, 0) * (
+        func.least(TalentProfile.rating_count, 5) / 5.0
+    )
+    priced = (
+        select(TalentServiceOffer.id)
+        .where(
+            TalentServiceOffer.profile_id == TalentProfile.id,
+            TalentServiceOffer.price_from.is_not(None),
+        )
+        .exists()
+    )
+    return (
+        rating
+        + case((_owner_has(VerificationDocumentKind.IDENTITY), 1.5), else_=0)
+        + case((priced, 1.0), else_=0)
+        + case((TalentProfile.bio.is_not(None), 0.5), else_=0)
+        + case((TalentProfile.photo_url.is_not(None), 0.5), else_=0)
+    )
+
 
 SortOption = Literal["newest", "name", "oldest", "experience", "nearest", "rating", "best"]
 ExperienceBand = Literal["0-1", "2-4", "5-9", "10+"]
@@ -93,6 +128,7 @@ class TalentRepository(BaseRepository[TalentProfile]):
             .joinedload(TalentWorkArea.location)
             .joinedload(Location.parent),
             selectinload(TalentProfile.experiences),
+            selectinload(TalentProfile.service_offers),
             selectinload(TalentProfile.education),
             selectinload(TalentProfile.courses),
         ).execution_options(populate_existing=True)
@@ -214,12 +250,22 @@ class TalentRepository(BaseRepository[TalentProfile]):
         return stmt
 
     def _apply_sort(
-        self, stmt: Select[tuple[TalentProfile]], sort: SortOption, near: Point | None = None
+        self,
+        stmt: Select[tuple[TalentProfile]],
+        sort: SortOption,
+        near: Point | None = None,
+        kind: TalentKind | None = None,
     ) -> Select[tuple[TalentProfile]]:
         # Nearest needs a position; without one it falls back to newest.
         if sort == "nearest" and near is not None:
             return stmt.order_by(
                 nearest_first(TalentProfile.latitude, TalentProfile.longitude, near),
+                TalentProfile.created_at.desc(),
+            )
+        if sort == "best" and kind is TalentKind.SERVICE:
+            return stmt.order_by(
+                best_service_score().desc(),
+                TalentProfile.rating_count.desc(),
                 TalentProfile.created_at.desc(),
             )
         if sort == "best":
@@ -294,7 +340,7 @@ class TalentRepository(BaseRepository[TalentProfile]):
             self.db.execute(select(func.count()).select_from(filtered.subquery())).scalar_one()
         )
 
-        stmt = self._apply_sort(self._with_relations(filtered), sort, near)
+        stmt = self._apply_sort(self._with_relations(filtered), sort, near, kind)
         rows = (
             self.db.execute(stmt.limit(page_size).offset((page - 1) * page_size))
             .unique()

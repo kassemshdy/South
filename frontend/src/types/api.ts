@@ -474,6 +474,22 @@ export interface TalentSummary {
   /** The taxonomy skill, then the person's own extras: the card's chips. */
   skill_tags?: string[]
   work_types?: TalentWorkType[]
+  /** Services: the lowest priced service, for the card's "from" line. */
+  starting_price?: string | null
+  starting_price_currency?: Currency | null
+}
+
+/** One service a provider offers, with its price (services redesign). */
+export interface TalentServiceOffer {
+  id: string
+  title: string
+  description: string | null
+  /** Decimal strings; no "to" is a single price, no "from" is unpriced. */
+  price_from: string | null
+  price_to: string | null
+  currency: Currency
+  /** The provider's own words: "per hour", "per session". */
+  price_unit: string | null
 }
 
 export type TalentAvailability = 'NOW' | 'WITHIN_MONTH' | 'EMPLOYED_OPEN'
@@ -588,6 +604,7 @@ export interface TalentDetail extends TalentSummary {
   /** Job seekers: where they can work and their history, newest first. */
   work_areas?: LocationNode[]
   experiences?: TalentExperience[]
+  service_offers?: TalentServiceOffer[]
   education?: TalentEducationEntry[]
   courses?: TalentCourse[]
 }
