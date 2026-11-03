@@ -7,7 +7,7 @@ existing opening starts open. Presses of the two buttons are counted per
 opening, channel and day, with nothing about who pressed.
 
 Revision ID: f4a8c2d6e1b3
-Revises: e3b9f1c6a2d8
+Revises: f4a8c2e1d9b7
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision = "f4a8c2d6e1b3"
-down_revision = "e3b9f1c6a2d8"
+down_revision = "f4a8c2e1d9b7"
 branch_labels = None
 depends_on = None
 
