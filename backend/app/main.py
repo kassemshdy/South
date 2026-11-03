@@ -572,7 +572,7 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
                             skill_name=skill,
                             bio=profile.bio,
                             location_name=location,
-                            image_url=_absolute(profile.photo_url),
+                            image_url=_absolute(profile.public_photo_url),
                             canonical_url=url,
                         )
                         tags = replace(
@@ -583,8 +583,8 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
                                     job_title=skill,
                                     description=profile.bio,
                                     url=url,
-                                    image_url=_absolute(profile.photo_url)
-                                    if profile.photo_url
+                                    image_url=_absolute(profile.public_photo_url)
+                                    if profile.public_photo_url
                                     else None,
                                     location_name=location,
                                 ),

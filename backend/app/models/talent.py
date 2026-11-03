@@ -34,6 +34,7 @@ from app.database.base import Base, TimestampMixin, pg_enum, uuid_pk
 from app.models.enums import (
     BusinessStatus,
     ContactChannel,
+    EducationLevel,
     EmployerRequestStatus,
     EmploymentType,
     ImageKind,
@@ -208,6 +209,10 @@ class TalentProfile(Base, TimestampMixin):
         default=TalentAvailability.NOW,
         server_default=TalentAvailability.NOW.value,
     )
+    # The highest level reached, for the directory's education filter.
+    education_level: Mapped[EducationLevel | None] = mapped_column(
+        pg_enum(EducationLevel, "education_level"), nullable=True
+    )
     # With ``photo_hidden`` on, the photo is shown to nobody but staff: the
     # public sees initials, and no public payload or URL may carry it.
     photo_hidden: Mapped[bool] = mapped_column(
@@ -312,6 +317,12 @@ class TalentProfile(Base, TimestampMixin):
     def is_public(self) -> bool:
         return self.status is BusinessStatus.APPROVED
 
+    @property
+    def public_photo_url(self) -> str | None:
+        """The photo a visitor may see: none when the person hid it. Every
+        public payload, page tag and sitemap reads the photo through here."""
+        return None if self.photo_hidden else self.photo_url
+
 
 class TalentLanguage(Base):
     """A language the person works in, with how well they speak it.
@@ -372,6 +383,7 @@ class TalentWorkArea(Base):
     )
 
     profile: Mapped[TalentProfile] = relationship(back_populates="work_areas")
+    location: Mapped[Location] = relationship()
 
 
 class TalentExperience(Base):

@@ -320,5 +320,12 @@
   "telegram.ticket_status.NEEDS_APPROVAL": "بانتظار الموافقة",
   "telegram.ticket_status.APPROVED": "تمّت الموافقة",
   "telegram.ticket_status.DONE": "منجزة",
-  "telegram.button.reject": "ارفض"
+  "telegram.button.reject": "ارفض",
+  "talent.name_not_person": "اكتب اسمك الحقيقي",
+  "talent.bio_has_contact": "أضف أرقام التواصل في خاناتها وليس في النبذة",
+  "talent.cv_not_found": "لا تتوفّر سيرة ذاتية للتحميل.",
+  "employer_request.received": "وصل طلبك، وسيتواصل فريق جنوبنا مع المرشّح.",
+  "employer_request.rate_limited": "أُرسلت طلبات كثيرة. حاول مرة أخرى لاحقًا.",
+  "employer_request.not_found": "الطلب غير موجود.",
+  "employer_request.phone_required": "رقم الهاتف مطلوب."
 }
