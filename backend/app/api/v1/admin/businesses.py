@@ -53,11 +53,18 @@ def list_businesses(
     admin: AdminUser,
     status: Annotated[BusinessStatus | None, Query()] = None,
     q: Annotated[str | None, Query(max_length=120)] = None,
+    without_products: Annotated[
+        bool, Query(description="Only shops with nothing on sale, to contact them")
+    ] = False,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> PaginatedResponse[AdminBusinessOut]:
     results = BusinessRepository(db).list_for_admin(
-        status=status, q=q, page=page, page_size=page_size
+        status=status,
+        q=q,
+        without_products=without_products,
+        page=page,
+        page_size=page_size,
     )
     return paginate(results, admin_business)
 

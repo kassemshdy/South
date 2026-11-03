@@ -47,7 +47,7 @@ import { TestimonialList } from '@/features/testimonials/TestimonialList'
 import { publicTalentApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { ContactChannel } from '@/types/api'
-import { formatDate, telHref, whatsappHref } from '@/utils/format'
+import { formatDate, formatOfferPrice, telHref, whatsappHref } from '@/utils/format'
 
 /** Default order, most immediate first; a preference moves one to the front. */
 const DEFAULT_CONTACT_ORDER: ContactChannel[] = ['PHONE', 'EMAIL', 'WEBSITE', 'WHATSAPP']
@@ -218,8 +218,9 @@ export function TalentProfilePage() {
 
   // Services and prices lead (the owners' services redesign, 31 Oct 2026);
   // qualifications come last, and collapsed.
+  const offers = data.kind === 'SERVICE' ? (data.service_offers ?? []) : []
   const sections = [
-    services ? { id: 'services', label: t('talent.servicesPricesHeading') } : null,
+    services || offers.length > 0 ? { id: 'services', label: t('talent.servicesPricesHeading') } : null,
     data.bio ? { id: 'about', label: t('talent.aboutHeading') } : null,
     data.youtube_video_id ? { id: 'video', label: t('talent.videoHeading') } : null,
     data.images.length > 0 ? { id: 'work', label: t('talent.portfolioHeading') } : null,
@@ -490,7 +491,7 @@ export function TalentProfilePage() {
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_20rem]">
           <div className="min-w-0 space-y-8">
-            {services ? (
+            {services || offers.length > 0 ? (
               <section
                 id="services"
                 aria-labelledby="services-heading"
@@ -499,37 +500,83 @@ export function TalentProfilePage() {
                 <h2 id="services-heading" className="mb-1 text-xl">
                   {t('talent.servicesPricesHeading')}
                 </h2>
-                {services.intro.map((line) => (
-                  <p key={line} className="text-sm text-ink-500" dir="auto">
-                    {line}
-                  </p>
-                ))}
-                <ul className="mt-3 grid gap-3 sm:grid-cols-2">
-                  {services.items.map((item, index) => (
-                    <li
-                      key={index}
-                      className="flex flex-col rounded-xl border border-ink-100 bg-sand-50 p-4"
-                    >
-                      <p className="font-semibold text-ink-800" dir="auto">
-                        {item.main}
-                      </p>
-                      {item.sub.map((line) => (
-                        <p key={line} className="mt-1 text-sm text-ink-500" dir="auto">
-                          {line}
-                        </p>
-                      ))}
-                      {/* Jumps to the request form with this service already
-                          written into it. */}
-                      <div className="mt-auto flex justify-end pt-3">
-                        <Button asChild size="sm" variant="outline">
-                          <a href="#request" onClick={() => setRequested(item.main)}>
-                            {t('talent.requestThisService')}
-                          </a>
-                        </Button>
-                      </div>
-                    </li>
+                {/* The priced services first; the free text after, for
+                    anything that is not a priced line. */}
+                {offers.length > 0 ? (
+                  <ul className="mt-3 grid gap-3 sm:grid-cols-2">
+                    {offers.map((offer) => {
+                      const price = formatOfferPrice(offer, t)
+                      return (
+                        <li
+                          key={offer.id}
+                          className="flex flex-col rounded-xl border border-ink-100 bg-sand-50 p-4"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <p className="font-semibold text-ink-800" dir="auto">
+                              {offer.title}
+                            </p>
+                            <p
+                              className={
+                                price
+                                  ? 'ltr-nums shrink-0 font-bold text-brand-800'
+                                  : 'shrink-0 text-sm text-ink-500'
+                              }
+                            >
+                              {price ?? t('serviceOffers.onRequest')}
+                            </p>
+                          </div>
+                          {offer.description ? (
+                            <p className="mt-1 text-sm text-ink-500" dir="auto">
+                              {offer.description}
+                            </p>
+                          ) : null}
+                          <div className="mt-auto flex justify-end pt-3">
+                            <Button asChild size="sm" variant="outline">
+                              <a href="#request" onClick={() => setRequested(offer.title)}>
+                                {t('talent.requestThisService')}
+                              </a>
+                            </Button>
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                ) : null}
+                {services ? (
+                  <>
+                  {services.intro.map((line) => (
+                    <p key={line} className="text-sm text-ink-500" dir="auto">
+                      {line}
+                    </p>
                   ))}
-                </ul>
+                  <ul className="mt-3 grid gap-3 sm:grid-cols-2">
+                    {services.items.map((item, index) => (
+                      <li
+                        key={index}
+                        className="flex flex-col rounded-xl border border-ink-100 bg-sand-50 p-4"
+                      >
+                        <p className="font-semibold text-ink-800" dir="auto">
+                          {item.main}
+                        </p>
+                        {item.sub.map((line) => (
+                          <p key={line} className="mt-1 text-sm text-ink-500" dir="auto">
+                            {line}
+                          </p>
+                        ))}
+                        {/* Jumps to the request form with this service already
+                            written into it. */}
+                        <div className="mt-auto flex justify-end pt-3">
+                          <Button asChild size="sm" variant="outline">
+                            <a href="#request" onClick={() => setRequested(item.main)}>
+                              {t('talent.requestThisService')}
+                            </a>
+                          </Button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  </>
+                ) : null}
               </section>
             ) : null}
 

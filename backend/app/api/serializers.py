@@ -9,12 +9,13 @@ from __future__ import annotations
 import re
 from collections.abc import Callable, Sequence
 from datetime import date
+from decimal import Decimal
 from typing import Any, TypeVar
 
 from app.core.pagination import Page
 from app.models.article import Article
 from app.models.business import Business, BusinessItem
-from app.models.enums import BusinessStatus, ImageKind, TalentKind
+from app.models.enums import BusinessStatus, Currency, ImageKind, TalentKind
 from app.models.feedback import FeedbackAttachment, FeedbackComment, FeedbackTicket
 from app.models.talent import TalentProfile, TalentSkill
 from app.models.taxonomy import Category, Location
@@ -56,6 +57,7 @@ from app.schemas.talent import (
     TalentExperienceOut,
     TalentImageOut,
     TalentLanguageOut,
+    TalentServiceOfferOut,
     TalentSkillOut,
     TalentSummaryOut,
 )
@@ -341,8 +343,22 @@ def _id_verified(profile: TalentProfile) -> bool:
     )
 
 
+def _starting_price(profile: TalentProfile) -> tuple[Decimal | None, Currency | None]:
+    """The lowest priced service, in dollars when any is in dollars: two
+    currencies cannot be compared, and most prices here are in dollars."""
+    priced = [offer for offer in profile.service_offers if offer.price_from is not None]
+    if not priced:
+        return None, None
+    usd = [offer for offer in priced if offer.currency is Currency.USD]
+    lowest = min(usd or priced, key=lambda offer: offer.price_from or Decimal(0))
+    return lowest.price_from, lowest.currency
+
+
 def talent_summary(profile: TalentProfile) -> TalentSummaryOut:
     phone, whatsapp = _public_numbers(profile)
+    starting_price, starting_currency = (
+        _starting_price(profile) if profile.kind is TalentKind.SERVICE else (None, None)
+    )
     return TalentSummaryOut(
         id=profile.id,
         display_name=profile.display_name,
@@ -374,6 +390,8 @@ def talent_summary(profile: TalentProfile) -> TalentSummaryOut:
         work_types=sorted(
             (row.work_type for row in profile.work_types), key=lambda w: w.value
         ),
+        starting_price=starting_price,
+        starting_price_currency=starting_currency,
     )
 
 
@@ -430,6 +448,9 @@ def talent_detail(
         ],
         experiences=[
             TalentExperienceOut.model_validate(entry) for entry in _timeline(profile)
+        ],
+        service_offers=[
+            TalentServiceOfferOut.model_validate(offer) for offer in profile.service_offers
         ],
         education=[TalentEducationOut.model_validate(entry) for entry in profile.education],
         courses=[TalentCourseOut.model_validate(entry) for entry in profile.courses],

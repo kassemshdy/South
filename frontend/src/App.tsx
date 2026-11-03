@@ -114,6 +114,11 @@ const AdminTestimonialsPage = lazy(() =>
     default: m.AdminTestimonialsPage,
   })),
 )
+const AdminShopsWithoutProductsPage = lazy(() =>
+  import('@/pages/admin/AdminShopsWithoutProductsPage').then((m) => ({
+    default: m.AdminShopsWithoutProductsPage,
+  })),
+)
 const AdminWorkshopsPage = lazy(() =>
   import('@/pages/admin/AdminWorkshopsPage').then((m) => ({ default: m.AdminWorkshopsPage })),
 )
@@ -349,6 +354,7 @@ export function App() {
             <Route path="feedback" element={<AdminFeedbackPage />} />
             <Route path="testimonials" element={<AdminTestimonialsPage />} />
             <Route path="articles" element={<AdminArticlesPage />} />
+            <Route path="shops-without-products" element={<AdminShopsWithoutProductsPage />} />
             <Route path="workshops" element={<AdminWorkshopsPage />} />
             <Route path="activities" element={<AdminActivitiesPage />} />
             <Route path="carousel" element={<AdminCarouselPage />} />

@@ -16,6 +16,7 @@ import type {
   TalentCourse,
   TalentEducationEntry,
   TalentExperience,
+  TalentServiceOffer,
   TalentWorkType,
   SearchSuggestion,
   AdminReel,
@@ -218,6 +219,8 @@ export interface TalentPayload {
   cv_public?: boolean
   team_message?: string | null
   experiences?: Omit<TalentExperience, 'id'>[]
+  /** Services: replaces the stored list; omitted keeps it. */
+  service_offers?: Omit<TalentServiceOffer, 'id'>[]
   education?: Omit<TalentEducationEntry, 'id'>[]
   courses?: Omit<TalentCourse, 'id'>[]
 }
@@ -875,7 +878,13 @@ export const adminApi = {
     apiRequest<AttachedApplication>(`/api/admin/discarded-applications/${id}/attach`, {
       method: 'POST',
     }),
-  businesses: (params: { status?: BusinessStatus; q?: string; page?: number; page_size?: number }) =>
+  businesses: (params: {
+    status?: BusinessStatus
+    q?: string
+    without_products?: boolean
+    page?: number
+    page_size?: number
+  }) =>
     apiRequest<Paginated<AdminBusiness>>('/api/admin/businesses', { query: { ...params } }),
   pending: (page = 1) =>
     apiRequest<Paginated<AdminBusiness>>('/api/admin/businesses/pending', { query: { page } }),
