@@ -2033,5 +2033,7 @@
   "adminCarousel.saved": "Carousel saved.",
   "adminCarousel.failed": "The carousel could not be saved.",
   "adminCarousel.close": "Close",
-  "adminCarousel.noLink": "No link"
+  "adminCarousel.noLink": "No link",
+  "feedback.board.showAllDone": "Show all ({count})",
+  "feedback.board.showLatestDone": "Show the latest {count} only"
 }

@@ -2033,5 +2033,7 @@
   "adminCarousel.saved": "حُفظ الشريط.",
   "adminCarousel.failed": "تعذّر حفظ الشريط.",
   "adminCarousel.close": "إغلاق",
-  "adminCarousel.noLink": "بلا رابط"
+  "adminCarousel.noLink": "بلا رابط",
+  "feedback.board.showAllDone": "عرض الكل ({count})",
+  "feedback.board.showLatestDone": "عرض آخر {count} فقط"
 }

@@ -53,6 +53,15 @@ const PRIORITY_TONES: Record<FeedbackPriority, string> = {
   URGENT: 'bg-clay-600 text-white',
 }
 
+/** How many finished tickets the Done column shows before "show all". */
+const DONE_SHOWN = 10
+
+/** When a ticket last changed (moving it to Done is a change), for
+ * ordering the Done column newest first. */
+function doneAt(ticket: FeedbackTicketSummary): string {
+  return ticket.updated_at
+}
+
 function groupByStatus(
   tickets: FeedbackTicketSummary[],
 ): Record<FeedbackStatus, FeedbackTicketSummary[]> {
@@ -240,6 +249,15 @@ function BoardColumn({
 }) {
   const t = useT()
   const { setNodeRef, isOver } = useDroppable({ id: status })
+  const [showAllDone, setShowAllDone] = useState(false)
+  // Done grows without end; the column shows the most recently finished
+  // ten unless asked for all (the owners' request, 3 Nov 2026).
+  const limited = status === 'DONE' && !showAllDone && tickets.length > DONE_SHOWN
+  const shown = limited
+    ? [...tickets]
+        .sort((a, b) => doneAt(b).localeCompare(doneAt(a)))
+        .slice(0, DONE_SHOWN)
+    : tickets
 
   return (
     <div
@@ -254,13 +272,24 @@ function BoardColumn({
           {tickets.length}
         </span>
       </h2>
-      <SortableContext items={tickets.map((ticket) => ticket.id)} strategy={verticalListSortingStrategy}>
+      <SortableContext items={shown.map((ticket) => ticket.id)} strategy={verticalListSortingStrategy}>
         <ul className="flex flex-1 flex-col gap-2">
-          {tickets.map((ticket) => (
+          {shown.map((ticket) => (
             <TicketCard key={ticket.id} ticket={ticket} onOpen={() => onOpenTicket(ticket.id)} />
           ))}
         </ul>
       </SortableContext>
+      {status === 'DONE' && tickets.length > DONE_SHOWN ? (
+        <button
+          type="button"
+          onClick={() => setShowAllDone((value) => !value)}
+          className="rounded-lg px-2 py-1.5 text-sm font-semibold text-brand-700 hover:bg-sand-50"
+        >
+          {showAllDone
+            ? t('feedback.board.showLatestDone', { count: DONE_SHOWN })
+            : t('feedback.board.showAllDone', { count: tickets.length })}
+        </button>
+      ) : null}
     </div>
   )
 }
