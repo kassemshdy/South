@@ -120,7 +120,11 @@ export function AdminUserDetailPage() {
       <header>
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl">
-            {data.display_name ?? data.phone_number ?? data.email ?? t('admin.userNoName')}
+            {data.display_name ??
+              data.identity?.full_name ??
+              data.phone_number ??
+              data.email ??
+              t('admin.userNoName')}
           </h1>
           {data.role === 'ADMIN' ? (
             <Badge className="bg-olive-100 text-olive-700">{t('admin.roleAdmin')}</Badge>

@@ -461,7 +461,7 @@ export function AdminTalentReviewPage() {
               <h2 className="font-bold">{t('admin.accountTitle')}</h2>
             </CardHeader>
             <CardBody className="space-y-3">
-              <Detail labelKey="admin.ownerName" value={data.owner_display_name} />
+              <Detail labelKey="admin.ownerName" value={data.owner_display_name ?? data.owner_identity?.full_name ?? null} />
               <Detail labelKey="admin.ownerAccount" value={data.owner_phone} ltr />
               <Detail labelKey="admin.ownerPersonalPhone" value={data.owner_personal_phone} ltr />
               <OwnerWhatsappButton phone={data.owner_phone} />

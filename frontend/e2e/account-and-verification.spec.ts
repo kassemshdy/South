@@ -119,7 +119,9 @@ test.describe('Private owner verification', () => {
     await expect(page.getByText('+9613966102')).toBeVisible()
 
     // The identity the owner typed on their account, read here on a listing.
-    await expect(page.getByText(fixture.fullName)).toBeVisible()
+    // The full name shows twice: in the verification card and, as the
+    // fallback for a missing display name, in the owner card.
+    await expect(page.getByText(fixture.fullName).first()).toBeVisible()
     await expect(page.getByText(fixture.registrationPlace)).toBeVisible()
 
     // Producer detail belongs to the listing, and is published.
