@@ -133,3 +133,19 @@ export function whatsappShareHref(message: string): string {
 export function telHref(number: string | null): string | null {
   return number ? `tel:${number.replace(/\s/g, '')}` : null
 }
+
+/**
+ * A service's price as a visitor reads it: a single figure, a range, and the
+ * provider's unit after it ("$20 – $30 / hour"). Null when unpriced, so the
+ * caller decides what an unpriced service says.
+ */
+export function formatOfferPrice(
+  offer: { price_from: string | null; price_to: string | null; currency: Currency; price_unit: string | null },
+  t: Translate,
+): string | null {
+  const from = formatPrice(offer.price_from, offer.currency)
+  if (from === null) return null
+  const to = formatPrice(offer.price_to, offer.currency)
+  const amount = to ? t('serviceOffers.range', { from, to }) : from
+  return offer.price_unit ? t('serviceOffers.perUnit', { amount, unit: offer.price_unit }) : amount
+}

@@ -27,6 +27,7 @@ import {
   CandidatePhoneChoice,
   CandidatePrivacy,
 } from './form/CandidateSections'
+import { plainPrice, ServiceOffersSection } from './form/ServiceOffersSection'
 import { LANGUAGE_PROFICIENCIES, PROFICIENCY_KEYS, WORK_MODE_KEYS, WORK_MODES } from './labels'
 
 /** The owner's own candidate choices. Declared here until `OwnerTalent`
@@ -207,6 +208,15 @@ export function TalentForm({
           is_current: entry.is_current,
           description: entry.description ?? '',
         })) ?? [],
+      service_offers:
+        profile?.service_offers?.map((offer) => ({
+          title: offer.title,
+          description: offer.description ?? '',
+          price_from: plainPrice(offer.price_from),
+          price_to: plainPrice(offer.price_to),
+          currency: offer.currency,
+          price_unit: offer.price_unit ?? '',
+        })) ?? [],
       education:
         profile?.education?.map((entry) => ({
           degree: entry.degree ?? '',
@@ -278,6 +288,18 @@ export function TalentForm({
       professional_training: values.professional_training || null,
       skills_text: values.skills_text || null,
       services_offered: values.services_offered || null,
+      ...(candidate
+        ? {}
+        : {
+            service_offers: values.service_offers.map((offer) => ({
+              title: offer.title,
+              description: offer.description || null,
+              price_from: offer.price_from || null,
+              price_to: offer.price_to || null,
+              currency: offer.currency,
+              price_unit: offer.price_unit || null,
+            })),
+          }),
       hobbies: values.hobbies || null,
       employment_type: (values.employment_type || null) as TalentPayload['employment_type'],
       remote_capable: values.remote_capable,
@@ -767,6 +789,8 @@ export function TalentForm({
         >
           {(props) => <Textarea {...props} {...register('skills_text')} rows={2} />}
         </Field>
+
+        {!isCandidate ? <ServiceOffersSection control={control} register={register} errors={errors} /> : null}
 
         {!isCandidate ? (
           <Field

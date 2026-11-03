@@ -16,6 +16,7 @@ import type {
   TalentCourse,
   TalentEducationEntry,
   TalentExperience,
+  TalentServiceOffer,
   TalentWorkType,
   SearchSuggestion,
   AdminReel,
@@ -218,6 +219,8 @@ export interface TalentPayload {
   cv_public?: boolean
   team_message?: string | null
   experiences?: Omit<TalentExperience, 'id'>[]
+  /** Services: replaces the stored list; omitted keeps it. */
+  service_offers?: Omit<TalentServiceOffer, 'id'>[]
   education?: Omit<TalentEducationEntry, 'id'>[]
   courses?: Omit<TalentCourse, 'id'>[]
 }
