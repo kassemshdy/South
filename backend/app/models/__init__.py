@@ -31,7 +31,7 @@ from app.models.enums import (
     ViewSubject,
 )
 from app.models.feedback import FeedbackAttachment, FeedbackComment, FeedbackTicket
-from app.models.job import JobApplication, JobOpening
+from app.models.job import JobApplication, JobContactClickDaily, JobOpening
 from app.models.order import Order, OrderLine
 from app.models.page import Page
 from app.models.page_cover import PageCover
@@ -83,6 +83,7 @@ __all__ = [
     "FeedbackTicket",
     "ImageKind",
     "JobApplication",
+    "JobContactClickDaily",
     "JobOpening",
     "ListingViewDaily",
     "Location",

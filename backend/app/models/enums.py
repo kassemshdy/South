@@ -332,6 +332,26 @@ class WorkshopMode(str, enum.Enum):
     IN_PERSON = "IN_PERSON"
 
 
+class JobStatus(str, enum.Enum):
+    """Whether a published opening is still open (the jobs redesign, 31 Oct 2026).
+
+    Separate from publishing: an unpublished opening is gone from the site,
+    while a filled or unavailable one keeps its page, so a shared link still
+    opens and shows that it has closed.
+    """
+
+    ACTIVE = "ACTIVE"
+    FILLED = "FILLED"
+    UNAVAILABLE = "UNAVAILABLE"
+
+
+class JobContactChannel(str, enum.Enum):
+    """Which contact button on an opening was pressed."""
+
+    WHATSAPP = "WHATSAPP"
+    CALL = "CALL"
+
+
 class JobType(str, enum.Enum):
     """How a job opening is worked."""
 

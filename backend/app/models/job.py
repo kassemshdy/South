@@ -20,14 +20,24 @@ mount refuses (``app.services.job_applications.STORAGE_FOLDERS``).
 from __future__ import annotations
 
 import uuid
-from datetime import date
+from datetime import date, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, Date, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import (
+    Boolean,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base, TimestampMixin, pg_enum, uuid_pk
-from app.models.enums import JobType, WorkMode
+from app.models.enums import JobContactChannel, JobStatus, JobType, WorkMode
 
 if TYPE_CHECKING:
     from app.models.taxonomy import Location
@@ -69,6 +79,19 @@ class JobOpening(Base, TimestampMixin):
     #: A thumbnail chosen by staff, shown on the list and the page.
     cover_url: Mapped[str | None] = mapped_column(String, nullable=True)
     cover_storage_key: Mapped[str | None] = mapped_column(String, nullable=True)
+    # --- The jobs redesign (31 Oct 2026): apply by contact, not by form ----
+    # Open, filled or no longer available; publishing is a separate switch.
+    status: Mapped[JobStatus] = mapped_column(
+        pg_enum(JobStatus, "job_status"), nullable=False, default=JobStatus.ACTIVE
+    )
+    status_changed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    # The number applicants contact. Empty means the platform's own WhatsApp
+    # number from the site settings, resolved when the opening is read.
+    contact_phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    contact_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    whatsapp_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     location: Mapped[Location | None] = relationship(lazy="joined")
     applications: Mapped[list[JobApplication]] = relationship(
@@ -94,3 +117,26 @@ class JobApplication(Base, TimestampMixin):
     size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
 
     job: Mapped[JobOpening] = relationship(back_populates="applications")
+
+
+class JobContactClickDaily(Base):
+    """Presses of an opening's WhatsApp and call buttons, per day.
+
+    A job id, a channel, a UTC date and an integer -- nothing about who
+    pressed, on the same terms as ``listing_view_daily``.
+    """
+
+    __tablename__ = "job_contact_click_daily"
+    __table_args__ = (
+        UniqueConstraint("job_id", "channel", "day", name="uq_job_contact_click_daily"),
+    )
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    job_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("job_openings.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    channel: Mapped[JobContactChannel] = mapped_column(
+        pg_enum(JobContactChannel, "job_contact_channel"), nullable=False
+    )
+    day: Mapped[date] = mapped_column(Date, nullable=False)
+    clicks: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

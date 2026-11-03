@@ -1410,14 +1410,34 @@ export interface JobOpening {
   location: LocationNode | null
   work_place: string | null
   work_mode: WorkMode | null
-  /** A thumbnail staff chose; null shows the plain card. */
+  /** A thumbnail staff chose; null shows the default green image. */
   cover_url?: string | null
   created_at: string
+  /** Open, filled or no longer available; a past deadline reads as closed. */
+  status: JobStatus
+  status_changed_at: string | null
+  /** The number applicants contact: the opening's own or the site's WhatsApp. */
+  contact_phone: string | null
+  contact_name: string | null
+  whatsapp_enabled: boolean
+}
+
+export type JobStatus = 'ACTIVE' | 'FILLED' | 'UNAVAILABLE'
+export type JobContactChannel = 'WHATSAPP' | 'CALL'
+
+export interface JobContactStats {
+  whatsapp: number
+  call: number
+  days: { day: string; whatsapp: number; call: number }[]
 }
 
 export interface AdminJobOpening extends JobOpening {
   is_published: boolean
-  application_count: number
+  /** The status as saved; `status` may read as closed after a deadline. */
+  saved_status: JobStatus
+  /** The opening's own number; null when it falls back to the site's. */
+  own_contact_phone: string | null
+  contact_clicks: number
   updated_at: string
   /** Set when an employer offered the job on the public form. */
   submitter_name: string | null
@@ -1435,6 +1455,10 @@ export interface JobOpeningInput {
   location_id: string | null
   work_place: string | null
   work_mode: WorkMode | null
+  status: JobStatus
+  contact_phone: string | null
+  contact_name: string | null
+  whatsapp_enabled: boolean
 }
 
 /** An employer's offer from the public form; the ID scan travels beside it. */
@@ -1448,14 +1472,3 @@ export interface JobOfferInput {
   description: string
 }
 
-/** An application as staff read it; the CV is downloaded separately. */
-export interface JobApplication {
-  id: string
-  full_name: string
-  email: string
-  phone_number: string
-  original_filename: string | null
-  content_type: string
-  size_bytes: number
-  created_at: string
-}

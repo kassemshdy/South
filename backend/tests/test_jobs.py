@@ -1,6 +1,6 @@
-"""Job openings (29 Oct 2026): written by administrators, applied
-to anonymously with a CV; applications are read by staff, the CV by
-reviewers and the manager only."""
+"""Job openings (29 Oct 2026): written by administrators. Since the jobs
+redesign (31 Oct 2026) they are applied to by WhatsApp or a call, carry a
+status apart from publishing, and count presses of their contact buttons."""
 
 from __future__ import annotations
 
@@ -10,7 +10,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.main import PRIVATE_MEDIA_FOLDERS
-from app.models.job import JobApplication, JobOpening
+from app.models.job import JobApplication, JobContactClickDaily, JobOpening
+from app.models.site_setting import SiteSetting
 from app.models.user import User
 from app.services import telegram_archive
 from app.services.job_applications import EMPLOYER_ID_FOLDER, FOLDER
@@ -40,76 +41,121 @@ def _create(
     return job
 
 
-def _apply(client: TestClient, slug: str, data: bytes = PDF, **fields: str):  # type: ignore[no-untyped-def]
-    form = {
-        "full_name": ar("order.customer"),
-        "email": "applicant@example.com",
-        "phone_number": "03123456",
-        **fields,
-    }
-    return client.post(
-        f"/api/job-openings/{slug}/apply",
-        data=form,
-        files={"cv": ("cv.pdf", data, "application/pdf")},
-    )
-
-
-def test_a_draft_or_closed_opening_reaches_nobody(client: TestClient, admin: User) -> None:
+def test_a_draft_reaches_nobody_and_a_closed_opening_keeps_its_page(
+    client: TestClient, admin: User
+) -> None:
     headers = admin_headers(client)
     draft = _create(client, headers, publish=False)
     yesterday = (datetime.now(UTC) - timedelta(days=1)).date().isoformat()
-    closed = _create(client, headers, slug="closed", deadline=yesterday)
+    past_deadline = _create(client, headers, slug="closed", deadline=yesterday)
+    filled = _create(client, headers, slug="filled")
     open_job = _create(client, headers, slug="open")
+    changed = client.put(
+        f"/api/admin/job-openings/{filled['id']}", headers=headers, json={"status": "FILLED"}
+    )
+    assert changed.status_code == 200 and changed.json()["status"] == "FILLED"
 
-    assert [j["slug"] for j in client.get("/api/job-openings").json()] == [open_job["slug"]]
-    for job in (draft, closed):
-        assert client.get(f"/api/job-openings/{job['slug']}").status_code == 404
-        assert _apply(client, job["slug"]).status_code == 404
-    assert "/vacancies/open<" in client.get("/sitemap.xml").text
-    assert "/vacancies/closed<" not in client.get("/sitemap.xml").text
-
-
-def test_an_application_with_its_cv_is_kept_for_staff(
-    client: TestClient, db: Session, admin: User
-) -> None:
-    headers = admin_headers(client)
-    job = _create(client, headers)
-
-    sent = _apply(client, job["slug"])
-    assert sent.status_code == 201, sent.text
-    public = client.get(f"/api/job-openings/{job['slug']}").text
-    assert "applicant@example.com" not in public and "application_count" not in public
-
-    [row] = client.get(f"/api/admin/job-openings/{job['id']}/applications", headers=headers).json()
-    assert row["email"] == "applicant@example.com" and row["phone_number"].endswith("3123456")
-    stored = db.get(JobApplication, row["id"])
-    assert stored is not None and stored.storage_key.startswith(f"{FOLDER}/")
-    assert client.get(f"/media/{stored.storage_key}").status_code == 404, "never public"
-
-    cv_url = f"/api/admin/job-openings/{job['id']}/applications/{row['id']}/cv"
-    downloaded = client.get(cv_url, headers=headers)
-    assert downloaded.status_code == 200 and downloaded.content == PDF
-    support = _invite(client, headers, "SUPPORT", "support-jobs@example.com")
-    assert client.get(cv_url, headers=support).status_code == 403, "CVs: reviewers and manager"
-    assert client.get(f"/api/admin/job-openings/{job['id']}/applications", headers=support).status_code == 200
+    listed = client.get("/api/job-openings").json()
+    # Open first; the closed ones after it, still listed.
+    assert listed[0]["slug"] == open_job["slug"] and listed[0]["status"] == "ACTIVE"
+    assert {j["slug"]: j["status"] for j in listed[1:]} == {
+        "closed": "UNAVAILABLE",
+        "filled": "FILLED",
+    }
+    assert client.get(f"/api/job-openings/{draft['slug']}").status_code == 404
+    page = client.get(f"/api/job-openings/{past_deadline['slug']}")
+    assert page.status_code == 200 and page.json()["status"] == "UNAVAILABLE"
+    # The saved status is untouched: the deadline alone closed it.
+    [row] = [
+        j
+        for j in client.get("/api/admin/job-openings", headers=headers).json()
+        if j["slug"] == "closed"
+    ]
+    assert row["saved_status"] == "ACTIVE" and row["status"] == "UNAVAILABLE"
+    sitemap = client.get("/sitemap.xml").text
+    assert "/vacancies/open<" in sitemap and "/vacancies/closed<" in sitemap
 
 
-def test_a_file_that_is_not_a_document_is_refused_before_anything_is_stored(
-    client: TestClient, db: Session, admin: User
-) -> None:
+def test_nobody_applies_through_the_site_any_more(client: TestClient, admin: User) -> None:
     job = _create(client, admin_headers(client))
-    refused = _apply(client, job["slug"], data=b"MZ\x90\x00 not a cv")
-    assert refused.status_code == 415
-    assert _apply(client, job["slug"], email="not-an-email").status_code == 422
-    assert db.query(JobApplication).count() == 0
+    sent = client.post(
+        f"/api/job-openings/{job['slug']}/apply",
+        data={"full_name": ar("order.customer"), "email": "a@example.com", "phone_number": "03123456"},
+        files={"cv": ("cv.pdf", PDF, "application/pdf")},
+    )
+    assert sent.status_code in (404, 405)
 
 
-def test_deleting_an_opening_removes_its_applications(
+def test_the_contact_number_is_the_openings_own_or_the_sites_whatsapp(
+    client: TestClient, db: Session, admin: User
+) -> None:
+    headers = admin_headers(client)
+    db.add(SiteSetting(key="contact_whatsapp", value="81 995 107"))
+    db.commit()
+    fallback = _create(client, headers, slug="fallback")
+    own = _create(
+        client, headers, slug="own", contact_phone="70 123 456", contact_name=ar("order.customer")
+    )
+    assert client.get("/api/job-openings/fallback").json()["contact_phone"] == "+96181995107"
+    body = client.get("/api/job-openings/own").json()
+    assert body["contact_phone"] == "+96170123456" and body["whatsapp_enabled"] is True
+    assert fallback["own_contact_phone"] is None
+    bad = client.put(
+        f"/api/admin/job-openings/{own['id']}", headers=headers, json={"contact_phone": "12"}
+    )
+    assert bad.status_code == 422
+
+
+def test_contact_presses_are_counted_per_button_and_day_and_nothing_else(
     client: TestClient, db: Session, admin: User
 ) -> None:
     headers = admin_headers(client)
     job = _create(client, headers)
-    assert _apply(client, job["slug"]).status_code == 201
+    url = f"/api/job-openings/{job['slug']}/contact-click"
+    for channel in ("WHATSAPP", "WHATSAPP", "CALL"):
+        assert client.post(url, json={"channel": channel}).status_code == 204
+    assert client.post(url, json={"channel": "EMAIL"}).status_code == 422
+
+    stats = client.get(f"/api/admin/job-openings/{job['id']}/contact-clicks", headers=headers)
+    assert stats.status_code == 200, stats.text
+    body = stats.json()
+    assert (body["whatsapp"], body["call"]) == (2, 1)
+    assert len(body["days"]) == 1 and body["days"][0]["whatsapp"] == 2
+    [row] = [
+        j for j in client.get("/api/admin/job-openings", headers=headers).json() if j["id"] == job["id"]
+    ]
+    assert row["contact_clicks"] == 3
+
+    # A filled opening shows no buttons, so it counts nothing.
+    client.put(f"/api/admin/job-openings/{job['id']}", headers=headers, json={"status": "FILLED"})
+    assert client.post(url, json={"channel": "CALL"}).status_code == 204
+    assert (
+        client.get(f"/api/admin/job-openings/{job['id']}/contact-clicks", headers=headers).json()[
+            "call"
+        ]
+        == 1
+    )
+    columns = {column.name for column in JobContactClickDaily.__table__.columns}
+    assert columns == {"id", "job_id", "channel", "day", "clicks"}, "nothing about who pressed"
+
+
+def test_deleting_an_opening_removes_applications_sent_before_the_redesign(
+    client: TestClient, db: Session, admin: User
+) -> None:
+    headers = admin_headers(client)
+    job = _create(client, headers)
+    db.add(
+        JobApplication(
+            job_id=job["id"],
+            full_name=ar("order.customer"),
+            email="applicant@example.com",
+            phone_number="+9613123456",
+            storage_key=f"{FOLDER}/missing.pdf",
+            content_type="application/pdf",
+            size_bytes=len(PDF),
+        )
+    )
+    db.commit()
     assert client.delete(f"/api/admin/job-openings/{job['id']}", headers=headers).status_code == 200
     assert db.query(JobApplication).count() == 0
 

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Briefcase, Download, ImageOff, ImagePlus, Pencil, Plus, Trash2, Users } from 'lucide-react'
+import { Briefcase, Download, ImageOff, ImagePlus, MousePointerClick, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useRef, useState, type FormEvent } from 'react'
 
 import { Badge } from '@/components/ui/Badge'
@@ -14,17 +14,18 @@ import { EmptyState, ErrorState } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
 import { useStaffCan } from '@/features/admin/staffAccess'
 import { useCropStep } from '@/features/images/ImageCropDialog'
-import { JOB_TYPE_LABELS } from '@/features/jobs/JobCard'
+import { JOB_STATUS_LABELS, JOB_TYPE_LABELS, JobStatusBadge } from '@/features/jobs/JobCard'
 import { useLocationGroups } from '@/hooks/useTaxonomy'
 import { useI18n } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { adminApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import { WORK_MODE_LABELS } from '@/pages/JobOfferPage'
-import type { AdminJobOpening, JobOpeningInput, JobType, WorkMode } from '@/types/api'
-import { formatDate, formatDateTime, whatsappHref } from '@/utils/format'
+import type { AdminJobOpening, JobOpeningInput, JobStatus, JobType, WorkMode } from '@/types/api'
+import { formatDate, whatsappHref } from '@/utils/format'
 
 const JOB_TYPES = Object.keys(JOB_TYPE_LABELS) as JobType[]
+const JOB_STATUSES = Object.keys(JOB_STATUS_LABELS) as JobStatus[]
 
 interface FormState {
   title: string
@@ -36,6 +37,10 @@ interface FormState {
   location_id: string
   work_place: string
   work_mode: WorkMode | ''
+  status: JobStatus
+  contact_phone: string
+  contact_name: string
+  whatsapp_enabled: boolean
 }
 
 const NO_MODE = '__none__'
@@ -50,6 +55,10 @@ const EMPTY: FormState = {
   location_id: '',
   work_place: '',
   work_mode: '',
+  status: 'ACTIVE',
+  contact_phone: '',
+  contact_name: '',
+  whatsapp_enabled: true,
 }
 
 function toPayload(form: FormState): JobOpeningInput {
@@ -64,18 +73,18 @@ function toPayload(form: FormState): JobOpeningInput {
     location_id: form.location_id || null,
     work_place: blank(form.work_place),
     work_mode: form.work_mode || null,
+    status: form.status,
+    contact_phone: blank(form.contact_phone),
+    contact_name: blank(form.contact_name),
+    whatsapp_enabled: form.whatsapp_enabled,
   }
 }
 
-/** Is the opening past its last day to apply? */
-function isClosed(job: AdminJobOpening): boolean {
-  return job.deadline !== null && job.deadline < new Date().toISOString().slice(0, 10)
-}
-
 /**
- * Job openings (the owners' ticket, 29 Oct 2026): added here by
- * hand, published when ready, and the applications each one receives, with
- * the CV downloadable by reviewers and the manager.
+ * Job openings (the owners' ticket, 29 Oct 2026): added here by hand and
+ * published when ready. Since the jobs redesign (31 Oct 2026) each one has a
+ * status, changed right from its row, and counts presses of its WhatsApp and
+ * call buttons instead of collecting applications.
  */
 export function AdminJobOpeningsPage() {
   const { t, locale } = useI18n()
@@ -83,7 +92,8 @@ export function AdminJobOpeningsPage() {
   const queryClient = useQueryClient()
   const canEdit = useStaffCan('content')
   const [editing, setEditing] = useState<AdminJobOpening | 'new' | null>(null)
-  const [openApplications, setOpenApplications] = useState<string | null>(null)
+  const [openClicks, setOpenClicks] = useState<string | null>(null)
+  const [tab, setTab] = useState<JobStatus | 'ALL'>('ALL')
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploadingId, setUploadingId] = useState<string | null>(null)
   const coverCrop = useCropStep('gallery')
@@ -109,6 +119,12 @@ export function AdminJobOpeningsPage() {
     onSuccess: refresh,
     onError: fail,
     onSettled: () => setUploadingId(null),
+  })
+  const setStatus = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: JobStatus }) =>
+      adminApi.updateJobOpening(id, { status }),
+    onSuccess: refresh,
+    onError: fail,
   })
   const removeCover = useMutation({
     mutationFn: (id: string) => adminApi.deleteJobOpeningCover(id),
@@ -149,8 +165,26 @@ export function AdminJobOpeningsPage() {
       ) : (jobs.data ?? []).length === 0 ? (
         <EmptyState icon={<Briefcase className="h-7 w-7" aria-hidden="true" />} title={t('vacancies.empty')} />
       ) : (
+        <>
+        <div role="tablist" className="flex flex-wrap gap-2">
+          {(['ALL', ...JOB_STATUSES] as const).map((value) => (
+            <Button
+              key={value}
+              role="tab"
+              aria-selected={tab === value}
+              size="sm"
+              variant={tab === value ? 'primary' : 'outline'}
+              onClick={() => setTab(value)}
+            >
+              {value === 'ALL' ? t('admin.jobStatusAll') : t(JOB_STATUS_LABELS[value])}
+              <span className="ltr-nums text-xs opacity-80">
+                {(jobs.data ?? []).filter((job) => value === 'ALL' || job.status === value).length}
+              </span>
+            </Button>
+          ))}
+        </div>
         <ul className="space-y-3">
-          {jobs.data?.map((job) => (
+          {jobs.data?.filter((job) => tab === 'ALL' || job.status === tab).map((job) => (
             <li key={job.id}>
               <Card>
                 <CardBody className="space-y-3 p-4">
@@ -161,7 +195,11 @@ export function AdminJobOpeningsPage() {
                         alt=""
                         className="aspect-[16/9] w-28 shrink-0 rounded-lg object-cover"
                       />
-                    ) : null}
+                    ) : (
+                      <div className="flex aspect-[16/9] w-28 shrink-0 items-center justify-center rounded-lg bg-brand-700 text-white/70">
+                        <Briefcase className="h-6 w-6" aria-hidden="true" />
+                      </div>
+                    )}
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <h2 className="text-lg font-bold" dir="auto">
@@ -174,9 +212,7 @@ export function AdminJobOpeningsPage() {
                         >
                           {job.is_published ? t('admin.jobPublished') : t('admin.jobDraft')}
                         </Badge>
-                        {isClosed(job) ? (
-                          <Badge className="bg-clay-100 text-clay-700">{t('admin.jobClosed')}</Badge>
-                        ) : null}
+                        <JobStatusBadge status={job.status} className="shadow-none" />
                       </div>
                       <p className="mt-1 text-sm text-ink-500">
                         {t(JOB_TYPE_LABELS[job.job_type])}
@@ -193,13 +229,28 @@ export function AdminJobOpeningsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setOpenApplications(openApplications === job.id ? null : job.id)}
+                        onClick={() => setOpenClicks(openClicks === job.id ? null : job.id)}
                       >
-                        <Users className="h-4 w-4" aria-hidden="true" />
-                        {t('admin.jobApplications', { count: job.application_count })}
+                        <MousePointerClick className="h-4 w-4" aria-hidden="true" />
+                        {t('admin.jobContactClicks', { count: job.contact_clicks })}
                       </Button>
                       {canEdit ? (
                         <>
+                          <Select
+                            value={job.saved_status}
+                            onValueChange={(value) => setStatus.mutate({ id: job.id, status: value as JobStatus })}
+                          >
+                            <SelectTrigger className="h-9 w-auto min-w-36" aria-label={t('admin.jobStatusLabel')}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {JOB_STATUSES.map((value) => (
+                                <SelectItem key={value} value={value}>
+                                  {t(JOB_STATUS_LABELS[value])}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <Button
                             size="sm"
                             variant={job.is_published ? 'ghost' : 'primary'}
@@ -250,12 +301,13 @@ export function AdminJobOpeningsPage() {
                     </div>
                   </div>
                   {job.submitter_name ? <OfferedBy job={job} /> : null}
-                  {openApplications === job.id ? <Applications job={job} /> : null}
+                  {openClicks === job.id ? <ContactClicks job={job} /> : null}
                 </CardBody>
               </Card>
             </li>
           ))}
         </ul>
+        </>
       )}
 
       <input
@@ -318,104 +370,38 @@ function OfferedBy({ job }: { job: AdminJobOpening }) {
   )
 }
 
-function Applications({ job }: { job: AdminJobOpening }) {
+/** Presses of the opening's two buttons, all time and per day. */
+function ContactClicks({ job }: { job: AdminJobOpening }) {
   const { t, locale } = useI18n()
-  const toast = useToast()
-  const queryClient = useQueryClient()
-  const canReadCv = useStaffCan('documents')
-  const applications = useQuery({
-    queryKey: queryKeys.adminJobApplications(job.id),
-    queryFn: () => adminApi.jobApplications(job.id),
+  const stats = useQuery({
+    queryKey: [...queryKeys.adminJobOpenings, 'clicks', job.id],
+    queryFn: () => adminApi.jobContactClicks(job.id),
   })
-  const download = useMutation({
-    mutationFn: (applicationId: string) => adminApi.downloadJobApplicationCv(job.id, applicationId),
-    onSuccess: ({ blob, filename }) => {
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = filename ?? 'cv'
-      link.click()
-      URL.revokeObjectURL(url)
-    },
-    onError: (error) =>
-      toast.error(t('admin.downloadDocumentFailed'), error instanceof ApiError ? error.message : undefined),
-  })
-  const remove = useMutation({
-    mutationFn: (applicationId: string) => adminApi.deleteJobApplication(job.id, applicationId),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.adminJobApplications(job.id) })
-      void queryClient.invalidateQueries({ queryKey: queryKeys.adminJobOpenings })
-    },
-    onError: (error) =>
-      toast.error(t('admin.jobFailed'), error instanceof ApiError ? error.message : undefined),
-  })
-
-  if (applications.isLoading) return <Skeleton className="h-20 rounded-xl" />
-  if (applications.isError)
-    return <ErrorState error={applications.error} onRetry={() => void applications.refetch()} />
-  const rows = applications.data ?? []
-  if (rows.length === 0) return <p className="text-sm text-ink-500">{t('admin.jobNoApplications')}</p>
-
+  if (stats.isLoading) return <Skeleton className="h-20 rounded-xl" />
+  if (stats.isError) return <ErrorState error={stats.error} onRetry={() => void stats.refetch()} />
+  const data = stats.data
+  if (!data || data.days.length === 0) return <p className="text-sm text-ink-500">{t('admin.jobClicksNone')}</p>
   return (
-    <ul className="divide-y divide-ink-100 rounded-xl ring-1 ring-ink-100">
-      {rows.map((row) => {
-        const wa = whatsappHref(row.phone_number, t('admin.jobWhatsappMessage', { name: row.full_name, title: job.title }))
-        return (
-          <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 px-3 py-3">
-            <div className="min-w-0">
-              <p className="font-semibold" dir="auto">
-                {row.full_name}
-              </p>
-              <p className="text-sm text-ink-500" dir="ltr">
-                {row.phone_number} · {row.email}
-              </p>
-              <p className="text-xs text-ink-400">{formatDateTime(row.created_at, locale)}</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {canReadCv ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  loading={download.isPending && download.variables === row.id}
-                  onClick={() => download.mutate(row.id)}
-                >
-                  <Download className="h-4 w-4" aria-hidden="true" />
-                  {t('admin.jobDownloadCv')}
-                </Button>
-              ) : null}
-              {wa ? (
-                <a
-                  href={wa}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex min-h-9 items-center rounded-xl px-3 text-sm font-semibold text-olive-700 hover:bg-sand-100"
-                >
-                  {t('admin.workshopContact')}
-                </a>
-              ) : null}
-              <a
-                href={`mailto:${row.email}`}
-                className="inline-flex min-h-9 items-center rounded-xl px-3 text-sm font-semibold text-brand-700 hover:bg-sand-100"
-              >
-                {t('admin.jobEmail')}
-              </a>
-              {canReadCv ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  aria-label={t('common.delete')}
-                  onClick={() => {
-                    if (window.confirm(t('admin.jobApplicationDeleteConfirm'))) remove.mutate(row.id)
-                  }}
-                >
-                  <Trash2 className="h-4 w-4 text-clay-700" aria-hidden="true" />
-                </Button>
-              ) : null}
-            </div>
+    <div className="rounded-xl ring-1 ring-ink-100">
+      <p className="flex gap-4 border-b border-ink-100 px-3 py-2 text-sm font-semibold">
+        <span>
+          {t('admin.jobClicksWhatsapp')}: <span className="ltr-nums">{data.whatsapp}</span>
+        </span>
+        <span>
+          {t('admin.jobClicksCall')}: <span className="ltr-nums">{data.call}</span>
+        </span>
+      </p>
+      <ul className="divide-y divide-ink-100 text-sm">
+        {data.days.map((day) => (
+          <li key={day.day} className="flex justify-between gap-3 px-3 py-2">
+            <span>{formatDate(day.day, locale)}</span>
+            <span className="ltr-nums text-ink-500">
+              {t('admin.jobClicksWhatsapp')} {day.whatsapp} · {t('admin.jobClicksCall')} {day.call}
+            </span>
           </li>
-        )
-      })}
-    </ul>
+        ))}
+      </ul>
+    </div>
   )
 }
 
@@ -435,6 +421,10 @@ function JobForm({ job, onDone }: { job: AdminJobOpening | null; onDone: () => v
           location_id: job.location?.id ?? '',
           work_place: job.work_place ?? '',
           work_mode: job.work_mode ?? '',
+          status: job.saved_status,
+          contact_phone: job.own_contact_phone ?? '',
+          contact_name: job.contact_name ?? '',
+          whatsapp_enabled: job.whatsapp_enabled,
         }
       : EMPTY,
   )
@@ -570,6 +560,56 @@ function JobForm({ job, onDone }: { job: AdminJobOpening | null; onDone: () => v
                 </SelectContent>
               </Select>
             </div>
+            <div>
+              <label id="job-status" className="mb-1.5 block text-sm font-semibold text-ink-700">
+                {t('admin.jobStatusLabel')}
+              </label>
+              <Select value={form.status} onValueChange={(value) => set('status', value as JobStatus)}>
+                <SelectTrigger aria-labelledby="job-status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {JOB_STATUSES.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {t(JOB_STATUS_LABELS[value])}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Field label={t('admin.jobContactPhoneLabel')} hint={t('admin.jobContactPhoneHint')}>
+              {(props) => (
+                <Input
+                  {...props}
+                  type="tel"
+                  inputMode="tel"
+                  dir="ltr"
+                  maxLength={25}
+                  value={form.contact_phone}
+                  onChange={(event) => set('contact_phone', event.target.value)}
+                />
+              )}
+            </Field>
+            <Field label={t('admin.jobContactNameLabel')}>
+              {(props) => (
+                <Input
+                  {...props}
+                  maxLength={120}
+                  dir="auto"
+                  value={form.contact_name}
+                  onChange={(event) => set('contact_name', event.target.value)}
+                />
+              )}
+            </Field>
+            <label className="flex items-center gap-2 self-end pb-3 text-sm font-semibold text-ink-700">
+              <input
+                type="checkbox"
+                checked={form.whatsapp_enabled}
+                onChange={(event) => set('whatsapp_enabled', event.target.checked)}
+                className="h-4 w-4 accent-brand-700"
+              />
+              {t('admin.jobWhatsappEnabled')}
+            </label>
             <div>
               <label htmlFor="job-location" className="mb-1.5 block text-sm font-semibold text-ink-700">
                 {t('admin.jobLocationLabel')}
