@@ -154,7 +154,7 @@ function NavEntry({ item, nested, onNavigate }: { item: NavItem; nested?: boolea
       onClick={onNavigate}
       className={({ isActive }) =>
         cn(
-          'flex items-center gap-2 rounded-xl px-3 py-2 font-semibold transition-colors lg:gap-3 lg:px-4 lg:py-2.5',
+          'flex items-center gap-2 rounded-xl px-3 py-2 font-semibold transition-colors lg:gap-3 lg:px-4 lg:py-3.5',
           nested ? 'text-sm lg:text-base' : 'lg:text-lg',
           isActive ? 'bg-brand-800 text-white' : 'text-ink-700 hover:bg-sand-100',
         )
@@ -203,11 +203,13 @@ export function AdminLayout() {
 
   return (
     <div className="w-full px-4 py-8 sm:px-6 lg:grid lg:grid-cols-[18rem_minmax(0,1fr)] xl:grid-cols-[20rem_minmax(0,1fr)] lg:items-start lg:gap-8 lg:px-8 print:block print:py-0">
-      <div className="mb-6 print:hidden lg:sticky lg:top-24 lg:mb-0">
+      <div className="mb-6 print:hidden lg:sticky lg:top-[11.5rem] lg:mb-0">
         {/* On a phone the menu folds behind one button naming the current
             page; from lg up it is always open, as a sidebar on the start side,
-            wider and in larger type than the phone menu (the owners' request,
-            4 Nov 2026). */}
+            wider and in larger type than the phone menu, and as tall as the
+            screen below the header (the owners' requests, 4 Nov 2026). It
+            sticks below the header (about 11rem with its second row of
+            headings) so its top never slides under it. */}
         <button
           type="button"
           onClick={() => setMobileOpen((value) => !value)}
@@ -225,7 +227,7 @@ export function AdminLayout() {
         </button>
         <nav
           className={cn(
-            'mt-2 max-h-[calc(100dvh-8rem)] space-y-1 overflow-y-auto rounded-2xl bg-white p-3 shadow-sm ring-1 ring-ink-100 lg:mt-0 lg:block lg:p-4',
+            'mt-2 max-h-[calc(100dvh-8rem)] space-y-1 overflow-y-auto rounded-2xl bg-white p-3 shadow-sm ring-1 ring-ink-100 lg:mt-0 lg:block lg:max-h-[calc(100dvh-13rem)] lg:min-h-[calc(100dvh-13rem)] lg:space-y-2 lg:p-4',
             mobileOpen ? 'block' : 'hidden',
           )}
           aria-label={t('admin.navAria')}
@@ -243,7 +245,7 @@ export function AdminLayout() {
                   aria-expanded={expanded}
                   aria-controls={id}
                   className={cn(
-                    'flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 font-semibold transition-colors hover:bg-sand-100 lg:px-4 lg:py-2.5 lg:text-lg',
+                    'flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 font-semibold transition-colors hover:bg-sand-100 lg:px-4 lg:py-3.5 lg:text-lg',
                     group === currentGroup ? 'text-brand-800' : 'text-ink-700',
                   )}
                 >
@@ -257,7 +259,7 @@ export function AdminLayout() {
                   />
                 </button>
                 {expanded ? (
-                  <div id={id} className="ms-4 mt-1 space-y-0.5 border-s border-ink-100 ps-2">
+                  <div id={id} className="ms-4 mt-1 space-y-0.5 border-s border-ink-100 ps-2 lg:space-y-1">
                     {group.items.map((item) => (
                       <NavEntry
                         key={item.to}
