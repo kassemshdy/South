@@ -13,6 +13,7 @@ import { ProductCard } from '@/features/items/ProductCard'
 import { PageBanner } from '@/components/layout/PageBanner'
 import { BrowseSwitcher } from '@/features/onboarding/BrowseSwitcher'
 import { originFromParams } from '@/features/onboarding/destinations'
+import { useAuth } from '@/features/auth/AuthContext'
 import { DisplacedFilterButton } from '@/features/directory/DisplacedFilterButton'
 import { useNearestSort } from '@/features/directory/useNearestSort'
 import { SearchBox } from '@/features/search/SearchBox'
@@ -20,7 +21,7 @@ import { useCategories, useLocationGroups } from '@/hooks/useTaxonomy'
 import { useT, type TranslationKey } from '@/i18n'
 import { useSeo } from '@/hooks/useSeo'
 import { trackDirectoryView } from '@/services/analytics'
-import { publicBusinessApi, publicItemApi } from '@/services/api/endpoints'
+import { adminApi, publicBusinessApi, publicItemApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { GoodsOrigin, ProductSortOption } from '@/types/api'
 
@@ -118,6 +119,11 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
 
   // The shops behind the products, beside their count (the owners' ticket).
   const stats = useQuery({ queryKey: queryKeys.publicStats, queryFn: publicBusinessApi.stats })
+  // The public count is every approved shop; how many of them have something
+  // on sale is for staff only (the owners' request, 4 Nov 2026), so it is
+  // fetched from the admin stats and only when an administrator is looking.
+  const { isAdmin } = useAuth()
+  const adminStats = useQuery({ queryKey: queryKeys.adminStats, queryFn: adminApi.stats, enabled: isAdmin })
   const results = useQuery({
     queryKey: queryKeys.products({ q, category, location, origin, displaced, sort, lat: near?.lat, lng: near?.lng, page }),
     queryFn: () =>
@@ -170,10 +176,17 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
         subtitle={
           results.data
             ? stats.data
-              ? t('products.resultCounts', {
-                  shops: stats.data.total_businesses,
-                  count: results.data.meta.total,
-                })
+              ? [
+                  t('products.resultCounts', {
+                    shops: stats.data.total_businesses,
+                    count: results.data.meta.total,
+                  }),
+                  isAdmin && adminStats.data
+                    ? t('products.adminShopsWithProducts', { count: adminStats.data.shops_with_products })
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')
               : t('products.resultCount', { count: results.data.meta.total })
             : t('products.introFallback')
         }
