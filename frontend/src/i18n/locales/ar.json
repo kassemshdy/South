@@ -1006,6 +1006,7 @@
   "products.netWeightLabel": "الوزن الصافي",
   "products.resultCount": "{count} منتج",
   "products.resultCounts": "{shops} محل · {count} منتج",
+  "products.adminShopsWithProducts": "{count} منها لديها منتجات (للمدير فقط)",
   "products.searchLabel": "ابحث عن محل أو منتج",
   "products.seoDescription": "تصفّح منتجات وخدمات معروضة للبيع من أصحاب الأنشطة في جنوب لبنان.",
   "products.seoSearchTitle": "نتائج البحث عن «{query}» في المنتجات | جنوبنا",

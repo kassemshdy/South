@@ -1006,6 +1006,7 @@
   "products.netWeightLabel": "Net weight",
   "products.resultCount": "{count} products",
   "products.resultCounts": "{shops} shops · {count} products",
+  "products.adminShopsWithProducts": "{count} with products (admins only)",
   "products.searchLabel": "Search for a shop or a product",
   "products.seoDescription": "Browse products and services for sale from businesses across South Lebanon.",
   "products.seoSearchTitle": "Search results for “{query}” in products | Janoubona",

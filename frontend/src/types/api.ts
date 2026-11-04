@@ -677,6 +677,8 @@ export interface PlatformStats {
   pending_talents: number
   pending_testimonials: number
   approved_talents: number
+  /** Approved shops with a visible product; staff only. */
+  shops_with_products: number
 }
 
 /**

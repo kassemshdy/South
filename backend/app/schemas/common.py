@@ -58,6 +58,10 @@ class StatsResponse(BaseModel):
     pending_talents: int = 0
     pending_testimonials: int = Field(default=0, description="Testimonials awaiting approval")
     approved_talents: int = 0
+    shops_with_products: int = Field(
+        default=0,
+        description="Approved shops with a visible product (staff only)",
+    )
 
 
 class PublicStatsOut(BaseModel):

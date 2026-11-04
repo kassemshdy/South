@@ -290,8 +290,9 @@ def test_public_stats_counts_only_approved_businesses_and_distinct_towns(
     assert hidden_item.status_code == 201, hidden_item.text
 
     # Two of the approved shops put a product on sale; the other two have
-    # nothing to sell, and a shop with nothing to sell is not counted (the
-    # owners' request, 3 Nov 2026).
+    # nothing to sell yet. The public count is every approved shop; the
+    # number with products is for staff only (the owners' request, 4 Nov
+    # 2026, reversing the 3 Nov one).
     for business_id, phone in ((approved_ids[0], "03910001"), (approved_ids[1], "03910002")):
         item = client.post(
             f"/api/businesses/{business_id}/items",
@@ -310,10 +311,15 @@ def test_public_stats_counts_only_approved_businesses_and_distinct_towns(
     # The three directories, and only those. It used to count towns instead of
     # products, which measured the map rather than what is in the directory.
     assert stats.json() == {
-        "total_businesses": 2,
+        "total_businesses": 4,
         "total_products": 2,
         "total_talents": 0,
     }
+
+    # Staff alone see how many of them have something on sale.
+    admin_stats = client.get("/api/admin/stats", headers=admin_headers(client))
+    assert admin_stats.status_code == 200, admin_stats.text
+    assert admin_stats.json()["shops_with_products"] == 2
 
     # Staff see the two without products, to contact them.
     without = client.get(
