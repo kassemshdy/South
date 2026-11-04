@@ -27,8 +27,7 @@ def _stub(bin_dir: Path, name: str, body: str) -> None:
     path.chmod(path.stat().st_mode | stat.S_IEXEC)
 
 
-@pytest.mark.skipif(shutil.which("sh") is None, reason="needs a POSIX shell")
-def test_the_start_command_reaches_uvicorn(tmp_path: Path) -> None:
+def _run(tmp_path: Path, **extra: str) -> str:
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     for name in ("python", "alembic", "uvicorn"):
@@ -43,12 +42,28 @@ def test_the_start_command_reaches_uvicorn(tmp_path: Path) -> None:
         "PORT": "8000",
     }
     env.pop("TELEGRAM_BACKFILL", None)
+    env.pop("SKIP_MIGRATIONS", None)
+    env.update(extra)
     result = subprocess.run(
         ["sh", str(ENTRYPOINT)], env=env, capture_output=True, text=True, timeout=30
     )
 
     assert result.returncode == 0, result.stderr
-    ran = result.stdout
+    return result.stdout
+
+
+@pytest.mark.skipif(shutil.which("sh") is None, reason="needs a POSIX shell")
+def test_the_start_command_reaches_uvicorn(tmp_path: Path) -> None:
+    ran = _run(tmp_path)
     for step in ("scripts.backup_db", "alembic upgrade", "scripts.seed", "scripts.import_locations"):
         assert step in ran, f"{step} never ran:\n{ran}"
+    assert "RAN uvicorn" in ran, f"uvicorn never started:\n{ran}"
+
+
+@pytest.mark.skipif(shutil.which("sh") is None, reason="needs a POSIX shell")
+def test_a_site_sharing_the_database_never_migrates_it(tmp_path: Path) -> None:
+    """Staging on the live database once moved it to a revision live did not
+    have, and every live release failed until it was put back (3 Nov 2026)."""
+    ran = _run(tmp_path, SKIP_MIGRATIONS="1")
+    assert "alembic" not in ran, ran
     assert "RAN uvicorn" in ran, f"uvicorn never started:\n{ran}"
