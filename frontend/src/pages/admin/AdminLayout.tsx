@@ -29,6 +29,7 @@ import {
   TrendingUp,
   UserRound,
   Users,
+  Wrench,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
@@ -74,6 +75,7 @@ const GROUPS: { labelKey: TranslationKey; icon: typeof BarChart3; items: NavItem
     icon: ShoppingBag,
     items: [
       { to: '/admin/orders', labelKey: 'admin.navOrders', icon: ShoppingBag },
+      { to: '/admin/service-requests', labelKey: 'openRequest.nav', icon: Wrench },
       { to: '/admin/job-openings', labelKey: 'admin.navJobOpenings', icon: Briefcase },
       {
         to: '/admin/employer-requests',

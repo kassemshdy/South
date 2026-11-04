@@ -332,5 +332,8 @@
   "carousel.not_custom": "An activity's slide is edited from the activity itself.",
   "seo.product.description": "{name} from {shop} in {location}, on Janoubona.",
   "seo.product.description_no_location": "{name} from {shop}, on Janoubona.",
-  "talent.service_price_range": "The higher price must not be below the lower one."
+  "talent.service_price_range": "The higher price must not be below the lower one.",
+  "open_request.received": "Thank you. We have your request, and our team will contact you to connect you with a provider.",
+  "open_request.not_found": "Request not found.",
+  "open_request.deleted": "Request deleted."
 }
