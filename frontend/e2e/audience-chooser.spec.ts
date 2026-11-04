@@ -352,6 +352,14 @@ test.describe('Audience chooser', () => {
     // shopkeeper alike that the thing to do here is open a shop — the same
     // assumption the hero card made, in the one place that is on every page.
     await page.goto('/')
+
+    // The way in is also in the bar itself, as the person icon beside search
+    // and the menu button, not only inside the menu (the owners' request,
+    // 4 Nov 2026). The menu is still closed here, so this is the bar's link.
+    const barSignIn = page.getByRole('banner').getByRole('link', { name: t('nav.login') })
+    await expect(barSignIn).toBeVisible()
+    await expect(barSignIn).toHaveAttribute('href', '/login')
+
     await page.getByRole('button', { name: t('nav.openMenu') }).click()
 
     const mobileNav = page.getByRole('navigation', { name: t('nav.mobileAria') })

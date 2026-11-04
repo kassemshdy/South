@@ -370,6 +370,18 @@ export function Header() {
         <div className={cn('flex items-center gap-1', fits && 'xl:hidden')}>
           <CartLink />
           <FavouritesLink />
+          {/* Signed out, the way in stays in the bar as its person icon, beside
+              search and the menu button. Once the headings stopped fitting
+              beside the logo, the sign-in button above went with them and
+              could only be reached through the menu (the owners' request,
+              4 Nov 2026). */}
+          {isAuthenticated ? null : (
+            <Button asChild variant="ghost" size="icon" aria-label={t('nav.login')}>
+              <Link to="/login">
+                <User className="h-5 w-5" aria-hidden="true" />
+              </Link>
+            </Button>
+          )}
           <Button asChild variant="ghost" size="icon" aria-label={t('nav.searchAria')}>
             <Link to="/products">
               <Search className="h-5 w-5" aria-hidden="true" />
