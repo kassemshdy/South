@@ -60,7 +60,7 @@ class StatsResponse(BaseModel):
     approved_talents: int = 0
     shops_with_products: int = Field(
         default=0,
-        description="Approved shops with at least one visible product; the public count is all approved shops",
+        description="Approved shops with a visible product (staff only)",
     )
 
 
