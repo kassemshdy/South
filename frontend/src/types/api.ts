@@ -1607,3 +1607,19 @@ export interface ApiPartnerIssued extends ApiPartner {
   /** Shown once; only its hash is kept. */
   api_key: string
 }
+
+/** A visitor's "request a service", as staff see it. */
+export interface AdminOpenServiceRequest {
+  id: string
+  customer_name: string
+  customer_phone: string
+  details: string
+  skill_id: string | null
+  skill_name: string | null
+  skill_slug: string | null
+  location_id: string | null
+  location_name: string | null
+  location_slug: string | null
+  created_at: string
+  solved_at: string | null
+}

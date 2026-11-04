@@ -1,5 +1,5 @@
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
-import { BadgeCheck, LayoutGrid, LocateFixed, SearchX, SlidersHorizontal, Star, X } from 'lucide-react'
+import { BadgeCheck, LayoutGrid, LocateFixed, SearchX, Send, SlidersHorizontal, Star, X } from 'lucide-react'
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom'
 
@@ -425,6 +425,20 @@ function TalentDirectory({ kind }: { kind: TalentKind }) {
           ) : null}
         </div>
 
+        {/* For a visitor who would rather be put in touch than choose (the
+            owners' services redesign, 3 Nov 2026). */}
+        {kind === 'SERVICE' ? (
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-olive-200 bg-olive-50 px-4 py-3">
+            <p className="font-semibold text-ink-800">{t('openRequest.bannerTitle')}</p>
+            <Button asChild size="sm">
+              <Link to="/services/request">
+                <Send className="h-4 w-4" aria-hidden="true" />
+                {t('openRequest.cta')}
+              </Link>
+            </Button>
+          </div>
+        ) : null}
+
         <div aria-live="polite" aria-busy={results.isFetching}>
           {results.isLoading ? (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -460,10 +474,19 @@ function TalentDirectory({ kind }: { kind: TalentKind }) {
               title={t(kind === 'SERVICE' ? 'talent.noProvidersTitle' : 'states.noResultsTitle')}
               description={t('states.noResultsDescription')}
               action={
-                hasFilters ? (
-                  <Button variant="outline" onClick={resetFilters}>
-                    {t('states.clearFilters')}
-                  </Button>
+                kind === 'SERVICE' || hasFilters ? (
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {kind === 'SERVICE' ? (
+                      <Button asChild>
+                        <Link to="/services/request">{t('openRequest.cta')}</Link>
+                      </Button>
+                    ) : null}
+                    {hasFilters ? (
+                      <Button variant="outline" onClick={resetFilters}>
+                        {t('states.clearFilters')}
+                      </Button>
+                    ) : null}
+                  </div>
                 ) : null
               }
             />

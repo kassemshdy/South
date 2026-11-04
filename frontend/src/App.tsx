@@ -15,6 +15,7 @@ import { BrowsePage } from '@/pages/BrowsePage'
 import { BusinessProfilePage } from '@/pages/BusinessProfilePage'
 import { ContactPage } from '@/pages/ContactPage'
 import { PartnerPage } from '@/pages/PartnerPage'
+import { ServiceRequestPage } from '@/pages/ServiceRequestPage'
 import { JobOfferPage } from '@/pages/JobOfferPage'
 import { JobsHubPage } from '@/pages/JobsHubPage'
 import { VacanciesPage } from '@/pages/VacanciesPage'
@@ -118,6 +119,11 @@ const AdminApplicationsPage = lazy(() =>
 const AdminTestimonialsPage = lazy(() =>
   import('@/pages/admin/AdminTestimonialsPage').then((m) => ({
     default: m.AdminTestimonialsPage,
+  })),
+)
+const AdminServiceRequestsPage = lazy(() =>
+  import('@/pages/admin/AdminServiceRequestsPage').then((m) => ({
+    default: m.AdminServiceRequestsPage,
   })),
 )
 const AdminShopsWithoutProductsPage = lazy(() =>
@@ -243,6 +249,7 @@ export function App() {
           <Route path="about" element={<AboutPage />} />
           <Route path="contact" element={<ContactPage />} />
           <Route path="partner" element={<PartnerPage />} />
+          <Route path="services/request" element={<ServiceRequestPage />} />
           <Route path="workshops" element={<WorkshopsPage />} />
           <Route path="workshops/:slug" element={<WorkshopPage />} />
           <Route path="activities" element={<ActivitiesPage />} />
@@ -368,6 +375,7 @@ export function App() {
             <Route path="carousel" element={<AdminCarouselPage />} />
             <Route path="job-openings" element={<AdminJobOpeningsPage />} />
             <Route path="employer-requests" element={<AdminEmployerRequestsPage />} />
+            <Route path="service-requests" element={<AdminServiceRequestsPage />} />
           </Route>
 
           <Route path="*" element={<NotFoundPage />} />

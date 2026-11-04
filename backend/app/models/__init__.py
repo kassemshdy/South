@@ -38,6 +38,7 @@ from app.models.integration import (
     StoreLink,
 )
 from app.models.job import JobApplication, JobContactClickDaily, JobOpening
+from app.models.open_service_request import OpenServiceRequest
 from app.models.order import Order, OrderLine
 from app.models.page import Page
 from app.models.page_cover import PageCover
@@ -102,6 +103,7 @@ __all__ = [
     "LocationType",
     "ModerationAction",
     "ModerationActionType",
+    "OpenServiceRequest",
     "Order",
     "OrderLine",
     "OrderStatus",

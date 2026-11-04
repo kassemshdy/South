@@ -41,6 +41,7 @@ import type {
   AdminPlace,
   AdminTalent,
   AdminTestimonial,
+  AdminOpenServiceRequest,
   AdminPartnerRequest,
   ApiPartner,
   ApiPartnerIssued,
@@ -413,6 +414,23 @@ export interface PartnerPayload {
 export const partnerApi = {
   send: (payload: PartnerPayload, captchaToken: string | null) =>
     apiRequest<{ message: string }>('/api/partners', {
+      method: 'POST',
+      body: { ...payload, captcha_token: captchaToken },
+    }),
+}
+
+/** "Request a service": a visitor asks the team, without picking a provider. */
+export interface OpenServiceRequestPayload {
+  customer_name: string
+  customer_phone: string
+  details: string
+  skill_id?: string | null
+  location_id?: string | null
+}
+
+export const openServiceRequestApi = {
+  send: (payload: OpenServiceRequestPayload, captchaToken: string | null) =>
+    apiRequest<{ message: string }>('/api/service-requests', {
       method: 'POST',
       body: { ...payload, captcha_token: captchaToken },
     }),
@@ -974,6 +992,14 @@ export const adminApi = {
     apiRequest<ApiPartner>(`/api/admin/api-partners/${id}/revoke`, { method: 'POST' }),
   partners: (solved = false) =>
     apiRequest<AdminPartnerRequest[]>('/api/admin/partners', { query: { solved } }),
+  serviceRequests: (solved = false) =>
+    apiRequest<AdminOpenServiceRequest[]>('/api/admin/service-requests', { query: { solved } }),
+  solveServiceRequest: (id: string) =>
+    apiRequest<AdminOpenServiceRequest>(`/api/admin/service-requests/${id}/solve`, { method: 'POST' }),
+  reopenServiceRequest: (id: string) =>
+    apiRequest<AdminOpenServiceRequest>(`/api/admin/service-requests/${id}/reopen`, { method: 'POST' }),
+  deleteServiceRequest: (id: string) =>
+    apiRequest<{ message: string }>(`/api/admin/service-requests/${id}`, { method: 'DELETE' }),
   solvePartner: (id: string) =>
     apiRequest<AdminPartnerRequest>(`/api/admin/partners/${id}/solve`, { method: 'POST' }),
   reopenPartner: (id: string) =>
