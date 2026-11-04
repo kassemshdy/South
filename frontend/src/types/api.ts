@@ -677,6 +677,8 @@ export interface PlatformStats {
   pending_talents: number
   pending_testimonials: number
   approved_talents: number
+  /** Approved shops with a visible product; staff only. */
+  shops_with_products: number
 }
 
 /**
@@ -1360,7 +1362,12 @@ export interface Activity {
   /** The small copy, for lists; fall back to `image_url`. */
   image_thumb_url?: string | null
   kind: ActivityKind
-  /** A link out to sign up (a form, a WhatsApp chat); no button without one. */
+  /**
+   * How people sign up: the form on the activity's page (the default), the
+   * link below, or not at all (the owners' ticket, 4 Nov 2026).
+   */
+  registration_mode: ActivityRegistrationMode
+  /** A link out to sign up (a form, a WhatsApp chat), used when EXTERNAL. */
   register_url: string | null
   /** The button's text; the catalog's own when null. */
   register_label: string | null
@@ -1369,6 +1376,8 @@ export interface Activity {
 }
 
 export type ActivityKind = 'ACTIVITY' | 'CONSULTATION' | 'WORKSHOP' | 'TRAINING'
+
+export type ActivityRegistrationMode = 'ON_SITE' | 'EXTERNAL' | 'NONE'
 
 /** One slide of the announcements carousel (home page and /activities). */
 export interface CarouselSlide {
@@ -1402,6 +1411,8 @@ export interface AdminActivity extends Activity {
   created_at: string
   updated_at: string
   in_carousel: boolean
+  /** Sign-ups taken on the site. */
+  registration_count: number
 }
 
 export interface ActivityInput {
@@ -1413,6 +1424,7 @@ export interface ActivityInput {
   location: string | null
   sort_order: number
   kind?: ActivityKind
+  registration_mode?: ActivityRegistrationMode
   register_url?: string | null
   register_label?: string | null
   show_calendar?: boolean
@@ -1460,6 +1472,14 @@ export interface WorkshopInput {
   currency: Currency
   category_id: string | null
   location_id: string | null
+}
+
+/** A sign-up taken on an activity's page; staff only. */
+export interface ActivityRegistration {
+  id: string
+  full_name: string
+  phone_number: string
+  created_at: string
 }
 
 export interface WorkshopRegistration {

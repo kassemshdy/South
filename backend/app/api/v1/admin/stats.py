@@ -37,7 +37,8 @@ Counted = type[Business] | type[TalentProfile] | type[BusinessItem] | type[Order
 
 @router.get("/stats", response_model=StatsResponse)
 def platform_stats(db: DbSession, admin: AdminUser) -> StatsResponse:
-    counts = BusinessRepository(db).count_by_status()
+    businesses = BusinessRepository(db)
+    counts = businesses.count_by_status()
     talent_counts = TalentRepository(db).count_by_status()
     users = UserRepository(db)
     total_items = int(
@@ -57,6 +58,7 @@ def platform_stats(db: DbSession, admin: AdminUser) -> StatsResponse:
         total_talents=sum(talent_counts.values()),
         pending_talents=talent_counts.get(BusinessStatus.PENDING_REVIEW, 0),
         approved_talents=talent_counts.get(BusinessStatus.APPROVED, 0),
+        shops_with_products=businesses.shops_with_products_count(),
         pending_testimonials=int(
             db.execute(
                 select(func.count())

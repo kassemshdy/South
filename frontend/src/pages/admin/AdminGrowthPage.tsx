@@ -535,6 +535,12 @@ function WeeklyBars({
   const max = Math.max(1, ...values);
   const slot = W / Math.max(1, values.length);
   const barWidth = slot * 0.62;
+  const weekEnd = (iso: string | undefined) => {
+    if (!iso) return undefined;
+    const end = new Date(`${iso}T00:00:00Z`);
+    end.setUTCDate(end.getUTCDate() + 6);
+    return end.toISOString().slice(0, 10);
+  };
   const dayLabel = (iso: string | undefined) =>
     iso
       ? new Date(`${iso}T00:00:00Z`).toLocaleDateString(
@@ -598,7 +604,10 @@ function WeeklyBars({
           className="mt-1 flex justify-between text-xs text-ink-500"
         >
           <span>{dayLabel(weeks[0])}</span>
-          <span>{dayLabel(weeks[weeks.length - 1])}</span>
+          {/* Each bar is seven days; the axis names where the span ends --
+              today -- not the first day of the last bar, which read as a
+              week-old chart (the owners' report, 4 Nov 2026). */}
+          <span>{dayLabel(weekEnd(weeks[weeks.length - 1]))}</span>
         </div>
       </CardBody>
     </Card>

@@ -321,10 +321,18 @@ class BusinessRepository(BaseRepository[Business]):
         return {row[0]: row[1] for row in rows if row[0] is not None}
 
     def public_business_count(self) -> int:
-        """Shops a visitor can buy from: approved, with at least one product
-        on sale. A shop with nothing to sell is not counted (the owners'
-        request, 3 Nov 2026), so the shop count beside the product count means
-        shops with products."""
+        """Every approved shop, products or not: the number of shops registered
+        on the platform, which is what the owners want a visitor to see (their
+        request, 4 Nov 2026, reversing the 3 Nov one). How many of them have
+        something on sale is :meth:`shops_with_products_count`, for staff."""
+        return self.db.execute(
+            select(func.count()).select_from(self.public_query().subquery())
+        ).scalar_one()
+
+    def shops_with_products_count(self) -> int:
+        """Approved shops with at least one product a visitor can see -- the
+        shops the products page actually lists. Staff only: the public count
+        is :meth:`public_business_count`."""
         return self.db.execute(
             select(func.count()).select_from(
                 self.public_query().where(has_products()).subquery()

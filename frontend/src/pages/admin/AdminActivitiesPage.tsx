@@ -5,9 +5,11 @@ import {
   GalleryHorizontal,
   ImagePlus,
   Megaphone,
+  MessageCircle,
   Pencil,
   Plus,
   Trash2,
+  Users,
 } from 'lucide-react'
 import { useRef, useState, type FormEvent } from 'react'
 
@@ -25,8 +27,13 @@ import { useI18n } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { adminApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import type { ActivityInput, ActivityKind, AdminActivity } from '@/types/api'
-import { formatDateTime } from '@/utils/format'
+import type {
+  ActivityInput,
+  ActivityKind,
+  ActivityRegistrationMode,
+  AdminActivity,
+} from '@/types/api'
+import { formatDateTime, whatsappHref } from '@/utils/format'
 
 interface FormState {
   title: string
@@ -38,6 +45,7 @@ interface FormState {
   /** Kept as stored; the carousel manager now sets the order. */
   sort_order: string
   kind: ActivityKind
+  registration_mode: ActivityRegistrationMode
   register_url: string
   register_label: string
   show_calendar: boolean
@@ -53,6 +61,9 @@ const EMPTY: FormState = {
   location: '',
   sort_order: '0',
   kind: 'ACTIVITY',
+  // On the site unless the administrator chooses otherwise (the owners'
+  // ticket, 4 Nov 2026).
+  registration_mode: 'ON_SITE',
   register_url: '',
   register_label: '',
   show_calendar: true,
@@ -60,6 +71,8 @@ const EMPTY: FormState = {
 }
 
 export const ACTIVITY_KINDS: ActivityKind[] = ['ACTIVITY', 'CONSULTATION', 'WORKSHOP', 'TRAINING']
+
+const REGISTRATION_MODES: ActivityRegistrationMode[] = ['ON_SITE', 'EXTERNAL', 'NONE']
 
 const SELECT_CLASS =
   'w-full rounded-xl border border-ink-100 bg-white px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none'
@@ -89,6 +102,7 @@ function toPayload(form: FormState): ActivityInput {
     location: blank(form.location),
     sort_order: Number.parseInt(form.sort_order, 10) || 0,
     kind: form.kind,
+    registration_mode: form.registration_mode,
     register_url: blank(form.register_url),
     register_label: blank(form.register_label),
     show_calendar: form.show_calendar,
@@ -108,6 +122,7 @@ export function AdminActivitiesPage() {
   const [editing, setEditing] = useState<AdminActivity | 'new' | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploadingId, setUploadingId] = useState<string | null>(null)
+  const [openRegistrations, setOpenRegistrations] = useState<string | null>(null)
   const imageCrop = useCropStep('gallery')
 
   const activities = useQuery({ queryKey: queryKeys.adminActivities, queryFn: adminApi.activities })
@@ -232,6 +247,23 @@ export function AdminActivitiesPage() {
                       {activity.location ? ` · ${activity.location}` : null}
                     </p>
                   </div>
+                  <div className="flex flex-wrap gap-2">
+                    {activity.registration_mode === 'ON_SITE' || activity.registration_count > 0 ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        aria-expanded={openRegistrations === activity.id}
+                        onClick={() =>
+                          setOpenRegistrations((current) =>
+                            current === activity.id ? null : activity.id,
+                          )
+                        }
+                      >
+                        <Users className="h-4 w-4" aria-hidden="true" />
+                        {t('admin.workshopRegistrations', { count: activity.registration_count })}
+                      </Button>
+                    ) : null}
+                  </div>
                   {canEdit ? (
                     <div className="flex flex-wrap gap-2">
                       <Button
@@ -276,6 +308,11 @@ export function AdminActivitiesPage() {
                         <Trash2 className="h-4 w-4" aria-hidden="true" />
                         {t('common.delete')}
                       </Button>
+                    </div>
+                  ) : null}
+                  {openRegistrations === activity.id ? (
+                    <div className="w-full">
+                      <Registrations activity={activity} />
                     </div>
                   ) : null}
                 </CardBody>
@@ -330,6 +367,7 @@ function ActivityForm({
           location: activity.location ?? '',
           sort_order: String(activity.sort_order),
           kind: activity.kind ?? 'ACTIVITY',
+          registration_mode: activity.registration_mode ?? 'ON_SITE',
           register_url: activity.register_url ?? '',
           register_label: activity.register_label ?? '',
           show_calendar: activity.show_calendar ?? true,
@@ -337,7 +375,10 @@ function ActivityForm({
         }
       : EMPTY,
   )
+  const external = form.registration_mode === 'EXTERNAL'
   const linkInvalid = !validLink(form.register_url)
+  // An external sign-up needs somewhere to send people.
+  const linkMissing = external && !form.register_url.trim()
   const hasImage = Boolean(activity?.image_url)
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -362,7 +403,7 @@ function ActivityForm({
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
-    if (linkInvalid) return
+    if (linkInvalid || linkMissing) return
     save.mutate()
   }
 
@@ -457,24 +498,52 @@ function ActivityForm({
                 </select>
               )}
             </Field>
-            <Field
-              label={t('adminActivity.registerUrlLabel')}
-              hint={t('adminActivity.registerUrlHint')}
-              error={linkInvalid ? t('adminActivity.registerUrlInvalid') : undefined}
-            >
+            <Field label={t('adminActivity.registrationModeLabel')}>
               {(props) => (
-                <Input
+                <select
                   {...props}
-                  type="url"
-                  inputMode="url"
-                  dir="ltr"
-                  maxLength={500}
-                  placeholder="https://"
-                  value={form.register_url}
-                  onChange={(event) => set('register_url', event.target.value)}
-                />
+                  className={SELECT_CLASS}
+                  value={form.registration_mode}
+                  onChange={(event) =>
+                    set('registration_mode', event.target.value as ActivityRegistrationMode)
+                  }
+                >
+                  {REGISTRATION_MODES.map((mode) => (
+                    <option key={mode} value={mode}>
+                      {t(`adminActivity.registrationMode.${mode}`)}
+                    </option>
+                  ))}
+                </select>
               )}
             </Field>
+            {external ? (
+              <Field
+                label={t('adminActivity.registerUrlLabel')}
+                hint={t('adminActivity.registerUrlHint')}
+                required
+                error={
+                  linkInvalid
+                    ? t('adminActivity.registerUrlInvalid')
+                    : linkMissing
+                      ? t('adminActivity.registerUrlRequired')
+                      : undefined
+                }
+              >
+                {(props) => (
+                  <Input
+                    {...props}
+                    required
+                    type="url"
+                    inputMode="url"
+                    dir="ltr"
+                    maxLength={500}
+                    placeholder="https://"
+                    value={form.register_url}
+                    onChange={(event) => set('register_url', event.target.value)}
+                  />
+                )}
+              </Field>
+            ) : null}
             <Field label={t('adminActivity.registerLabelLabel')}>
               {(props) => (
                 <Input
@@ -568,5 +637,56 @@ function ActivityForm({
         </form>
       </CardBody>
     </Card>
+  )
+}
+
+/** Who signed up on the site, the latest first, each one a WhatsApp tap away. */
+function Registrations({ activity }: { activity: AdminActivity }) {
+  const { t, locale } = useI18n()
+  const rows = useQuery({
+    queryKey: queryKeys.adminActivityRegistrations(activity.id),
+    queryFn: () => adminApi.activityRegistrations(activity.id),
+  })
+  if (rows.isLoading) return <Skeleton className="h-20 rounded-xl" />
+  if (rows.isError) return <ErrorState error={rows.error} onRetry={() => void rows.refetch()} />
+  if ((rows.data ?? []).length === 0) {
+    return <p className="text-sm text-ink-500">{t('admin.workshopNoRegistrations')}</p>
+  }
+  return (
+    <ul className="divide-y divide-ink-100 rounded-xl border border-ink-100">
+      {rows.data?.map((row) => {
+        const href = whatsappHref(
+          row.phone_number,
+          t('adminActivity.registrationWhatsappMessage', {
+            name: row.full_name,
+            title: activity.title,
+          }),
+        )
+        return (
+          <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 px-3 py-2">
+            <span className="min-w-0">
+              <span className="font-semibold text-ink-900" dir="auto">
+                {row.full_name}
+              </span>
+              <span className="ltr-nums ms-2 text-sm text-ink-500" dir="ltr">
+                {row.phone_number}
+              </span>
+              <span className="ms-2 text-xs text-ink-500">{formatDateTime(row.created_at, locale)}</span>
+            </span>
+            {href ? (
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-olive-700 hover:underline"
+              >
+                <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                {t('admin.workshopContact')}
+              </a>
+            ) : null}
+          </li>
+        )
+      })}
+    </ul>
   )
 }

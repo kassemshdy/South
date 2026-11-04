@@ -47,4 +47,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_table("open_service_requests")
+    # Drops nothing (the owners' rule, 4 Nov 2026): a table that may hold
+    # visitors' requests is removed, if ever, by a new migration through
+    # app.database.migration_safety.drop_table_if_empty.
+    pass

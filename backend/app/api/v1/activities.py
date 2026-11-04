@@ -16,15 +16,19 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, File, Form, Path, Query, UploadFile, status
 from sqlalchemy import Select, case, func, select
 
-from app.core.dependencies import AdminUser, AppSettings, DbSession
-from app.core.errors import ConflictError, NotFoundError, ValidationError
+from app.core.captcha import verify_captcha
+from app.core.dependencies import AdminUser, AppSettings, ClientIp, DbSession
+from app.core.errors import ConflictError, NotFoundError, RateLimitedError, ValidationError
 from app.core.i18n import translate
+from app.core.rate_limit import DatabaseRateLimiter, RateLimitRule
 from app.core.uploads import read_at_most
-from app.models.activity import Activity, CarouselSlide
-from app.models.enums import ImageKind
+from app.models.activity import Activity, ActivityRegistration, CarouselSlide
+from app.models.enums import ActivityRegistrationMode, ImageKind
 from app.schemas.activity import (
     ActivityIn,
     ActivityOut,
+    ActivityRegistrationIn,
+    ActivityRegistrationOut,
     ActivityUpdateIn,
     AdminActivityOut,
     AdminCarouselOut,
@@ -54,9 +58,7 @@ def _ordered(stmt: Select[tuple[Activity]]) -> Select[tuple[Activity]]:
 
 
 def _public() -> Select[tuple[Activity]]:
-    return select(Activity).where(
-        Activity.is_archived.is_(False), Activity.image_url.is_not(None)
-    )
+    return select(Activity).where(Activity.is_archived.is_(False), Activity.image_url.is_not(None))
 
 
 def _slug_exists(db: DbSession, slug: str, exclude_id: uuid.UUID | None = None) -> bool:
@@ -126,7 +128,75 @@ def get_activity(slug: Annotated[str, Path(max_length=180)], db: DbSession) -> A
     return ActivityOut.model_validate(activity)
 
 
+@public_router.post(
+    "/activities/{slug}/register",
+    response_model=MessageResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def register_for_activity(
+    slug: Annotated[str, Path(max_length=180)],
+    payload: ActivityRegistrationIn,
+    db: DbSession,
+    settings: AppSettings,
+    client_ip: ClientIp,
+) -> MessageResponse:
+    """Sign up on the site (the owners' ticket, 4 Nov 2026).
+
+    Open only while the activity takes sign-ups here and has not ended. The
+    same limits as a workshop sign-up: per address, site-wide per day, and
+    the captcha when one is configured. Who signed up reaches staff only.
+    """
+    activity = db.execute(_public().where(Activity.slug == slug)).scalar_one_or_none()
+    if activity is None:
+        raise NotFoundError("activity.not_found")
+    if activity.registration_mode is not ActivityRegistrationMode.ON_SITE or has_ended(activity):
+        raise ValidationError("activity.registration_closed", code="registration_closed")
+
+    limiter = DatabaseRateLimiter(db)
+    if client_ip:
+        per_ip = limiter.hit(
+            RateLimitRule(
+                bucket="activity_ip",
+                limit=settings.partner_per_ip_limit,
+                window_seconds=settings.partner_per_ip_window_seconds,
+            ),
+            client_ip,
+        )
+        if not per_ip.allowed:
+            raise RateLimitedError(per_ip.retry_after_seconds, "activity.rate_limited")
+    overall = limiter.hit(
+        RateLimitRule(
+            bucket="activity_global",
+            limit=settings.partner_per_day_limit,
+            window_seconds=86400,
+        ),
+        "all",
+    )
+    if not overall.allowed:
+        raise RateLimitedError(overall.retry_after_seconds, "activity.rate_limited")
+    verify_captcha(payload.captcha_token, settings, client_ip=client_ip)
+
+    db.add(
+        ActivityRegistration(
+            activity_id=activity.id,
+            full_name=payload.full_name,
+            phone_number=payload.phone_number,
+        )
+    )
+    db.commit()
+    return MessageResponse(message=translate("activity.registered"))
+
+
 # --- Administrators --------------------------------------------------------
+
+
+def _registration_counts(db: DbSession) -> dict[uuid.UUID, int]:
+    rows = db.execute(
+        select(ActivityRegistration.activity_id, func.count()).group_by(
+            ActivityRegistration.activity_id
+        )
+    ).all()
+    return {row[0]: int(row[1]) for row in rows}
 
 
 def _get_or_404(db: DbSession, activity_id: uuid.UUID) -> Activity:
@@ -139,6 +209,7 @@ def _get_or_404(db: DbSession, activity_id: uuid.UUID) -> Activity:
 def _admin_out(db: DbSession, activity: Activity) -> AdminActivityOut:
     out = AdminActivityOut.model_validate(activity)
     out.in_carousel = CarouselService(db).slide_for(activity.id) is not None
+    out.registration_count = _registration_counts(db).get(activity.id, 0)
     return out
 
 
@@ -151,10 +222,26 @@ def admin_list_activities(db: DbSession, admin: AdminUser) -> list[AdminActivity
             select(CarouselSlide.activity_id).where(CarouselSlide.activity_id.is_not(None))
         ).scalars()
     )
+    counts = _registration_counts(db)
     outs = [AdminActivityOut.model_validate(row) for row in rows]
     for out in outs:
         out.in_carousel = out.id in in_carousel
+        out.registration_count = counts.get(out.id, 0)
     return outs
+
+
+@admin_router.get("/{activity_id}/registrations", response_model=list[ActivityRegistrationOut])
+def list_activity_registrations(
+    activity_id: uuid.UUID, db: DbSession, admin: AdminUser
+) -> list[ActivityRegistrationOut]:
+    """Who signed up on the site, the latest first."""
+    _get_or_404(db, activity_id)
+    rows = db.execute(
+        select(ActivityRegistration)
+        .where(ActivityRegistration.activity_id == activity_id)
+        .order_by(ActivityRegistration.created_at.desc())
+    ).scalars()
+    return [ActivityRegistrationOut.model_validate(row) for row in rows]
 
 
 @admin_router.post("", response_model=AdminActivityOut, status_code=status.HTTP_201_CREATED)
@@ -187,7 +274,15 @@ def update_activity(
     else:
         data.pop("slug", None)
     in_carousel = data.pop("in_carousel", None)
-    for field in ("title", "body", "is_archived", "sort_order", "kind", "show_calendar"):
+    for field in (
+        "title",
+        "body",
+        "is_archived",
+        "sort_order",
+        "kind",
+        "registration_mode",
+        "show_calendar",
+    ):
         # Not nullable: an explicit null leaves the value as it was.
         if field in data and data[field] is None:
             data.pop(field)
@@ -197,6 +292,11 @@ def update_activity(
         activity.starts_at is None or activity.ends_at <= activity.starts_at
     ):
         raise ValidationError("activity.ends_before_start", code="invalid_dates")
+    if (
+        activity.registration_mode is ActivityRegistrationMode.EXTERNAL
+        and not activity.register_url
+    ):
+        raise ValidationError("activity.external_needs_link", code="missing_register_url")
     carousel = CarouselService(db)
     if activity.is_archived or in_carousel is False:
         # Archived activities leave the carousel; the list keeps them.
@@ -303,9 +403,7 @@ def admin_carousel(db: DbSession, admin: AdminUser) -> AdminCarouselOut:
 
 
 @carousel_admin_router.put("/order", response_model=AdminCarouselOut)
-def reorder_carousel(
-    payload: CarouselOrderIn, db: DbSession, admin: AdminUser
-) -> AdminCarouselOut:
+def reorder_carousel(payload: CarouselOrderIn, db: DbSession, admin: AdminUser) -> AdminCarouselOut:
     CarouselService(db).reorder(payload.slide_ids)
     return _carousel_out(db)
 
