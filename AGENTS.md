@@ -419,6 +419,14 @@ for something that hands out sessions.
   emptied and `token_version` reset, so the file restores a whole site
   without anyone's password -- `tests/test_telegram_db_backup.py` pins it.
   A new column that signs someone in belongs in `REDACTED_USER_COLUMNS`.
+- **No Shopify or Cloudflare credential lives in this application.** They
+  are the Shopify Connector's, encrypted there. Janoubona's own secrets for
+  it, `CONNECTOR_API_KEY` and `CONNECTOR_WEBHOOK_SECRET`, are Railway
+  variables; production refuses a connector URL without both, or one that
+  is not https. A partner API key is shown once and stored as its SHA-256
+  only. Deleting a listing or an account tells the connector after the
+  commit (`forget_stores`), which revokes the store's token and removes its
+  DNS record. `tests/test_shopify.py` pins the signature check.
 - **Deleting an account deletes its files too.** `AccountDeletionService`
   removes the rows in one transaction and then every file they pointed at,
   private documents included; a new upload type that belongs to an account
@@ -464,6 +472,44 @@ constrain how you work on it:
 - `update_ticket` is **one** tool that routes `status` to `/move` and
   everything else to the edit route, because the edit route silently ignores a
   status and answers 200.
+
+## Third-Party Commerce (Shopify, Yalla Pay, AdsTalk)
+
+**Janoubona is the door, not the shop** (the investor's model, 30 Oct 2026).
+Each shop sells through its **own** Shopify store; payment and delivery
+happen there (Yalla Pay is a Shopify app), and this codebase holds no payment
+code. **An administrator connects a shop's store on its behalf** at
+`/admin/shopify` (the owners' decision, 4 Nov 2026): owners never see Shopify
+in their dashboard, and there is no owner route for it. Every staff role
+reads the page; connecting, resending, subdomains and disconnecting are the
+manager's. A connected shop's buy buttons are public at once.
+Full detail in `docs/COMMERCE.md`; the partners' reference is
+`docs/PARTNER_API.md`. What constrains how you work on it:
+
+- **The Shopify side is a separate service**, the shared **Shopify
+  Connector** (its own repository, `kassemshdy/shopify-connector`): one
+  Shopify app serving several websites. It holds the app's credentials,
+  every store's token and the Cloudflare zone. Janoubona holds none of
+  them -- only `CONNECTOR_URL`, its API key and the webhook secret -- and
+  must stay that way: a Shopify or Cloudflare call from this repository is
+  a design change, not a shortcut.
+- **One direction for now: Janoubona -> connector -> Shopify.** A product
+  change on a connected shop is queued in `integration_outbox` by a session
+  hook (`app/services/outbox.py`) in the same flush, and sent to the
+  connector by a worker in the API's lifespan
+  (`app/services/connector.py`). Do not call the connector from a route for
+  a product: a rolled-back edit must send nothing, and a crash after commit
+  must lose nothing.
+- **What visitors see comes from the connector's webhooks**, mirrored in
+  `store_links` / `item_links`, and is believed only with its signature
+  (`X-Connector-Signature`, at most 5 minutes old). Buy links are public
+  only while the mirror says the store is connected
+  (`app/services/storefront.py`).
+- **Prices are never converted** (the connector refuses a currency the
+  store does not sell in, and reports why).
+- **The partner feed publishes nothing a visitor cannot read**: approved
+  listings, available products, built from the public serializers.
+  `tests/test_partner_api.py` is its `test_identity.py`.
 
 ## Optional Integrations Are Inert Without Their Variable
 

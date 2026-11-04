@@ -369,3 +369,4 @@ class JobType(str, enum.Enum):
     REMOTE = "REMOTE"
     FREELANCE = "FREELANCE"
     INTERNSHIP = "INTERNSHIP"
+

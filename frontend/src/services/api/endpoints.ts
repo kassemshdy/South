@@ -43,6 +43,10 @@ import type {
   AdminTestimonial,
   AdminOpenServiceRequest,
   AdminPartnerRequest,
+  ApiPartner,
+  ApiPartnerIssued,
+  ShopifyShop,
+  ShopifyStatus,
   AdminUser,
   AdminUserDetail,
   Article,
@@ -962,6 +966,30 @@ export const adminApi = {
     apiRequest<{ message: string }>(`/api/admin/talent/${id}`, { method: 'DELETE' }),
   deleteUser: (id: string) =>
     apiRequest<{ message: string }>(`/api/admin/users/${id}`, { method: 'DELETE' }),
+  /** Connecting a shop's own Shopify store on its behalf; 404 while it is not configured. */
+  shopifyShops: () => apiRequest<ShopifyShop[]>('/api/admin/shopify/shops'),
+  shopify: (id: string) => apiRequest<ShopifyStatus>(`/api/admin/businesses/${id}/shopify`),
+  shopifyInstall: (id: string, shop: string) =>
+    apiRequest<{ authorize_url: string }>(`/api/admin/businesses/${id}/shopify/install`, {
+      method: 'POST',
+      body: { shop },
+    }),
+  shopifySync: (id: string) =>
+    apiRequest<{ queued: number }>(`/api/admin/businesses/${id}/shopify/sync`, { method: 'POST' }),
+  shopifyDisconnect: (id: string) =>
+    apiRequest<{ message: string }>(`/api/admin/businesses/${id}/shopify`, { method: 'DELETE' }),
+  shopifySubdomain: (id: string, subdomain: string) =>
+    apiRequest<ShopifyStatus>(`/api/admin/businesses/${id}/shopify/subdomain`, {
+      method: 'POST',
+      body: { subdomain },
+    }),
+  apiPartners: () => apiRequest<ApiPartner[]>('/api/admin/api-partners'),
+  issueApiPartner: (name: string) =>
+    apiRequest<ApiPartnerIssued>('/api/admin/api-partners', { method: 'POST', body: { name } }),
+  rotateApiPartner: (id: string) =>
+    apiRequest<ApiPartnerIssued>(`/api/admin/api-partners/${id}/rotate`, { method: 'POST' }),
+  revokeApiPartner: (id: string) =>
+    apiRequest<ApiPartner>(`/api/admin/api-partners/${id}/revoke`, { method: 'POST' }),
   partners: (solved = false) =>
     apiRequest<AdminPartnerRequest[]>('/api/admin/partners', { query: { solved } }),
   serviceRequests: (solved = false) =>

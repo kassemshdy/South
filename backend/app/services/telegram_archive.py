@@ -122,6 +122,8 @@ SKIPPED_COLUMNS = frozenset(
         "created_at",
         "updated_at",
         "search_vector",
+        # A partner API key's hash: never archived, listed anyway.
+        "key_hash",
     }
 )
 

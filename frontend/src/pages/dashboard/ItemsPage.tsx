@@ -51,6 +51,7 @@ export function ItemsPage() {
         </p>
       </header>
 
+
       <Card>
         <CardBody>
           <ItemManager businessId={id} />

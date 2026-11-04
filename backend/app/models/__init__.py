@@ -31,6 +31,12 @@ from app.models.enums import (
     ViewSubject,
 )
 from app.models.feedback import FeedbackAttachment, FeedbackComment, FeedbackTicket
+from app.models.integration import (
+    ApiPartner,
+    IntegrationOutbox,
+    ItemLink,
+    StoreLink,
+)
 from app.models.job import JobApplication, JobContactClickDaily, JobOpening
 from app.models.open_service_request import OpenServiceRequest
 from app.models.order import Order, OrderLine
@@ -65,6 +71,7 @@ from app.models.workshop import Workshop, WorkshopRegistration
 
 __all__ = [
     "Activity",
+    "ApiPartner",
     "Article",
     "ArticleSection",
     "Business",
@@ -86,6 +93,8 @@ __all__ = [
     "FeedbackStatus",
     "FeedbackTicket",
     "ImageKind",
+    "IntegrationOutbox",
+    "ItemLink",
     "JobApplication",
     "JobContactClickDaily",
     "JobOpening",
@@ -107,6 +116,7 @@ __all__ = [
     "ServiceRequest",
     "SiteSetting",
     "SocialPlatform",
+    "StoreLink",
     "StoryImage",
     "TalentCourse",
     "TalentEducation",

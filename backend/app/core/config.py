@@ -291,6 +291,23 @@ class Settings(BaseSettings):
     # commit as RAILWAY_GIT_COMMIT_SHA; map it to this in the service config.
     sentry_release: str | None = None
 
+    # --- Third-party commerce (docs/COMMERCE.md) ---------------------------
+    # Each shop sells through its own Shopify store, run by the shared
+    # Shopify Connector service (its own repository). Janoubona holds no
+    # Shopify or Cloudflare credential: only this site's key to the
+    # connector and the secret its webhooks are signed with. All unset means
+    # no Connect button and every Shopify route answers 404.
+    connector_url: str | None = None
+    connector_api_key: str | None = None
+    connector_webhook_secret: str | None = None
+    # Seconds between passes of the outbox worker that pushes products.
+    integration_outbox_poll_seconds: int = 15
+
+    # Read-only feed of stores and products for partners (Yalla Pay,
+    # AdsTalk), per API key. See docs/PARTNER_API.md.
+    partner_api_per_key_limit: int = 600
+    partner_api_per_key_window_seconds: int = 3600
+
     # --- Frontend serving --------------------------------------------------
     # When set, the API also serves the built SPA from this directory and
     # injects per-business SEO tags into index.html.
@@ -314,6 +331,12 @@ class Settings(BaseSettings):
     @property
     def is_staging(self) -> bool:
         return self.app_env == "staging"
+
+    @property
+    def connector_enabled(self) -> bool:
+        return bool(
+            self.connector_url and self.connector_api_key and self.connector_webhook_secret
+        )
 
     @property
     def is_hardened(self) -> bool:
@@ -353,6 +376,12 @@ class Settings(BaseSettings):
             problems.append("S3_BUCKET is required when STORAGE_BACKEND=s3")
         if self.debug:
             problems.append("DEBUG must be false in production")
+        if self.connector_url and not self.connector_enabled:
+            problems.append(
+                "CONNECTOR_URL needs CONNECTOR_API_KEY and CONNECTOR_WEBHOOK_SECRET"
+            )
+        if self.connector_url and not self.connector_url.startswith("https://"):
+            problems.append("CONNECTOR_URL must be https")
 
         if problems:
             raise RuntimeError(
