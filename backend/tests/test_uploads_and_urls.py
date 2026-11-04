@@ -7,6 +7,7 @@ import io
 import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
+from pillow_heif import register_heif_opener
 
 from app.core.errors import ValidationError
 from app.core.urls import normalize_social_url, normalize_url, youtube_video_id
@@ -14,6 +15,8 @@ from app.models.enums import SocialPlatform
 from app.models.taxonomy import Category, Location
 from tests.conftest import sign_in
 from tests.samples import ar
+
+register_heif_opener()
 
 
 def make_image(size: tuple[int, int] = (1200, 900), fmt: str = "JPEG") -> bytes:
@@ -81,6 +84,37 @@ def test_disallowed_mime_type_is_rejected(
         f"/api/businesses/{business_id}/images",
         headers=headers,
         files={"file": ("doc.pdf", b"%PDF-1.4", "application/pdf")},
+        data={"kind": "GALLERY"},
+    )
+    assert response.status_code == 415
+
+
+@pytest.mark.parametrize("content_type", ["image/heic", "application/octet-stream"])
+def test_a_phone_heic_photo_is_converted_to_jpeg(
+    client: TestClient, business: tuple[str, dict[str, str]], content_type: str
+) -> None:
+    """Phones save HEIC; desktop browsers send it as octet-stream. Either way
+    it is decoded and stored as a JPEG like any other photo."""
+    business_id, headers = business
+    response = client.post(
+        f"/api/businesses/{business_id}/images",
+        headers=headers,
+        files={"file": ("IMG_0001.HEIC", make_image((1600, 1200), fmt="HEIF"), content_type)},
+        data={"kind": "GALLERY"},
+    )
+    assert response.status_code == 201, response.text
+    image = response.json()["images"][0]
+    assert image["url"].endswith(".jpg") and image["width"] <= 1400
+
+
+def test_octet_stream_that_is_not_an_image_is_still_rejected(
+    client: TestClient, business: tuple[str, dict[str, str]]
+) -> None:
+    business_id, headers = business
+    response = client.post(
+        f"/api/businesses/{business_id}/images",
+        headers=headers,
+        files={"file": ("photo.heic", b"<?php echo 'hello'; ?>", "application/octet-stream")},
         data={"kind": "GALLERY"},
     )
     assert response.status_code == 415

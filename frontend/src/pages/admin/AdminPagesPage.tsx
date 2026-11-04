@@ -98,7 +98,7 @@ export function AdminPagesPage() {
   const pages = useQuery({ queryKey: queryKeys.adminPages, queryFn: adminApi.pages })
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="space-y-6">
       <div>
         <h1 className="text-3xl">{t('admin.navPages')}</h1>
         <p className="mt-2 text-ink-500">{t('admin.pagesSubtitle')}</p>

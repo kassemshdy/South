@@ -20,12 +20,21 @@ export function TestimonialList({
   testimonials,
   average,
   count,
+  breakdown = false,
 }: {
   testimonials: Testimonial[]
   average: number | null
   count: number
+  /** One bar per star level, counted from the published ratings shown
+   *  below (the services redesign, 3 Nov 2026). */
+  breakdown?: boolean
 }) {
   const { t, locale } = useI18n()
+  const rated = testimonials.filter((entry) => entry.rating !== null)
+  const levels = [5, 4, 3, 2, 1].map((stars) => ({
+    stars,
+    count: rated.filter((entry) => entry.rating === stars).length,
+  }))
 
   return (
     <section aria-labelledby="testimonials-heading">
@@ -42,6 +51,22 @@ export function TestimonialList({
             })}
           </span>
         </p>
+      ) : null}
+      {breakdown && rated.length > 0 ? (
+        <ul className="my-3 max-w-sm space-y-1" aria-label={t('testimonials.breakdown')}>
+          {levels.map((level) => (
+            <li key={level.stars} className="flex items-center gap-2 text-xs text-ink-500">
+              <span className="ltr-nums w-8 shrink-0">{t('testimonials.starsLevel', { stars: level.stars })}</span>
+              <span className="h-2 flex-1 overflow-hidden rounded-full bg-sand-100" aria-hidden="true">
+                <span
+                  className="block h-full rounded-full bg-amber-400"
+                  style={{ width: `${(level.count / rated.length) * 100}%` }}
+                />
+              </span>
+              <span className="ltr-nums w-6 shrink-0 text-end">{level.count}</span>
+            </li>
+          ))}
+        </ul>
       ) : null}
       <p className="mb-3 text-xs text-ink-400">{t('testimonials.disclaimer')}</p>
 

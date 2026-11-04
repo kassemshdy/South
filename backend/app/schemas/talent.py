@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Annotated, Self
 
 from pydantic import BaseModel, EmailStr, Field, computed_field, field_validator, model_validator
@@ -12,6 +13,7 @@ from app.core.pins import check_pin
 from app.models.enums import (
     BusinessStatus,
     ContactChannel,
+    Currency,
     EducationLevel,
     EmployerRequestStatus,
     EmploymentType,
@@ -125,6 +127,10 @@ class TalentSummaryOut(ORMModel):
     # The taxonomy skill and the person's own extras, for the card's chips.
     skill_tags: list[str] = Field(default_factory=list)
     work_types: list[TalentWorkType] = Field(default_factory=list)
+    # Services: the lowest price among the priced services, for the card's
+    # "from" line. Null when nothing is priced.
+    starting_price: Decimal | None = None
+    starting_price_currency: Currency | None = None
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -148,6 +154,22 @@ class TalentExperienceOut(ORMModel):
     end_date: date | None = None
     is_current: bool = False
     description: str | None = None
+
+
+class TalentServiceOfferOut(ORMModel):
+    id: uuid.UUID
+    title: str
+    description: str | None = None
+    price_from: Decimal | None = None
+    price_to: Decimal | None = None
+    currency: Currency = Currency.USD
+    price_unit: str | None = None
+
+
+class TalentFaqOut(ORMModel):
+    id: uuid.UUID
+    question: str
+    answer: str
 
 
 class TalentEducationOut(ORMModel):
@@ -205,6 +227,8 @@ class TalentDetailOut(TalentSummaryOut):
     # Job seekers: where they can work and their history, newest first.
     work_areas: list[LocationOut] = Field(default_factory=list)
     experiences: list[TalentExperienceOut] = Field(default_factory=list)
+    service_offers: list[TalentServiceOfferOut] = Field(default_factory=list)
+    faqs: list[TalentFaqOut] = Field(default_factory=list)
     education: list[TalentEducationOut] = Field(default_factory=list)
     courses: list[TalentCourseOut] = Field(default_factory=list)
 
@@ -257,6 +281,42 @@ class TalentExperienceIn(BaseModel):
     @classmethod
     def _strip(cls, value: str | None) -> str | None:
         return _strip_or_none(value)
+
+
+class TalentServiceOfferIn(BaseModel):
+    title: str = Field(min_length=1, max_length=120)
+    description: str | None = Field(default=None, max_length=500)
+    price_from: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
+    price_to: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
+    currency: Currency = Currency.USD
+    price_unit: str | None = Field(default=None, max_length=40)
+
+    @field_validator("title", "description", "price_unit")
+    @classmethod
+    def _strip(cls, value: str | None) -> str | None:
+        return _strip_or_none(value)
+
+    @model_validator(mode="after")
+    def _range(self) -> Self:
+        # A "to" alone is read as the single price.
+        if self.price_from is None and self.price_to is not None:
+            self.price_from, self.price_to = self.price_to, None
+        if self.price_to is not None and self.price_from is not None:
+            if self.price_to < self.price_from:
+                raise ValueError(translate("talent.service_price_range"))
+            if self.price_to == self.price_from:
+                self.price_to = None
+        return self
+
+
+class TalentFaqIn(BaseModel):
+    question: str = Field(min_length=1, max_length=200)
+    answer: str = Field(min_length=1, max_length=1000)
+
+    @field_validator("question", "answer")
+    @classmethod
+    def _strip(cls, value: str) -> str:
+        return value.strip()
 
 
 class TalentEducationIn(BaseModel):
@@ -323,6 +383,9 @@ class TalentProfileFieldsIn(BaseModel):
     cv_public: bool | None = None
     team_message: str | None = Field(default=None, max_length=2000)
     experiences: list[TalentExperienceIn] | None = Field(default=None, max_length=30)
+    # Services: replaces the stored list; omitted keeps it.
+    service_offers: list[TalentServiceOfferIn] | None = Field(default=None, max_length=20)
+    faqs: list[TalentFaqIn] | None = Field(default=None, max_length=15)
     education: list[TalentEducationIn] | None = Field(default=None, max_length=15)
     courses: list[TalentCourseIn] | None = Field(default=None, max_length=30)
 

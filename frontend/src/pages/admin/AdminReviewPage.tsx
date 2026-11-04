@@ -18,6 +18,8 @@ import { Field } from '@/components/ui/Field'
 import { Textarea } from '@/components/ui/Input'
 import { ErrorState, InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
+import { ImagePreviewDialog } from '@/features/admin/ImagePreviewDialog'
+import { openPrivateFile, type PreviewImage } from '@/features/admin/openPrivateFile'
 import { IssueCredentialsCard } from '@/features/admin/IssueCredentialsCard'
 import { OwnerIdentityCard } from '@/features/admin/OwnerIdentityCard'
 import { OwnerWhatsappButton } from '@/features/admin/OwnerWhatsappButton'
@@ -42,6 +44,7 @@ export function AdminReviewPage() {
   const toast = useToast()
   const { t, locale } = useI18n()
   const [confirming, setConfirming] = useState<ConfirmAction>(null)
+  const [preview, setPreview] = useState<PreviewImage | null>(null)
   const schema = useMemo(() => rejectSchema(t), [t])
 
   const business = useQuery({
@@ -55,14 +58,8 @@ export function AdminReviewPage() {
     void queryClient.invalidateQueries({ queryKey: ['admin'] })
   }
 
-  const saveBlob = ({ blob, filename }: { blob: Blob; filename: string | null }) => {
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = filename ?? 'document'
-    link.click()
-    URL.revokeObjectURL(url)
-  }
+  const saveBlob = (file: { blob: Blob; filename: string | null }) =>
+    openPrivateFile(file, setPreview, file.filename ?? business.data?.name ?? '')
 
   const onDownloadError = (error: unknown) =>
     toast.error(
@@ -134,7 +131,7 @@ export function AdminReviewPage() {
   const data = business.data
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="space-y-6">
       <Link to="/admin/businesses" className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-brand-700">
         <ArrowRight className="h-4 w-4" aria-hidden="true" />
         {t('admin.backToBusinesses')}
@@ -142,9 +139,16 @@ export function AdminReviewPage() {
 
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-sand-100">
+          <button
+            type="button"
+            disabled={!data.logo_url}
+            onClick={() =>
+              data.logo_url ? setPreview({ title: t('admin.previewLogo'), url: data.logo_url }) : null
+            }
+            className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-sand-100"
+          >
             {data.logo_url ? <img src={data.logo_url} alt="" className="h-full w-full object-cover" /> : null}
-          </div>
+          </button>
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl">{data.name}</h1>
@@ -301,9 +305,13 @@ export function AdminReviewPage() {
               <CardBody>
                 <div className="grid grid-cols-3 gap-2">
                   {data.images.map((image) => (
-                    <a key={image.id} href={image.url} target="_blank" rel="noopener noreferrer">
+                    <button
+                      key={image.id}
+                      type="button"
+                      onClick={() => setPreview({ title: data.name, url: image.url })}
+                    >
                       <img src={image.url} alt="" className="h-24 w-full rounded-lg object-cover" />
-                    </a>
+                    </button>
                   ))}
                 </div>
               </CardBody>
@@ -359,6 +367,41 @@ export function AdminReviewPage() {
               <Detail labelKey="admin.ownerPersonalPhone" value={data.owner_personal_phone} ltr />
               <OwnerWhatsappButton phone={data.owner_phone} />
               <p className="text-xs text-ink-300">{t('admin.ownerPrivacyNote')}</p>
+              {/* The shop's logo and cover beside the documents, opened in a
+                  popup rather than a new tab (the owners' request, 3 Nov 2026). */}
+              <div className="grid grid-cols-2 gap-2">
+                {(
+                  [
+                    ['admin.previewLogo', data.logo_url],
+                    ['admin.previewCover', data.cover_url],
+                  ] as const
+                ).map(([labelKey, url]) => (
+                  <div key={labelKey} className="space-y-1">
+                    <p className="text-xs font-semibold text-ink-500">{t(labelKey)}</p>
+                    {url ? (
+                      <button
+                        type="button"
+                        onClick={() => setPreview({ title: t(labelKey), url })}
+                        className="block h-20 w-full overflow-hidden rounded-xl border border-ink-100 bg-sand-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                      >
+                        <img
+                          src={url}
+                          alt=""
+                          className={
+                            labelKey === 'admin.previewLogo'
+                              ? 'h-full w-full object-contain'
+                              : 'h-full w-full object-cover'
+                          }
+                        />
+                      </button>
+                    ) : (
+                      <p className="flex h-20 items-center justify-center rounded-xl bg-sand-100 text-xs text-ink-400">
+                        {t('admin.previewMissing')}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
               {canDocuments && data.owner_has_verification_document ? (
                 <Button
                   type="button"
@@ -575,6 +618,7 @@ export function AdminReviewPage() {
           </DialogContent>
         ) : null}
       </Dialog>
+      <ImagePreviewDialog image={preview} onClose={() => setPreview(null)} />
     </div>
   )
 }

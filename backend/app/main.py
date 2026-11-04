@@ -667,8 +667,8 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
                                     available=item.is_available,
                                     business_name=item.business.name,
                                     business_url=f"{base_url}/business/{quote(item.business.slug)}",
-                                    category_name=item.business.category.name_ar
-                                    if item.business.category
+                                    location_name=item.business.location.name_ar
+                                    if item.business.location
                                     else None,
                                 ),
                             ),

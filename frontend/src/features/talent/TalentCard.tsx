@@ -8,7 +8,7 @@ import { CategoryIcon } from '@/features/home/categoryIcon'
 import { CandidateCard } from '@/features/talent/candidate/CandidateCard'
 import { useT } from '@/i18n'
 import type { TalentSummary } from '@/types/api'
-import { whatsappHref } from '@/utils/format'
+import { formatPrice, whatsappHref } from '@/utils/format'
 
 export function TalentCard({ talent }: { talent: TalentSummary }) {
   // A job seeker gets the candidate card wherever a talent card is drawn
@@ -51,6 +51,7 @@ function ServiceCard({ talent }: { talent: TalentSummary }) {
       : t('talent.whatsappMessage', { name: talent.display_name }),
   )
   const rated = talent.rating_count > 0 && talent.rating_average !== null
+  const startingPrice = formatPrice(talent.starting_price ?? null, talent.starting_price_currency ?? 'USD')
 
   const meta: { key: string; node: ReactNode }[] = []
   if (rated) {
@@ -172,7 +173,18 @@ function ServiceCard({ talent }: { talent: TalentSummary }) {
         </div>
 
         <div className="mt-auto flex items-center justify-between gap-2 pt-4">
-          <span className="text-sm font-semibold text-brand-700">{t('talent.viewProfile')}</span>
+          {/* The lowest priced service, the one figure a visitor compares
+              before opening a profile; "view profile" when nothing is priced. */}
+          {startingPrice ? (
+            <span className="text-sm text-ink-500">
+              {t('serviceOffers.startingFrom')}{' '}
+              <span className="ltr-nums font-bold text-ink-900" dir="ltr">
+                {startingPrice}
+              </span>
+            </span>
+          ) : (
+            <span className="text-sm font-semibold text-brand-700">{t('talent.viewProfile')}</span>
+          )}
           {whatsapp ? (
             <a
               href={whatsapp}

@@ -1,24 +1,29 @@
-"""third-party commerce: store and product mirrors, outbox, partner API keys
+"""Shopify commerce tables: store and product mirrors, outbox, partner API keys
 
-The investor's model (30 Oct 2026): each shop sells through its own Shopify
-store, run through the shared Shopify Connector service. Janoubona keeps a
-mirror of what the connector reports (``store_links``, ``item_links``), an
-outbox of pushes to it, and the keys of the partner feed. No credential for
-Shopify or Cloudflare is stored here. New tables only, created if absent.
+Four new, empty tables for the Shopify Connector work (the investor's model,
+30 Oct 2026), released ahead of the code that uses them so the live database,
+new.janoubona.net and the Shopify staging site all carry one migration
+history. Janoubona keeps a mirror of what the connector reports
+(``store_links``, ``item_links``), an outbox of pushes to it and the keys of
+the partner feed; no Shopify or Cloudflare credential is stored here.
 
-Revision ID: a3d9e2c1b7f4
-Revises: f1a7c3e9b524
+Create only: nothing existing is altered and nothing is dropped. Each table
+is created only if absent. The downgrade drops nothing either -- the owners'
+rule is that a table with data is never dropped -- so undoing this is a new
+migration through ``app.database.migration_safety``.
+
+Revision ID: c5f1a9e3d7b2
+Revises: b8d4f6a2c1e3
 """
 
-from __future__ import annotations
 
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 from alembic import op
 
-revision = "a3d9e2c1b7f4"
-down_revision = "f1a7c3e9b524"
+revision = "c5f1a9e3d7b2"
+down_revision = "b8d4f6a2c1e3"
 branch_labels = None
 depends_on = None
 
@@ -145,9 +150,4 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_table("api_partners")
-    op.drop_index("ix_integration_outbox_pending", table_name="integration_outbox")
-    op.drop_index("ix_integration_outbox_business_id", table_name="integration_outbox")
-    op.drop_table("integration_outbox")
-    op.drop_table("item_links")
-    op.drop_table("store_links")
+    """Deliberately nothing: see the module docstring."""

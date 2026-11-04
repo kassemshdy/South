@@ -18,8 +18,10 @@ from app.models.talent import (
     TalentCourse,
     TalentEducation,
     TalentExperience,
+    TalentFaq,
     TalentLanguage,
     TalentProfile,
+    TalentServiceOffer,
     TalentSocialLink,
     TalentWorkArea,
     TalentWorkTypeRow,
@@ -161,7 +163,15 @@ class TalentService:
         social_links = data.pop("social_links", None)
         lists = {
             key: data.pop(key)
-            for key in ("work_types", "work_area_ids", "experiences", "education", "courses")
+            for key in (
+                "work_types",
+                "work_area_ids",
+                "experiences",
+                "service_offers",
+                "faqs",
+                "education",
+                "courses",
+            )
             if key in data
         }
         # Not nullable: an explicit null means "no change".
@@ -298,6 +308,26 @@ class TalentService:
             # Counted from the entries unless the person gave a number.
             if payload.years_experience is None and profile.experiences:
                 profile.years_experience = _years_from(payload.experiences or [])
+        if "service_offers" in data:
+            profile.service_offers.clear()
+            for index, offer in enumerate(payload.service_offers or []):
+                profile.service_offers.append(
+                    TalentServiceOffer(
+                        title=offer.title,
+                        description=offer.description,
+                        price_from=offer.price_from,
+                        price_to=offer.price_to,
+                        currency=offer.currency,
+                        price_unit=offer.price_unit,
+                        sort_order=index,
+                    )
+                )
+        if "faqs" in data:
+            profile.faqs.clear()
+            for index, faq in enumerate(payload.faqs or []):
+                profile.faqs.append(
+                    TalentFaq(question=faq.question, answer=faq.answer, sort_order=index)
+                )
         if "education" in data:
             profile.education.clear()
             for index, row in enumerate(payload.education or []):

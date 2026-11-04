@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import date, datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
@@ -34,6 +35,7 @@ from app.database.base import Base, TimestampMixin, pg_enum, uuid_pk
 from app.models.enums import (
     BusinessStatus,
     ContactChannel,
+    Currency,
     EducationLevel,
     EmployerRequestStatus,
     EmploymentType,
@@ -277,6 +279,21 @@ class TalentProfile(Base, TimestampMixin):
     work_areas: Mapped[list[TalentWorkArea]] = relationship(
         back_populates="profile", cascade="all, delete-orphan"
     )
+    # A service provider's services, each with its own price (the services
+    # redesign, 3 Nov 2026). ``services_offered`` stays as free text for
+    # anything that is not a priced line.
+    service_offers: Mapped[list[TalentServiceOffer]] = relationship(
+        back_populates="profile",
+        cascade="all, delete-orphan",
+        order_by="TalentServiceOffer.sort_order",
+    )
+    # Questions a visitor would ask, answered by the provider (services
+    # redesign, 3 Nov 2026).
+    faqs: Mapped[list[TalentFaq]] = relationship(
+        back_populates="profile",
+        cascade="all, delete-orphan",
+        order_by="TalentFaq.sort_order",
+    )
     experiences: Mapped[list[TalentExperience]] = relationship(
         back_populates="profile",
         cascade="all, delete-orphan",
@@ -426,6 +443,49 @@ class TalentEducation(Base):
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     profile: Mapped[TalentProfile] = relationship(back_populates="education")
+
+
+class TalentServiceOffer(Base):
+    """One service a provider offers, with its price.
+
+    A price is optional, a single figure (``price_to`` empty) or a range;
+    ``price_unit`` is the provider's own words for what it is per ("per
+    hour", "per session"). Public: it is what a visitor compares.
+    """
+
+    __tablename__ = "talent_service_offers"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    profile_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("talent_profiles.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    title: Mapped[str] = mapped_column(String(120), nullable=False)
+    description: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    price_from: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
+    price_to: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
+    currency: Mapped[Currency] = mapped_column(
+        pg_enum(Currency, "currency"), default=Currency.USD, nullable=False
+    )
+    price_unit: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    profile: Mapped[TalentProfile] = relationship(back_populates="service_offers")
+
+
+class TalentFaq(Base):
+    """One question and its answer on a provider's profile. Public."""
+
+    __tablename__ = "talent_faqs"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    profile_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("talent_profiles.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    question: Mapped[str] = mapped_column(String(200), nullable=False)
+    answer: Mapped[str] = mapped_column(String(1000), nullable=False)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    profile: Mapped[TalentProfile] = relationship(back_populates="faqs")
 
 
 class TalentCourse(Base):

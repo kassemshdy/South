@@ -190,7 +190,7 @@ export function AdminTalentReviewPage() {
       : null
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="space-y-6">
       <Link
         to="/admin/talent"
         className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-brand-700"
