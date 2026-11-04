@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
+import httpx
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -56,9 +57,11 @@ from app.repositories.item import ItemRepository
 from app.repositories.talent import TalentRepository
 from app.services import (
     business_documents,
+    connector,
     db_backup,
     feedback_attachments,
     job_applications,
+    outbox,
     telegram_archive,
     telegram_db_backup,
     verification,
@@ -106,7 +109,23 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 interval_hours=settings.telegram_db_backup_hours,
             )
         )
+    # Pushes to the Shopify Connector (app/services/outbox.py).
+    pushes: asyncio.Task[None] | None = None
+    push_http: httpx.Client | None = None
+    if settings.connector_enabled:
+        push_http = httpx.Client(timeout=30)
+        pushes = asyncio.create_task(
+            outbox.run_worker(
+                SessionLocal,
+                connector.make_handlers(settings, push_http),
+                poll_seconds=settings.integration_outbox_poll_seconds,
+            )
+        )
     yield
+    if pushes is not None:
+        pushes.cancel()
+    if push_http is not None:
+        push_http.close()
     if backups is not None:
         backups.cancel()
     if telegram_copies is not None:
@@ -239,6 +258,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # Before the app is built, so a failure during startup is still reported.
     configure_error_tracking(settings)
     telegram_archive.configure(settings, SessionLocal)
+    if settings.connector_enabled:
+        outbox.install_hooks(SessionLocal)
 
     app = FastAPI(
         title="South Lebanon Business Directory API",

@@ -12,6 +12,7 @@ import {
   GalleryHorizontal,
   GraduationCap,
   Handshake,
+  KeyRound,
   Inbox,
   MapPin,
   Megaphone,
@@ -83,6 +84,8 @@ const GROUPS: { labelKey: TranslationKey; icon: typeof BarChart3; items: NavItem
         icon: BriefcaseBusiness,
         needs: 'employerRequests',
       },
+      { to: '/admin/shopify', labelKey: 'admin.navShopify', icon: Store },
+      { to: '/admin/api-partners', labelKey: 'admin.navApiPartners', icon: KeyRound, needs: 'manage' },
     ],
   },
   {
