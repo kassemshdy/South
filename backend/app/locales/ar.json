@@ -332,5 +332,8 @@
   "carousel.not_custom": "تُعدَّل شريحة النشاط من صفحة النشاط نفسه.",
   "seo.product.description": "{name} من {shop} في {location}، على جنوبنا.",
   "seo.product.description_no_location": "{name} من {shop}، على جنوبنا.",
-  "talent.service_price_range": "السعر الأعلى يجب ألا يقل عن السعر الأدنى."
+  "talent.service_price_range": "السعر الأعلى يجب ألا يقل عن السعر الأدنى.",
+  "open_request.received": "شكرًا لك. وصلنا طلبك، وسيتواصل معك فريقنا ليصلك بمن يقدّم الخدمة.",
+  "open_request.not_found": "الطلب غير موجود.",
+  "open_request.deleted": "تم حذف الطلب."
 }
