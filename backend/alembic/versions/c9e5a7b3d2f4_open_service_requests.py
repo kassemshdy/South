@@ -1,7 +1,7 @@
 """Open service requests: a visitor asks the team for a service.
 
 Revision ID: c9e5a7b3d2f4
-Revises: c5f1a9e3d7b2
+Revises: b8d4f6a2c1e3
 Create Date: 2026-11-04
 """
 
@@ -12,7 +12,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision = "c9e5a7b3d2f4"
-down_revision = "c5f1a9e3d7b2"
+down_revision = "b8d4f6a2c1e3"
 branch_labels = None
 depends_on = None
 
