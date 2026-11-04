@@ -1561,7 +1561,16 @@ export interface JobOfferInput {
   description: string
 }
 
-/** The owner's view of their Shopify store's connection. Never the token. */
+/** An approved shop in the admin Shopify page's picker, with what the mirror knows. */
+export interface ShopifyShop {
+  id: string
+  name: string
+  slug: string
+  status: 'PENDING' | 'CONNECTED' | 'UNINSTALLED' | null
+  shop_domain: string | null
+}
+
+/** A shop's Shopify store connection, as the admin page shows it. Never the token. */
 export interface ShopifyStatus {
   connected: boolean
   /** Shopify cannot create stores by API: a shop without one signs up here. */

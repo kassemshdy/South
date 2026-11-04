@@ -2134,5 +2134,14 @@
   "testimonials.breakdown": "Ratings by stars",
   "testimonials.starsLevel": "{stars} ★",
   "talent.verifiedOnly": "Verified only",
-  "talent.showMore": "Show more ({count})"
+  "talent.showMore": "Show more ({count})",
+  "shopify.unavailable": "Shopify connection is not available yet.",
+  "admin.navShopify": "Shopify",
+  "admin.shopifyHeading": "Shopify stores",
+  "admin.shopifySubtitle": "Choose an approved shop and connect its Shopify store on its behalf. The shop's owner does not see this page.",
+  "admin.shopifySearch": "Search for a shop",
+  "admin.shopifyNoShops": "No approved shops match.",
+  "admin.shopifyPick": "Choose a shop from the list to manage its Shopify store.",
+  "admin.shopifyConnectedBadge": "Connected",
+  "admin.shopifyNotConnected": "No Shopify store is connected to this shop yet."
 }

@@ -36,11 +36,12 @@ from app.core.config import Settings, get_settings
 from app.database.session import SessionLocal
 from app.main import create_app
 from app.models.business import Business, BusinessItem
-from app.models.enums import BusinessStatus
+from app.models.enums import BusinessStatus, StaffRole
 from app.models.integration import IntegrationOutbox, ItemLink, StoreLink
 from app.models.taxonomy import Category, Location
+from app.models.user import User
 from app.services import connector, outbox
-from tests.conftest import post_item, sign_in
+from tests.conftest import admin_headers, post_item, sign_in
 from tests.samples import ar
 
 OWNER_PHONE = "03880001"
@@ -225,11 +226,13 @@ def pending(db: Session) -> list[IntegrationOutbox]:
 
 
 def test_every_route_is_absent_without_configuration(
-    client: TestClient, db: Session, category: Category, location: Location
+    client: TestClient, db: Session, admin: User, category: Category, location: Location
 ) -> None:
     headers = sign_in(client, OWNER_PHONE)
     business = approved_business(client, db, headers, category, location)
-    assert client.get(f"/api/businesses/{business.id}/shopify", headers=headers).status_code == 404
+    boss = admin_headers(client)
+    assert client.get(f"/api/admin/businesses/{business.id}/shopify", headers=boss).status_code == 404
+    assert client.get("/api/admin/shopify/shops", headers=boss).status_code == 404
     assert client.post("/api/integrations/connector/webhooks", content=b"{}").status_code == 404
 
 
@@ -252,9 +255,10 @@ def test_production_refuses_a_half_configured_connector() -> None:
 # --- Connecting ----------------------------------------------------------------
 
 
-def test_connecting_asks_the_connector_and_returns_to_the_owners_dashboard(
+def test_an_admin_connects_a_shop_and_returns_to_the_admin_page(
     shop_client: TestClient,
     db: Session,
+    admin: User,
     fake: FakeConnector,
     category: Category,
     location: Location,
@@ -262,19 +266,20 @@ def test_connecting_asks_the_connector_and_returns_to_the_owners_dashboard(
     headers = sign_in(shop_client, OWNER_PHONE)
     business = approved_business(shop_client, db, headers, category, location)
     r = shop_client.post(
-        f"/api/businesses/{business.id}/shopify/install", headers=headers, json={"shop": "souk"}
+        f"/api/admin/businesses/{business.id}/shopify/install",
+        headers=admin_headers(shop_client),
+        json={"shop": "souk"},
     )
     assert r.status_code == 200, r.text
     assert r.json()["authorize_url"].startswith("https://souk/admin/oauth/authorize")
     sent = json.loads(fake.calls("POST", r"/connect$")[0].content)
-    assert sent["return_url"] == (
-        f"https://janoubona.test/dashboard/businesses/{business.id}/items"
-    )
+    assert sent["return_url"] == f"https://janoubona.test/admin/shopify?business={business.id}"
 
 
 def test_install_refuses_a_listing_that_is_not_approved(
     shop_client: TestClient,
     db: Session,
+    admin: User,
     fake: FakeConnector,
     category: Category,
     location: Location,
@@ -284,47 +289,115 @@ def test_install_refuses_a_listing_that_is_not_approved(
     business.status = BusinessStatus.PENDING_REVIEW
     db.commit()
     r = shop_client.post(
-        f"/api/businesses/{business.id}/shopify/install", headers=headers, json={"shop": "souk"}
+        f"/api/admin/businesses/{business.id}/shopify/install",
+        headers=admin_headers(shop_client),
+        json={"shop": "souk"},
     )
     assert r.status_code == 422
     assert r.json()["error"]["code"] == "shopify_not_approved"
     assert fake.requests == []
 
 
-def test_the_connectors_refusal_reaches_the_owner_in_our_words(
-    shop_client: TestClient, db: Session, category: Category, location: Location
+def test_the_connectors_refusal_reaches_the_admin_in_our_words(
+    shop_client: TestClient, db: Session, admin: User, category: Category, location: Location
 ) -> None:
     headers = sign_in(shop_client, OWNER_PHONE)
     business = approved_business(shop_client, db, headers, category, location)
     r = shop_client.post(
-        f"/api/businesses/{business.id}/shopify/install", headers=headers, json={"shop": "evil"}
+        f"/api/admin/businesses/{business.id}/shopify/install",
+        headers=admin_headers(shop_client),
+        json={"shop": "evil"},
     )
     assert r.status_code == 422
     assert r.json()["error"]["code"] == "shopify_bad_shop"
 
 
-def test_another_owner_cannot_reach_the_connection(
-    shop_client: TestClient, db: Session, category: Category, location: Location
+def test_owners_never_reach_shopify_even_for_their_own_shop(
+    shop_client: TestClient, db: Session, fake: FakeConnector, category: Category,
+    location: Location,
 ) -> None:
     headers = sign_in(shop_client, OWNER_PHONE)
     business = approved_business(shop_client, db, headers, category, location)
-    other = sign_in(shop_client, OTHER_PHONE)
-    r = shop_client.post(
-        f"/api/businesses/{business.id}/shopify/install", headers=other, json={"shop": "souk"}
-    )
-    assert r.status_code == 404
+    # The owner routes are gone from the dashboard...
+    for method, path in (
+        ("GET", f"/api/businesses/{business.id}/shopify"),
+        ("POST", f"/api/businesses/{business.id}/shopify/install"),
+    ):
+        assert shop_client.request(method, path, headers=headers).status_code in (404, 405)
+    # ...and the admin ones refuse an owner's session.
+    for method, path in (
+        ("GET", "/api/admin/shopify/shops"),
+        ("GET", f"/api/admin/businesses/{business.id}/shopify"),
+        ("POST", f"/api/admin/businesses/{business.id}/shopify/install"),
+    ):
+        assert shop_client.request(
+            method, path, headers=headers, json={"shop": "souk"}
+        ).status_code == 403
+    assert fake.requests == []
 
 
-def test_the_card_shows_the_connectors_view_and_survives_it_being_down(
+def test_a_reviewer_sees_the_page_but_only_a_manager_connects(
     shop_client: TestClient,
     db: Session,
+    admin: User,
     fake: FakeConnector,
     category: Category,
     location: Location,
 ) -> None:
     headers = sign_in(shop_client, OWNER_PHONE)
     business = approved_business(shop_client, db, headers, category, location)
-    url = f"/api/businesses/{business.id}/shopify"
+    admin.staff_role = StaffRole.REVIEWER
+    db.commit()
+    boss = admin_headers(shop_client)
+    assert shop_client.get("/api/admin/shopify/shops", headers=boss).status_code == 200
+    assert shop_client.get(
+        f"/api/admin/businesses/{business.id}/shopify", headers=boss
+    ).status_code == 200
+    for method, path in (
+        ("POST", f"/api/admin/businesses/{business.id}/shopify/install"),
+        ("POST", f"/api/admin/businesses/{business.id}/shopify/sync"),
+        ("POST", f"/api/admin/businesses/{business.id}/shopify/subdomain"),
+        ("DELETE", f"/api/admin/businesses/{business.id}/shopify"),
+    ):
+        assert shop_client.request(
+            method, path, headers=boss, json={"shop": "souk", "subdomain": "souk"}
+        ).status_code == 403, path
+    assert not fake.calls("POST", r"/connect$")
+
+
+def test_the_picker_lists_approved_shops_with_what_the_mirror_knows(
+    shop_client: TestClient,
+    db: Session,
+    admin: User,
+    category: Category,
+    location: Location,
+) -> None:
+    headers = sign_in(shop_client, OWNER_PHONE)
+    business = approved_business(shop_client, db, headers, category, location)
+    other = approved_business(shop_client, db, sign_in(shop_client, OTHER_PHONE), category,
+                              location)
+    other.status = BusinessStatus.PENDING_REVIEW
+    db.commit()
+    webhook(shop_client, "store.connected", connected(business))
+    shops = shop_client.get("/api/admin/shopify/shops", headers=admin_headers(shop_client)).json()
+    assert [s["id"] for s in shops] == [str(business.id)]
+    assert shops[0]["status"] == "CONNECTED"
+    assert shops[0]["shop_domain"] == "souk.myshopify.com"
+
+
+def test_the_card_shows_the_connectors_view_and_survives_it_being_down(
+    shop_client: TestClient,
+    db: Session,
+    admin: User,
+    fake: FakeConnector,
+    category: Category,
+    location: Location,
+) -> None:
+    business = approved_business(
+        shop_client, db, sign_in(shop_client, OWNER_PHONE), category, location
+    )
+    headers = admin_headers(shop_client)
+    url = f"/api/admin/businesses/{business.id}/shopify"
     before = shop_client.get(url, headers=headers).json()
     assert before["connected"] is False
     assert before["signup_url"] == "https://signup.test"
@@ -523,6 +596,7 @@ def test_a_failing_push_is_retried_with_the_error_kept(
 def test_disconnecting_tells_the_connector_and_forgets_the_store(
     shop_client: TestClient,
     db: Session,
+    admin: User,
     fake: FakeConnector,
     category: Category,
     location: Location,
@@ -530,7 +604,9 @@ def test_disconnecting_tells_the_connector_and_forgets_the_store(
     headers = sign_in(shop_client, OWNER_PHONE)
     business = approved_business(shop_client, db, headers, category, location)
     webhook(shop_client, "store.connected", connected(business))
-    r = shop_client.delete(f"/api/businesses/{business.id}/shopify", headers=headers)
+    r = shop_client.delete(
+        f"/api/admin/businesses/{business.id}/shopify", headers=admin_headers(shop_client)
+    )
     assert r.status_code == 200, r.text
     assert fake.calls("DELETE", rf"/v1/stores/{business.id}$")
     db.expire_all()
@@ -540,15 +616,18 @@ def test_disconnecting_tells_the_connector_and_forgets_the_store(
 def test_a_reserved_subdomain_is_refused_in_our_words(
     shop_client: TestClient,
     db: Session,
+    admin: User,
     fake: FakeConnector,
     category: Category,
     location: Location,
 ) -> None:
-    headers = sign_in(shop_client, OWNER_PHONE)
-    business = approved_business(shop_client, db, headers, category, location)
+    business = approved_business(
+        shop_client, db, sign_in(shop_client, OWNER_PHONE), category, location
+    )
+    headers = admin_headers(shop_client)
     webhook(shop_client, "store.connected", connected(business))
     fake.stores[str(business.id)] = connected(business)
-    url = f"/api/businesses/{business.id}/shopify/subdomain"
+    url = f"/api/admin/businesses/{business.id}/shopify/subdomain"
     r = shop_client.post(url, headers=headers, json={"subdomain": "www"})
     assert r.status_code == 422 and r.json()["error"]["code"] == "reserved_subdomain"
     ok = shop_client.post(url, headers=headers, json={"subdomain": "souk"})

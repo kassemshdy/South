@@ -185,11 +185,12 @@ def make_handlers(settings: Settings, http: httpx.Client) -> dict[str, outbox.Ha
     return {outbox.ITEM_UPSERT: upsert, outbox.ITEM_DELETE: delete}
 
 
-# --- The owner's actions ----------------------------------------------------------
+# --- What an administrator does for a shop ---------------------------------------
 
 
-def dashboard_url(settings: Settings, business_id: uuid.UUID) -> str:
-    return settings.public_base_url.rstrip("/") + f"/dashboard/businesses/{business_id}/items"
+def admin_page_url(settings: Settings, business_id: uuid.UUID) -> str:
+    """Where Shopify's approval screen returns: the admin page, on that shop."""
+    return settings.public_base_url.rstrip("/") + f"/admin/shopify?business={business_id}"
 
 
 class StoreConnectionService:
@@ -202,7 +203,7 @@ class StoreConnectionService:
         if business.status is not BusinessStatus.APPROVED:
             raise ValidationError("shopify.not_approved", code="shopify_not_approved")
         return self._client.connect(
-            str(business.id), shop, dashboard_url(self._settings, business.id)
+            str(business.id), shop, admin_page_url(self._settings, business.id)
         )
 
     def status(self, business: Business) -> tuple[dict[str, Any], dict[str, Any] | None]:

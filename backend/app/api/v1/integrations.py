@@ -1,10 +1,11 @@
 """A shop's own Shopify store, through the shared Shopify Connector.
 
 Every route answers 404 while ``CONNECTOR_URL`` and its companions are
-unset, which is also how the dashboard knows not to offer the card.
+unset, which is also how the admin page knows not to offer it.
 
-The owner routes keep the paths the dashboard already uses and ask the
-connector; the connector's webhooks arrive at
+Only administrators connect a shop's store, on the shop's behalf (the owners'
+decision, 4 Nov 2026): a shop owner never sees Shopify in their dashboard.
+The admin routes ask the connector; the connector's webhooks arrive at
 ``/integrations/connector/webhooks``, authenticated by its signature (not by
 our session), checked before anything is read.
 """
@@ -13,6 +14,7 @@ from __future__ import annotations
 
 import json
 import logging
+import uuid
 from collections.abc import Iterator
 from typing import Annotated, Any
 
@@ -22,15 +24,17 @@ from fastapi.concurrency import run_in_threadpool
 from sqlalchemy import func, select
 
 from app.core.config import Settings
-from app.core.dependencies import AppSettings, DbSession, OwnedBusiness
+from app.core.dependencies import AdminUser, AppSettings, DbSession
 from app.core.errors import AppError, NotFoundError
 from app.core.i18n import translate
 from app.models.business import Business, BusinessItem
-from app.models.integration import IntegrationOutbox, ItemLink
+from app.models.enums import BusinessStatus
+from app.models.integration import IntegrationOutbox, ItemLink, StoreLink
 from app.schemas.common import MessageResponse
 from app.schemas.integration import (
     ShopifyInstallIn,
     ShopifyInstallOut,
+    ShopifyShopOut,
     ShopifyStatusOut,
     SubdomainIn,
     SyncQueuedOut,
@@ -44,7 +48,7 @@ from app.services.connector import (
 
 logger = logging.getLogger(__name__)
 
-owner_router = APIRouter(tags=["integrations"])
+admin_router = APIRouter(prefix="/admin", tags=["admin-shopify"])
 public_router = APIRouter(tags=["integrations"])
 
 HTTP_TIMEOUT = 20.0
@@ -114,10 +118,48 @@ def _status(
     )
 
 
-@owner_router.get("/businesses/{business_id}/shopify", response_model=ShopifyStatusOut)
+def _business(db: DbSession, business_id: uuid.UUID) -> Business:
+    business = db.get(Business, business_id)
+    if business is None:
+        raise NotFoundError("business.not_found")
+    return business
+
+
+@admin_router.get("/shopify/shops", response_model=list[ShopifyShopOut])
+def shopify_shops(
+    db: DbSession, admin: AdminUser, settings: ConnectorSettings
+) -> list[ShopifyShopOut]:
+    """Approved shops for the admin page's picker, with what the mirror knows.
+
+    Read from our own tables only, so the list costs no call to the connector.
+    """
+    rows = db.execute(
+        select(Business, StoreLink)
+        .outerjoin(StoreLink, StoreLink.business_id == Business.id)
+        .where(Business.status == BusinessStatus.APPROVED)
+        .order_by(Business.name)
+    ).all()
+    return [
+        ShopifyShopOut(
+            id=business.id,
+            name=business.name,
+            slug=business.slug,
+            status=link.status if link else None,
+            shop_domain=link.shop_domain if link else None,
+        )
+        for business, link in rows
+    ]
+
+
+@admin_router.get("/businesses/{business_id}/shopify", response_model=ShopifyStatusOut)
 def shopify_status(
-    business: OwnedBusiness, db: DbSession, settings: ConnectorSettings, http: HttpClient
+    business_id: uuid.UUID,
+    admin: AdminUser,
+    db: DbSession,
+    settings: ConnectorSettings,
+    http: HttpClient,
 ) -> ShopifyStatusOut:
+    business = _business(db, business_id)
     try:
         tenant, store = StoreConnectionService(db, settings, http).status(business)
     except ConnectorUnavailable as exc:
@@ -125,15 +167,19 @@ def shopify_status(
     return _status(db, business, tenant, store)
 
 
-@owner_router.post("/businesses/{business_id}/shopify/install", response_model=ShopifyInstallOut)
+@admin_router.post(
+    "/businesses/{business_id}/shopify/install", response_model=ShopifyInstallOut
+)
 def shopify_install(
     payload: ShopifyInstallIn,
-    business: OwnedBusiness,
+    business_id: uuid.UUID,
+    admin: AdminUser,
     db: DbSession,
     settings: ConnectorSettings,
     http: HttpClient,
 ) -> ShopifyInstallOut:
-    """The URL the browser goes to next; the connector sends it back here."""
+    """The URL the browser goes to next; the connector sends it back to the admin page."""
+    business = _business(db, business_id)
     try:
         url = StoreConnectionService(db, settings, http).start(business, payload.shop)
     except ConnectorUnavailable as exc:
@@ -141,17 +187,27 @@ def shopify_install(
     return ShopifyInstallOut(authorize_url=url)
 
 
-@owner_router.post("/businesses/{business_id}/shopify/sync", response_model=SyncQueuedOut)
+@admin_router.post("/businesses/{business_id}/shopify/sync", response_model=SyncQueuedOut)
 def shopify_sync(
-    business: OwnedBusiness, db: DbSession, settings: ConnectorSettings, http: HttpClient
+    business_id: uuid.UUID,
+    admin: AdminUser,
+    db: DbSession,
+    settings: ConnectorSettings,
+    http: HttpClient,
 ) -> SyncQueuedOut:
+    business = _business(db, business_id)
     return SyncQueuedOut(queued=StoreConnectionService(db, settings, http).sync_now(business))
 
 
-@owner_router.delete("/businesses/{business_id}/shopify", response_model=MessageResponse)
+@admin_router.delete("/businesses/{business_id}/shopify", response_model=MessageResponse)
 def shopify_disconnect(
-    business: OwnedBusiness, db: DbSession, settings: ConnectorSettings, http: HttpClient
+    business_id: uuid.UUID,
+    admin: AdminUser,
+    db: DbSession,
+    settings: ConnectorSettings,
+    http: HttpClient,
 ) -> MessageResponse:
+    business = _business(db, business_id)
     try:
         StoreConnectionService(db, settings, http).disconnect(business)
     except ConnectorUnavailable as exc:
@@ -159,14 +215,18 @@ def shopify_disconnect(
     return MessageResponse(message=translate("shopify.disconnected"))
 
 
-@owner_router.post("/businesses/{business_id}/shopify/subdomain", response_model=ShopifyStatusOut)
+@admin_router.post(
+    "/businesses/{business_id}/shopify/subdomain", response_model=ShopifyStatusOut
+)
 def shopify_subdomain(
     payload: SubdomainIn,
-    business: OwnedBusiness,
+    business_id: uuid.UUID,
+    admin: AdminUser,
     db: DbSession,
     settings: ConnectorSettings,
     http: HttpClient,
 ) -> ShopifyStatusOut:
+    business = _business(db, business_id)
     service = StoreConnectionService(db, settings, http)
     try:
         service.subdomain(business, payload.subdomain)

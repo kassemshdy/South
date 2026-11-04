@@ -5,7 +5,6 @@ import { Link, useParams } from 'react-router-dom'
 import { Card, CardBody } from '@/components/ui/Card'
 import { ErrorState, InlineSpinner } from '@/components/ui/States'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
-import { ShopifyCard } from '@/features/integrations/ShopifyCard'
 import { ItemManager } from '@/features/items/ItemManager'
 import { useSeo } from '@/hooks/useSeo'
 import { useT } from '@/i18n'
@@ -52,7 +51,6 @@ export function ItemsPage() {
         </p>
       </header>
 
-      {business.data.status === 'APPROVED' ? <ShopifyCard businessId={id} /> : null}
 
       <Card>
         <CardBody>

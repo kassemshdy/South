@@ -476,8 +476,13 @@ constrain how you work on it:
 ## Third-Party Commerce (Shopify, Yalla Pay, AdsTalk)
 
 **Janoubona is the door, not the shop** (the investor's model, 30 Oct 2026).
-Each shop connects its **own** Shopify store; payment and delivery happen
-there (Yalla Pay is a Shopify app), and this codebase holds no payment code.
+Each shop sells through its **own** Shopify store; payment and delivery
+happen there (Yalla Pay is a Shopify app), and this codebase holds no payment
+code. **An administrator connects a shop's store on its behalf** at
+`/admin/shopify` (the owners' decision, 4 Nov 2026): owners never see Shopify
+in their dashboard, and there is no owner route for it. Every staff role
+reads the page; connecting, resending, subdomains and disconnecting are the
+manager's. A connected shop's buy buttons are public at once.
 Full detail in `docs/COMMERCE.md`; the partners' reference is
 `docs/PARTNER_API.md`. What constrains how you work on it:
 

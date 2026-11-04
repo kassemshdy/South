@@ -2134,5 +2134,14 @@
   "testimonials.breakdown": "توزيع التقييمات",
   "testimonials.starsLevel": "{stars} ★",
   "talent.verifiedOnly": "موثّق فقط",
-  "talent.showMore": "عرض المزيد ({count})"
+  "talent.showMore": "عرض المزيد ({count})",
+  "shopify.unavailable": "ربط متاجر شوبيفاي غير متاح بعد.",
+  "admin.navShopify": "شوبيفاي",
+  "admin.shopifyHeading": "متاجر شوبيفاي",
+  "admin.shopifySubtitle": "اختر نشاطًا معتمدًا واربط متجره على شوبيفاي نيابةً عنه. لا يرى صاحب النشاط هذه الصفحة.",
+  "admin.shopifySearch": "ابحث عن نشاط",
+  "admin.shopifyNoShops": "لا توجد أنشطة معتمدة مطابقة.",
+  "admin.shopifyPick": "اختر نشاطًا من القائمة لإدارة متجره على شوبيفاي.",
+  "admin.shopifyConnectedBadge": "مرتبط",
+  "admin.shopifyNotConnected": "لم يُربط متجر على شوبيفاي بهذا النشاط بعد."
 }

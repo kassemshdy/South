@@ -22,7 +22,9 @@ Its README and `docs/API.md` are the reference for any website joining.
 
 **Janoubona** is one of the connector's websites ("tenants"). It holds no
 Shopify or Cloudflare credential. It does four things:
-- asks the connector for an authorize URL when an owner presses Connect;
+- asks the connector for an authorize URL when an administrator presses
+  Connect on `/admin/shopify` for a shop (owners never see Shopify: the
+  owners' decision of 4 Nov 2026);
 - sends each product through the outbox: a session hook queues it in the
   same transaction as the edit, and a worker sends it;
 - mirrors what the connector reports, through signed webhooks: the store
@@ -71,8 +73,12 @@ Shopify route answers 404.
 
 ## How it behaves
 
-- **Connecting:** only an approved listing can connect. The owner returns to
-  `/dashboard/businesses/<id>/items?shopify=connected` (or an error code). The
+- **Connecting:** an administrator picks an approved shop at `/admin/shopify`
+  and connects its store, approving Halyoon Connect inside that store's
+  Shopify admin. Every role sees the page; only a manager connects, resends,
+  sets a subdomain or disconnects (`app/core/permissions.py`). Shopify
+  returns to `/admin/shopify?business=<id>&shopify=connected` (or an error
+  code). The
   connector then sends `store.connected`, and Janoubona queues every product.
 - **Products:**
   - What is sent is what a visitor would see: title, description, price and

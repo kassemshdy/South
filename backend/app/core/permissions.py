@@ -193,6 +193,11 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     ("PUT", "/api/admin/growth-plan"): frozenset({M}),
     # Keys to the partner feed (Yalla Pay, AdsTalk): who reads the directory
     # by machine is the owners' strategy, like the growth plan.
+    # Connecting a shop's own Shopify store on its behalf (4 Nov 2026).
+    ("POST", "/api/admin/businesses/{business_id}/shopify/install"): frozenset({M}),
+    ("POST", "/api/admin/businesses/{business_id}/shopify/sync"): frozenset({M}),
+    ("POST", "/api/admin/businesses/{business_id}/shopify/subdomain"): frozenset({M}),
+    ("DELETE", "/api/admin/businesses/{business_id}/shopify"): frozenset({M}),
     ("POST", "/api/admin/api-partners"): frozenset({M}),
     ("POST", "/api/admin/api-partners/{partner_id}/rotate"): frozenset({M}),
     ("POST", "/api/admin/api-partners/{partner_id}/revoke"): frozenset({M}),

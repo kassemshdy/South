@@ -10,6 +10,16 @@ class ShopifyInstallIn(BaseModel):
     shop: str = Field(min_length=1, max_length=255)
 
 
+class ShopifyShopOut(BaseModel):
+    """One approved shop in the admin page's picker."""
+
+    id: uuid.UUID
+    name: str
+    slug: str
+    status: str | None = None
+    shop_domain: str | None = None
+
+
 class ShopifyInstallOut(BaseModel):
     authorize_url: str
 

@@ -96,6 +96,9 @@ const AdminPageCoversPage = lazy(() =>
 const AdminPagesPage = lazy(() =>
   import('@/pages/admin/AdminPagesPage').then((m) => ({ default: m.AdminPagesPage })),
 )
+const AdminShopifyPage = lazy(() =>
+  import('@/pages/admin/AdminShopifyPage').then((m) => ({ default: m.AdminShopifyPage })),
+)
 const AdminApiPartnersPage = lazy(() =>
   import('@/pages/admin/AdminApiPartnersPage').then((m) => ({ default: m.AdminApiPartnersPage })),
 )
@@ -353,6 +356,7 @@ export function App() {
             <Route path="pages" element={<AdminPagesPage />} />
             <Route path="site-settings" element={<AdminSiteSettingsPage />} />
             <Route path="partners" element={<AdminPartnersPage />} />
+            <Route path="shopify" element={<AdminShopifyPage />} />
             <Route path="api-partners" element={<AdminApiPartnersPage />} />
             <Route path="users/:id" element={<AdminUserDetailPage />} />
             <Route path="feedback" element={<AdminFeedbackPage />} />

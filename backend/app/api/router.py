@@ -85,7 +85,7 @@ api_router.include_router(analytics.owner_router)
 # "/api/businesses/{slug}".
 api_router.include_router(testimonials.owner_router)
 api_router.include_router(orders.owner_router)
-api_router.include_router(integrations.owner_router)
+api_router.include_router(integrations.admin_router)
 api_router.include_router(integrations.public_router)
 api_router.include_router(businesses.owner_router)
 api_router.include_router(business_documents.router)
