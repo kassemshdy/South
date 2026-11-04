@@ -89,6 +89,7 @@ import type {
   FeaturedTestimonial,
   Activity,
   ActivityInput,
+  ActivityRegistration,
   AdminActivity,
   AdminCarousel,
   CarouselSlide,
@@ -491,6 +492,16 @@ export const activityApi = {
   /** The shared carousel, in the administrators' order. */
   carousel: () => apiRequest<CarouselSlide[]>('/api/carousel'),
   bySlug: (slug: string) => apiRequest<Activity>(`/api/activities/${encodeURIComponent(slug)}`),
+  /** Sign up on the site; who signed up reaches staff only. */
+  register: (
+    slug: string,
+    payload: { full_name: string; phone_number: string },
+    captchaToken: string | null,
+  ) =>
+    apiRequest<{ message: string }>(`/api/activities/${encodeURIComponent(slug)}/register`, {
+      method: 'POST',
+      body: { ...payload, captcha_token: captchaToken },
+    }),
 }
 
 export const siteSettingsApi = {
@@ -1160,6 +1171,8 @@ export const adminApi = {
     })
   },
   activities: () => apiRequest<AdminActivity[]>('/api/admin/activities'),
+  activityRegistrations: (id: string) =>
+    apiRequest<ActivityRegistration[]>(`/api/admin/activities/${id}/registrations`),
   createActivity: (body: ActivityInput) =>
     apiRequest<AdminActivity>('/api/admin/activities', { method: 'POST', body }),
   updateActivity: (id: string, body: Partial<ActivityInput> & { is_archived?: boolean }) =>

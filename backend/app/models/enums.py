@@ -283,6 +283,18 @@ class ActivityKind(str, enum.Enum):
     TRAINING = "TRAINING"
 
 
+class ActivityRegistrationMode(str, enum.Enum):
+    """How people sign up for an announcement (the owners' ticket, 4 Nov 2026).
+
+    On the site by default; an external link only when the administrator
+    chooses one; or no sign-up at all, for an announcement that takes none.
+    """
+
+    ON_SITE = "ON_SITE"
+    EXTERNAL = "EXTERNAL"
+    NONE = "NONE"
+
+
 class EducationLevel(str, enum.Enum):
     """The highest level a job seeker reached; the directory filters on it."""
 

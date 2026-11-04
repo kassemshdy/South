@@ -147,9 +147,7 @@ def test_the_carousel_arrives_shown_after_the_slogan_on_a_saved_layout(
     client: TestClient, admin: User
 ) -> None:
     assert "activities" in SECTIONS
-    saved = [
-        {"id": name, "visible": True} for name in ("cover", "hero", "slogan", "search")
-    ]
+    saved = [{"id": name, "visible": True} for name in ("cover", "hero", "slogan", "search")]
     # A layout saved before the section existed: it arrives in place, shown.
     layout = _normalise([HomeSection(**section) for section in saved])
     ids = [section.id for section in layout]
@@ -161,7 +159,6 @@ def test_the_carousel_arrives_shown_after_the_slogan_on_a_saved_layout(
         [*(HomeSection(**s) for s in saved), HomeSection(id="activities", visible=False)]
     )
     assert next(s for s in hidden if s.id == "activities").visible is False
-
 
 
 # --- The carousel (the owners' ticket, 31 Oct 2026) ------------------------
@@ -277,3 +274,71 @@ def test_registration_link_must_be_http(client: TestClient, admin: User) -> None
     assert public["register_label"] is None and public["kind"] == "WORKSHOP"
     assert public["show_calendar"] is True and good["kind"] == "WORKSHOP"
 
+
+# --- Signing up on the site (the owners' ticket, 4 Nov 2026) -----------------
+
+
+def _sign_up(client: TestClient, slug: str, phone: str = "70 111 444"):
+    return client.post(
+        f"/api/activities/{slug}/register",
+        json={"full_name": ar("order.customer"), "phone_number": phone},
+    )
+
+
+def test_people_sign_up_on_the_site_by_default_and_only_staff_see_who(
+    client: TestClient, admin: User
+) -> None:
+    headers = admin_headers(client)
+    activity = _create(client, headers, slug="on-site")
+    assert activity["registration_mode"] == "ON_SITE"
+
+    signed = _sign_up(client, "on-site")
+    assert signed.status_code == 201, signed.text
+
+    public = client.get("/api/activities/on-site").text
+    assert "111" not in public and ar("order.customer") not in public
+
+    listed = client.get(
+        f"/api/admin/activities/{activity['id']}/registrations", headers=headers
+    ).json()
+    assert [row["full_name"] for row in listed] == [ar("order.customer")]
+    assert listed[0]["phone_number"].endswith("70111444")
+    assert client.get("/api/admin/activities", headers=headers).json()[0]["registration_count"] == 1
+    assert client.get(f"/api/admin/activities/{activity['id']}/registrations").status_code == 401
+
+
+def test_an_external_link_or_no_sign_up_closes_the_form(client: TestClient, admin: User) -> None:
+    headers = admin_headers(client)
+    _create(
+        client,
+        headers,
+        slug="external",
+        registration_mode="EXTERNAL",
+        register_url="https://forms.example/x",
+    )
+    _create(client, headers, slug="none", registration_mode="NONE")
+    assert _sign_up(client, "external").status_code == 422
+    assert _sign_up(client, "none").status_code == 422
+
+    # External needs its link, on create and on edit.
+    refused = client.post(
+        "/api/admin/activities", headers=headers, json=_body(registration_mode="EXTERNAL")
+    )
+    assert refused.status_code == 422
+    on_site = _create(client, headers, slug="switch")
+    switched = client.put(
+        f"/api/admin/activities/{on_site['id']}",
+        headers=headers,
+        json={"registration_mode": "EXTERNAL"},
+    )
+    assert switched.status_code == 422
+
+
+def test_no_sign_up_once_it_has_ended_or_while_hidden(client: TestClient, admin: User) -> None:
+    headers = admin_headers(client)
+    past = datetime.now(UTC) - timedelta(days=2)
+    _create(client, headers, slug="ended", starts_at=past.isoformat())
+    _create(client, headers, slug="no-photo", image=False)
+
+    assert _sign_up(client, "ended").status_code == 422
+    assert _sign_up(client, "no-photo").status_code == 404
