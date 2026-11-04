@@ -551,6 +551,24 @@ login.
   container — seeding images there silently discards them. Migrations and seeding both
   run from the API image's own start command (`backend/Dockerfile` →
   `docker-entrypoint.sh`) for this reason.
+- **Never drop a table that has data** (the owners' rule, 4 Nov 2026). A
+  migration removes a table or column only through
+  `drop_table_if_empty` / `drop_column_if_empty` in
+  `app/database/migration_safety.py`, which look first and refuse when a row
+  or a value would be lost; the migration then fails in its transaction and
+  the deploy stops with the reason. A direct `op.drop_table`,
+  `op.drop_column` or raw `DROP` in any `upgrade()` fails
+  `tests/test_migration_safety.py`; its three `HISTORIC` revisions predate
+  the rule and are not a precedent. A new migration's `downgrade()` drops
+  nothing either: undoing it is a new migration through the same helpers.
+- **Only a site's own releases migrate its database.** A second deployment
+  pointed at the same database (a staging copy on real data) sets
+  `SKIP_MIGRATIONS=1`, which `docker-entrypoint.sh` honours by not running
+  alembic. On 3 Nov 2026 a Shopify staging service without it ran its
+  branch's migrations on new.janoubona.net's database; the revision it left
+  there was one master did not have, and every deploy of that site failed
+  with `Can't locate revision` until it was put back.
+  `tests/test_entrypoint.py` pins the switch.
 - **No apostrophe anywhere inside the `gosu appuser sh -c '...'` block of
   `docker-entrypoint.sh`, comments included.** It closes the quote: the rest
   of the script is dropped, the shell exits 0, uvicorn never starts and the
