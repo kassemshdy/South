@@ -248,13 +248,20 @@ def test_no_admin_route_exposes_a_service_request(
     # An employer's request for a candidate is the exception, and a different
     # table: the owners asked for it to be logged for the team (the candidate
     # directory ticket, 31 Oct 2026). Service requests stay out.
+    # So is a visitor's open request to the team (the services redesign,
+    # 3 Nov 2026), its own table at /api/admin/service-requests. It must
+    # never carry a request made to a provider, which is checked here.
     routes = [
         route.path
         for route in client.app.routes  # type: ignore[attr-defined]
         if "requests" in getattr(route, "path", "")
         and "employer-requests" not in getattr(route, "path", "")
+        and not getattr(route, "path", "").startswith("/api/admin/service-requests")
     ]
     assert all(not path.startswith("/api/admin") for path in routes)
+    open_requests = client.get("/api/admin/service-requests", headers=headers)
+    assert open_requests.status_code == 200 and open_requests.json() == []
+    assert ar("service_request.customer") not in open_requests.text
 
 
 def test_an_unauthenticated_caller_cannot_read_requests(

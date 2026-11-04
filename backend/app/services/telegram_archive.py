@@ -99,6 +99,7 @@ ARCHIVED_TABLES = frozenset(
         "orders",
         "order_lines",
         "service_requests",
+        "open_service_requests",
         "testimonials",
         "feedback_tickets",
         "feedback_comments",
@@ -121,6 +122,8 @@ SKIPPED_COLUMNS = frozenset(
         "created_at",
         "updated_at",
         "search_vector",
+        # A partner API key's hash: never archived, listed anyway.
+        "key_hash",
     }
 )
 
@@ -261,6 +264,8 @@ def admin_path(change: Change, business_of_item: Callable[[str], str | None]) ->
         return "/admin/testimonials"
     if table == "partner_requests":
         return "/admin/partners"
+    if table == "open_service_requests":
+        return "/admin/service-requests"
     if table.startswith("feedback_"):
         # Straight to the ticket, not the whole board.
         ticket_id = row_id if table == "feedback_tickets" else refs.get("ticket_id")
@@ -315,7 +320,7 @@ _KINDS = (
     (("business_item_images",), "product_media"),
     (("businesses",), "shop"),
     (("business_images", "business_documents", "business_social_links"), "shop_media"),
-    (("service_requests",), "service_request"),
+    (("service_requests", "open_service_requests"), "service_request"),
     (("talent_profiles",), "service"),
     (
         (
@@ -406,7 +411,13 @@ def _details(kind: str, changes: list[Change]) -> list[tuple[str, str | None]]:
     if kind == "service":
         return [("service", _first(changes, "talent_profiles", "display_name"))]
     if kind == "service_request":
-        return [("details", _first(changes, "service_requests", "details"))]
+        return [
+            (
+                "details",
+                _first(changes, "service_requests", "details")
+                or _first(changes, "open_service_requests", "details"),
+            )
+        ]
     if kind == "partner":
         return [
             ("occupation", _first(changes, "partner_requests", "occupation")),

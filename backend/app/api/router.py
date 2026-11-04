@@ -14,12 +14,15 @@ from app.api.v1 import (
     feedback,
     home,
     images,
+    integrations,
     items,
     jobs,
     menu,
+    open_service_requests,
     orders,
     page_covers,
     pages,
+    partner_api,
     partners,
     reels,
     registration,
@@ -73,6 +76,7 @@ api_router.include_router(home.admin_router)
 api_router.include_router(menu.admin_router)
 api_router.include_router(jobs.admin_router)
 api_router.include_router(testimonials.admin_router)
+api_router.include_router(partner_api.admin_router)
 
 api_router.include_router(feedback.router)
 api_router.include_router(stories.owner_router)
@@ -82,6 +86,8 @@ api_router.include_router(analytics.owner_router)
 # "/api/businesses/{slug}".
 api_router.include_router(testimonials.owner_router)
 api_router.include_router(orders.owner_router)
+api_router.include_router(integrations.admin_router)
+api_router.include_router(integrations.public_router)
 api_router.include_router(businesses.owner_router)
 api_router.include_router(business_documents.router)
 api_router.include_router(images.router)
@@ -96,7 +102,10 @@ api_router.include_router(businesses.public_router)
 api_router.include_router(articles.router)
 api_router.include_router(registration.router)
 api_router.include_router(search.router)
+api_router.include_router(open_service_requests.public_router)
+api_router.include_router(open_service_requests.admin_router)
 api_router.include_router(partners.public_router)
+api_router.include_router(partner_api.router)
 api_router.include_router(partners.admin_router)
 api_router.include_router(workshops.public_router)
 api_router.include_router(workshops.admin_router)

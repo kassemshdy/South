@@ -16,7 +16,10 @@ exec gosu appuser sh -c '
   # database came back empty beside existing uploads, a fatal alarm instead.
   # Never fails the boot. See app/services/db_backup.py.
   python -m scripts.backup_db --reason boot
-  alembic upgrade head
+  # A second site sharing this database (a staging copy on live data) sets
+  # SKIP_MIGRATIONS: only a live release may move the database to a new
+  # revision, or the next live release finds a revision it does not know.
+  if [ -z "$SKIP_MIGRATIONS" ]; then alembic upgrade head; fi
   python -m scripts.seed --ensure
   python -m scripts.copy_media_to_bucket
   python -m scripts.backfill_thumbnails

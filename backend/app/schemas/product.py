@@ -60,4 +60,5 @@ class ProductDetailOut(ProductSummaryOut):
     expiry_date: date | None = None
     net_weight: str | None = None
     external_link: str | None = None
+    buy_url: str | None = None
     images: list[ItemImageOut] = Field(default_factory=list)
