@@ -7,7 +7,8 @@ from typing import Literal
 from pydantic import BaseModel, Field, computed_field, field_validator, model_validator
 
 from app.core.i18n import translate
-from app.models.enums import ActivityKind
+from app.core.phone import normalize_phone
+from app.models.enums import ActivityKind, ActivityRegistrationMode
 from app.schemas.common import ORMModel
 from app.services.images import thumbnail_url
 
@@ -40,6 +41,7 @@ class ActivityIn(BaseModel):
     location: str | None = Field(default=None, max_length=200)
     sort_order: int = Field(default=0, ge=-1000, le=1000)
     kind: ActivityKind = ActivityKind.ACTIVITY
+    registration_mode: ActivityRegistrationMode = ActivityRegistrationMode.ON_SITE
     register_url: str | None = Field(default=None, max_length=500)
     register_label: str | None = Field(default=None, max_length=60)
     show_calendar: bool = True
@@ -51,6 +53,12 @@ class ActivityIn(BaseModel):
     def _ends_after_it_starts(self) -> ActivityIn:
         if self.ends_at is not None and (self.starts_at is None or self.ends_at <= self.starts_at):
             raise ValueError("ends_at must be after starts_at")
+        return self
+
+    @model_validator(mode="after")
+    def _external_needs_its_link(self) -> ActivityIn:
+        if self.registration_mode is ActivityRegistrationMode.EXTERNAL and not self.register_url:
+            raise ValueError(translate("activity.external_needs_link"))
         return self
 
 
@@ -66,6 +74,7 @@ class ActivityUpdateIn(BaseModel):
     # Archiving is an edit: the administrator keeps it or puts it away.
     is_archived: bool | None = None
     kind: ActivityKind | None = None
+    registration_mode: ActivityRegistrationMode | None = None
     register_url: str | None = Field(default=None, max_length=500)
     register_label: str | None = Field(default=None, max_length=60)
     show_calendar: bool | None = None
@@ -90,6 +99,7 @@ class ActivityOut(ORMModel):
     location: str | None = None
     image_url: str | None = None
     kind: ActivityKind = ActivityKind.ACTIVITY
+    registration_mode: ActivityRegistrationMode = ActivityRegistrationMode.ON_SITE
     register_url: str | None = None
     register_label: str | None = None
     show_calendar: bool = True
@@ -106,6 +116,32 @@ class AdminActivityOut(ActivityOut):
     created_at: datetime
     updated_at: datetime
     in_carousel: bool = False
+    registration_count: int = 0
+
+
+class ActivityRegistrationIn(BaseModel):
+    full_name: str = Field(min_length=2, max_length=80)
+    phone_number: str = Field(min_length=6, max_length=20)
+    captcha_token: str | None = Field(default=None, max_length=4096)
+
+    @field_validator("full_name")
+    @classmethod
+    def _strip(cls, value: str) -> str:
+        return value.strip()
+
+    @field_validator("phone_number")
+    @classmethod
+    def _normalize(cls, value: str) -> str:
+        return normalize_phone(value)
+
+
+class ActivityRegistrationOut(ORMModel):
+    """The administrator's view of a sign-up; there is no other."""
+
+    id: uuid.UUID
+    full_name: str
+    phone_number: str
+    created_at: datetime
 
 
 class CarouselSlideOut(BaseModel):

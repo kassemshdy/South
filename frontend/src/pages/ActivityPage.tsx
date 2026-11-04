@@ -1,13 +1,26 @@
-import { useQuery } from '@tanstack/react-query'
-import { CalendarDays, CalendarPlus, ChevronDown, Download, ExternalLink, MapPin } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import {
+  CalendarDays,
+  CalendarPlus,
+  Check,
+  ChevronDown,
+  Download,
+  ExternalLink,
+  MapPin,
+  Send,
+} from 'lucide-react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
 
 import { BackLink } from '@/components/ui/BackLink'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
+import { Field } from '@/components/ui/Field'
+import { Input } from '@/components/ui/Input'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
+import { useToast } from '@/components/ui/Toast'
+import { Turnstile } from '@/components/ui/Turnstile'
 import {
   downloadIcs,
   googleCalendarHref,
@@ -16,6 +29,7 @@ import {
 import { hasEnded, KIND_KEYS } from '@/features/activities/labels'
 import { useSeo } from '@/hooks/useSeo'
 import { useI18n } from '@/i18n'
+import { ApiError } from '@/services/api/client'
 import { activityApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { Activity } from '@/types/api'
@@ -25,6 +39,11 @@ import { formatDateTime } from '@/utils/format'
  * One development activity: its photograph, what it is, when and where,
  * and -- when it has a date -- a way to put it in the visitor's own
  * calendar, as Google Calendar's page or as an `.ics` file for any other.
+ *
+ * People sign up here, on the page itself, unless the administrator chose an
+ * external link or no sign-up (the owners' ticket, 4 Nov 2026). The form is
+ * the workshop's: a name and a WhatsApp number, behind the captcha when one
+ * is configured, and who signed up reaches the admin page only.
  */
 export function ActivityPage() {
   const { slug = '' } = useParams()
@@ -61,7 +80,9 @@ export function ActivityPage() {
   const ended = hasEnded(data)
   // Both buttons go once it is over (the owners' ticket, 31 Oct 2026).
   const offerCalendar = !ended && data.show_calendar && data.starts_at !== null
-  const register = !ended ? data.register_url : null
+  const register =
+    !ended && data.registration_mode === 'EXTERNAL' ? data.register_url : null
+  const signUpHere = !ended && data.registration_mode === 'ON_SITE'
 
   return (
     <article className="container-page py-10">
@@ -130,9 +151,85 @@ export function ActivityPage() {
               ) : null}
             </CardBody>
           </Card>
+          {signUpHere ? <SignUpForm activity={data} /> : null}
         </aside>
       </div>
     </article>
+  )
+}
+
+/** The sign-up form, in a card of its own under the details. */
+function SignUpForm({ activity }: { activity: Activity }) {
+  const { t } = useI18n()
+  const toast = useToast()
+  const [fullName, setFullName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const register = useMutation({
+    mutationFn: () =>
+      activityApi.register(
+        activity.slug,
+        { full_name: fullName, phone_number: phone },
+        captchaToken,
+      ),
+    onError: (error) =>
+      toast.error(t('workshops.failed'), error instanceof ApiError ? error.message : undefined),
+  })
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    register.mutate()
+  }
+
+  return (
+    <Card className="mt-4">
+      <CardBody className="p-5">
+        {register.isSuccess ? (
+          <div className="text-center">
+            <Check className="mx-auto h-10 w-10 text-olive-700" aria-hidden="true" />
+            <h2 className="mt-3 text-xl">{t('workshops.sentTitle')}</h2>
+            <p className="mt-2 text-ink-500">{register.data.message}</p>
+          </div>
+        ) : (
+          <form onSubmit={submit} className="space-y-4">
+            <h2 className="text-xl">{activity.register_label ?? t('activitiesPage.register')}</h2>
+            <Field label={t('workshops.nameLabel')} required>
+              {(props) => (
+                <Input
+                  {...props}
+                  required
+                  minLength={2}
+                  maxLength={80}
+                  autoComplete="name"
+                  value={fullName}
+                  onChange={(event) => setFullName(event.target.value)}
+                />
+              )}
+            </Field>
+            <Field label={t('workshops.phoneLabel')} required>
+              {(props) => (
+                <Input
+                  {...props}
+                  required
+                  type="tel"
+                  inputMode="tel"
+                  dir="ltr"
+                  autoComplete="tel"
+                  minLength={6}
+                  maxLength={20}
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
+                />
+              )}
+            </Field>
+            <Turnstile onToken={setCaptchaToken} />
+            <Button type="submit" block loading={register.isPending}>
+              <Send className="h-5 w-5" aria-hidden="true" />
+              {t('workshops.submit')}
+            </Button>
+          </form>
+        )}
+      </CardBody>
+    </Card>
   )
 }
 

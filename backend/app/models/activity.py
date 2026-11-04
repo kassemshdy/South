@@ -3,9 +3,14 @@
 The owners' ticket (29 Oct 2026): a carousel of announcement photos on the
 home page, each opening a page with the details and a way to add it to a
 calendar, and the same activities on a page of their own in the menu. Like
-a workshop it is written by an administrator only; unlike one it has no
-sign-up and no draft step -- an administrator keeps it or archives it, and
-an archived activity is gone from every public route.
+a workshop it is written by an administrator only, with no draft step -- an
+administrator keeps it or archives it, and an archived activity is gone from
+every public route.
+
+People sign up for it on the site itself by default, with an external link
+as the administrator's alternative (the owners' ticket, 4 Nov 2026). Like a
+workshop sign-up, a registration carries a stranger's name and phone number,
+so it is read by administrators only: no public route reads it.
 """
 
 from __future__ import annotations
@@ -17,7 +22,7 @@ from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Te
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base, TimestampMixin, pg_enum, uuid_pk
-from app.models.enums import ActivityKind
+from app.models.enums import ActivityKind, ActivityRegistrationMode
 
 
 class Activity(Base, TimestampMixin):
@@ -53,13 +58,37 @@ class Activity(Base, TimestampMixin):
         default=ActivityKind.ACTIVITY,
         server_default=ActivityKind.ACTIVITY.value,
     )
-    # A link out to wherever people sign up (a form, a WhatsApp chat).
+    # How people sign up: the form on the activity's page, the link below,
+    # or not at all.
+    registration_mode: Mapped[ActivityRegistrationMode] = mapped_column(
+        pg_enum(ActivityRegistrationMode, "activity_registration_mode"),
+        nullable=False,
+        default=ActivityRegistrationMode.ON_SITE,
+        server_default=ActivityRegistrationMode.ON_SITE.value,
+    )
+    # A link out to wherever people sign up (a form, a WhatsApp chat), used
+    # when ``registration_mode`` is EXTERNAL.
     register_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     # The button's text; the catalog's own when empty.
     register_label: Mapped[str | None] = mapped_column(String(60), nullable=True)
     show_calendar: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default="true"
     )
+
+
+class ActivityRegistration(Base, TimestampMixin):
+    """One person's sign-up for an activity, from the form on its page."""
+
+    __tablename__ = "activity_registrations"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    activity_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("activities.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    full_name: Mapped[str] = mapped_column(String(80), nullable=False)
+    phone_number: Mapped[str] = mapped_column(String(20), nullable=False)
+
+    activity: Mapped[Activity] = relationship()
 
 
 class CarouselSlide(Base):
