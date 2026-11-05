@@ -253,7 +253,7 @@ export function Header() {
                lockup carries the three pillars and a sub-line under the name,
                and at 48px in a 64px bar the sub-line was strokes rather than
                letters. 80px now, with the logo at 56-64px. */
-            className="h-14 w-auto sm:h-16"
+            className="h-14 w-auto max-[379px]:h-12 sm:h-16"
           />
         </Link>
 
@@ -370,19 +370,39 @@ export function Header() {
         <div className={cn('flex items-center gap-1', fits && 'xl:hidden')}>
           <CartLink />
           <FavouritesLink />
-          {/* Signed out, the way in stays in the bar as its person icon, beside
-              search and the menu button. Once the headings stopped fitting
-              beside the logo, the sign-in button above went with them and
-              could only be reached through the menu (the owners' request,
-              4 Nov 2026). */}
-          {isAuthenticated ? null : (
-            <Button asChild variant="ghost" size="icon" aria-label={t('nav.login')}>
-              <Link to="/login">
-                <User className="h-5 w-5" aria-hidden="true" />
+          {/* The way in, or the way to one's own area, stays in the bar beside
+              search and the menu button: once the headings stopped fitting
+              beside the logo, the account controls above went with them (the
+              owners' request, 4 Nov 2026). A labelled button, not a bare
+              person icon -- visitors did not read the icon as a way in, and
+              a signed-in owner had no way to their area but the menu (5 Nov
+              2026). On phones the icon inside it goes, and on the narrowest the
+              search button too (search is also in the menu), so the menu
+              button always fits. */}
+          <Button asChild size="sm" className="me-1 shrink-0 whitespace-nowrap">
+            {isAuthenticated ? (
+              <Link to={isAdmin ? '/admin' : '/dashboard'}>
+                {isAdmin ? (
+                  <Shield className="h-4 w-4 max-[419px]:hidden" aria-hidden="true" />
+                ) : (
+                  <LayoutDashboard className="h-4 w-4 max-[419px]:hidden" aria-hidden="true" />
+                )}
+                {isAdmin ? t('nav.adminPanel') : t('nav.myBusinesses')}
               </Link>
-            </Button>
-          )}
-          <Button asChild variant="ghost" size="icon" aria-label={t('nav.searchAria')}>
+            ) : (
+              <Link to="/login">
+                <User className="h-4 w-4 max-[419px]:hidden" aria-hidden="true" />
+                {t('nav.login')}
+              </Link>
+            )}
+          </Button>
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            className="max-[359px]:hidden"
+            aria-label={t('nav.searchAria')}
+          >
             <Link to="/products">
               <Search className="h-5 w-5" aria-hidden="true" />
             </Link>
