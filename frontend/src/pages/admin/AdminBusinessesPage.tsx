@@ -34,7 +34,32 @@ export function AdminBusinessesPage() {
   const [searchInput, setSearchInput] = useState(q)
   const { t, locale } = useI18n()
 
-  useEffect(() => setSearchInput(q), [q])
+  // Follow the address when it changes from outside (a link, the back
+  // button), but never undo what is being typed: a trailing space the search
+  // trimmed away is still the admin's.
+  useEffect(() => setSearchInput((current) => (current.trim() === q ? current : q)), [q])
+
+  // Search as the admin types, a moment after they stop, as the accounts
+  // list does. Like pressing Enter, a search covers every status.
+  useEffect(() => {
+    const query = searchInput.trim()
+    if (query === q) return
+    const timer = window.setTimeout(() => {
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current)
+          if (query) {
+            next.set('q', query)
+            next.set('status', 'ALL')
+          } else next.delete('q')
+          next.delete('page')
+          return next
+        },
+        { replace: true },
+      )
+    }, 300)
+    return () => window.clearTimeout(timer)
+  }, [searchInput, q, setSearchParams])
 
   const results = useQuery({
     queryKey: queryKeys.adminBusinesses(statusParam === 'ALL' ? undefined : status, page, q),

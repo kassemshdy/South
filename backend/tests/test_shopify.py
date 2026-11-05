@@ -383,6 +383,8 @@ def test_the_picker_lists_approved_shops_with_what_the_mirror_knows(
     assert [s["id"] for s in shops] == [str(business.id)]
     assert shops[0]["status"] == "CONNECTED"
     assert shops[0]["shop_domain"] == "souk.myshopify.com"
+    # The page's "view as the owner" button opens this account's session.
+    assert shops[0]["owner_id"] == str(business.owner_id)
 
 
 def test_the_card_shows_the_connectors_view_and_survives_it_being_down(

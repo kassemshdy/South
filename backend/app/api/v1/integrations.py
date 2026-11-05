@@ -144,6 +144,7 @@ def shopify_shops(
             id=business.id,
             name=business.name,
             slug=business.slug,
+            owner_id=business.owner_id,
             status=link.status if link else None,
             shop_domain=link.shop_domain if link else None,
         )
