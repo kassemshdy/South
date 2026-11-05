@@ -11,6 +11,7 @@ import {
   FolderTree,
   GalleryHorizontal,
   GraduationCap,
+  Home,
   Handshake,
   KeyRound,
   Inbox,
@@ -19,6 +20,7 @@ import {
   MessageSquareQuote,
   Image as ImageIcon,
   LayoutList,
+  LogOut,
   Menu as MenuIcon,
   Newspaper,
   PackageX,
@@ -31,10 +33,12 @@ import {
   UserRound,
   Users,
   Wrench,
+  X,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 
+import { LocaleToggle } from '@/components/layout/LocaleToggle'
 import { staffCan, type StaffAction } from '@/features/admin/staffAccess'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useSeo } from '@/hooks/useSeo'
@@ -168,8 +172,14 @@ function NavEntry({ item, nested, onNavigate }: { item: NavItem; nested?: boolea
 
 export function AdminLayout() {
   const t = useT()
-  const { user } = useAuth()
+  const { user, signOut } = useAuth()
   const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const account = user?.email ?? user?.phone_number
+  const handleSignOut = () => {
+    signOut()
+    navigate('/')
+  }
   useSeo({ title: t('admin.seoTitle'), noIndex: true })
 
   const groups = GROUPS.map((group) => ({
@@ -202,32 +212,47 @@ export function AdminLayout() {
   const CurrentIcon = current?.icon ?? MenuIcon
 
   return (
-    <div className="w-full px-4 py-8 sm:px-6 lg:grid lg:grid-cols-[18rem_minmax(0,1fr)] xl:grid-cols-[20rem_minmax(0,1fr)] lg:items-start lg:gap-8 lg:px-8 print:block print:py-0">
-      <div className="mb-6 print:hidden lg:sticky lg:top-[11.5rem] lg:mb-0">
-        {/* On a phone the menu folds behind one button naming the current
-            page; from lg up it is always open, as a sidebar on the start side,
-            wider and in larger type than the phone menu, and as tall as the
-            screen below the header (the owners' requests, 4 Nov 2026). It
-            sticks below the header (about 11rem with its second row of
-            headings) so its top never slides under it. */}
-        <button
-          type="button"
-          onClick={() => setMobileOpen((value) => !value)}
-          aria-expanded={mobileOpen}
-          className="flex w-full items-center justify-between gap-2 rounded-2xl bg-white px-4 py-3 font-semibold text-ink-900 shadow-sm ring-1 ring-ink-100 lg:hidden"
-        >
-          <span className="flex items-center gap-2">
+    <div className="min-h-screen bg-sand-50 lg:ps-72 xl:ps-80 print:bg-white print:ps-0">
+      {/* An admin panel of its own (the owner's request, 4 Nov 2026): the
+          website's header, section menu and footer are not drawn on /admin
+          (AppLayout), and the menu is a sidebar fixed to the start side for
+          the screen's full height, with the way back to the site, the
+          language and signing out at its foot. On a phone it is a slim bar
+          whose button unfolds the same menu. */}
+      <aside className="sticky top-0 z-30 print:hidden lg:fixed lg:inset-y-0 lg:start-0 lg:flex lg:w-72 lg:flex-col lg:border-e lg:border-ink-100 lg:bg-white xl:w-80">
+        <div className="flex h-16 items-center justify-between gap-3 border-b border-ink-100 bg-white px-4 lg:h-20 lg:px-5">
+          <Link to="/admin" className="flex min-w-0 items-center gap-3">
+            <img
+              src="/janoubona-logo.webp"
+              alt={t('app.name')}
+              width={450}
+              height={191}
+              className="h-9 w-auto shrink-0 lg:h-10"
+            />
+            <span className="truncate font-bold text-ink-900 lg:text-lg">{t('nav.adminPanel')}</span>
+          </Link>
+          <button
+            type="button"
+            onClick={() => setMobileOpen((value) => !value)}
+            aria-expanded={mobileOpen}
+            aria-controls="admin-nav"
+            className="flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-ink-900 ring-1 ring-ink-100 lg:hidden"
+          >
             <CurrentIcon className="h-4 w-4" aria-hidden="true" />
-            {current ? t(current.labelKey) : t('admin.navAria')}
-          </span>
-          <ChevronDown
-            className={cn('h-5 w-5 transition-transform', mobileOpen && 'rotate-180')}
-            aria-hidden="true"
-          />
-        </button>
+            <span className="max-w-[9rem] truncate">
+              {current ? t(current.labelKey) : t('admin.navAria')}
+            </span>
+            {mobileOpen ? (
+              <X className="h-5 w-5" aria-hidden="true" />
+            ) : (
+              <MenuIcon className="h-5 w-5" aria-hidden="true" />
+            )}
+          </button>
+        </div>
         <nav
+          id="admin-nav"
           className={cn(
-            'mt-2 max-h-[calc(100dvh-8rem)] space-y-1 overflow-y-auto rounded-2xl bg-white p-3 shadow-sm ring-1 ring-ink-100 lg:mt-0 lg:block lg:max-h-[calc(100dvh-13rem)] lg:min-h-[calc(100dvh-13rem)] lg:space-y-2 lg:p-4',
+            'max-h-[calc(100dvh-8rem)] space-y-1 overflow-y-auto border-b border-ink-100 bg-white p-3 lg:block lg:max-h-none lg:flex-1 lg:space-y-2 lg:border-0 lg:p-4',
             mobileOpen ? 'block' : 'hidden',
           )}
           aria-label={t('admin.navAria')}
@@ -274,9 +299,37 @@ export function AdminLayout() {
             )
           })}
         </nav>
-      </div>
+        <div
+          className={cn(
+            'flex-wrap items-center gap-2 border-b border-ink-100 bg-white p-3 lg:flex lg:border-b-0 lg:border-t lg:p-4',
+            mobileOpen ? 'flex' : 'hidden',
+          )}
+        >
+          {account ? (
+            <p className="w-full truncate text-xs text-ink-500" dir="ltr">
+              {account}
+            </p>
+          ) : null}
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold text-ink-700 hover:bg-sand-100"
+          >
+            <Home className="h-4 w-4" aria-hidden="true" />
+            {t('nav.home')}
+          </Link>
+          <LocaleToggle />
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold text-clay-700 hover:bg-clay-50"
+          >
+            <LogOut className="h-4 w-4" aria-hidden="true" />
+            {t('nav.signOut')}
+          </button>
+        </div>
+      </aside>
 
-      <div className="min-w-0">
+      <div className="min-w-0 px-4 py-8 sm:px-6 lg:px-8 print:p-0">
         <Outlet />
       </div>
     </div>
