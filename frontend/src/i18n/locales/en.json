@@ -2178,5 +2178,8 @@
   "openRequest.solve": "Handled",
   "openRequest.reopen": "Reopen request",
   "openRequest.delete": "Delete request",
-  "openRequest.confirmDelete": "Delete this request permanently?"
+  "openRequest.confirmDelete": "Delete this request permanently?",
+  "work.brand": "Work.Janoubona",
+  "work.tagline": "A worker from Jabal Amel",
+  "work.intro": "Services and talent from the South: find someone to get your work done, or offer your skill to those who need it."
 }

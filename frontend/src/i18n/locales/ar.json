@@ -2178,5 +2178,8 @@
   "openRequest.solve": "تمّت المعالجة",
   "openRequest.reopen": "إعادة فتح الطلب",
   "openRequest.delete": "حذف الطلب",
-  "openRequest.confirmDelete": "حذف هذا الطلب نهائيًا؟"
+  "openRequest.confirmDelete": "حذف هذا الطلب نهائيًا؟",
+  "work.brand": "Work.Janoubona",
+  "work.tagline": "عامل من جبل عامل",
+  "work.intro": "خدمات ومواهب من الجنوب: اعثر على من ينجز عملك، أو اعرض مهارتك على من يحتاجها."
 }
