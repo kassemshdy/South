@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 
 import { Footer } from '@/components/layout/Footer'
 import { Header } from '@/components/layout/Header'
@@ -14,6 +14,12 @@ import { useT } from '@/i18n'
 export function AppLayout() {
   const t = useT()
   const { isAuthenticated } = useAuth()
+  const { pathname } = useLocation()
+  // The admin area is a panel of its own with a fixed sidebar (the owner's
+  // request, 4 Nov 2026): no website header, section menu or footer, and
+  // none of the visitor-facing extras. Its sign-in page stays a site page.
+  const adminArea =
+    (pathname === '/admin' || pathname.startsWith('/admin/')) && pathname !== '/admin/login'
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -29,15 +35,19 @@ export function AppLayout() {
       </a>
       {/* `contents` keeps the header sticky; the wrappers exist only so a
           printed page (the admin growth report's PDF) is the content alone. */}
-      <div className="contents print:hidden">
-        <Header />
-      </div>
+      {adminArea ? null : (
+        <div className="contents print:hidden">
+          <Header />
+        </div>
+      )}
       <main id="main" className="flex-1">
         <Outlet />
       </main>
-      <div className="contents print:hidden">
-        <Footer />
-      </div>
+      {adminArea ? null : (
+        <div className="contents print:hidden">
+          <Footer />
+        </div>
+      )}
       {/* Anyone signed in, not just admins. The whole reporting pipeline —
           screenshot, ticket, board — existed and was reachable only by the
           people who built it, so an owner whose upload failed had no way to
@@ -45,8 +55,12 @@ export function AppLayout() {
           and rate limiting) and is tracked separately. */}
       <div className="contents print:hidden">
         {isAuthenticated ? <FeedbackWidget /> : null}
-        <WhatsAppButton />
-        <OfferPopup />
+        {adminArea ? null : (
+          <>
+            <WhatsAppButton />
+            <OfferPopup />
+          </>
+        )}
       </div>
     </div>
   )
