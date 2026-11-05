@@ -358,5 +358,7 @@
   "talent.service_price_range": "السعر الأعلى يجب ألا يقل عن السعر الأدنى.",
   "open_request.received": "شكرًا لك. وصلنا طلبك، وسيتواصل معك فريقنا ليصلك بمن يقدّم الخدمة.",
   "open_request.not_found": "الطلب غير موجود.",
-  "open_request.deleted": "تم حذف الطلب."
+  "open_request.deleted": "تم حذف الطلب.",
+  "shopify.profile_queued": "أُرسلت هوية المتجر إلى شوبيفاي، وتظهر في المتجر خلال دقائق.",
+  "shopify.reconnect_required": "اربط المتجر مجددًا لمنح التطبيق صلاحية تعديل مظهر المتجر."
 }

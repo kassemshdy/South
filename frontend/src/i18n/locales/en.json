@@ -2178,5 +2178,7 @@
   "openRequest.solve": "Handled",
   "openRequest.reopen": "Reopen request",
   "openRequest.delete": "Delete request",
-  "openRequest.confirmDelete": "Delete this request permanently?"
+  "openRequest.confirmDelete": "Delete this request permanently?",
+  "shopify.pushProfile": "Send store profile",
+  "shopify.pushProfileHint": "Sends the shop's logo and social links to its Shopify store's theme."
 }

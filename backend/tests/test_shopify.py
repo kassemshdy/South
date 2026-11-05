@@ -35,8 +35,8 @@ from app.api.v1.integrations import get_http_client
 from app.core.config import Settings, get_settings
 from app.database.session import SessionLocal
 from app.main import create_app
-from app.models.business import Business, BusinessItem
-from app.models.enums import BusinessStatus, StaffRole
+from app.models.business import Business, BusinessItem, BusinessSocialLink
+from app.models.enums import BusinessStatus, SocialPlatform, StaffRole
 from app.models.integration import IntegrationOutbox, ItemLink, StoreLink
 from app.models.taxonomy import Category, Location
 from app.models.user import User
@@ -71,6 +71,7 @@ class FakeConnector:
         self.requests: list[httpx.Request] = []
         self.stores: dict[str, dict[str, object]] = {}
         self.down = False
+        self.reconnect = False
 
     def calls(self, method: str, pattern: str) -> list[httpx.Request]:
         return [
@@ -104,6 +105,11 @@ class FakeConnector:
             store.update(subdomain=body["subdomain"],
                          subdomain_hostname=f"{body['subdomain']}.janoubona.net")
             return httpx.Response(200, json={"store_ref": ref, **store})
+        if rest == "/profile":
+            if self.reconnect:
+                return httpx.Response(409, json={
+                    "error": {"code": "reconnect_required", "message": "x"}})
+            return httpx.Response(202, json={"queued": 1})
         if rest.startswith("/products/"):
             product_ref = rest.split("/")[2]
             if request.method == "DELETE":
@@ -357,6 +363,7 @@ def test_a_reviewer_sees_the_page_but_only_a_manager_connects(
         ("POST", f"/api/admin/businesses/{business.id}/shopify/install"),
         ("POST", f"/api/admin/businesses/{business.id}/shopify/sync"),
         ("POST", f"/api/admin/businesses/{business.id}/shopify/subdomain"),
+        ("POST", f"/api/admin/businesses/{business.id}/shopify/profile"),
         ("DELETE", f"/api/admin/businesses/{business.id}/shopify"),
     ):
         assert shop_client.request(
@@ -635,3 +642,59 @@ def test_a_reserved_subdomain_is_refused_in_our_words(
     ok = shop_client.post(url, headers=headers, json={"subdomain": "souk"})
     assert ok.status_code == 200, ok.text
     assert ok.json()["subdomain_hostname"] == "souk.janoubona.net"
+
+
+# --- The store's profile ---------------------------------------------------------
+
+
+def test_the_shops_logo_and_theme_social_links_are_sent_to_its_store(
+    shop_client: TestClient,
+    db: Session,
+    admin: User,
+    fake: FakeConnector,
+    category: Category,
+    location: Location,
+) -> None:
+    business = approved_business(
+        shop_client, db, sign_in(shop_client, OWNER_PHONE), category, location
+    )
+    business.logo_url = "/media/businesses/x/logo/logo.jpg"
+    for platform, url in (
+        (SocialPlatform.INSTAGRAM, "https://instagram.com/lilac"),
+        (SocialPlatform.FACEBOOK, "http://facebook.com/lilac"),
+        (SocialPlatform.WHATSAPP, "https://wa.me/96170000000"),
+    ):
+        db.add(BusinessSocialLink(business_id=business.id, platform=platform, url=url))
+    db.commit()
+    webhook(shop_client, "store.connected", connected(business))
+    r = shop_client.post(
+        f"/api/admin/businesses/{business.id}/shopify/profile",
+        headers=admin_headers(shop_client),
+    )
+    assert r.status_code == 200, r.text
+    sent = json.loads(fake.calls("PUT", r"/profile$")[0].content)
+    assert sent["logo_url"] == "https://janoubona.test/media/businesses/x/logo/logo.jpg"
+    # Only https links the theme has a place for: not http, not WhatsApp.
+    assert sent["social"] == {"instagram": "https://instagram.com/lilac"}
+    assert sent["name"] == business.name
+
+
+def test_the_profile_needs_a_connected_store_and_says_when_to_reconnect(
+    shop_client: TestClient,
+    db: Session,
+    admin: User,
+    fake: FakeConnector,
+    category: Category,
+    location: Location,
+) -> None:
+    business = approved_business(
+        shop_client, db, sign_in(shop_client, OWNER_PHONE), category, location
+    )
+    url = f"/api/admin/businesses/{business.id}/shopify/profile"
+    boss = admin_headers(shop_client)
+    assert shop_client.post(url, headers=boss).status_code == 404
+    assert not fake.calls("PUT", r"/profile$")
+    webhook(shop_client, "store.connected", connected(business))
+    fake.reconnect = True
+    r = shop_client.post(url, headers=boss)
+    assert r.status_code == 409 and r.json()["error"]["code"] == "reconnect_required"

@@ -358,5 +358,7 @@
   "talent.service_price_range": "The higher price must not be below the lower one.",
   "open_request.received": "Thank you. We have your request, and our team will contact you to connect you with a provider.",
   "open_request.not_found": "Request not found.",
-  "open_request.deleted": "Request deleted."
+  "open_request.deleted": "Request deleted.",
+  "shopify.profile_queued": "The store profile was sent to Shopify and will appear in the store within minutes.",
+  "shopify.reconnect_required": "Connect the store again to let the app update the store's theme."
 }

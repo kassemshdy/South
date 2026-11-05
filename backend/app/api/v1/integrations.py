@@ -200,6 +200,25 @@ def shopify_sync(
     return SyncQueuedOut(queued=StoreConnectionService(db, settings, http).sync_now(business))
 
 
+@admin_router.post(
+    "/businesses/{business_id}/shopify/profile", response_model=MessageResponse
+)
+def shopify_profile(
+    business_id: uuid.UUID,
+    admin: AdminUser,
+    db: DbSession,
+    settings: ConnectorSettings,
+    http: HttpClient,
+) -> MessageResponse:
+    """Send the shop's logo and social links into its store's theme."""
+    business = _business(db, business_id)
+    try:
+        StoreConnectionService(db, settings, http).push_profile(business)
+    except ConnectorUnavailable as exc:
+        raise _unavailable() from exc
+    return MessageResponse(message=translate("shopify.profile_queued"))
+
+
 @admin_router.delete("/businesses/{business_id}/shopify", response_model=MessageResponse)
 def shopify_disconnect(
     business_id: uuid.UUID,
