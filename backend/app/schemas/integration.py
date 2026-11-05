@@ -16,6 +16,9 @@ class ShopifyShopOut(BaseModel):
     id: uuid.UUID
     name: str
     slug: str
+    # For the page's "view as the owner" button (the owner's request, 5 Nov
+    # 2026); staff only, like the rest of this route.
+    owner_id: uuid.UUID
     status: str | None = None
     shop_domain: str | None = None
 

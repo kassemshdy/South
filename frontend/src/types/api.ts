@@ -1586,6 +1586,8 @@ export interface ShopifyShop {
   id: string
   name: string
   slug: string
+  /** The shop's owner, for "view as the owner". */
+  owner_id: string
   status: 'PENDING' | 'CONNECTED' | 'UNINSTALLED' | null
   shop_domain: string | null
 }

@@ -21,6 +21,7 @@ import { useToast } from '@/components/ui/Toast'
 import { ImagePreviewDialog } from '@/features/admin/ImagePreviewDialog'
 import { openPrivateFile, type PreviewImage } from '@/features/admin/openPrivateFile'
 import { IssueCredentialsCard } from '@/features/admin/IssueCredentialsCard'
+import { ViewAsButton } from '@/features/admin/ViewAsButton'
 import { OwnerIdentityCard } from '@/features/admin/OwnerIdentityCard'
 import { OwnerWhatsappButton } from '@/features/admin/OwnerWhatsappButton'
 import { OWNER_RELATION_KEYS } from '@/features/businesses/labels'
@@ -160,14 +161,19 @@ export function AdminReviewPage() {
           </div>
         </div>
 
-        {data.status === 'APPROVED' ? (
-          <Button asChild variant="outline" size="sm">
-            <Link to={`/business/${encodeURIComponent(data.slug)}`}>
-              <ExternalLink className="h-4 w-4" aria-hidden="true" />
-              {t('dashboard.publicPage')}
-            </Link>
-          </Button>
-        ) : null}
+        <div className="flex flex-wrap gap-2">
+          {/* Straight to this shop's Products page in the owner's own session
+              (the owner's request, 5 Nov 2026). */}
+          <ViewAsButton userId={data.owner_id} to={`/dashboard/businesses/${data.id}/items`} />
+          {data.status === 'APPROVED' ? (
+            <Button asChild variant="outline" size="sm">
+              <Link to={`/business/${encodeURIComponent(data.slug)}`}>
+                <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                {t('dashboard.publicPage')}
+              </Link>
+            </Button>
+          ) : null}
+        </div>
       </header>
 
       {/* Decision bar, pinned near the top: the admin's job on this page. */}

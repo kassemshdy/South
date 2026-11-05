@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState, ErrorState } from "@/components/ui/States";
 import { useStaffCan } from "@/features/admin/staffAccess";
+import { ViewAsButton } from "@/features/admin/ViewAsButton";
 import { ShopifyCard } from "@/features/integrations/ShopifyCard";
 import { useT } from "@/i18n";
 import { ApiError } from "@/services/api/client";
@@ -45,6 +46,7 @@ export function AdminShopifyPage() {
       : list;
   }, [shops.data, query]);
 
+  const selectedShop = (shops.data ?? []).find((shop) => shop.id === selected);
   const choose = (id: string) => {
     const next = new URLSearchParams(params);
     next.set("business", id);
@@ -125,11 +127,23 @@ export function AdminShopifyPage() {
 
           <div>
             {selected ? (
-              <ShopifyCard
-                key={selected}
-                businessId={selected}
-                canManage={canManage}
-              />
+              <div className="space-y-3">
+                {selectedShop ? (
+                  // The shop's Products page in the owner's own session (the
+                  // owner's request, 5 Nov 2026).
+                  <div className="flex justify-end">
+                    <ViewAsButton
+                      userId={selectedShop.owner_id}
+                      to={`/dashboard/businesses/${selectedShop.id}/items`}
+                    />
+                  </div>
+                ) : null}
+                <ShopifyCard
+                  key={selected}
+                  businessId={selected}
+                  canManage={canManage}
+                />
+              </div>
             ) : (
               <Card>
                 <CardBody className="flex items-center gap-3 text-ink-500">
