@@ -1,0 +1,1059 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Janoubona Partner API",
+    "version": "1.0.0",
+    "description": "Read-only feed of Janoubona's approved stores and available products, with each store's Shopify storefront and buy links. It carries only what a visitor to janoubona.net can already read. Reference: docs/PARTNER_API.md."
+  },
+  "servers": [
+    {
+      "url": "https://www.janoubona.net",
+      "description": "Production"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Partner API v1"
+    }
+  ],
+  "paths": {
+    "/api/partner/v1/stores": {
+      "get": {
+        "tags": [
+          "Partner API v1"
+        ],
+        "summary": "List stores",
+        "operationId": "list_stores",
+        "parameters": [
+          {
+            "name": "connected",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Only stores with a live Shopify store",
+              "default": false,
+              "title": "Connected"
+            },
+            "description": "Only stores with a live Shopify store"
+          },
+          {
+            "name": "updated_since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Updated Since"
+            },
+            "description": "ISO 8601 timestamp. Only rows changed at or after this time."
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            },
+            "description": "Opaque. Pass back next_cursor from the previous page."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Page size, 1 to 200."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorePage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, wrong or revoked API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "bad_api_key",
+                    "message": "..."
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key does not have the scope this route needs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "scope_missing",
+                    "message": "..."
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "rate_limited",
+                    "message": "..."
+                  }
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                },
+                "description": "Seconds until the key may call again."
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid parameter or cursor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "bad_cursor",
+                    "message": "..."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Approved stores, ordered by (updated_at, id), paged by cursor. Requires scope `stores:read`.",
+        "security": [
+          {
+            "PartnerKey": []
+          }
+        ]
+      }
+    },
+    "/api/partner/v1/stores/{slug}": {
+      "get": {
+        "tags": [
+          "Partner API v1"
+        ],
+        "summary": "Get a store",
+        "operationId": "get_store",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Store"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, wrong or revoked API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "bad_api_key",
+                    "message": "..."
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key does not have the scope this route needs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "scope_missing",
+                    "message": "..."
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "rate_limited",
+                    "message": "..."
+                  }
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                },
+                "description": "Seconds until the key may call again."
+              }
+            }
+          },
+          "404": {
+            "description": "No approved store with this slug.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "not_found",
+                    "message": "..."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "One approved store by slug (percent-encoded). Requires scope `stores:read`.",
+        "security": [
+          {
+            "PartnerKey": []
+          }
+        ]
+      }
+    },
+    "/api/partner/v1/products": {
+      "get": {
+        "tags": [
+          "Partner API v1"
+        ],
+        "summary": "List products",
+        "operationId": "list_products",
+        "parameters": [
+          {
+            "name": "store",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "A store's slug",
+              "title": "Store"
+            },
+            "description": "A store's slug"
+          },
+          {
+            "name": "updated_since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Updated Since"
+            },
+            "description": "ISO 8601 timestamp. Only rows changed at or after this time."
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            },
+            "description": "Opaque. Pass back next_cursor from the previous page."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Page size, 1 to 200."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, wrong or revoked API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "bad_api_key",
+                    "message": "..."
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key does not have the scope this route needs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "scope_missing",
+                    "message": "..."
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "rate_limited",
+                    "message": "..."
+                  }
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                },
+                "description": "Seconds until the key may call again."
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid parameter or cursor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "bad_cursor",
+                    "message": "..."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Available products of approved stores, ordered by (updated_at, id), paged by cursor. Requires scope `products:read`.",
+        "security": [
+          {
+            "PartnerKey": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Category": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name_ar": {
+            "type": "string",
+            "title": "Name Ar"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon"
+          },
+          "sort_order": {
+            "type": "integer",
+            "title": "Sort Order"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "business_count": {
+            "type": "integer",
+            "title": "Business Count",
+            "default": 0
+          },
+          "item_count": {
+            "type": "integer",
+            "title": "Item Count",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name_ar",
+          "slug",
+          "sort_order",
+          "is_active"
+        ],
+        "title": "Category"
+      },
+      "Currency": {
+        "type": "string",
+        "enum": [
+          "USD",
+          "LBP"
+        ],
+        "title": "Currency"
+      },
+      "GoodsOrigin": {
+        "type": "string",
+        "enum": [
+          "LOCAL",
+          "IMPORTED"
+        ],
+        "title": "GoodsOrigin",
+        "description": "Whether goods are made in the South or imported.\n\nTwo separate doors on both the offering and the looking-for pages, at the\nCEO's request: a southern store selling imported goods is welcome, but a\nbuyer looking for what the South itself produces must be able to tell the\ntwo apart. Carried by each *product*, so a shop selling both registers\nonce and its goods appear under both doors; the shop's own mark is the\ndoor it came through and the default its new products take. Public,\nbecause it is exactly what a visitor filters on."
+      },
+      "Location": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name_ar": {
+            "type": "string",
+            "title": "Name Ar"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "type": {
+            "$ref": "#/components/schemas/LocationType"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "sort_order": {
+            "type": "integer",
+            "title": "Sort Order"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "business_count": {
+            "type": "integer",
+            "title": "Business Count",
+            "default": 0
+          },
+          "item_count": {
+            "type": "integer",
+            "title": "Item Count",
+            "default": 0
+          },
+          "service_count": {
+            "type": "integer",
+            "title": "Service Count",
+            "default": 0
+          },
+          "job_count": {
+            "type": "integer",
+            "title": "Job Count",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name_ar",
+          "slug",
+          "type",
+          "sort_order",
+          "is_active"
+        ],
+        "title": "Location"
+      },
+      "LocationType": {
+        "type": "string",
+        "enum": [
+          "GOVERNORATE",
+          "DISTRICT",
+          "TOWN"
+        ],
+        "title": "LocationType"
+      },
+      "ProductPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Product"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "PartnerPage[Product]"
+      },
+      "StorePage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Store"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "PartnerPage[Store]"
+      },
+      "Product": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "store_slug": {
+            "type": "string",
+            "title": "Store Slug"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
+          "images": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Images",
+            "default": []
+          },
+          "goods_origin": {
+            "$ref": "#/components/schemas/GoodsOrigin"
+          },
+          "page_url": {
+            "type": "string",
+            "title": "Page Url"
+          },
+          "buy_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buy Url"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "store_slug",
+          "title",
+          "currency",
+          "goods_origin",
+          "page_url",
+          "updated_at"
+        ],
+        "title": "Product"
+      },
+      "Store": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "short_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Short Description"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url"
+          },
+          "cover_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cover Url"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "whatsapp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Whatsapp"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Category"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "custom_category_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Category Text"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Location"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rating_average": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating Average"
+          },
+          "rating_count": {
+            "type": "integer",
+            "title": "Rating Count",
+            "default": 0
+          },
+          "goods_origin": {
+            "$ref": "#/components/schemas/GoodsOrigin",
+            "default": "LOCAL"
+          },
+          "displaced_from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Displaced From"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "page_url": {
+            "type": "string",
+            "title": "Page Url"
+          },
+          "website": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Website"
+          },
+          "latitude": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latitude"
+          },
+          "longitude": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Longitude"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "shop_domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shop Domain"
+          },
+          "online_store_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Online Store Url"
+          },
+          "subdomain_hostname": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subdomain Hostname"
+          },
+          "logo_thumb_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Thumb Url",
+            "readOnly": true,
+            "description": "Reserved; always null in v1."
+          },
+          "cover_thumb_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cover Thumb Url",
+            "readOnly": true,
+            "description": "Reserved; always null in v1."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "created_at",
+          "page_url",
+          "updated_at",
+          "logo_thumb_url",
+          "cover_thumb_url"
+        ],
+        "title": "Store"
+      },
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "description": "Stable, machine-readable error code."
+              },
+              "message": {
+                "type": "string",
+                "description": "Human-readable, in the language of Accept-Language (Arabic by default, English with `en`)."
+              },
+              "details": {
+                "type": "object",
+                "description": "Extra data for some errors: retry_after_seconds on 429, fields on validation_error.",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "PartnerKey": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Per-partner key starting jnb_, issued by Janoubona. Keep it server-side."
+      }
+    }
+  }
+}
