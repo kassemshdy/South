@@ -155,14 +155,14 @@ export function ItemManager({ businessId }: { businessId: string }) {
       </div>
 
       {items.isLoading ? (
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Skeleton className="h-28 rounded-2xl" />
-          <Skeleton className="h-28 rounded-2xl" />
+        <div className="space-y-3">
+          <Skeleton className="h-20 rounded-2xl" />
+          <Skeleton className="h-20 rounded-2xl" />
         </div>
       ) : items.isError ? (
         <ErrorState error={items.error} onRetry={() => void items.refetch()} />
       ) : items.data && items.data.length > 0 ? (
-        <ul className="grid gap-4 sm:grid-cols-2">
+        <ul className="space-y-3">
           {items.data.map((item) => (
             <li key={item.id}>
               <ItemRow
@@ -221,13 +221,15 @@ function ItemRow({
     : ''
 
   return (
+    // One product per row, the actions at the row's end: an owner scanning a
+    // long catalogue reads down a list far faster than across a grid of cards.
     <Card className={item.is_available ? '' : 'opacity-70'}>
-      <CardBody className="flex gap-4 p-4">
+      <CardBody className="flex flex-wrap items-center gap-3 p-3 sm:flex-nowrap sm:gap-4">
         {photoCrop.dialog}
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border-2 border-dashed border-ink-100 bg-sand-50"
+          className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 border-dashed border-ink-100 bg-sand-50"
           aria-label={t('items.uploadImageAria', { title: item.title })}
         >
           {item.image_url ? (
@@ -256,36 +258,33 @@ function ItemRow({
         />
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <h4 className="font-bold">{item.title}</h4>
-            {formatPrice(item.price, item.currency) ? (
-              <span className="ltr-nums shrink-0 text-sm font-bold text-brand-800">
-                {formatPrice(item.price, item.currency)}
-              </span>
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+            <h4 className="truncate font-bold">{item.title}</h4>
+            {price ? (
+              <span className="ltr-nums shrink-0 text-sm font-bold text-brand-800">{price}</span>
             ) : null}
           </div>
           {item.description ? (
-            <p className="mt-1 line-clamp-2 text-sm text-ink-500">{item.description}</p>
+            <p className="mt-0.5 line-clamp-1 text-sm text-ink-500">{item.description}</p>
           ) : null}
           {!item.is_available ? (
-            <p className="mt-1 text-xs text-ink-500">{t('items.unavailable')}</p>
+            <p className="mt-0.5 text-xs text-ink-500">{t('items.unavailable')}</p>
           ) : null}
+        </div>
 
-          <div className="mt-2 flex flex-wrap gap-1">
-            <Button variant="ghost" size="sm" onClick={onEdit}>
-              <Pencil className="h-4 w-4" aria-hidden="true" />
-              {t('common.edit')}
-            </Button>
-            <Button variant="ghost" size="sm" className="text-clay-600" onClick={onDelete}>
-              <Trash2 className="h-4 w-4" aria-hidden="true" />
-              {t('common.delete')}
-            </Button>
-          </div>
-
+        <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto sm:shrink-0 sm:justify-end">
+          <Button variant="ghost" size="sm" onClick={onEdit}>
+            <Pencil className="h-4 w-4" aria-hidden="true" />
+            {t('common.edit')}
+          </Button>
+          <Button variant="ghost" size="sm" className="text-clay-600" onClick={onDelete}>
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
+            {t('common.delete')}
+          </Button>
           {/* Owners pass single products around on WhatsApp far more than
               whole shop pages, so each published one gets its own share. */}
           {shareable ? (
-            <div className="mt-2 flex flex-wrap gap-2">
+            <>
               <Button asChild size="sm">
                 <a
                   href={whatsappShareHref(`${shareText}\n${url}`)}
@@ -297,7 +296,7 @@ function ItemRow({
                 </a>
               </Button>
               <ShareButton title={item.title} text={shareText} url={url} variant="outline" />
-            </div>
+            </>
           ) : null}
         </div>
       </CardBody>
