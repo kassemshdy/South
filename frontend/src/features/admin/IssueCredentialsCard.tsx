@@ -63,13 +63,20 @@ function remember(userId: string, issued: IssuedPassword | null) {
   }
 }
 
-/** Fills `{phone}`, `{password}` and `{url}` in the administrator's own
- * wording; anything else in braces is left as typed. */
+/** Fills `{phone}` and `{url}` in the administrator's own wording;
+ * anything else in braces is left as typed. A line holding `{password}` is
+ * dropped: the password goes alone, in a second message, because copied out
+ * of the middle of one on a phone it arrived with extra characters (the
+ * owners' report, 6 Nov 2026). */
 export function fillCredentialsMessage(
   template: string,
-  values: { phone: string; password: string; url: string },
+  values: { phone: string; url: string },
 ): string {
-  return template.replace(/\{(phone|password|url)\}/g, (_match, name: keyof typeof values) => values[name])
+  return template
+    .split('\n')
+    .filter((line) => !line.includes('{password}'))
+    .join('\n')
+    .replace(/\{(phone|url)\}/g, (_match, name: keyof typeof values) => values[name])
 }
 
 export function IssueCredentialsCard({
@@ -82,7 +89,7 @@ export function IssueCredentialsCard({
   const queryClient = useQueryClient()
   const allowed = useStaffCan('credentials')
   const [issued, setIssued] = useState<IssuedPassword | null>(null)
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState<'message' | 'password' | null>(null)
   // Replacing a password signs the owner out, so it takes two deliberate
   // steps: open the warning, then confirm inside it. A browser confirm box
   // was one click to wave through (the owners' ticket, 29 Oct 2026).
@@ -114,7 +121,7 @@ export function IssueCredentialsCard({
       setConfirming(false)
       setIssued(result)
       remember(userId, result)
-      setCopied(false)
+      setCopied(null)
       void queryClient.invalidateQueries({ queryKey: queryKeys.adminCredentials(userId) })
     },
     onError: (error) =>
@@ -151,21 +158,21 @@ export function IssueCredentialsCard({
 
   // The administrator's own wording when one is set (site settings), else
   // the site's; filled here, so the password never goes to the server.
-  const values = issued
-    ? { phone: issued.phone_number, password: issued.password, url: window.location.origin }
-    : null
+  const values = issued ? { phone: issued.phone_number, url: window.location.origin } : null
   const message = values
     ? template.data?.message
       ? fillCredentialsMessage(template.data.message, values)
       : t('credentials.whatsappMessage', values)
     : ''
   const href = issued ? whatsappHref(issued.phone_number, message) : null
+  // The password alone, so a long-press copies exactly it.
+  const passwordHref = issued ? whatsappHref(issued.phone_number, issued.password) : null
 
-  const copy = async () => {
+  const copy = async (what: 'message' | 'password') => {
     if (!issued) return
     try {
-      await navigator.clipboard.writeText(message)
-      setCopied(true)
+      await navigator.clipboard.writeText(what === 'message' ? message : issued.password)
+      setCopied(what)
     } catch {
       // No clipboard permission. The password is on screen either way, which
       // is why it is rendered selectable rather than masked.
@@ -225,6 +232,7 @@ export function IssueCredentialsCard({
               </div>
             </dl>
 
+            <p className="text-sm text-ink-500">{t('credentials.twoMessagesHint')}</p>
             <div className="flex flex-wrap gap-3">
               {href ? (
                 <a
@@ -237,13 +245,34 @@ export function IssueCredentialsCard({
                   {t('credentials.sendOnWhatsapp')}
                 </a>
               ) : null}
-              <Button variant="secondary" onClick={() => void copy()}>
-                {copied ? (
+              {passwordHref ? (
+                <a
+                  href={passwordHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-xl bg-olive-600 px-4 py-2.5 font-semibold text-white hover:bg-olive-700"
+                >
+                  <KeyRound className="h-4 w-4" aria-hidden="true" />
+                  {t('credentials.sendPasswordOnWhatsapp')}
+                </a>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button variant="secondary" onClick={() => void copy('message')}>
+                {copied === 'message' ? (
                   <Check className="h-4 w-4" aria-hidden="true" />
                 ) : (
                   <Copy className="h-4 w-4" aria-hidden="true" />
                 )}
-                {copied ? t('credentials.copied') : t('credentials.copyMessage')}
+                {copied === 'message' ? t('credentials.copied') : t('credentials.copyMessage')}
+              </Button>
+              <Button variant="secondary" onClick={() => void copy('password')}>
+                {copied === 'password' ? (
+                  <Check className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <Copy className="h-4 w-4" aria-hidden="true" />
+                )}
+                {copied === 'password' ? t('credentials.copied') : t('credentials.copyPassword')}
               </Button>
             </div>
 

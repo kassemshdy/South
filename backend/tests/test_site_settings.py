@@ -159,9 +159,12 @@ def test_a_credentials_message_without_the_login_is_refused(
 ) -> None:
     path = "/api/admin/site-settings/credentials-message"
     refused = client.put(
-        path, headers=admin_headers(client), json={"message": "Welcome {phone}"}
+        path, headers=admin_headers(client), json={"message": "Welcome {password}"}
     )
     assert refused.status_code == 422, refused.text
+    # The password goes in a message of its own, so it is not required.
+    kept = client.put(path, headers=admin_headers(client), json={"message": "Welcome {phone}"})
+    assert kept.status_code == 200, kept.text
 
 
 def test_only_an_administrator_reads_or_sets_the_credentials_message(
