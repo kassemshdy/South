@@ -50,8 +50,10 @@ interface LocationComboboxProps {
   invalid?: boolean
   'aria-describedby'?: string
   /**
-   * A directory's own count for a place. Given, each place shows it and the
-   * fullest districts, and the fullest towns within them, come first.
+   * A directory's own count for a place. Given, each place shows it, the
+   * fullest districts, and the fullest towns within them, come first, and a
+   * place with nothing in it is left out (the owners' ticket, 6 Nov 2026) --
+   * except the one already chosen, so the picker never hides its own value.
    */
   countOf?: (node: LocationNode) => number
 }
@@ -85,10 +87,12 @@ export function LocationCombobox({
   const options = useMemo<Option[]>(() => {
     // Fullest first when counting; otherwise the order the API gives.
     const byCount = (a: LocationNode, b: LocationNode) => (countOf ? countOf(b) - countOf(a) : 0)
+    const shown = (node: LocationNode) => !countOf || countOf(node) > 0 || node[by] === value
     const ordered = countOf
       ? [...groups]
+          .map((group) => ({ ...group, towns: group.towns.filter(shown).sort(byCount) }))
+          .filter((group) => shown(group.district) || group.towns.length > 0)
           .sort((a, b) => byCount(a.district, b.district))
-          .map((group) => ({ ...group, towns: [...group.towns].sort(byCount) }))
       : groups
     const counted = (node: LocationNode) => (countOf ? { count: countOf(node) } : {})
     return [
@@ -110,7 +114,7 @@ export function LocationCombobox({
         })),
       ]),
     ]
-  }, [groups, by, emptyLabel, countOf])
+  }, [groups, by, emptyLabel, countOf, value])
 
   const selected = options.find((option) => option.id === value)
 
