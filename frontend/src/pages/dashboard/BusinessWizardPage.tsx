@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, PartyPopper, Send, UserRound } from 'lucide-react'
+import { Check, PackagePlus, PartyPopper, Send, UserRound } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
@@ -24,6 +24,7 @@ import { ApiError } from '@/services/api/client'
 import { ownerApi, type BusinessPayload } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import { cn } from '@/utils/cn'
+import { normalizeForSearch } from '@/utils/search'
 
 // `optional` marks the steps nothing in `SUBMISSION_REQUIREMENTS` depends on.
 // Unlabelled chips read as obligations; two of these are not, and an owner who
@@ -151,6 +152,14 @@ export function BusinessWizardPage() {
   const origin = originFromParams(searchParams)
 
   useSeo({ title: t('wizard.seoTitle'), noIndex: true })
+
+  // The owner's shops already on the site. An owner who has one and comes
+  // here is usually trying to add a product to it, not a second shop (the
+  // owners' report, 6 Nov 2026: «Trendy Bee» was created twice).
+  const existing = useQuery({ queryKey: queryKeys.myBusinesses, queryFn: ownerApi.list })
+  const [sameName, setSameName] = useState<{ payload: BusinessPayload; shop: string } | null>(
+    null,
+  )
 
   const business = useQuery({
     queryKey: queryKeys.myBusiness(businessId ?? ''),
@@ -301,6 +310,27 @@ export function BusinessWizardPage() {
         </div>
       ) : null}
 
+      {businessId === null && existing.data && existing.data.length > 0 ? (
+        <div className="mb-6 rounded-2xl border-2 border-sand-300 bg-sand-50 p-5">
+          <p className="font-bold text-ink-900">{t('wizard.alreadyHaveShopTitle')}</p>
+          <p className="mt-1 text-sm leading-relaxed text-ink-700">
+            {t('wizard.alreadyHaveShopBody')}
+          </p>
+          <ul className="mt-3 flex flex-wrap gap-2">
+            {existing.data.map((shop) => (
+              <li key={shop.id}>
+                <Button asChild size="sm" variant="secondary">
+                  <Link to={`/dashboard/businesses/${shop.id}/items`}>
+                    <PackagePlus className="h-4 w-4" aria-hidden="true" />
+                    <span dir="auto">{t('wizard.addProductTo', { name: shop.name })}</span>
+                  </Link>
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
       <Card>
         <CardBody>
           {step === 'personal' ? <PersonalStep onContinue={() => setStep('basics')} /> : null}
@@ -315,12 +345,44 @@ export function BusinessWizardPage() {
               business={data}
               submitLabel={t('wizard.saveAndContinue')}
               pending={create.isPending || update.isPending}
-              onSubmit={(payload) =>
-                businessId
-                  ? update.mutate({ payload, next: 'location' })
-                  : create.mutate(payload)
-              }
+              onSubmit={(payload) => {
+                if (businessId) return update.mutate({ payload, next: 'location' })
+                const twin = existing.data?.find(
+                  (shop) => normalizeForSearch(shop.name) === normalizeForSearch(payload.name ?? ''),
+                )
+                if (twin) return setSameName({ payload, shop: twin.id })
+                create.mutate(payload)
+              }}
             />
+          ) : null}
+
+          {step === 'basics' && sameName ? (
+            <div
+              role="alertdialog"
+              className="mt-4 space-y-3 rounded-xl border-2 border-clay-200 bg-clay-50 p-4"
+            >
+              <p className="font-semibold text-clay-800">{t('wizard.sameNameTitle')}</p>
+              <p className="text-sm text-clay-800">{t('wizard.sameNameBody')}</p>
+              <div className="flex flex-wrap gap-2">
+                <Button asChild size="sm">
+                  <Link to={`/dashboard/businesses/${sameName.shop}/items`}>
+                    <PackagePlus className="h-4 w-4" aria-hidden="true" />
+                    {t('wizard.addProductInstead')}
+                  </Link>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  loading={create.isPending}
+                  onClick={() => {
+                    create.mutate(sameName.payload)
+                    setSameName(null)
+                  }}
+                >
+                  {t('wizard.createAnyway')}
+                </Button>
+              </div>
+            </div>
           ) : null}
 
           {businessId === null && step !== 'basics' && step !== 'personal' ? (
