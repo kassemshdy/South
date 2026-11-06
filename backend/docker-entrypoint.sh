@@ -27,6 +27,9 @@ exec gosu appuser sh -c '
   fi
   python -m scripts.seed --ensure
   python -m scripts.copy_media_to_bucket
+  # The off-site copy to Amazon S3, inert unless REPLICA_S3_BUCKET is set. In
+  # the background: a first copy of every file outlasts the healthcheck.
+  python -m scripts.replicate_media &
   python -m scripts.backfill_thumbnails
   # Past data to the Telegram archive, only while TELEGRAM_BACKFILL is set.
   # In the background: Telegram allows ~20 messages a minute, and the site
