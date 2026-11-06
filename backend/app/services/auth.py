@@ -20,6 +20,7 @@ they may replace it from their account page whenever they like.
 from __future__ import annotations
 
 import logging
+import unicodedata
 from datetime import datetime
 
 from sqlalchemy.orm import Session
@@ -78,15 +79,7 @@ class AuthService:
 
         user = self._users.get_by_email(identifier)
 
-        # A password pasted from a chat often brings a space or a line break
-        # with it, which the hidden field does not show (the owners' report,
-        # 6 Nov 2026). The exact text is tried first, so a password that
-        # really has a space at its end still works.
-        trimmed = password.strip()
-        if user is None or not (
-            verify_password(password, user.password_hash)
-            or (trimmed != password and verify_password(trimmed, user.password_hash))
-        ):
+        if user is None or not _password_matches(password, user.password_hash):
             self._record_failed_login(identifier)
             logger.warning("Failed admin login", extra={"email": identifier})
             raise AuthenticationError(
@@ -148,7 +141,7 @@ class AuthService:
             else self._users.get_by_phone(normalized)
         )
 
-        if user is None or not verify_password(password, user.password_hash):
+        if user is None or not _password_matches(password, user.password_hash):
             self._record_failed_login(normalized)
             logger.warning(
                 "Failed sign-in", extra={"identifier": normalized, "request_ip": client_ip}
@@ -239,3 +232,29 @@ class AuthService:
         self._db.commit()
         logger.info("Password issued to account", extra={"user_id": str(user.id)})
         return password
+
+
+#: Arabic-Indic and Persian digits, as an Arabic phone keyboard types them.
+_DIGITS = str.maketrans(
+    "".join(chr(0x0660 + n) for n in range(10)) + "".join(chr(0x06F0 + n) for n in range(10)),
+    "0123456789" * 2,
+)
+
+
+def _as_typed_on_a_phone(password: str) -> str:
+    """The password without what a phone adds unseen: the invisible
+    direction marks WhatsApp puts around Latin text copied out of an Arabic
+    message, spaces and line breaks around it, and digits typed on an Arabic
+    keyboard. It worked from a laptop and not from a phone (the owners'
+    report, 6 Nov 2026)."""
+    visible = "".join(ch for ch in password if unicodedata.category(ch) != "Cf")
+    return visible.strip().translate(_DIGITS)
+
+
+def _password_matches(password: str, password_hash: str | None) -> bool:
+    """The exact text first, so a password that really has such characters
+    still works; then the text as a phone meant it."""
+    if verify_password(password, password_hash):
+        return True
+    cleaned = _as_typed_on_a_phone(password)
+    return cleaned != password and verify_password(cleaned, password_hash)
