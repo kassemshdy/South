@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.core.arabic import normalize_arabic
 from app.core.pagination import Page
-from app.models.business import Business, BusinessItem
+from app.models.business import Business, BusinessItem, BusinessSlugAlias
 from app.models.enums import BusinessStatus, GoodsOrigin
 from app.models.taxonomy import Category, Location
 from app.models.user import User
@@ -55,16 +55,28 @@ class BusinessRepository(BaseRepository[Business]):
         ).unique().scalar_one_or_none()
 
     def get_by_slug(self, slug: str, *, public_only: bool = True) -> Business | None:
-        stmt = self._with_relations(select(Business).where(Business.slug == slug))
+        """The listing at this address, or at an address it had before it was
+        renamed; the caller compares ``slug`` to see which."""
+        old = select(BusinessSlugAlias.business_id).where(BusinessSlugAlias.slug == slug)
+        stmt = self._with_relations(
+            select(Business).where(or_(Business.slug == slug, Business.id.in_(old)))
+        )
         if public_only:
             stmt = stmt.where(Business.status == BusinessStatus.APPROVED)
+        # The current address wins if, somehow, both match.
+        stmt = stmt.order_by((Business.slug == slug).desc()).limit(1)
         return self.db.execute(stmt).unique().scalar_one_or_none()
 
     def slug_exists(self, slug: str, *, exclude_id: uuid.UUID | None = None) -> bool:
+        """Taken as a listing's address, or kept as another listing's old one."""
         stmt = select(Business.id).where(Business.slug == slug)
+        old = select(BusinessSlugAlias.business_id).where(BusinessSlugAlias.slug == slug)
         if exclude_id is not None:
             stmt = stmt.where(Business.id != exclude_id)
-        return self.db.execute(stmt.limit(1)).scalar_one_or_none() is not None
+            old = old.where(BusinessSlugAlias.business_id != exclude_id)
+        if self.db.execute(stmt.limit(1)).scalar_one_or_none() is not None:
+            return True
+        return self.db.execute(old.limit(1)).scalar_one_or_none() is not None
 
     def list_for_owner(self, owner_id: uuid.UUID) -> list[Business]:
         stmt = self._with_relations(

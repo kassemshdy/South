@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import logging
+import re
 import uuid
 
+from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from app.core.arabic import build_search_text
@@ -16,14 +18,14 @@ from app.core.urls import (
     normalize_url,
     youtube_video_id,
 )
-from app.models.business import Business, BusinessSocialLink
+from app.models.business import Business, BusinessSlugAlias, BusinessSocialLink
 from app.models.enums import BusinessStatus, ImageKind, ViewSubject
 from app.models.user import User
 from app.repositories.business import BusinessRepository
 from app.repositories.taxonomy import CategoryRepository, LocationRepository
 from app.schemas.business import BusinessCreateIn, BusinessUpdateIn, SocialLinkIn
 from app.services.analytics import ViewCounterService
-from app.services.slug import unique_slug
+from app.services.slug import slugify_name, unique_slug
 
 logger = logging.getLogger(__name__)
 
@@ -121,8 +123,7 @@ class BusinessService:
         for field, value in data.items():
             setattr(business, field, value)
 
-        # The slug is part of the public URL; renaming a listing must not break
-        # links that are already shared, so it is only derived once at creation.
+        self._follow_name(business)
         business.search_text = self._build_search_text(business)
 
         if social_links is not None:
@@ -235,6 +236,33 @@ class BusinessService:
         for link_model in normalized:
             business.social_links.append(link_model)
         self._db.flush()
+
+    def _follow_name(self, business: Business) -> None:
+        """Give the listing the address its name makes, once the name and the
+        address have parted (a rename, or a first name later replaced -- the
+        owners' report, 6 Nov 2026). The old address is kept as an alias, so
+        a link already shared still reaches the shop. An address that already
+        fits the name, ``-2`` suffix and all, is left alone."""
+        base = slugify_name(business.name)
+        current = business.slug
+        if current == base or re.fullmatch(rf"{re.escape(base)}-\d+", current or ""):
+            return
+        new = unique_slug(
+            business.name, lambda slug: self._repo.slug_exists(slug, exclude_id=business.id)
+        )
+        if new == current:
+            return
+        if current:
+            self._db.merge(BusinessSlugAlias(slug=current, business_id=business.id))
+        # Back to an address it once had: that one is no longer an alias.
+        self._db.execute(
+            delete(BusinessSlugAlias).where(BusinessSlugAlias.slug == new)
+        )
+        business.slug = new
+        logger.info(
+            "Business address follows its name",
+            extra={"business_id": str(business.id), "old_slug": current, "new_slug": new},
+        )
 
     def _build_search_text(self, business: Business) -> str:
         item_titles = " ".join(item.title for item in business.items) if business.items else ""
