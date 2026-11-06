@@ -32,7 +32,7 @@ export function ItemsPage() {
   }
 
   return (
-    <div className="container-page max-w-3xl py-10">
+    <div className="container-page max-w-5xl py-10">
       <Link to="/dashboard" className="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-brand-700">
         <ArrowRight className="h-4 w-4" aria-hidden="true" />
         {t('wizard.backToDashboard')}
