@@ -642,7 +642,6 @@ function ActivityForm({
 
           <div className="rounded-xl border border-ink-100 p-4">
             <p className="text-sm font-semibold text-ink-900">{t('adminActivity.thumbnailLabel')}</p>
-            <p className="text-xs text-ink-500">{t('adminActivity.thumbnailHint')}</p>
             {activity ? (
               <div className="mt-3 flex flex-wrap items-center gap-4">
                 {activity.image_url ? (
