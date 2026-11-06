@@ -21,41 +21,40 @@ import { formatRelativeDate, telHref, whatsappHref } from '@/utils/format'
 const PAGE_SIZE = 25
 const LIST_KEY = ['admin', 'businesses', 'without-products'] as const
 
-type Tab = 'todo' | 'done'
+type Tab = 'todo' | 'done' | 'uploaded'
+
+/** Each tab's filter: approved shops, split by contact and by products. */
+const FILTERS: Record<Tab, { contacted: boolean; without_products?: true; with_products?: true }> = {
+  todo: { contacted: false, without_products: true },
+  done: { contacted: true, without_products: true },
+  uploaded: { contacted: true, with_products: true },
+}
 
 /**
  * Approved shops with nothing on sale, for staff to contact (the owners'
  * request, 3 Nov 2026). They are not counted on the public pages until they
  * add a product, so this is the list of shops to follow up with. Staff mark
  * a shop contacted, with a note, and the two tabs split the list by that
+ * (the owners' request, 6 Nov 2026). A third tab keeps the shops contacted
+ * that have since added products, which would otherwise drop off the list
  * (the owners' request, 6 Nov 2026).
  */
 export function AdminShopsWithoutProductsPage() {
   const { t, locale } = useI18n()
   const [tab, setTab] = useState<Tab>('todo')
   const [page, setPage] = useState(1)
-  const contacted = tab === 'done'
-
-  const count = (done: boolean) =>
-    adminApi.businesses({
-      status: 'APPROVED',
-      without_products: true,
-      contacted: done,
-      page: 1,
-      page_size: 1,
-    })
-  const todoCount = useQuery({ queryKey: [...LIST_KEY, 'count', false], queryFn: () => count(false) })
-  const doneCount = useQuery({ queryKey: [...LIST_KEY, 'count', true], queryFn: () => count(true) })
+  const count = (which: Tab) =>
+    adminApi.businesses({ status: 'APPROVED', ...FILTERS[which], page: 1, page_size: 1 })
+  const todoCount = useQuery({ queryKey: [...LIST_KEY, 'count', 'todo'], queryFn: () => count('todo') })
+  const doneCount = useQuery({ queryKey: [...LIST_KEY, 'count', 'done'], queryFn: () => count('done') })
+  const uploadedCount = useQuery({
+    queryKey: [...LIST_KEY, 'count', 'uploaded'],
+    queryFn: () => count('uploaded'),
+  })
   const shops = useQuery({
     queryKey: [...LIST_KEY, tab, page],
     queryFn: () =>
-      adminApi.businesses({
-        status: 'APPROVED',
-        without_products: true,
-        contacted,
-        page,
-        page_size: PAGE_SIZE,
-      }),
+      adminApi.businesses({ status: 'APPROVED', ...FILTERS[tab], page, page_size: PAGE_SIZE }),
     placeholderData: keepPreviousData,
   })
 
@@ -64,6 +63,10 @@ export function AdminShopsWithoutProductsPage() {
   const tabs: { id: Tab; label: string }[] = [
     { id: 'todo', label: t('adminShops.tabNotContacted', { count: todoCount.data?.meta.total ?? '…' }) },
     { id: 'done', label: t('adminShops.tabContacted', { count: doneCount.data?.meta.total ?? '…' }) },
+    {
+      id: 'uploaded',
+      label: t('adminShops.tabUploaded', { count: uploadedCount.data?.meta.total ?? '…' }),
+    },
   ]
 
   return (
@@ -107,7 +110,13 @@ export function AdminShopsWithoutProductsPage() {
       ) : shops.data && shops.data.items.length === 0 ? (
         <EmptyState
           icon={<Store className="h-6 w-6" aria-hidden="true" />}
-          title={contacted ? t('adminShops.contactedEmpty') : t('adminShops.noProductsEmpty')}
+          title={
+            tab === 'uploaded'
+              ? t('adminShops.uploadedEmpty')
+              : tab === 'done'
+                ? t('adminShops.contactedEmpty')
+                : t('adminShops.noProductsEmpty')
+          }
         />
       ) : shops.data ? (
         <>
@@ -115,7 +124,7 @@ export function AdminShopsWithoutProductsPage() {
             <CardBody className="p-2">
               <ul className="divide-y divide-ink-100">
                 {shops.data.items.map((shop) => (
-                  <ShopRow key={shop.id} shop={shop} locale={locale} />
+                  <ShopRow key={shop.id} shop={shop} locale={locale} uploaded={tab === 'uploaded'} />
                 ))}
               </ul>
             </CardBody>
@@ -127,7 +136,16 @@ export function AdminShopsWithoutProductsPage() {
   )
 }
 
-function ShopRow({ shop, locale }: { shop: AdminBusiness; locale: Parameters<typeof formatRelativeDate>[1] }) {
+function ShopRow({
+  shop,
+  locale,
+  uploaded,
+}: {
+  shop: AdminBusiness
+  locale: Parameters<typeof formatRelativeDate>[1]
+  /** It has products now: no "add your products" message. */
+  uploaded: boolean
+}) {
   const { t } = useI18n()
   const toast = useToast()
   const queryClient = useQueryClient()
@@ -136,7 +154,10 @@ function ShopRow({ shop, locale }: { shop: AdminBusiness; locale: Parameters<typ
   const [note, setNote] = useState(shop.outreach_note ?? '')
 
   const number = shop.whatsapp ?? shop.phone ?? shop.owner_phone
-  const wa = whatsappHref(number, t('adminShops.noProductsWhatsapp', { name: shop.name }))
+  const wa = whatsappHref(
+    number,
+    uploaded ? undefined : t('adminShops.noProductsWhatsapp', { name: shop.name }),
+  )
   const call = telHref(shop.phone ?? shop.owner_phone)
   const contacted = Boolean(shop.outreach_contacted_at)
 

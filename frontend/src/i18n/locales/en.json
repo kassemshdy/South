@@ -2195,6 +2195,7 @@
   "staff.canStories": "Owners' stories",
   "adminShops.tabNotContacted": "Not contacted ({count})",
   "adminShops.tabContacted": "Contacted ({count})",
+  "adminShops.tabUploaded": "Contacted, added products ({count})",
   "adminShops.markContacted": "Contacted",
   "adminShops.notePlaceholder": "Note about the contact (optional)",
   "adminShops.saveNote": "Save",
@@ -2202,5 +2203,6 @@
   "adminShops.unmarkContacted": "Back to the to-contact list",
   "adminShops.contactedOn": "Contacted {date}",
   "adminShops.contactedEmpty": "No contact recorded yet.",
+  "adminShops.uploadedEmpty": "No contacted shop has added products yet.",
   "adminShops.outreachFailed": "Could not save the contact"
 }
