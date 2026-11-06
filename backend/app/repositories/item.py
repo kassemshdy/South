@@ -271,10 +271,26 @@ class ItemRepository(BaseRepository[BusinessItem]):
             )
 
         if q:
-            needle = f"%{normalize_arabic(q)}%"
-            stmt = stmt.where(BusinessItem.search_text.like(needle))
+            folded = normalize_arabic(q)
+            stmt = stmt.where(
+                or_(
+                    BusinessItem.search_text.like(f"%{folded}%"),
+                    # Or the shop's name: someone typing a shop they know
+                    # wants its products (the owners' request, 6 Nov 2026).
+                    BusinessItem.business_id.in_(self._shops_named(folded)),
+                )
+            )
 
         return stmt
+
+    def _shops_named(self, folded: str) -> list[uuid.UUID]:
+        """Approved shops whose name contains ``folded``, folded the same way
+        as every search (hamza, taa marbuta, diacritics), which SQL cannot
+        do. The approved shops are one short query of two columns."""
+        rows = self.db.execute(
+            select(Business.id, Business.name).where(Business.status == BusinessStatus.APPROVED)
+        ).all()
+        return [shop_id for shop_id, name in rows if folded in normalize_arabic(name)]
 
     def _apply_sort(
         self, stmt: Select[tuple[BusinessItem]], sort: SortOption, near: Point | None = None

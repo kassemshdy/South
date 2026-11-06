@@ -44,3 +44,16 @@ def test_categories_match_and_short_queries_suggest_nothing(
     assert ("category", category.slug) in [(s["kind"], s["slug"]) for s in found]
     assert _suggest(client, category.name_ar[:1]) == []
     assert _suggest(client, "   ") == []
+
+
+def test_a_shop_s_name_finds_its_products(
+    client: TestClient,
+    approved_business_with_items: str,  # noqa: F811
+) -> None:
+    """Typing a shop's name suggests and lists its products too (the owners'
+    request, 6 Nov 2026)."""
+    shop = ar("business.sweets_shop")
+    title = ar("item.zaatar_local")
+    assert ("product", title) in [(s["kind"], s["label"]) for s in _suggest(client, shop)]
+    listed = client.get("/api/items", params={"q": shop}).json()
+    assert title in [item["title"] for item in listed["items"]]
