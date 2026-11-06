@@ -87,6 +87,10 @@ because colloquial Arabic is still Arabic: the no-Arabic-in-source guard
 below has nothing to say about register, so it is on the author and the
 reviewer. Markers to watch for: مش، هون، هلق، بعدين، فيك، بدّك، شو، هيك،
 عم + verb، يلّا، and the ب- present tense (بتعمل، بيصير).
+**One deliberate exception:** the WhatsApp message staff send to approved
+shops with no products (`adminShops.noProductsWhatsapp`) is Lebanese, in
+the owners' own words (6 Nov 2026): it is a person-to-person chat, not site
+copy. Leave it as they wrote it.
 
 `backend/tests/test_i18n.py` scans `backend/app`, `backend/scripts`, `backend/tests` and
 `frontend/src`/`frontend/e2e` for Arabic codepoints outside the catalogs and fixture files
