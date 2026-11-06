@@ -917,10 +917,13 @@ export const adminApi = {
     status?: BusinessStatus
     q?: string
     without_products?: boolean
+    contacted?: boolean
     page?: number
     page_size?: number
   }) =>
     apiRequest<Paginated<AdminBusiness>>('/api/admin/businesses', { query: { ...params } }),
+  setOutreach: (id: string, body: { contacted: boolean; note?: string | null }) =>
+    apiRequest<AdminBusiness>(`/api/admin/businesses/${id}/outreach`, { method: 'PUT', body }),
   pending: (page = 1) =>
     apiRequest<Paginated<AdminBusiness>>('/api/admin/businesses/pending', { query: { page } }),
   get: (id: string) => apiRequest<AdminBusiness>(`/api/admin/businesses/${id}`),

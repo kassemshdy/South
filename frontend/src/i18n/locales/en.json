@@ -2192,5 +2192,15 @@
   "staff.hintREELS": "Sees the whole admin area; edits only the reels and stories.",
   "staff.canActivities": "Activities and the carousel",
   "staff.canReels": "Reels",
-  "staff.canStories": "Owners' stories"
+  "staff.canStories": "Owners' stories",
+  "adminShops.tabNotContacted": "Not contacted ({count})",
+  "adminShops.tabContacted": "Contacted ({count})",
+  "adminShops.markContacted": "Contacted",
+  "adminShops.notePlaceholder": "Note about the contact (optional)",
+  "adminShops.saveNote": "Save",
+  "adminShops.editNote": "Edit note",
+  "adminShops.unmarkContacted": "Back to the to-contact list",
+  "adminShops.contactedOn": "Contacted {date}",
+  "adminShops.contactedEmpty": "No contact recorded yet.",
+  "adminShops.outreachFailed": "Could not save the contact"
 }

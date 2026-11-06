@@ -64,6 +64,16 @@ class AdminBusinessOut(OwnerBusinessOut):
     owner_display_name: str | None = None
     owner_id: uuid.UUID
     moderation_actions: list[ModerationActionOut] = Field(default_factory=list)
+    # Staff follow-up of a shop with nothing on sale; never on a public schema.
+    outreach_contacted_at: datetime | None = None
+    outreach_note: str | None = None
+
+
+class OutreachIn(BaseModel):
+    """Mark a shop contacted, with a note, or put it back on the to-contact list."""
+
+    contacted: bool
+    note: str | None = Field(default=None, max_length=2000)
 
 
 class AdminTalentOut(OwnerTalentOut):
