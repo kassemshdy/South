@@ -19,7 +19,12 @@ exec gosu appuser sh -c '
   # A second site sharing this database (a staging copy on live data) sets
   # SKIP_MIGRATIONS: only a live release may move the database to a new
   # revision, or the next live release finds a revision it does not know.
-  if [ -z "$SKIP_MIGRATIONS" ]; then alembic upgrade head; fi
+  # repair_alembic_stamp first puts back a stamp such a site once left here
+  # (see the script); on any other database it does nothing.
+  if [ -z "$SKIP_MIGRATIONS" ]; then
+    python -m scripts.repair_alembic_stamp
+    alembic upgrade head
+  fi
   python -m scripts.seed --ensure
   python -m scripts.copy_media_to_bucket
   python -m scripts.backfill_thumbnails

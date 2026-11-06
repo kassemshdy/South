@@ -173,3 +173,46 @@ def test_only_one_api_worker_takes_the_daily_backup(monkeypatch: pytest.MonkeyPa
         connection.execute(text("select pg_advisory_unlock(:key)"), {"key": db_backup._LOCK_KEY})
     holder.dispose()
     assert taken == ["daily"]
+
+
+def test_a_boot_backup_minutes_after_the_last_is_skipped(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A deploy failing on start restarts every few seconds; on 5 Nov 2026 each
+    start saved an identical copy and pushed an older, different one out."""
+    from scripts import backup_db
+
+    now = datetime.now(UTC)
+    recent = db_backup.backup_key(now, "boot")
+    monkeypatch.setattr(backup_db, "configure_logging", lambda *a, **k: None)
+    monkeypatch.setattr(backup_db, "get_storage", lambda: FakeBucket({recent}))
+    monkeypatch.setattr(db_backup, "database_is_empty", lambda _url: False)
+    backed_up: list[str] = []
+    monkeypatch.setattr(db_backup, "back_up", lambda *a, **k: backed_up.append(k["reason"]))
+
+    assert backup_db.main(["--reason", "boot"]) == 0
+    assert backed_up == []
+    # A daily or manual copy is always taken.
+    assert backup_db.main(["--reason", "daily"]) == 0
+    assert backed_up == ["daily"]
+
+
+def test_a_boot_backup_after_the_cooldown_is_taken(monkeypatch: pytest.MonkeyPatch) -> None:
+    from scripts import backup_db
+
+    old = db_backup.backup_key(datetime.now(UTC) - db_backup.BOOT_COOLDOWN, "boot")
+    monkeypatch.setattr(backup_db, "configure_logging", lambda *a, **k: None)
+    monkeypatch.setattr(backup_db, "get_storage", lambda: FakeBucket({old, "businesses/1/a.jpg"}))
+    monkeypatch.setattr(db_backup, "database_is_empty", lambda _url: False)
+    backed_up: list[str] = []
+    monkeypatch.setattr(db_backup, "back_up", lambda *a, **k: backed_up.append(k["reason"]))
+
+    assert backup_db.main(["--reason", "boot"]) == 0
+    assert backed_up == ["boot"]
+
+
+def test_the_newest_backup_is_read_from_its_key() -> None:
+    first = db_backup.backup_key(datetime(2026, 11, 5, 10, 26, 16, tzinfo=UTC), "boot")
+    second = db_backup.backup_key(datetime(2026, 11, 5, 10, 26, 21, tzinfo=UTC), "daily")
+    assert db_backup.newest_backup_at({first, second, "businesses/x.jpg"}) == datetime(
+        2026, 11, 5, 10, 26, 21, tzinfo=UTC
+    )
+    assert db_backup.newest_backup_at({"businesses/x.jpg"}) is None
