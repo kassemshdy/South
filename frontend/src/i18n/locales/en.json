@@ -2214,5 +2214,7 @@
   "wizard.sameNameTitle": "You already have a shop with this name",
   "wizard.sameNameBody": "Do you want to add a product to it instead of creating a second shop with the same name?",
   "wizard.addProductInstead": "Add a product to my shop",
-  "wizard.createAnyway": "Create a new shop anyway"
+  "wizard.createAnyway": "Create a new shop anyway",
+  "login.showPassword": "Show what you typed",
+  "login.hidePassword": "Hide what you typed"
 }

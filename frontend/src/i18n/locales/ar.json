@@ -2214,5 +2214,7 @@
   "wizard.sameNameTitle": "لديك نشاط بهذا الاسم بالفعل",
   "wizard.sameNameBody": "هل تريد إضافة منتج إليه بدل إنشاء نشاط ثانٍ بالاسم نفسه؟",
   "wizard.addProductInstead": "إضافة منتج إلى نشاطي",
-  "wizard.createAnyway": "إنشاء نشاط جديد رغم ذلك"
+  "wizard.createAnyway": "إنشاء نشاط جديد رغم ذلك",
+  "login.showPassword": "إظهار ما كُتب",
+  "login.hidePassword": "إخفاء ما كُتب"
 }
