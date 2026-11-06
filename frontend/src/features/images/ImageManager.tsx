@@ -124,10 +124,8 @@ export function ImageManager({ business, maxGallery = 10 }: ImageManagerProps) {
           url={business.logo_url}
           uploading={uploadingKind === 'LOGO'}
           onSelect={(file) => void handleFile(file, 'LOGO')}
-          onRemove={() => {
-            const logo = business.images.find((image) => image.kind === 'LOGO')
-            if (logo) remove.mutate(logo.id)
-          }}
+          // No delete: a shop cannot be approved without its logo (the
+          // owners' decision, 30 Oct 2026), so it can only be replaced.
         />
         <SingleImageSlot
           label={t('images.coverTitle')}
@@ -221,7 +219,8 @@ export function SingleImageSlot({
   required?: boolean
   uploading: boolean
   onSelect: (file: File | undefined) => void
-  onRemove: () => void
+  /** Omitted for a required image, which can be replaced but not removed. */
+  onRemove?: () => void
 }) {
   const t = useT()
 
@@ -254,7 +253,7 @@ export function SingleImageSlot({
             uploading={uploading}
             onSelect={onSelect}
           />
-          {url ? (
+          {url && onRemove ? (
             <Button type="button" variant="ghost" size="sm" onClick={onRemove}>
               <Trash2 className="h-4 w-4" aria-hidden="true" />
               {t('common.delete')}

@@ -100,13 +100,27 @@ export function ActivitiesCarousel({ heading = true }: { heading?: boolean }) {
               title: slide.title ?? '',
             })}
           >
-            <img
-              src={slide.image_url}
-              alt=""
-              loading={index === 0 ? 'eager' : 'lazy'}
-              decoding="async"
-              className="aspect-[16/9] w-full object-cover"
-            />
+            {/* The whole picture, never cropped (the owners' ticket, 5 Nov
+                2026): a square or tall poster sits in the middle of the
+                16:9 frame over a blurred copy of itself. A 16:9 card image
+                fills the frame exactly. */}
+            <div className="relative aspect-[16/9] w-full overflow-hidden bg-ink-900">
+              <img
+                src={slide.image_url}
+                alt=""
+                aria-hidden="true"
+                loading={index === 0 ? 'eager' : 'lazy'}
+                decoding="async"
+                className="absolute inset-0 h-full w-full scale-110 object-cover opacity-60 blur-2xl"
+              />
+              <img
+                src={slide.image_url}
+                alt=""
+                loading={index === 0 ? 'eager' : 'lazy'}
+                decoding="async"
+                className="relative h-full w-full object-contain"
+              />
+            </div>
             {slide.title ? (
               <>
                 <div

@@ -342,3 +342,59 @@ def test_no_sign_up_once_it_has_ended_or_while_hidden(client: TestClient, admin:
 
     assert _sign_up(client, "ended").status_code == 422
     assert _sign_up(client, "no-photo").status_code == 404
+
+
+def _wide_jpeg() -> bytes:
+    buffer = io.BytesIO()
+    Image.new("RGB", (1600, 900), (40, 90, 60)).save(buffer, format="JPEG")
+    return buffer.getvalue()
+
+
+def test_a_card_image_is_used_for_cards_and_link_previews(
+    client: TestClient, admin: User
+) -> None:
+    """A tall poster stays whole on the activity's page; the cards and the
+    link preview use the 16:9 crop (the owners' request, 6 Nov 2026)."""
+    headers = admin_headers(client)
+    activity = _create(client, headers, slug="poster")
+    assert activity["card_image_url"] is None
+    # Without a crop, a card draws the photograph.
+    assert activity["card_thumb_url"] == activity["image_thumb_url"]
+
+    uploaded = client.post(
+        f"/api/admin/activities/{activity['id']}/card-image",
+        headers=headers,
+        files={"file": ("card.jpg", _wide_jpeg(), "image/jpeg")},
+    )
+    assert uploaded.status_code == 200, uploaded.text
+    card = uploaded.json()
+    assert card["card_image_url"] and card["card_image_url"] != card["image_url"]
+    assert card["image_url"] == activity["image_url"]  # the poster is untouched
+    assert card["card_thumb_url"] and card["card_thumb_url"] != card["image_thumb_url"]
+
+    public = client.get("/api/activities/poster").json()
+    assert public["card_image_url"] == card["card_image_url"]
+    # The carousel frame is 16:9 as well, so its slide uses the crop.
+    slides = client.get("/api/carousel").json()
+    slides = slides.get("items", slides) if isinstance(slides, dict) else slides
+    assert any(s["image_url"] == card["card_image_url"] for s in slides), slides
+
+    removed = client.delete(f"/api/admin/activities/{activity['id']}/card-image", headers=headers)
+    assert removed.status_code == 200
+    assert removed.json()["card_image_url"] is None
+    assert removed.json()["card_thumb_url"] == activity["image_thumb_url"]
+
+
+def test_only_content_staff_set_a_card_image(client: TestClient, admin: User) -> None:
+    headers = admin_headers(client)
+    activity = _create(client, headers, slug="staff-only")
+    viewer = _invite(client, headers, "VIEWER", "viewer-card@example.com")
+    refused = client.post(
+        f"/api/admin/activities/{activity['id']}/card-image",
+        headers=viewer,
+        files={"file": ("card.jpg", _wide_jpeg(), "image/jpeg")},
+    )
+    assert refused.status_code == 403
+    assert client.delete(
+        f"/api/admin/activities/{activity['id']}/card-image", headers=viewer
+    ).status_code == 403

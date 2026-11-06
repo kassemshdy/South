@@ -118,7 +118,7 @@ export function ActivitiesPage() {
                     >
                       {activity.image_url ? (
                         <img
-                          src={activity.image_thumb_url ?? activity.image_url}
+                          src={activity.card_thumb_url ?? activity.image_thumb_url ?? activity.image_url}
                           alt=""
                           loading="lazy"
                           decoding="async"
@@ -159,7 +159,7 @@ function ActivityRow({ activity }: { activity: Activity }) {
       {activity.image_url ? (
         <div className="relative shrink-0 overflow-hidden rounded-xl sm:w-[360px]">
           <img
-            src={activity.image_thumb_url ?? activity.image_url}
+            src={activity.card_thumb_url ?? activity.image_thumb_url ?? activity.image_url}
             alt=""
             loading="lazy"
             decoding="async"

@@ -72,9 +72,19 @@ export function VacancyPage() {
       </Link>
       <div className="mt-4 grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <div className="relative aspect-video overflow-hidden rounded-2xl">
-            <JobThumbnail job={data} className={open ? '' : 'grayscale'} />
-          </div>
+          {data.cover_url ? (
+            // The whole image, as the activity page shows its poster: a
+            // vacancy's image is often a flyer with the details at the edges.
+            <img
+              src={data.cover_url}
+              alt=""
+              className={`mx-auto max-h-[85vh] w-auto max-w-full rounded-2xl bg-sand-100 object-contain ${open ? '' : 'grayscale'}`}
+            />
+          ) : (
+            <div className="relative aspect-video overflow-hidden rounded-2xl">
+              <JobThumbnail job={data} className={open ? '' : 'grayscale'} />
+            </div>
+          )}
           <h1 className="mt-6 text-2xl sm:text-3xl" dir="auto">
             {data.title}
           </h1>

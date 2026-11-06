@@ -108,7 +108,8 @@ def _public_slide(slide: CarouselSlide) -> CarouselSlideOut:
         return CarouselSlideOut(
             id=slide.id,
             title=slide.activity.title,
-            image_url=slide.activity.image_url or "",
+            # The 16:9 card crop when set: the carousel frame is 16:9 too.
+            image_url=slide.activity.card_image_url or slide.activity.image_url or "",
             href=f"/activities/{slide.activity.slug}",
         )
     return CarouselSlideOut(
@@ -337,12 +338,53 @@ def upload_activity_image(
     return _admin_out(db, activity)
 
 
+@admin_router.post("/{activity_id}/card-image", response_model=AdminActivityOut)
+def upload_activity_card_image(
+    activity_id: uuid.UUID,
+    db: DbSession,
+    admin: AdminUser,
+    settings: AppSettings,
+    file: Annotated[UploadFile, File(description="16:9 crop for cards and link previews")],
+) -> AdminActivityOut:
+    """The card and link-preview image, cropped by the administrator in the
+    browser; the photograph itself is left as it is."""
+    activity = _get_or_404(db, activity_id)
+    service = ImageService(get_storage(), settings)
+    stored = service.process_and_store(
+        data=read_at_most(file.file, settings.max_upload_bytes),
+        content_type=file.content_type,
+        owner_id=activity.id,
+        kind=ImageKind.COVER,
+        prefix="activities",
+    )
+    service.delete(activity.card_image_storage_key)
+    activity.card_image_url, activity.card_image_storage_key = stored.url, stored.key
+    db.commit()
+    db.refresh(activity)
+    return _admin_out(db, activity)
+
+
+@admin_router.delete("/{activity_id}/card-image", response_model=AdminActivityOut)
+def delete_activity_card_image(
+    activity_id: uuid.UUID, db: DbSession, admin: AdminUser, settings: AppSettings
+) -> AdminActivityOut:
+    """Back to the photograph for cards and link previews."""
+    activity = _get_or_404(db, activity_id)
+    ImageService(get_storage(), settings).delete(activity.card_image_storage_key)
+    activity.card_image_url = activity.card_image_storage_key = None
+    db.commit()
+    db.refresh(activity)
+    return _admin_out(db, activity)
+
+
 @admin_router.delete("/{activity_id}", response_model=MessageResponse)
 def delete_activity(
     activity_id: uuid.UUID, db: DbSession, admin: AdminUser, settings: AppSettings
 ) -> MessageResponse:
     activity = _get_or_404(db, activity_id)
-    ImageService(get_storage(), settings).delete(activity.image_storage_key)
+    images = ImageService(get_storage(), settings)
+    images.delete(activity.image_storage_key)
+    images.delete(activity.card_image_storage_key)
     db.delete(activity)
     db.commit()
     return MessageResponse(message=translate("activity.deleted"))
@@ -367,7 +409,7 @@ def _admin_slide(slide: CarouselSlide, now: datetime) -> AdminCarouselSlideOut:
             position=slide.position,
             activity_id=activity.id,
             title=activity.title,
-            image_url=activity.image_url or "",
+            image_url=activity.card_image_url or activity.image_url or "",
             href=f"/activities/{activity.slug}",
             ends_at=activity.ends_at,
             hidden_reason=hidden,
