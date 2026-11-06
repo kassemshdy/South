@@ -1182,3 +1182,34 @@ def test_a_remembered_password_is_current_until_replaced_or_changed(
         json={"current_password": second["password"], "new_password": "OwnerChosen9"},
     )
     assert current() != second["version"], "the owner's own password retires it"
+
+
+def test_a_password_pasted_on_a_phone_still_signs_in(
+    client: TestClient, db: Session, category: Category, location: Location, admin: User
+) -> None:
+    """Copied out of an Arabic WhatsApp message on a phone, the password
+    arrives wrapped in invisible direction marks, perhaps with a line break,
+    and digits typed on an Arabic keyboard are Arabic-Indic. It worked from
+    a laptop and not from a phone (the owners' report, 6 Nov 2026)."""
+    _apply(client, _business_payload(category, location))
+    owner = _owner(db)
+    assert owner is not None
+    password = _issue(client, owner)
+    arabic_digits = password.translate(str.maketrans("0123456789", "".join(chr(0x0660 + n) for n in range(10))))
+
+    for typed in (
+        f"‏‎{password}‎\n",
+        f" {password} ",
+        f"⁦{password}⁩",
+        arabic_digits,
+    ):
+        signed_in = client.post(
+            "/api/auth/login", json={"identifier": owner.phone_number, "password": typed}
+        )
+        assert signed_in.status_code == 200, (repr(typed), signed_in.text)
+
+    wrong = client.post(
+        "/api/auth/login",
+        json={"identifier": owner.phone_number, "password": f"‎{password}x"},
+    )
+    assert wrong.status_code == 401
