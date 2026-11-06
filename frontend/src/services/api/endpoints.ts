@@ -917,6 +917,7 @@ export const adminApi = {
     status?: BusinessStatus
     q?: string
     without_products?: boolean
+    with_products?: boolean
     contacted?: boolean
     page?: number
     page_size?: number

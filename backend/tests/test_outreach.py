@@ -7,7 +7,7 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.models.business import Business
+from app.models.business import Business, BusinessItem
 from app.models.enums import BusinessStatus
 from app.models.taxonomy import Category, Location
 from app.models.user import User
@@ -99,3 +99,34 @@ def test_the_note_never_reaches_a_public_payload(
     assert public.status_code == 200
     assert "outreach_note" not in public.text
     assert "outreach_contacted_at" not in public.text
+
+
+def test_a_contacted_shop_that_adds_a_product_moves_to_its_own_tab(
+    client: TestClient, db: Session, admin: User, category: Category, location: Location
+) -> None:
+    """It no longer has nothing on sale, but staff still see it, apart (the
+    owners' request, 6 Nov 2026)."""
+    headers = admin_headers(client)
+    business_id = _approved_without_products(client, db, category, location)
+    client.put(
+        f"/api/admin/businesses/{business_id}/outreach",
+        headers=headers,
+        json={"contacted": True, "note": None},
+    )
+    uploaded = "/api/admin/businesses?status=APPROVED&with_products=true&contacted=true"
+    assert client.get(uploaded, headers=headers).json()["meta"]["total"] == 0
+
+    db.add(
+        BusinessItem(
+            business_id=business_id,
+            title=ar("item.generic"),
+            slug="outreach-item",
+            image_url="/media/x.jpg",
+            is_available=True,
+        )
+    )
+    db.commit()
+
+    assert client.get(f"{LIST}&contacted=true", headers=headers).json()["meta"]["total"] == 0
+    found = client.get(uploaded, headers=headers).json()
+    assert found["meta"]["total"] == 1 and found["items"][0]["id"] == business_id
