@@ -133,10 +133,10 @@ export function LoginPage() {
                 // The eye shows what was typed: a password copied by hand
                 // from a chat goes wrong unseen behind the dots (the owners'
                 // report, 6 Nov 2026).
-                // dir="ltr" on the wrapper too: the field is left-to-right,
-                // so its end -- where the eye sits and the padding is kept
-                // clear -- is the right, away from where the text starts.
-                <div className="relative" dir="ltr">
+                // The eye sits beside the field, not on it: drawn over the
+                // field it covered the text and the cursor while editing on a
+                // phone (the owners' report, 6 Nov 2026).
+                <div className="flex items-stretch gap-2" dir="ltr">
                   <Input
                     {...fieldProps}
                     {...register('password')}
@@ -146,7 +146,7 @@ export function LoginPage() {
                     autoCorrect="off"
                     spellCheck={false}
                     dir="ltr"
-                    className="pe-12"
+                    className="min-w-0 flex-1"
                     invalid={Boolean(errors.password)}
                   />
                   <button
@@ -154,7 +154,7 @@ export function LoginPage() {
                     onClick={() => setShowPassword((value) => !value)}
                     aria-label={showPassword ? t('login.hidePassword') : t('login.showPassword')}
                     aria-pressed={showPassword}
-                    className="absolute inset-y-0 end-0 flex w-12 items-center justify-center text-ink-500 hover:text-ink-900"
+                    className="flex w-12 shrink-0 items-center justify-center rounded-xl border-2 border-ink-100 bg-white text-ink-500 hover:border-brand-300 hover:text-ink-900"
                   >
                     {showPassword ? (
                       <EyeOff className="h-5 w-5" aria-hidden="true" />
