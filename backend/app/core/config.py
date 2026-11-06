@@ -226,6 +226,17 @@ class Settings(BaseSettings):
     # "auto" can pick path-style for a custom endpoint, so it is settable.
     s3_addressing_style: Literal["auto", "virtual", "path"] = "auto"
 
+    # An off-site copy of the bucket, database backups included, in another
+    # bucket (Amazon S3); only adds, never deletes. See
+    # app/services/media_replica.py. Unset bucket: nothing is copied. The
+    # endpoint stays unset for AWS itself.
+    replica_s3_bucket: str | None = None
+    replica_s3_region: str | None = None
+    replica_s3_endpoint_url: str | None = None
+    replica_s3_access_key_id: str | None = None
+    replica_s3_secret_access_key: str | None = None
+    replica_interval_hours: int = 3
+
     # Hours between the API's own database backups to the bucket (see
     # app/services/db_backup.py); 0 turns them off. Production only: a
     # development database is not worth a copy a day.
