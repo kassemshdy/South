@@ -35,6 +35,7 @@ import { ProductProfilePage } from '@/pages/ProductProfilePage'
 import { ProductsDirectoryPage } from '@/pages/ProductsDirectoryPage'
 import { LegacyTalentRedirect, TalentDirectoryPage } from '@/pages/TalentDirectoryPage'
 import { TalentProfilePage } from '@/pages/TalentProfilePage'
+import { isWorkSite } from '@/work/site'
 
 /**
  * Public pages ship in the main bundle; the owner dashboard and admin area are
@@ -213,7 +214,20 @@ const TalentDashboardPage = lazy(() =>
   })),
 )
 
+// Work.Janoubona is the same build opened on its own address (src/work):
+// decided once, before any route renders, and loaded only when it is asked
+// for so janoubona.net carries none of it.
+const WorkApp = lazy(() => import('@/work/WorkApp').then((m) => ({ default: m.WorkApp })))
+const WORK_SITE = isWorkSite()
+
 export function App() {
+  if (WORK_SITE) {
+    return (
+      <Suspense fallback={<InlineSpinner />}>
+        <WorkApp />
+      </Suspense>
+    )
+  }
   return (
     <Suspense fallback={<InlineSpinner />}>
       <Routes>

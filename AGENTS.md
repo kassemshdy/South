@@ -639,6 +639,15 @@ login.
   folder. An API that starts against an empty database while uploads exist
   raises a fatal Sentry error instead of starting quietly — treat it as an
   emergency and follow `docs/RESTORE.md`.
+- **Everything in the bucket is also copied to an Amazon S3 bucket**
+  (the owners' decision, 6 Nov 2026; `app/services/media_replica.py`):
+  uploads, private documents and the database backups, at boot and every
+  `REPLICA_INTERVAL_HOURS`, inert without `REPLICA_S3_BUCKET`. It only
+  adds -- nothing in the replica is replaced or deleted, so it keeps
+  backups the site has pruned; their lifetime there is the AWS bucket's
+  lifecycle rule. That bucket holds ID scans and full database dumps, so
+  it must have "Block all public access" on, and its key must be one that
+  can only list, read and write that bucket.
 - **Uploads can live in a private bucket instead of the volume.** With
   `STORAGE_BACKEND=s3` and no `S3_PUBLIC_BASE_URL`, files go to the bucket but
   are still served at `/media/<key>` by the API (`_mount_bucket_media`), so the

@@ -61,6 +61,7 @@ from app.services import (
     db_backup,
     feedback_attachments,
     job_applications,
+    media_replica,
     outbox,
     telegram_archive,
     telegram_db_backup,
@@ -91,6 +92,20 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 settings.database_url,
                 storage_factory.get_storage(),
                 interval_hours=settings.db_backup_interval_hours,
+            )
+        )
+    # The off-site copy to Amazon S3, when a replica bucket is configured.
+    replica: asyncio.Task[None] | None = None
+    if (
+        settings.replica_s3_bucket
+        and settings.storage_backend == "s3"
+        and settings.replica_interval_hours > 0
+    ):
+        replica = asyncio.create_task(
+            media_replica.run_periodic(
+                settings,
+                storage_factory.get_storage(),
+                interval_hours=settings.replica_interval_hours,
             )
         )
     # The copy for the Telegram group every few hours, the owners' decision.
@@ -128,6 +143,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         push_http.close()
     if backups is not None:
         backups.cancel()
+    if replica is not None:
+        replica.cancel()
     if telegram_copies is not None:
         telegram_copies.cancel()
     logger.info("Application stopping")

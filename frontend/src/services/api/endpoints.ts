@@ -987,6 +987,10 @@ export const adminApi = {
     }),
   shopifySync: (id: string) =>
     apiRequest<{ queued: number }>(`/api/admin/businesses/${id}/shopify/sync`, { method: 'POST' }),
+  shopifyProfile: (id: string) =>
+    apiRequest<{ message: string }>(`/api/admin/businesses/${id}/shopify/profile`, {
+      method: 'POST',
+    }),
   shopifyDisconnect: (id: string) =>
     apiRequest<{ message: string }>(`/api/admin/businesses/${id}/shopify`, { method: 'DELETE' }),
   shopifySubdomain: (id: string, subdomain: string) =>

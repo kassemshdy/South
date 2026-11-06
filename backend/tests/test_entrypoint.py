@@ -55,7 +55,7 @@ def _run(tmp_path: Path, **extra: str) -> str:
 @pytest.mark.skipif(shutil.which("sh") is None, reason="needs a POSIX shell")
 def test_the_start_command_reaches_uvicorn(tmp_path: Path) -> None:
     ran = _run(tmp_path)
-    for step in ("scripts.backup_db", "alembic upgrade", "scripts.seed", "scripts.import_locations"):
+    for step in ("scripts.backup_db", "scripts.repair_alembic_stamp", "alembic upgrade", "scripts.seed", "scripts.import_locations", "scripts.replicate_media"):
         assert step in ran, f"{step} never ran:\n{ran}"
     assert "RAN uvicorn" in ran, f"uvicorn never started:\n{ran}"
 

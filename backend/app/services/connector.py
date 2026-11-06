@@ -30,7 +30,7 @@ from sqlalchemy.orm import Session
 from app.core.config import Settings
 from app.core.errors import AppError, ConflictError, NotFoundError, ValidationError
 from app.models.business import Business, BusinessItem
-from app.models.enums import BusinessStatus
+from app.models.enums import BusinessStatus, SocialPlatform
 from app.models.integration import IntegrationOutbox, ItemLink, StoreLink
 from app.services import outbox
 
@@ -48,6 +48,7 @@ _ERRORS: dict[str, tuple[type[AppError], str, str]] = {
     "subdomains_off": (NotFoundError, "shopify.subdomains_off", "subdomains_off"),
     "store_not_found": (NotFoundError, "shopify.not_connected", "not_connected"),
     "not_connected": (NotFoundError, "shopify.not_connected", "not_connected"),
+    "reconnect_required": (ConflictError, "shopify.reconnect_required", "reconnect_required"),
 }
 
 
@@ -107,6 +108,9 @@ class ConnectorClient:
     def subdomain(self, store_ref: str, subdomain: str) -> dict[str, Any]:
         return self._call("POST", f"/v1/stores/{store_ref}/subdomain", {"subdomain": subdomain})
 
+    def put_profile(self, store_ref: str, profile: dict[str, Any]) -> None:
+        self._call("PUT", f"/v1/stores/{store_ref}/profile", profile)
+
     def put_product(
         self, store_ref: str, product_ref: str, product: dict[str, Any]
     ) -> dict[str, Any]:
@@ -120,6 +124,29 @@ class ConnectorClient:
 
 
 # --- What a product is, for the connector ---------------------------------------
+
+
+#: Our platforms the connector can place in a theme. WhatsApp and a website
+#: have no slot in Dawn-family themes, so they are not sent.
+PROFILE_PLATFORMS = {
+    SocialPlatform.INSTAGRAM: "instagram",
+    SocialPlatform.FACEBOOK: "facebook",
+    SocialPlatform.TIKTOK: "tiktok",
+    SocialPlatform.YOUTUBE: "youtube",
+}
+
+
+def store_profile(business: Business, settings: Settings) -> dict[str, Any]:
+    """The shop as its Shopify store's theme shows it: name, logo, social links."""
+    return {
+        "name": business.name,
+        "logo_url": _absolute(business.logo_url, settings) if business.logo_url else None,
+        "social": {
+            PROFILE_PLATFORMS[link.platform]: link.url
+            for link in business.social_links
+            if link.platform in PROFILE_PLATFORMS and link.url.startswith("https://")
+        },
+    }
 
 
 def _absolute(url: str, settings: Settings) -> str:
@@ -222,6 +249,13 @@ class StoreConnectionService:
         _record_store(self._db, business, reply)
         self._db.commit()
         return reply
+
+    def push_profile(self, business: Business) -> None:
+        """Send the shop's logo and social links for its store's live theme."""
+        link = business.store_link
+        if link is None or not link.is_live:
+            raise NotFoundError("shopify.not_connected")
+        self._client.put_profile(str(business.id), store_profile(business, self._settings))
 
     def sync_now(self, business: Business) -> int:
         link = business.store_link
