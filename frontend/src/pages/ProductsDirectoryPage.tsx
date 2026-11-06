@@ -234,8 +234,10 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL}>{t('directory.allCategories')}</SelectItem>
-                {/* The fullest categories first, each with its count. */}
+                {/* The fullest categories first, each with its count; an
+                    empty one is left out, unless it is the one chosen. */}
                 {[...(categories.data ?? [])]
+                  .filter((item) => item.item_count > 0 || item.slug === category)
                   .sort((a, b) => b.item_count - a.item_count)
                   .map((item) => (
                   <SelectItem key={item.id} value={item.slug}>
