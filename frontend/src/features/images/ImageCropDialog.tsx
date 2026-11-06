@@ -23,6 +23,8 @@ export const CROP_SHAPES = {
   gallery: ['4:3', '1:1', '16:9'],
   reel: ['9:16'],
   story: ['9:16'],
+  // An activity's card and link-preview image, cut from its poster.
+  card: ['16:9'],
 } as const satisfies Record<string, readonly CropRatio[]>
 
 export type CropShape = keyof typeof CROP_SHAPES

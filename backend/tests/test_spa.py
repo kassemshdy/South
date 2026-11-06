@@ -542,3 +542,23 @@ def test_an_activity_url_shares_its_photograph_and_summary(
     html = spa_client.get("/activities/shared").text
     assert f'property="og:image" content="https://example.test{activity["image_url"]}"' in html
     assert 'property="og:description" content="A short summary"' in html
+
+
+def test_an_activity_link_preview_uses_its_card_image(
+    spa_client: TestClient, client: TestClient, admin: User
+) -> None:
+    """A tall poster makes a poor preview, so the 16:9 crop is sent when set."""
+    from tests.test_activities import _create, _wide_jpeg
+
+    headers = admin_headers(client)
+    activity = _create(client, headers, slug="preview")
+    html = spa_client.get("/activities/preview").text
+    assert f'property="og:image" content="https://example.test{activity["image_url"]}"' in html
+
+    card = client.post(
+        f"/api/admin/activities/{activity['id']}/card-image",
+        headers=headers,
+        files={"file": ("card.jpg", _wide_jpeg(), "image/jpeg")},
+    ).json()
+    html = spa_client.get("/activities/preview").text
+    assert f'property="og:image" content="https://example.test{card["card_image_url"]}"' in html

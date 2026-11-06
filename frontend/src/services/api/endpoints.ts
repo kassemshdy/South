@@ -1191,6 +1191,16 @@ export const adminApi = {
       formData: form,
     })
   },
+  uploadActivityCardImage: (id: string, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return apiRequest<AdminActivity>(`/api/admin/activities/${id}/card-image`, {
+      method: 'POST',
+      formData: form,
+    })
+  },
+  deleteActivityCardImage: (id: string) =>
+    apiRequest<AdminActivity>(`/api/admin/activities/${id}/card-image`, { method: 'DELETE' }),
   carousel: () => apiRequest<AdminCarousel>('/api/admin/carousel'),
   reorderCarousel: (slideIds: string[]) =>
     apiRequest<AdminCarousel>('/api/admin/carousel/order', {

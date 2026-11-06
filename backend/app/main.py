@@ -616,7 +616,9 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
                             title=f"{activity.title} | {translate('app.name')}",
                             description=(activity.summary or activity.body)[:300],
                             canonical_url=f"{base_url}/activities/{quote(activity.slug)}",
-                            image_url=_absolute(activity.image_url),
+                            # The 16:9 crop when there is one: a tall
+                            # poster makes a poor link preview.
+                            image_url=_absolute(activity.card_image_url or activity.image_url),
                             og_type="article",
                         )
                 finally:

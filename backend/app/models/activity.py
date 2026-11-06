@@ -44,6 +44,11 @@ class Activity(Base, TimestampMixin):
     # kept off the public routes rather than refused.
     image_url: Mapped[str | None] = mapped_column(String, nullable=True)
     image_storage_key: Mapped[str | None] = mapped_column(String, nullable=True)
+    # A 16:9 crop for the list cards and link previews (the owners' request,
+    # 6 Nov 2026): the photograph above is often a tall poster, shown whole
+    # on the activity's own page. Without one, both use the photograph.
+    card_image_url: Mapped[str | None] = mapped_column(String, nullable=True)
+    card_image_storage_key: Mapped[str | None] = mapped_column(String, nullable=True)
 
     is_archived: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     # Lower first; ties go to the newest. Superseded for the carousel by

@@ -2,12 +2,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Archive,
   ArchiveRestore,
+  Crop,
   GalleryHorizontal,
   ImagePlus,
   Megaphone,
   MessageCircle,
   Pencil,
   Plus,
+  RotateCcw,
   Trash2,
   Users,
 } from 'lucide-react'
@@ -124,6 +126,8 @@ export function AdminActivitiesPage() {
   const [uploadingId, setUploadingId] = useState<string | null>(null)
   const [openRegistrations, setOpenRegistrations] = useState<string | null>(null)
   const imageCrop = useCropStep('gallery')
+  const cardCrop = useCropStep('card')
+  const [cardBusyId, setCardBusyId] = useState<string | null>(null)
 
   const activities = useQuery({ queryKey: queryKeys.adminActivities, queryFn: adminApi.activities })
   const refresh = () => {
@@ -157,9 +161,40 @@ export function AdminActivitiesPage() {
     onSettled: () => setUploadingId(null),
   })
 
+  const showUpdated = (updated: AdminActivity) => {
+    setEditing((current) =>
+      current !== null && current !== 'new' && current.id === updated.id ? updated : current,
+    )
+    refresh()
+  }
+  // The card image is cut from the poster already uploaded: it is fetched
+  // back (same origin, /media) and offered to the crop window in 16:9.
+  const cropCard = async (activity: AdminActivity) => {
+    if (!activity.image_url) return
+    setCardBusyId(activity.id)
+    try {
+      const response = await fetch(activity.image_url)
+      if (!response.ok) throw new Error(String(response.status))
+      const blob = await response.blob()
+      const poster = new File([blob], 'poster.jpg', { type: blob.type || 'image/jpeg' })
+      const cropped = await cardCrop.crop(poster)
+      if (cropped) showUpdated(await adminApi.uploadActivityCardImage(activity.id, cropped))
+    } catch (error) {
+      fail(error)
+    } finally {
+      setCardBusyId(null)
+    }
+  }
+  const resetCard = useMutation({
+    mutationFn: (id: string) => adminApi.deleteActivityCardImage(id),
+    onSuccess: showUpdated,
+    onError: fail,
+  })
+
   return (
     <div className="space-y-6">
       {imageCrop.dialog}
+      {cardCrop.dialog}
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl">{t('admin.activitiesTitle')}</h1>
@@ -184,6 +219,10 @@ export function AdminActivitiesPage() {
             setUploadingId(id)
             fileRef.current?.click()
           }}
+          cardBusy={editing !== 'new' && cardBusyId === editing.id}
+          resettingCard={editing !== 'new' && resetCard.isPending && resetCard.variables === editing.id}
+          onCropCard={(target) => void cropCard(target)}
+          onResetCard={(id) => resetCard.mutate(id)}
           onDone={() => {
             setEditing(null)
             refresh()
@@ -208,7 +247,7 @@ export function AdminActivitiesPage() {
                 <CardBody className="flex flex-wrap items-start gap-4 p-4">
                   {activity.image_url ? (
                     <img
-                      src={activity.image_url}
+                      src={activity.card_thumb_url ?? activity.image_url}
                       alt=""
                       className="h-20 w-32 shrink-0 rounded-lg object-cover"
                     />
@@ -295,6 +334,28 @@ export function AdminActivitiesPage() {
                         <ImagePlus className="h-4 w-4" aria-hidden="true" />
                         {t('admin.activityImage')}
                       </Button>
+                      {activity.image_url ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          loading={cardBusyId === activity.id}
+                          onClick={() => void cropCard(activity)}
+                        >
+                          <Crop className="h-4 w-4" aria-hidden="true" />
+                          {t('admin.activityCardImage')}
+                        </Button>
+                      ) : null}
+                      {activity.card_image_url ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          loading={resetCard.isPending && resetCard.variables === activity.id}
+                          onClick={() => resetCard.mutate(activity.id)}
+                        >
+                          <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                          {t('admin.activityCardImageReset')}
+                        </Button>
+                      ) : null}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -347,11 +408,20 @@ function ActivityForm({
   activity,
   uploading,
   onPickImage,
+  cardBusy,
+  resettingCard,
+  onCropCard,
+  onResetCard,
   onDone,
 }: {
   activity: AdminActivity | null
   uploading: boolean
   onPickImage: (id: string) => void
+  cardBusy: boolean
+  resettingCard: boolean
+  /** Crop the 16:9 card and link-preview image out of the poster. */
+  onCropCard: (activity: AdminActivity) => void
+  onResetCard: (id: string) => void
   onDone: () => void
 }) {
   const { t } = useI18n()
@@ -572,14 +642,14 @@ function ActivityForm({
 
           <div className="rounded-xl border border-ink-100 p-4">
             <p className="text-sm font-semibold text-ink-900">{t('adminActivity.thumbnailLabel')}</p>
-            <p className="text-xs text-ink-500">{t('adminActivity.thumbnailHint')}</p>
             {activity ? (
               <div className="mt-3 flex flex-wrap items-center gap-4">
                 {activity.image_url ? (
+                  // The whole poster, as its page shows it; the card crop is below.
                   <img
                     src={activity.image_thumb_url ?? activity.image_url}
                     alt=""
-                    className="aspect-video w-48 rounded-lg object-cover"
+                    className="aspect-video w-48 rounded-lg bg-sand-100 object-contain"
                   />
                 ) : (
                   <div className="flex aspect-video w-48 items-center justify-center rounded-lg bg-sand-100 text-ink-500">
@@ -599,9 +669,45 @@ function ActivityForm({
                     : t('adminActivity.thumbnailUpload')}
                 </Button>
               </div>
-            ) : (
+            ) : null}
+            {activity?.image_url ? (
+              // The 16:9 crop used by the cards, the carousel and link
+              // previews; until one is made, they use the poster as it is.
+              <div className="mt-3 flex flex-wrap items-center gap-4">
+                <img
+                  src={activity.card_thumb_url ?? activity.image_url}
+                  alt=""
+                  className="aspect-video w-48 rounded-lg object-cover"
+                />
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    loading={cardBusy}
+                    onClick={() => onCropCard(activity)}
+                  >
+                    <Crop className="h-4 w-4" aria-hidden="true" />
+                    {t('admin.activityCardImage')}
+                  </Button>
+                  {activity.card_image_url ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      loading={resettingCard}
+                      onClick={() => onResetCard(activity.id)}
+                    >
+                      <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                      {t('admin.activityCardImageReset')}
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+            {!activity ? (
               <p className="mt-2 text-sm text-ink-500">{t('adminActivity.thumbnailAfterSave')}</p>
-            )}
+            ) : null}
             <label
               className={`mt-4 flex items-start gap-2 text-sm ${
                 activity && hasImage ? 'text-ink-700' : 'text-ink-400'
