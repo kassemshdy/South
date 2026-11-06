@@ -1198,9 +1198,11 @@ def test_a_password_pasted_on_a_phone_still_signs_in(
     arabic_digits = password.translate(str.maketrans("0123456789", "".join(chr(0x0660 + n) for n in range(10))))
 
     for typed in (
-        f"‏‎{password}‎\n",
+        f"\u200f\u200e{password}\u200e\n",
         f" {password} ",
-        f"⁦{password}⁩",
+        f"\u2066{password}\u2069",
+        f"*{password}*",
+        f"\u200e*{password}*\u200e",
         arabic_digits,
     ):
         signed_in = client.post(
@@ -1210,6 +1212,6 @@ def test_a_password_pasted_on_a_phone_still_signs_in(
 
     wrong = client.post(
         "/api/auth/login",
-        json={"identifier": owner.phone_number, "password": f"‎{password}x"},
+        json={"identifier": owner.phone_number, "password": f"\u200e{password}x"},
     )
     assert wrong.status_code == 401
