@@ -189,13 +189,18 @@ test.describe('Applying for a listing', () => {
     const issued = (await admin.locator('dd.font-mono').innerText()).trim()
     expect(issued.length).toBeGreaterThan(8)
 
-    // The site sends nothing. What it produces is a wa.me link the
-    // administrator opens themselves, carrying both values the owner needs.
+    // The site sends nothing. What it produces is two wa.me links the
+    // administrator opens themselves: the message, without the password,
+    // then the password alone, so the owner copies exactly it.
     const whatsapp = await admin
       .getByRole('link', { name: t('credentials.sendOnWhatsapp') })
       .getAttribute('href')
     expect(whatsapp).toContain('wa.me/')
-    expect(decodeURIComponent(whatsapp ?? '')).toContain(issued)
+    expect(decodeURIComponent(whatsapp ?? '')).not.toContain(issued)
+    const passwordLink = await admin
+      .getByRole('link', { name: t('credentials.sendPasswordOnWhatsapp') })
+      .getAttribute('href')
+    expect(new URL(passwordLink ?? '').searchParams.get('text')).toBe(issued)
 
     // --- 4. The issued password opens the dashboard -------------------------
     // No forced change (the owners' decision): the WhatsApp message is the
