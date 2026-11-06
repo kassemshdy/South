@@ -80,6 +80,8 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
         )
     },
     ("DELETE", "/api/admin/businesses/{business_id}/items/{item_id}"): _MODERATE,
+    # Following up shops with nothing on sale: the roles that talk to owners.
+    ("PUT", "/api/admin/businesses/{business_id}/outreach"): _CREDENTIALS,
     **{
         ("POST", f"/api/admin/talent/{{profile_id}}/{action}"): _MODERATE
         for action in (

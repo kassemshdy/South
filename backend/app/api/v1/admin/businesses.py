@@ -7,6 +7,7 @@ moderation action without that check.
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, File, Form, Query, Response, UploadFile
@@ -26,6 +27,7 @@ from app.schemas.moderation import (
     AdminBusinessOut,
     CategoryChangeIn,
     GoodsOriginIn,
+    OutreachIn,
     PlaceChangeIn,
     RejectIn,
     SuspendIn,
@@ -56,6 +58,9 @@ def list_businesses(
     without_products: Annotated[
         bool, Query(description="Only shops with nothing on sale, to contact them")
     ] = False,
+    contacted: Annotated[
+        bool | None, Query(description="Only shops staff have (true) or have not (false) contacted")
+    ] = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> PaginatedResponse[AdminBusinessOut]:
@@ -63,6 +68,7 @@ def list_businesses(
         status=status,
         q=q,
         without_products=without_products,
+        contacted=contacted,
         page=page,
         page_size=page_size,
     )
@@ -81,6 +87,27 @@ def list_pending(
         status=BusinessStatus.PENDING_REVIEW, page=page, page_size=page_size
     )
     return paginate(results, admin_business)
+
+
+@router.put("/businesses/{business_id}/outreach", response_model=AdminBusinessOut)
+def set_outreach(
+    business_id: uuid.UUID, body: OutreachIn, db: DbSession, admin: AdminUser
+) -> AdminBusinessOut:
+    """Record that staff contacted a shop, with a note, or clear it (the
+    owners' request, 6 Nov 2026, for the shops with nothing on sale)."""
+    business = _load(db, business_id)
+    if body.contacted:
+        note = (body.note or "").strip() or None
+        if business.outreach_contacted_at is None:
+            business.outreach_contacted_at = datetime.now(UTC)
+        business.outreach_contacted_by = admin.id
+        business.outreach_note = note
+    else:
+        business.outreach_contacted_at = None
+        business.outreach_contacted_by = None
+        business.outreach_note = None
+    db.commit()
+    return admin_business(_load(db, business_id))
 
 
 @router.get("/businesses/{business_id}", response_model=AdminBusinessOut)

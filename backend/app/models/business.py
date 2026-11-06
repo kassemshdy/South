@@ -155,6 +155,17 @@ class Business(Base, TimestampMixin):
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
 
+    # Staff following up a shop with nothing on sale (the owners' request,
+    # 6 Nov 2026): when it was contacted, by whom, and what they noted.
+    # Read only through AdminBusinessOut; no public schema carries them.
+    outreach_contacted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    outreach_contacted_by: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    outreach_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     # Arabic-normalized haystack maintained by BusinessService on every write.
     # Keeping it denormalized lets a trigram index serve substring search.
     search_text: Mapped[str] = mapped_column(Text, default="", nullable=False)

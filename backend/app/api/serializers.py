@@ -243,6 +243,8 @@ def admin_business(business: Business) -> AdminBusinessOut:
             ModerationActionOut.model_validate(action)
             for action in sorted(business.moderation_actions, key=lambda a: a.created_at)
         ],
+        outreach_contacted_at=business.outreach_contacted_at,
+        outreach_note=business.outreach_note,
     )
 
 

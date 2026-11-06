@@ -211,6 +211,7 @@ class BusinessRepository(BaseRepository[Business]):
         status: BusinessStatus | None = None,
         q: str | None = None,
         without_products: bool = False,
+        contacted: bool | None = None,
         page: int = 1,
         page_size: int = 20,
     ) -> Page[Business]:
@@ -221,6 +222,12 @@ class BusinessRepository(BaseRepository[Business]):
             # Shops with nothing on sale, for staff to contact (the owners'
             # request, 3 Nov 2026).
             stmt = stmt.where(~has_products())
+        if contacted is not None:
+            stmt = stmt.where(
+                Business.outreach_contacted_at.is_not(None)
+                if contacted
+                else Business.outreach_contacted_at.is_(None)
+            )
         if q:
             matches: ColumnElement[bool] = Business.search_text.like(f"%{normalize_arabic(q)}%")
             digits = phone_digits(q)

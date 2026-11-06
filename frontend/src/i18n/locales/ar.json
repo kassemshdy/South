@@ -2192,5 +2192,15 @@
   "staff.hintREELS": "يطّلع على لوحة الإدارة كلها، ويعدّل الريلز والقصص فقط.",
   "staff.canActivities": "الأنشطة وشريط العرض",
   "staff.canReels": "الريلز",
-  "staff.canStories": "قصص أصحاب الأنشطة"
+  "staff.canStories": "قصص أصحاب الأنشطة",
+  "adminShops.tabNotContacted": "لم يُتواصل معهم ({count})",
+  "adminShops.tabContacted": "تم التواصل معهم ({count})",
+  "adminShops.markContacted": "تم التواصل",
+  "adminShops.notePlaceholder": "ملاحظة عن التواصل (اختياري)",
+  "adminShops.saveNote": "حفظ",
+  "adminShops.editNote": "تعديل الملاحظة",
+  "adminShops.unmarkContacted": "إعادة إلى قائمة التواصل",
+  "adminShops.contactedOn": "تم التواصل {date}",
+  "adminShops.contactedEmpty": "لم يُسجَّل أي تواصل بعد.",
+  "adminShops.outreachFailed": "تعذّر حفظ التواصل"
 }
