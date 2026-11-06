@@ -62,9 +62,11 @@ class SiteSettingsIn(BaseModel):
         return normalize_social_url(SocialPlatform.INSTAGRAM, value) if value else None
 
 
-#: The placeholders a credentials message is filled with, in the
-#: administrator's browser at the moment a password is issued.
-CREDENTIALS_PLACEHOLDERS = ("{phone}", "{password}")
+#: The placeholder a credentials message must keep. The password is sent
+#: on its own, as a second message, so a line holding ``{password}`` is
+#: dropped from this one (the owners' request, 6 Nov 2026): copied out of
+#: the middle of a message on a phone, it arrived with extra characters.
+CREDENTIALS_PLACEHOLDERS = ("{phone}",)
 
 
 class CredentialsMessageOut(BaseModel):
@@ -76,8 +78,8 @@ class CredentialsMessageOut(BaseModel):
 
 class CredentialsMessageIn(BaseModel):
     """The administrator's own wording, with a channel or group link if they
-    like. It must still carry the username and the password, or the message
-    would hand over nothing to sign in with."""
+    like. It must still carry the username; the password follows in a
+    message of its own."""
 
     message: str | None = Field(default=None, max_length=2000)
 

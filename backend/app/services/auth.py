@@ -78,7 +78,15 @@ class AuthService:
 
         user = self._users.get_by_email(identifier)
 
-        if user is None or not verify_password(password, user.password_hash):
+        # A password pasted from a chat often brings a space or a line break
+        # with it, which the hidden field does not show (the owners' report,
+        # 6 Nov 2026). The exact text is tried first, so a password that
+        # really has a space at its end still works.
+        trimmed = password.strip()
+        if user is None or not (
+            verify_password(password, user.password_hash)
+            or (trimmed != password and verify_password(trimmed, user.password_hash))
+        ):
             self._record_failed_login(identifier)
             logger.warning("Failed admin login", extra={"email": identifier})
             raise AuthenticationError(
