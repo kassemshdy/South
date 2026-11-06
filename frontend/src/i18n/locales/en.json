@@ -2207,5 +2207,12 @@
   "adminShops.contactedOn": "Contacted {date}",
   "adminShops.contactedEmpty": "No contact recorded yet.",
   "adminShops.uploadedEmpty": "No contacted shop has added products yet.",
-  "adminShops.outreachFailed": "Could not save the contact"
+  "adminShops.outreachFailed": "Could not save the contact",
+  "wizard.alreadyHaveShopTitle": "You already have a shop on the site",
+  "wizard.alreadyHaveShopBody": "To add a product, add it to your existing shop instead of creating a new one.",
+  "wizard.addProductTo": "Add a product to {name}",
+  "wizard.sameNameTitle": "You already have a shop with this name",
+  "wizard.sameNameBody": "Do you want to add a product to it instead of creating a second shop with the same name?",
+  "wizard.addProductInstead": "Add a product to my shop",
+  "wizard.createAnyway": "Create a new shop anyway"
 }
