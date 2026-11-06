@@ -133,7 +133,10 @@ export function LoginPage() {
                 // The eye shows what was typed: a password copied by hand
                 // from a chat goes wrong unseen behind the dots (the owners'
                 // report, 6 Nov 2026).
-                <div className="relative">
+                // dir="ltr" on the wrapper too: the field is left-to-right,
+                // so its end -- where the eye sits and the padding is kept
+                // clear -- is the right, away from where the text starts.
+                <div className="relative" dir="ltr">
                   <Input
                     {...fieldProps}
                     {...register('password')}
