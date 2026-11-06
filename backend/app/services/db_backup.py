@@ -26,7 +26,7 @@ import logging
 import os
 import subprocess
 from collections.abc import Callable, Iterable
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.engine import make_url
@@ -43,6 +43,13 @@ _PREFIX = f"{FOLDER}/db/"
 #: How many copies to keep. One a day plus one per deploy: sixty is roughly a
 #: month of both, and a dump of this database is a few megabytes.
 KEEP = 60
+
+#: A boot backup this soon after the newest one is skipped. A deploy that
+#: fails on start is restarted every few seconds, and each start used to save
+#: an identical copy -- 30 of them on 5 Nov 2026 -- pushing that many older,
+#: different copies out of the ``KEEP`` newest. Nothing can change the database
+#: between two such starts, so the copy already there is the same one.
+BOOT_COOLDOWN = timedelta(minutes=10)
 
 #: Folders whose files mean the site has been used, so an empty database
 #: beside them is a loss rather than a fresh start.
@@ -65,6 +72,26 @@ def libpq_url(database_url: str) -> tuple[str, str | None]:
 def backup_key(now: datetime, reason: str) -> str:
     """Sortable by name: the newest backup is the last key in order."""
     return f"{_PREFIX}{now.strftime('%Y%m%dT%H%M%SZ')}-{reason}.dump"
+
+
+def newest_backup_at(keys: Iterable[str]) -> datetime | None:
+    """When the newest backup was taken, read from its key; None if there is none."""
+    taken: list[datetime] = []
+    for key in keys:
+        if not key.startswith(_PREFIX):
+            continue
+        try:
+            stamp = datetime.strptime(key[len(_PREFIX) :][:16], "%Y%m%dT%H%M%SZ")
+        except ValueError:
+            continue
+        taken.append(stamp.replace(tzinfo=UTC))
+    return max(taken, default=None)
+
+
+def boot_backup_is_redundant(keys: Iterable[str], now: datetime) -> bool:
+    """True when a backup was taken less than ``BOOT_COOLDOWN`` before ``now``."""
+    newest = newest_backup_at(keys)
+    return newest is not None and timedelta(0) <= now - newest < BOOT_COOLDOWN
 
 
 def database_is_empty(database_url: str) -> bool:

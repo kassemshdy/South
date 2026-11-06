@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+from datetime import UTC, datetime
 
 import sentry_sdk
 
@@ -49,6 +50,15 @@ def main(argv: list[str] | None = None) -> int:
                 sentry_sdk.flush(timeout=5)
             else:
                 logger.info("Database is empty and nothing was ever uploaded: a new site")
+            return 0
+
+        listed = getattr(storage, "keys", None)
+        if (
+            args.reason == "boot"
+            and callable(listed)
+            and db_backup.boot_backup_is_redundant(listed(), datetime.now(UTC))
+        ):
+            logger.info("Boot backup skipped: the newest copy is under 10 minutes old")
             return 0
 
         db_backup.back_up(settings.database_url, storage, reason=args.reason)
