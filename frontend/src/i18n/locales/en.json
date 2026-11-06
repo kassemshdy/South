@@ -2093,7 +2093,7 @@
   "adminShops.noProductsIntro": "{count} approved shops have no product visitors can see, and are not counted on the site.",
   "adminShops.noProductsIntroLoading": "Approved shops with no product visitors can see.",
   "adminShops.noProductsEmpty": "Every approved shop has at least one product.",
-  "adminShops.noProductsWhatsapp": "Hello, your shop “{name}” is published on the South directory but has no products yet. Can we help you add them?",
+  "adminShops.noProductsWhatsapp": "Hello, your shop “{name}” is on the South directory, janoubona.net, but there are no products on its page yet.\n\nWould you like us to help you add your products so people can see them and get to know them?",
   "adminShops.approvedOn": "Approved {date}",
   "adminShops.call": "Call",
   "adminNav.groupListings": "Listings",
