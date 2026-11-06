@@ -170,3 +170,42 @@ def test_an_invited_email_must_be_new(client: TestClient, admin: User) -> None:
         json={"email": "ADMIN@example.com", "display_name": "Dup", "staff_role": "VIEWER"},
     )
     assert taken.status_code == 409
+
+
+def test_the_single_area_roles_read_everything_and_edit_only_their_area(
+    client: TestClient, admin: User
+) -> None:
+    """The owners' ticket (5 Nov 2026): one role for the activities and their
+    carousel, one for the reels and the owners' stories; both see the whole
+    admin area."""
+    manager = admin_headers(client)
+    activities = _invite(client, manager, "ACTIVITIES", "activities@example.com")
+    reels = _invite(client, manager, "REELS", "reels@example.com")
+
+    for headers in (activities, reels):
+        assert client.get("/api/admin/stats", headers=headers).status_code == 200
+        assert client.get("/api/admin/businesses", headers=headers).status_code == 200
+
+    body = {"title": ar("business.first"), "body": ar("business.applicant_description")}
+    created = client.post("/api/admin/activities", headers=activities, json=body)
+    assert created.status_code == 201, created.text
+    assert client.put(
+        "/api/admin/carousel/order", headers=activities, json={"slide_ids": []}
+    ).status_code != 403
+    assert client.post("/api/admin/activities", headers=reels, json=body).status_code == 403
+    assert client.put(
+        "/api/admin/carousel/order", headers=reels, json={"slide_ids": []}
+    ).status_code == 403
+
+    reel = {"url": "https://www.instagram.com/reel/abc123/"}
+    assert client.post("/api/admin/reels", headers=activities, json=reel).status_code == 403
+    assert client.post("/api/admin/reels", headers=reels, json=reel).status_code != 403
+
+    fake = "00000000-0000-0000-0000-000000000000"
+    assert client.post(f"/api/admin/stories/{fake}/approve", headers=activities).status_code == 403
+    assert client.post(f"/api/admin/stories/{fake}/approve", headers=reels).status_code != 403
+
+    # Neither moderates listings, edits other pages, or manages staff.
+    for headers in (activities, reels):
+        assert client.put("/api/admin/menu", headers=headers, json={}).status_code == 403
+        assert client.get("/api/admin/staff", headers=headers).status_code == 403

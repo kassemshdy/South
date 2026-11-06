@@ -120,7 +120,7 @@ export function AdminActivitiesPage() {
   const { t, locale } = useI18n()
   const toast = useToast()
   const queryClient = useQueryClient()
-  const canEdit = useStaffCan('content')
+  const canEdit = useStaffCan('activities')
   const [editing, setEditing] = useState<AdminActivity | 'new' | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploadingId, setUploadingId] = useState<string | null>(null)

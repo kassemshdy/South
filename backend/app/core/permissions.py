@@ -25,6 +25,8 @@ M = StaffRole.MANAGER
 R = StaffRole.REVIEWER
 S = StaffRole.SUPPORT
 E = StaffRole.EDITOR
+A = StaffRole.ACTIVITIES
+RS = StaffRole.REELS
 
 #: Reads closed to some staff: ID scans, CVs and a business's official
 #: papers (reviewers and the manager), the export and the staff list (the
@@ -56,6 +58,11 @@ _MODERATE = frozenset({M, R})
 _SUPPORT = frozenset({M, S})
 _CREDENTIALS = frozenset({M, R, S})
 _CONTENT = frozenset({M, E})
+# The two single-area roles (the owners' ticket, 5 Nov 2026): each reads the
+# whole admin area like every role, and writes only its own area.
+_ACTIVITIES = frozenset({M, E, A})
+_REELS = frozenset({M, E, RS})
+_STORIES = frozenset({M, R, RS})
 
 WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     # Moderation
@@ -87,9 +94,9 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
         )
     },
     # Owners' photo stories are reviewed like the listings they belong to.
-    ("POST", "/api/admin/stories/{story_id}/approve"): _MODERATE,
-    ("POST", "/api/admin/stories/{story_id}/reject"): _MODERATE,
-    ("DELETE", "/api/admin/stories/{story_id}"): _MODERATE,
+    ("POST", "/api/admin/stories/{story_id}/approve"): _STORIES,
+    ("POST", "/api/admin/stories/{story_id}/reject"): _STORIES,
+    ("DELETE", "/api/admin/stories/{story_id}"): _STORIES,
     ("POST", "/api/admin/testimonials/{testimonial_id}/approve"): _MODERATE,
     ("POST", "/api/admin/testimonials/{testimonial_id}/reject"): _MODERATE,
     ("DELETE", "/api/admin/testimonials/{testimonial_id}"): _MODERATE,
@@ -154,26 +161,26 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     ("POST", "/api/admin/workshops/{workshop_id}/image"): _CONTENT,
     ("DELETE", "/api/admin/workshops/{workshop_id}/image"): _CONTENT,
     # The home page's activity announcements (30 Oct 2026): the same people.
-    ("POST", "/api/admin/activities"): _CONTENT,
-    ("PUT", "/api/admin/activities/{activity_id}"): _CONTENT,
-    ("DELETE", "/api/admin/activities/{activity_id}"): _CONTENT,
-    ("POST", "/api/admin/activities/{activity_id}/image"): _CONTENT,
-    ("POST", "/api/admin/activities/{activity_id}/card-image"): _CONTENT,
-    ("DELETE", "/api/admin/activities/{activity_id}/card-image"): _CONTENT,
+    ("POST", "/api/admin/activities"): _ACTIVITIES,
+    ("PUT", "/api/admin/activities/{activity_id}"): _ACTIVITIES,
+    ("DELETE", "/api/admin/activities/{activity_id}"): _ACTIVITIES,
+    ("POST", "/api/admin/activities/{activity_id}/image"): _ACTIVITIES,
+    ("POST", "/api/admin/activities/{activity_id}/card-image"): _ACTIVITIES,
+    ("DELETE", "/api/admin/activities/{activity_id}/card-image"): _ACTIVITIES,
     # The announcements carousel (the owners' ticket, 31 Oct 2026).
-    ("PUT", "/api/admin/carousel/order"): _CONTENT,
-    ("POST", "/api/admin/carousel/activities"): _CONTENT,
-    ("POST", "/api/admin/carousel/custom"): _CONTENT,
-    ("PUT", "/api/admin/carousel/settings"): _CONTENT,
-    ("PUT", "/api/admin/carousel/{slide_id}"): _CONTENT,
-    ("DELETE", "/api/admin/carousel/{slide_id}"): _CONTENT,
+    ("PUT", "/api/admin/carousel/order"): _ACTIVITIES,
+    ("POST", "/api/admin/carousel/activities"): _ACTIVITIES,
+    ("POST", "/api/admin/carousel/custom"): _ACTIVITIES,
+    ("PUT", "/api/admin/carousel/settings"): _ACTIVITIES,
+    ("PUT", "/api/admin/carousel/{slide_id}"): _ACTIVITIES,
+    ("DELETE", "/api/admin/carousel/{slide_id}"): _ACTIVITIES,
     # The home page's Instagram reels.
-    ("POST", "/api/admin/reels"): _CONTENT,
-    ("PUT", "/api/admin/reels/order"): _CONTENT,
-    ("PUT", "/api/admin/reels/{reel_id}"): _CONTENT,
-    ("DELETE", "/api/admin/reels/{reel_id}"): _CONTENT,
-    ("POST", "/api/admin/reels/{reel_id}/cover"): _CONTENT,
-    ("DELETE", "/api/admin/reels/{reel_id}/cover"): _CONTENT,
+    ("POST", "/api/admin/reels"): _REELS,
+    ("PUT", "/api/admin/reels/order"): _REELS,
+    ("PUT", "/api/admin/reels/{reel_id}"): _REELS,
+    ("DELETE", "/api/admin/reels/{reel_id}"): _REELS,
+    ("POST", "/api/admin/reels/{reel_id}/cover"): _REELS,
+    ("DELETE", "/api/admin/reels/{reel_id}/cover"): _REELS,
     **{
         (method, path): _CONTENT
         for kind, key in (

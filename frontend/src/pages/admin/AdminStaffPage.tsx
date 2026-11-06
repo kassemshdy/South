@@ -27,6 +27,8 @@ const ROLE_LABEL: Record<StaffRole, TranslationKey> = {
   SUPPORT: 'staff.roleSUPPORT',
   EDITOR: 'staff.roleEDITOR',
   VIEWER: 'staff.roleVIEWER',
+  ACTIVITIES: 'staff.roleACTIVITIES',
+  REELS: 'staff.roleREELS',
 }
 
 const ROLE_HINT: Record<StaffRole, TranslationKey> = {
@@ -35,6 +37,8 @@ const ROLE_HINT: Record<StaffRole, TranslationKey> = {
   SUPPORT: 'staff.hintSUPPORT',
   EDITOR: 'staff.hintEDITOR',
   VIEWER: 'staff.hintVIEWER',
+  ACTIVITIES: 'staff.hintACTIVITIES',
+  REELS: 'staff.hintREELS',
 }
 
 /**

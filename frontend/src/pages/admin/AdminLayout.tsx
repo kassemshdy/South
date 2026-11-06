@@ -101,7 +101,7 @@ const GROUPS: { labelKey: TranslationKey; icon: typeof BarChart3; items: NavItem
       { to: '/admin/carousel', labelKey: 'adminCarousel.nav', icon: GalleryHorizontal },
       { to: '/admin/workshops', labelKey: 'admin.navWorkshops', icon: GraduationCap },
       { to: '/admin/partners', labelKey: 'admin.navPartners', icon: Handshake },
-      { to: '/admin/reels', labelKey: 'admin.navReels', icon: Clapperboard, needs: 'content' },
+      { to: '/admin/reels', labelKey: 'admin.navReels', icon: Clapperboard, needs: 'reels' },
       { to: '/admin/pages', labelKey: 'admin.navPages', icon: FileText },
     ],
   },

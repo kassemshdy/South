@@ -23,6 +23,10 @@ class StaffRole(str, enum.Enum):
     SUPPORT = "SUPPORT"
     EDITOR = "EDITOR"
     VIEWER = "VIEWER"
+    # Read everything, edit one area (the owners' ticket, 5 Nov 2026): the
+    # activities and their carousel, or the reels and the owners' stories.
+    ACTIVITIES = "ACTIVITIES"
+    REELS = "REELS"
 
 
 class BusinessStatus(str, enum.Enum):
