@@ -90,10 +90,14 @@ export function ActivityPage() {
       <div className="mt-4 grid gap-8 lg:grid-cols-3">
         <div className="min-w-0 lg:col-span-2">
           {data.image_url ? (
+            // The whole poster, never cropped: activity images are usually
+            // posters with the date, speaker and QR code at the edges, and a
+            // fixed 16:9 frame cut those off. Capped at the screen's height,
+            // a tall one is shown smaller rather than trimmed.
             <img
               src={data.image_url}
               alt=""
-              className="aspect-[16/9] w-full rounded-2xl object-cover"
+              className="mx-auto max-h-[85vh] w-auto max-w-full rounded-2xl bg-sand-100 object-contain"
             />
           ) : null}
           <p className="mt-6 text-sm font-semibold text-brand-700">{t(KIND_KEYS[data.kind])}</p>
