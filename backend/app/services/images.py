@@ -16,7 +16,7 @@ import uuid
 from dataclasses import dataclass
 
 from PIL import Image, UnidentifiedImageError
-from pillow_heif import register_heif_opener
+from pillow_heif import register_avif_opener, register_heif_opener
 
 from app.core.config import Settings
 from app.core.errors import PayloadTooLargeError, UnsupportedMediaTypeError
@@ -29,8 +29,13 @@ logger = logging.getLogger(__name__)
 # JPEG like everything else, so nothing downstream ever sees one (the owners'
 # request, 3 Nov 2026, after owners' product photos were refused).
 register_heif_opener()
+register_avif_opener()
 
-ALLOWED_FORMATS = {"JPEG", "PNG", "WEBP", "HEIF"}
+# MPO is a JPEG carrying a second picture -- an HDR or depth layer -- which is
+# how recent iPhones save many photos; Pillow names it MPO, not JPEG, so they
+# were refused as the wrong format (the owners' report, 6 Nov 2026). Only its
+# first picture, the photograph itself, is kept.
+ALLOWED_FORMATS = {"JPEG", "MPO", "PNG", "WEBP", "HEIF", "AVIF"}
 ALLOWED_CONTENT_TYPES = {
     "image/jpeg",
     "image/jpg",
@@ -40,6 +45,7 @@ ALLOWED_CONTENT_TYPES = {
     "image/heif",
     "image/heic-sequence",
     "image/heif-sequence",
+    "image/avif",
     # What a browser sends for a file type it does not know, which is how a
     # .heic file arrives from most desktop browsers. Decoding decides.
     "application/octet-stream",
@@ -139,9 +145,7 @@ class ImageService:
         """
         if len(data) > self._settings.max_upload_bytes:
             limit_mb = self._settings.max_upload_bytes / (1024 * 1024)
-            raise PayloadTooLargeError(
-                "image.too_large", params={"limit": f"{limit_mb:.0f}"}
-            )
+            raise PayloadTooLargeError("image.too_large", params={"limit": f"{limit_mb:.0f}"})
         if not data:
             raise UnsupportedMediaTypeError("image.empty")
 
@@ -181,9 +185,7 @@ class ImageService:
         """
         if len(data) > self._settings.max_upload_bytes:
             limit_mb = self._settings.max_upload_bytes / (1024 * 1024)
-            raise PayloadTooLargeError(
-                "image.too_large", params={"limit": f"{limit_mb:.0f}"}
-            )
+            raise PayloadTooLargeError("image.too_large", params={"limit": f"{limit_mb:.0f}"})
         if not data:
             raise UnsupportedMediaTypeError("image.empty")
         if content_type and content_type.lower() not in ALLOWED_CONTENT_TYPES:
@@ -233,6 +235,7 @@ class ImageService:
             raise UnsupportedMediaTypeError("image.unreadable") from exc
 
         if image.format not in ALLOWED_FORMATS:
+            logger.info("Refused an image", extra={"image_format": image.format})
             raise UnsupportedMediaTypeError("image.unsupported_format")
         return image
 
