@@ -2185,5 +2185,12 @@
   "work.tagline": "A worker from Jabal Amel",
   "work.intro": "Services and talent from the South: find someone to get your work done, or offer your skill to those who need it.",
   "admin.activityCardImage": "Crop card image",
-  "admin.activityCardImageReset": "Use the poster for the card"
+  "admin.activityCardImageReset": "Use the poster for the card",
+  "staff.roleACTIVITIES": "Activities editor",
+  "staff.roleREELS": "Reels & stories editor",
+  "staff.hintACTIVITIES": "Sees the whole admin area; edits only the activities and the carousel.",
+  "staff.hintREELS": "Sees the whole admin area; edits only the reels and stories.",
+  "staff.canActivities": "Activities and the carousel",
+  "staff.canReels": "Reels",
+  "staff.canStories": "Owners' stories"
 }

@@ -2185,5 +2185,12 @@
   "work.tagline": "عامل من جبل عامل",
   "work.intro": "خدمات ومواهب من الجنوب: اعثر على من ينجز عملك، أو اعرض مهارتك على من يحتاجها.",
   "admin.activityCardImage": "قصّ صورة البطاقة",
-  "admin.activityCardImageReset": "الصورة الأصلية للبطاقة"
+  "admin.activityCardImageReset": "الصورة الأصلية للبطاقة",
+  "staff.roleACTIVITIES": "محرر الأنشطة",
+  "staff.roleREELS": "محرر الريلز والقصص",
+  "staff.hintACTIVITIES": "يطّلع على لوحة الإدارة كلها، ويعدّل الأنشطة وشريط العرض فقط.",
+  "staff.hintREELS": "يطّلع على لوحة الإدارة كلها، ويعدّل الريلز والقصص فقط.",
+  "staff.canActivities": "الأنشطة وشريط العرض",
+  "staff.canReels": "الريلز",
+  "staff.canStories": "قصص أصحاب الأنشطة"
 }

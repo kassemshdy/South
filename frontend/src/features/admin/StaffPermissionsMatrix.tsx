@@ -11,6 +11,8 @@ const ROLE_LABEL: Record<StaffRole, TranslationKey> = {
   SUPPORT: 'staff.roleSUPPORT',
   EDITOR: 'staff.roleEDITOR',
   VIEWER: 'staff.roleVIEWER',
+  ACTIVITIES: 'staff.roleACTIVITIES',
+  REELS: 'staff.roleREELS',
 }
 
 /**
@@ -27,6 +29,9 @@ const ROWS: { label: TranslationKey; hint?: TranslationKey; action: StaffAction 
   { label: 'staff.canCredentials', action: 'credentials' },
   { label: 'staff.canSupport', action: 'support' },
   { label: 'staff.canContent', action: 'content' },
+  { label: 'staff.canActivities', action: 'activities' },
+  { label: 'staff.canReels', action: 'reels' },
+  { label: 'staff.canStories', action: 'stories' },
   { label: 'staff.canManage', action: 'manage' },
 ]
 

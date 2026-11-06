@@ -56,7 +56,7 @@ export function AdminCarouselPage() {
   const { t } = useI18n()
   const toast = useToast()
   const queryClient = useQueryClient()
-  const canEdit = useStaffCan('content')
+  const canEdit = useStaffCan('activities')
   const [picking, setPicking] = useState(false)
   const [adding, setAdding] = useState(false)
   const [previewing, setPreviewing] = useState(false)

@@ -16,6 +16,9 @@ export type StaffAction =
   | 'content' // pages, articles, covers, team, categories and places
   | 'manage' // staff, export, permanent deletes, site settings
   | 'employerRequests' // read employers' requests for candidates and mark them
+  | 'activities' // the activities and the carousel
+  | 'reels' // the home page's reels
+  | 'stories' // approve, reject and delete owners' stories
 
 const ALLOWED: Record<StaffAction, StaffRole[]> = {
   moderate: ['MANAGER', 'REVIEWER'],
@@ -25,9 +28,20 @@ const ALLOWED: Record<StaffAction, StaffRole[]> = {
   content: ['MANAGER', 'EDITOR'],
   manage: ['MANAGER'],
   employerRequests: ['MANAGER', 'REVIEWER', 'SUPPORT'],
+  activities: ['MANAGER', 'EDITOR', 'ACTIVITIES'],
+  reels: ['MANAGER', 'EDITOR', 'REELS'],
+  stories: ['MANAGER', 'REVIEWER', 'REELS'],
 }
 
-export const STAFF_ROLES: StaffRole[] = ['MANAGER', 'REVIEWER', 'SUPPORT', 'EDITOR', 'VIEWER']
+export const STAFF_ROLES: StaffRole[] = [
+  'MANAGER',
+  'REVIEWER',
+  'SUPPORT',
+  'EDITOR',
+  'ACTIVITIES',
+  'REELS',
+  'VIEWER',
+]
 
 export function staffCan(role: StaffRole | null | undefined, action: StaffAction): boolean {
   // An administrator with no role recorded is a viewer, as on the server.
