@@ -58,6 +58,9 @@ def list_businesses(
     without_products: Annotated[
         bool, Query(description="Only shops with nothing on sale, to contact them")
     ] = False,
+    with_products: Annotated[
+        bool, Query(description="Only shops with at least one product on sale")
+    ] = False,
     contacted: Annotated[
         bool | None, Query(description="Only shops staff have (true) or have not (false) contacted")
     ] = None,
@@ -68,6 +71,7 @@ def list_businesses(
         status=status,
         q=q,
         without_products=without_products,
+        with_products=with_products,
         contacted=contacted,
         page=page,
         page_size=page_size,

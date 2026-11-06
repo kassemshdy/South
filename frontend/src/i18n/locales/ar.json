@@ -2195,6 +2195,7 @@
   "staff.canStories": "قصص أصحاب الأنشطة",
   "adminShops.tabNotContacted": "لم يُتواصل معهم ({count})",
   "adminShops.tabContacted": "تم التواصل معهم ({count})",
+  "adminShops.tabUploaded": "تواصلنا معهم وأضافوا منتجات ({count})",
   "adminShops.markContacted": "تم التواصل",
   "adminShops.notePlaceholder": "ملاحظة عن التواصل (اختياري)",
   "adminShops.saveNote": "حفظ",
@@ -2202,5 +2203,6 @@
   "adminShops.unmarkContacted": "إعادة إلى قائمة التواصل",
   "adminShops.contactedOn": "تم التواصل {date}",
   "adminShops.contactedEmpty": "لم يُسجَّل أي تواصل بعد.",
+  "adminShops.uploadedEmpty": "لم يُضف أيّ محلّ تواصلنا معه منتجات بعد.",
   "adminShops.outreachFailed": "تعذّر حفظ التواصل"
 }
