@@ -248,7 +248,11 @@ def _as_typed_on_a_phone(password: str) -> str:
     keyboard. It worked from a laptop and not from a phone (the owners'
     report, 6 Nov 2026)."""
     visible = "".join(ch for ch in password if unicodedata.category(ch) != "Cf")
-    return visible.strip().translate(_DIGITS)
+    # WhatsApp's own formatting: *bold*, _italic_, ~strike~ and ```mono```
+    # travel with the text when it is copied on a phone, and the
+    # administrator's message had the password in bold (the owners' report,
+    # 6 Nov 2026). An issued password contains none of them.
+    return visible.strip().strip("*_~`").strip().translate(_DIGITS)
 
 
 def _password_matches(password: str, password_hash: str | None) -> bool:
