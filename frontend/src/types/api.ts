@@ -16,7 +16,14 @@ export type BusinessStatus =
 export type UserRole = 'OWNER' | 'ADMIN'
 
 /** An administrator's staff role; see `features/admin/staffAccess.ts`. */
-export type StaffRole = 'MANAGER' | 'REVIEWER' | 'SUPPORT' | 'EDITOR' | 'VIEWER'
+export type StaffRole =
+  | 'MANAGER'
+  | 'REVIEWER'
+  | 'SUPPORT'
+  | 'EDITOR'
+  | 'VIEWER'
+  | 'ACTIVITIES'
+  | 'REELS'
 
 export type Gender = 'MALE' | 'FEMALE'
 export type MaritalStatus = 'SINGLE' | 'MARRIED' | 'DIVORCED' | 'WIDOWED'

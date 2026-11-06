@@ -31,7 +31,7 @@ export function AdminStoriesPage() {
   const { t, locale } = useI18n()
   const toast = useToast()
   const queryClient = useQueryClient()
-  const canModerate = useStaffCan('moderate')
+  const canModerate = useStaffCan('stories')
   const [filter, setFilter] = useState<StoryStatus>('PENDING_REVIEW')
   const stories = useQuery({
     queryKey: queryKeys.adminStories(filter),
