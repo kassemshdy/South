@@ -2207,5 +2207,14 @@
   "adminShops.contactedOn": "تم التواصل {date}",
   "adminShops.contactedEmpty": "لم يُسجَّل أي تواصل بعد.",
   "adminShops.uploadedEmpty": "لم يُضف أيّ محلّ تواصلنا معه منتجات بعد.",
-  "adminShops.outreachFailed": "تعذّر حفظ التواصل"
+  "adminShops.outreachFailed": "تعذّر حفظ التواصل",
+  "wizard.alreadyHaveShopTitle": "لديك نشاط تجاري على الموقع بالفعل",
+  "wizard.alreadyHaveShopBody": "إذا كنت تريد إضافة منتج، فأضِفه إلى نشاطك الحالي بدل إنشاء نشاط جديد.",
+  "wizard.addProductTo": "إضافة منتج إلى {name}",
+  "wizard.sameNameTitle": "لديك نشاط بهذا الاسم بالفعل",
+  "wizard.sameNameBody": "هل تريد إضافة منتج إليه بدل إنشاء نشاط ثانٍ بالاسم نفسه؟",
+  "wizard.addProductInstead": "إضافة منتج إلى نشاطي",
+  "wizard.createAnyway": "إنشاء نشاط جديد رغم ذلك",
+  "login.showPassword": "إظهار ما كُتب",
+  "login.hidePassword": "إخفاء ما كُتب"
 }

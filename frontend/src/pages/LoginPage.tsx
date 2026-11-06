@@ -19,7 +19,7 @@
  */
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Lock } from 'lucide-react'
+import { Eye, EyeOff, Lock } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
@@ -48,6 +48,7 @@ export function LoginPage() {
   const toast = useToast()
   const t = useT()
   const [submitting, setSubmitting] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const schema = useMemo(() => signInSchema(t), [t])
   // Only with a number to send the request to; see ForgotPasswordPage.
   const canAskForReset = Boolean(whatsappHref(useSupportWhatsapp()))
@@ -129,14 +130,36 @@ export function LoginPage() {
               hint={t('login.passwordHint')}
             >
               {(fieldProps) => (
-                <Input
-                  {...fieldProps}
-                  {...register('password')}
-                  type="password"
-                  autoComplete="current-password"
-                  dir="ltr"
-                  invalid={Boolean(errors.password)}
-                />
+                // The eye shows what was typed: a password copied by hand
+                // from a chat goes wrong unseen behind the dots (the owners'
+                // report, 6 Nov 2026).
+                <div className="relative">
+                  <Input
+                    {...fieldProps}
+                    {...register('password')}
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    dir="ltr"
+                    className="pe-12"
+                    invalid={Boolean(errors.password)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((value) => !value)}
+                    aria-label={showPassword ? t('login.hidePassword') : t('login.showPassword')}
+                    aria-pressed={showPassword}
+                    className="absolute inset-y-0 end-0 flex w-12 items-center justify-center text-ink-500 hover:text-ink-900"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" aria-hidden="true" />
+                    ) : (
+                      <Eye className="h-5 w-5" aria-hidden="true" />
+                    )}
+                  </button>
+                </div>
               )}
             </Field>
 
