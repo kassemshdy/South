@@ -168,6 +168,13 @@ class AuthService:
         token, expires_at = create_access_token(
             user_id=user.id, role=user.role.value, token_version=user.token_version
         )
+        # The account as well as the attempt, so "did they get in?" has an
+        # answer in the logs, not only the failures (the owners' question,
+        # 6 Nov 2026).
+        logger.info(
+            "Signed in",
+            extra={"identifier": normalized, "user_id": str(user.id), "request_ip": client_ip},
+        )
         return user, token, expires_at
 
     @staticmethod
