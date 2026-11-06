@@ -219,6 +219,10 @@ export function AdminActivitiesPage() {
             setUploadingId(id)
             fileRef.current?.click()
           }}
+          cardBusy={editing !== 'new' && cardBusyId === editing.id}
+          resettingCard={editing !== 'new' && resetCard.isPending && resetCard.variables === editing.id}
+          onCropCard={(target) => void cropCard(target)}
+          onResetCard={(id) => resetCard.mutate(id)}
           onDone={() => {
             setEditing(null)
             refresh()
@@ -404,11 +408,20 @@ function ActivityForm({
   activity,
   uploading,
   onPickImage,
+  cardBusy,
+  resettingCard,
+  onCropCard,
+  onResetCard,
   onDone,
 }: {
   activity: AdminActivity | null
   uploading: boolean
   onPickImage: (id: string) => void
+  cardBusy: boolean
+  resettingCard: boolean
+  /** Crop the 16:9 card and link-preview image out of the poster. */
+  onCropCard: (activity: AdminActivity) => void
+  onResetCard: (id: string) => void
   onDone: () => void
 }) {
   const { t } = useI18n()
@@ -633,10 +646,11 @@ function ActivityForm({
             {activity ? (
               <div className="mt-3 flex flex-wrap items-center gap-4">
                 {activity.image_url ? (
+                  // The whole poster, as its page shows it; the card crop is below.
                   <img
                     src={activity.image_thumb_url ?? activity.image_url}
                     alt=""
-                    className="aspect-video w-48 rounded-lg object-cover"
+                    className="aspect-video w-48 rounded-lg bg-sand-100 object-contain"
                   />
                 ) : (
                   <div className="flex aspect-video w-48 items-center justify-center rounded-lg bg-sand-100 text-ink-500">
@@ -656,9 +670,45 @@ function ActivityForm({
                     : t('adminActivity.thumbnailUpload')}
                 </Button>
               </div>
-            ) : (
+            ) : null}
+            {activity?.image_url ? (
+              // The 16:9 crop used by the cards, the carousel and link
+              // previews; until one is made, they use the poster as it is.
+              <div className="mt-3 flex flex-wrap items-center gap-4">
+                <img
+                  src={activity.card_thumb_url ?? activity.image_url}
+                  alt=""
+                  className="aspect-video w-48 rounded-lg object-cover"
+                />
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    loading={cardBusy}
+                    onClick={() => onCropCard(activity)}
+                  >
+                    <Crop className="h-4 w-4" aria-hidden="true" />
+                    {t('admin.activityCardImage')}
+                  </Button>
+                  {activity.card_image_url ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      loading={resettingCard}
+                      onClick={() => onResetCard(activity.id)}
+                    >
+                      <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                      {t('admin.activityCardImageReset')}
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+            {!activity ? (
               <p className="mt-2 text-sm text-ink-500">{t('adminActivity.thumbnailAfterSave')}</p>
-            )}
+            ) : null}
             <label
               className={`mt-4 flex items-start gap-2 text-sm ${
                 activity && hasImage ? 'text-ink-700' : 'text-ink-400'
