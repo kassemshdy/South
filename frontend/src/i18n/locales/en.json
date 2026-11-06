@@ -2179,6 +2179,8 @@
   "openRequest.reopen": "Reopen request",
   "openRequest.delete": "Delete request",
   "openRequest.confirmDelete": "Delete this request permanently?",
+  "shopify.pushProfile": "Send store profile",
+  "shopify.pushProfileHint": "Sends the shop's logo and social links to its Shopify store's theme.",
   "work.brand": "Work.Janoubona",
   "work.tagline": "A worker from Jabal Amel",
   "work.intro": "Services and talent from the South: find someone to get your work done, or offer your skill to those who need it."

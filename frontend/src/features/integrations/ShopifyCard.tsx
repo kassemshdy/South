@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, RefreshCw, Store, Unplug } from "lucide-react";
+import { ExternalLink, Palette, RefreshCw, Store, Unplug } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 
@@ -80,6 +80,11 @@ export function ShopifyCard({
       toast.success(t("shopify.syncQueued"));
       refresh();
     },
+    onError: failed,
+  });
+  const profile = useMutation({
+    mutationFn: () => adminApi.shopifyProfile(businessId),
+    onSuccess: ({ message }) => toast.success(message),
     onError: failed,
   });
   const disconnect = useMutation({
@@ -169,6 +174,16 @@ export function ShopifyCard({
                   >
                     <RefreshCw className="h-4 w-4" aria-hidden="true" />
                     {t("shopify.syncNow")}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => profile.mutate()}
+                    disabled={profile.isPending}
+                    title={t("shopify.pushProfileHint")}
+                  >
+                    <Palette className="h-4 w-4" aria-hidden="true" />
+                    {t("shopify.pushProfile")}
                   </Button>
                   <Button
                     variant="ghost"
