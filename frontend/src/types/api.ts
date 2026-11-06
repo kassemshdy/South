@@ -358,6 +358,9 @@ export interface AdminBusiness extends OwnerBusiness {
   owner_has_cv_document: boolean
   owner_display_name: string | null
   moderation_actions: ModerationAction[]
+  /** Staff follow-up of a shop with nothing on sale: when it was contacted, and the note. */
+  outreach_contacted_at?: string | null
+  outreach_note?: string | null
 }
 
 /** A member of staff, as the manager's staff page lists them. */

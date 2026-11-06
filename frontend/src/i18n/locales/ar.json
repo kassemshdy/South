@@ -2093,7 +2093,7 @@
   "adminShops.noProductsIntro": "{count} محلًا معتمدًا لا يظهر له أي منتج للزوّار، ولا يُحتسب في العدد المعروض على الموقع.",
   "adminShops.noProductsIntroLoading": "المحلات المعتمدة التي لا يظهر لها أي منتج للزوّار.",
   "adminShops.noProductsEmpty": "لكل محل معتمد منتج واحد على الأقل.",
-  "adminShops.noProductsWhatsapp": "مرحبًا، محلّكم «{name}» منشور على دليل الجنوب لكن لا يظهر فيه أي منتج بعد. هل نساعدكم في إضافة منتجاتكم؟",
+  "adminShops.noProductsWhatsapp": "مرحباً، محلّكن «{name}» موجود على دليل الجنوب janoubona.net، بس بعد ما في منتجات مضافة عالصفحة.\n\nبتحبّوا نساعدكن تضيفوا منتجاتكن حتى العالم تقدر تشوفها وتتعرّف عليها؟",
   "adminShops.approvedOn": "اعتُمد {date}",
   "adminShops.call": "اتصال",
   "adminNav.groupListings": "الإدراجات",
@@ -2192,5 +2192,15 @@
   "staff.hintREELS": "يطّلع على لوحة الإدارة كلها، ويعدّل الريلز والقصص فقط.",
   "staff.canActivities": "الأنشطة وشريط العرض",
   "staff.canReels": "الريلز",
-  "staff.canStories": "قصص أصحاب الأنشطة"
+  "staff.canStories": "قصص أصحاب الأنشطة",
+  "adminShops.tabNotContacted": "لم يُتواصل معهم ({count})",
+  "adminShops.tabContacted": "تم التواصل معهم ({count})",
+  "adminShops.markContacted": "تم التواصل",
+  "adminShops.notePlaceholder": "ملاحظة عن التواصل (اختياري)",
+  "adminShops.saveNote": "حفظ",
+  "adminShops.editNote": "تعديل الملاحظة",
+  "adminShops.unmarkContacted": "إعادة إلى قائمة التواصل",
+  "adminShops.contactedOn": "تم التواصل {date}",
+  "adminShops.contactedEmpty": "لم يُسجَّل أي تواصل بعد.",
+  "adminShops.outreachFailed": "تعذّر حفظ التواصل"
 }
