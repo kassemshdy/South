@@ -30,7 +30,11 @@ exec gosu appuser sh -c '
   # The off-site copy to Amazon S3, inert unless REPLICA_S3_BUCKET is set. In
   # the background: a first copy of every file outlasts the healthcheck.
   python -m scripts.replicate_media &
-  python -m scripts.backfill_thumbnails
+  # In the background: it reads every photo from the bucket, and on 6 Nov
+  # 2026 a slow bucket held it past the 180-second healthcheck in front of
+  # uvicorn, so the deploy was refused. A photo it has not reached yet only
+  # shows its full image on cards meanwhile.
+  python -m scripts.backfill_thumbnails &
   # Past data to the Telegram archive, only while TELEGRAM_BACKFILL is set.
   # In the background: Telegram allows ~20 messages a minute, and the site
   # must not wait on that to start serving.
