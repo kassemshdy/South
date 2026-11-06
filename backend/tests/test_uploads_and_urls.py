@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+from collections.abc import Callable
 
 import pytest
 from fastapi.testclient import TestClient
@@ -26,7 +27,9 @@ def make_image(size: tuple[int, int] = (1200, 900), fmt: str = "JPEG") -> bytes:
 
 
 @pytest.fixture
-def business(client: TestClient, category: Category, location: Location) -> tuple[str, dict[str, str]]:
+def business(
+    client: TestClient, category: Category, location: Location
+) -> tuple[str, dict[str, str]]:
     headers = sign_in(client, "03600001")
     response = client.post(
         "/api/businesses",
@@ -105,6 +108,41 @@ def test_a_phone_heic_photo_is_converted_to_jpeg(
     assert response.status_code == 201, response.text
     image = response.json()["images"][0]
     assert image["url"].endswith(".jpg") and image["width"] <= 1400
+
+
+def make_mpo() -> bytes:
+    """A JPEG with a second picture in it, as recent iPhones save photos."""
+    buffer = io.BytesIO()
+    photo = Image.new("RGB", (1600, 1200), (200, 120, 60))
+    photo.save(buffer, format="MPO", save_all=True, append_images=[Image.new("RGB", (400, 300))])
+    return buffer.getvalue()
+
+
+@pytest.mark.parametrize(
+    ("filename", "data", "content_type"),
+    [
+        ("IMG_0002.JPG", make_mpo, "image/jpeg"),
+        ("IMG_0003.avif", lambda: make_image((1600, 1200), fmt="AVIF"), "image/avif"),
+    ],
+)
+def test_an_iphone_jpeg_with_a_second_picture_and_an_avif_are_accepted(
+    client: TestClient,
+    business: tuple[str, dict[str, str]],
+    filename: str,
+    data: Callable[[], bytes],
+    content_type: str,
+) -> None:
+    """Pillow calls the iPhone's two-picture JPEG "MPO"; it was refused as
+    the wrong format (the owners' report, 6 Nov 2026)."""
+    business_id, headers = business
+    response = client.post(
+        f"/api/businesses/{business_id}/images",
+        headers=headers,
+        files={"file": (filename, data(), content_type)},
+        data={"kind": "GALLERY"},
+    )
+    assert response.status_code == 201, response.text
+    assert response.json()["images"][0]["url"].endswith(".jpg")
 
 
 def test_octet_stream_that_is_not_an_image_is_still_rejected(
@@ -187,9 +225,7 @@ def test_png_with_transparency_is_flattened(
         (SocialPlatform.TIKTOK, "https://tiktok.evil.com/x"),
     ],
 )
-def test_social_links_must_belong_to_their_platform(
-    platform: SocialPlatform, url: str
-) -> None:
+def test_social_links_must_belong_to_their_platform(platform: SocialPlatform, url: str) -> None:
     with pytest.raises(ValidationError):
         normalize_social_url(platform, url)
 

@@ -18,6 +18,19 @@
     -webkit-text-size-adjust: 100%;
   }
 
+  /* iOS Safari draws a date field at its own width, wider than half a phone
+     screen, so two side by side ran off the form; and an empty one collapsed
+     to a sliver. Plain fields like the rest, sized by the form. */
+  input[type='date'] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+    min-height: 3.25rem;
+  }
+  input[type='date']::-webkit-date-and-time-value {
+    text-align: start;
+  }
+
   /* Text an owner typed is marked dir="auto", so English keeps its own
      punctuation order -- but a block of it then lines up on the left of an
      Arabic page, out of line with everything around it. On an Arabic page
