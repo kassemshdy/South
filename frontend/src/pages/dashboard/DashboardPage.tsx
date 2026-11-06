@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   ExternalLink,
   ListPlus,
+  Package,
   Pencil,
   Plus,
   Send,
@@ -29,7 +30,7 @@ import { ApiError } from '@/services/api/client'
 import { insightsApi, ownerApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { ListingViews, OwnerBusiness } from '@/types/api'
-import { formatRelativeDate } from '@/utils/format'
+import { formatPrice, formatRelativeDate } from '@/utils/format'
 
 /**
  * Asks for the account holder's details until they are there, then stops.
@@ -132,14 +133,18 @@ export function DashboardPage() {
       ) : businesses.isError ? (
         <ErrorState error={businesses.error} onRetry={() => void businesses.refetch()} />
       ) : businesses.data && businesses.data.length > 0 ? (
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="space-y-5">
           {businesses.data.map((business) => (
-            <OwnerBusinessCard
-              key={business.id}
-              business={business}
-              views={viewsById.get(business.id)}
-              windowDays={views.data?.window_days ?? 14}
-            />
+            // Each shop beside its own products, so the half of the row the
+            // card used to leave empty shows what the shop actually sells.
+            <div key={business.id} className="grid items-start gap-5 lg:grid-cols-2">
+              <OwnerBusinessCard
+                business={business}
+                views={viewsById.get(business.id)}
+                windowDays={views.data?.window_days ?? 14}
+              />
+              <OwnerProductsPanel business={business} />
+            </div>
           ))}
         </div>
       ) : (
@@ -157,6 +162,77 @@ export function DashboardPage() {
 
       <AiToolsSoon />
     </div>
+  )
+}
+
+/** The most products the dashboard lists before pointing to the full page. */
+const PRODUCTS_PREVIEW = 6
+
+function OwnerProductsPanel({ business }: { business: OwnerBusiness }) {
+  const t = useT()
+  const itemsPath = `/dashboard/businesses/${business.id}/items`
+  const shown = business.items.slice(0, PRODUCTS_PREVIEW)
+
+  return (
+    <Card>
+      <CardBody>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-lg font-bold">{t('itemsPage.heading')}</h3>
+          <Button asChild variant="outline" size="sm">
+            <Link to={itemsPath}>
+              <ListPlus className="h-4 w-4" aria-hidden="true" />
+              {t('dashboard.manageItems', { count: business.items.length })}
+            </Link>
+          </Button>
+        </div>
+
+        {shown.length === 0 ? (
+          <div className="rounded-xl border-2 border-dashed border-ink-100 p-6 text-center">
+            <Package className="mx-auto h-7 w-7 text-ink-300" aria-hidden="true" />
+            <p className="mt-2 font-semibold text-ink-700">{t('items.emptyTitle')}</p>
+            <Button asChild size="sm" className="mt-3">
+              <Link to={itemsPath}>
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                {t('items.addItem')}
+              </Link>
+            </Button>
+          </div>
+        ) : (
+          <ul className="divide-y divide-ink-100">
+            {shown.map((item) => {
+              const price = formatPrice(item.price, item.currency)
+              return (
+                <li key={item.id}>
+                  <Link
+                    to={itemsPath}
+                    className={`flex items-center gap-3 py-2.5 hover:text-brand-700 ${item.is_available ? '' : 'opacity-60'}`}
+                  >
+                    <span className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-sand-100">
+                      {item.image_url ? (
+                        <img src={item.image_url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="flex h-full items-center justify-center text-sand-500">
+                          <Package className="h-5 w-5" aria-hidden="true" />
+                        </span>
+                      )}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-semibold">{item.title}</span>
+                      {!item.is_available ? (
+                        <span className="block text-xs text-ink-500">{t('items.unavailable')}</span>
+                      ) : null}
+                    </span>
+                    {price ? (
+                      <span className="ltr-nums shrink-0 text-sm font-bold text-brand-800">{price}</span>
+                    ) : null}
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </CardBody>
+    </Card>
   )
 }
 
