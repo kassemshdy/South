@@ -2,12 +2,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Archive,
   ArchiveRestore,
+  Crop,
   GalleryHorizontal,
   ImagePlus,
   Megaphone,
   MessageCircle,
   Pencil,
   Plus,
+  RotateCcw,
   Trash2,
   Users,
 } from 'lucide-react'
@@ -124,6 +126,8 @@ export function AdminActivitiesPage() {
   const [uploadingId, setUploadingId] = useState<string | null>(null)
   const [openRegistrations, setOpenRegistrations] = useState<string | null>(null)
   const imageCrop = useCropStep('gallery')
+  const cardCrop = useCropStep('card')
+  const [cardBusyId, setCardBusyId] = useState<string | null>(null)
 
   const activities = useQuery({ queryKey: queryKeys.adminActivities, queryFn: adminApi.activities })
   const refresh = () => {
@@ -157,9 +161,40 @@ export function AdminActivitiesPage() {
     onSettled: () => setUploadingId(null),
   })
 
+  const showUpdated = (updated: AdminActivity) => {
+    setEditing((current) =>
+      current !== null && current !== 'new' && current.id === updated.id ? updated : current,
+    )
+    refresh()
+  }
+  // The card image is cut from the poster already uploaded: it is fetched
+  // back (same origin, /media) and offered to the crop window in 16:9.
+  const cropCard = async (activity: AdminActivity) => {
+    if (!activity.image_url) return
+    setCardBusyId(activity.id)
+    try {
+      const response = await fetch(activity.image_url)
+      if (!response.ok) throw new Error(String(response.status))
+      const blob = await response.blob()
+      const poster = new File([blob], 'poster.jpg', { type: blob.type || 'image/jpeg' })
+      const cropped = await cardCrop.crop(poster)
+      if (cropped) showUpdated(await adminApi.uploadActivityCardImage(activity.id, cropped))
+    } catch (error) {
+      fail(error)
+    } finally {
+      setCardBusyId(null)
+    }
+  }
+  const resetCard = useMutation({
+    mutationFn: (id: string) => adminApi.deleteActivityCardImage(id),
+    onSuccess: showUpdated,
+    onError: fail,
+  })
+
   return (
     <div className="space-y-6">
       {imageCrop.dialog}
+      {cardCrop.dialog}
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl">{t('admin.activitiesTitle')}</h1>
@@ -208,7 +243,7 @@ export function AdminActivitiesPage() {
                 <CardBody className="flex flex-wrap items-start gap-4 p-4">
                   {activity.image_url ? (
                     <img
-                      src={activity.image_url}
+                      src={activity.card_thumb_url ?? activity.image_url}
                       alt=""
                       className="h-20 w-32 shrink-0 rounded-lg object-cover"
                     />
@@ -295,6 +330,28 @@ export function AdminActivitiesPage() {
                         <ImagePlus className="h-4 w-4" aria-hidden="true" />
                         {t('admin.activityImage')}
                       </Button>
+                      {activity.image_url ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          loading={cardBusyId === activity.id}
+                          onClick={() => void cropCard(activity)}
+                        >
+                          <Crop className="h-4 w-4" aria-hidden="true" />
+                          {t('admin.activityCardImage')}
+                        </Button>
+                      ) : null}
+                      {activity.card_image_url ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          loading={resetCard.isPending && resetCard.variables === activity.id}
+                          onClick={() => resetCard.mutate(activity.id)}
+                        >
+                          <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                          {t('admin.activityCardImageReset')}
+                        </Button>
+                      ) : null}
                       <Button
                         variant="ghost"
                         size="sm"

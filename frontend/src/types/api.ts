@@ -1361,6 +1361,10 @@ export interface Activity {
   image_url: string | null
   /** The small copy, for lists; fall back to `image_url`. */
   image_thumb_url?: string | null
+  /** A 16:9 crop for cards and link previews; null means the photograph is used. */
+  card_image_url?: string | null
+  /** What a card draws: the crop's small copy, else the photograph's. */
+  card_thumb_url?: string | null
   kind: ActivityKind
   /**
    * How people sign up: the form on the activity's page (the default), the

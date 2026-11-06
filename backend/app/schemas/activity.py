@@ -98,6 +98,8 @@ class ActivityOut(ORMModel):
     ends_at: datetime | None = None
     location: str | None = None
     image_url: str | None = None
+    # The 16:9 crop for cards and link previews; None means use image_url.
+    card_image_url: str | None = None
     kind: ActivityKind = ActivityKind.ACTIVITY
     registration_mode: ActivityRegistrationMode = ActivityRegistrationMode.ON_SITE
     register_url: str | None = None
@@ -108,6 +110,12 @@ class ActivityOut(ORMModel):
     @property
     def image_thumb_url(self) -> str | None:
         return thumbnail_url(self.image_url)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def card_thumb_url(self) -> str | None:
+        """What a card draws: the 16:9 crop when there is one, else the photograph."""
+        return thumbnail_url(self.card_image_url or self.image_url)
 
 
 class AdminActivityOut(ActivityOut):
