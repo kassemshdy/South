@@ -431,3 +431,19 @@ class ModerationAction(Base):
     )
 
     business: Mapped[Business] = relationship(back_populates="moderation_actions")
+
+
+class BusinessSlugAlias(Base):
+    """An address a listing had before it was renamed. It keeps answering,
+    so a link already shared still reaches the shop, whose page then moves
+    to its current address (the owners' request, 6 Nov 2026)."""
+
+    __tablename__ = "business_slug_aliases"
+
+    slug: Mapped[str] = mapped_column(String(200), primary_key=True)
+    business_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("businesses.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )

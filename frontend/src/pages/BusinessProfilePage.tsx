@@ -15,7 +15,7 @@ import {
   Youtube,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
 import { BackLink } from '@/components/ui/BackLink'
@@ -70,6 +70,16 @@ export function BusinessProfilePage() {
   })
 
   const data = business.data
+  // An address the shop had before it was renamed: move to its current one,
+  // in place, so the old link keeps working (the owners' request, 6 Nov 2026).
+  const navigate = useNavigate()
+  useEffect(() => {
+    if (data && data.slug !== slug) {
+      navigate(`/business/${encodeURIComponent(data.slug)}${window.location.search}`, {
+        replace: true,
+      })
+    }
+  }, [data, slug, navigate])
   useSeo({
     title: data
       ? data.location
@@ -78,7 +88,7 @@ export function BusinessProfilePage() {
       : t('app.name'),
     description: data?.short_description ?? undefined,
     image: data?.cover_url ?? data?.logo_url ?? null,
-    canonicalPath: `/business/${encodeURIComponent(slug)}`,
+    canonicalPath: `/business/${encodeURIComponent(data?.slug ?? slug)}`,
   })
   useEffect(() => {
     if (!data) return
