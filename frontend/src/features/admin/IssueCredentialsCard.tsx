@@ -63,6 +63,17 @@ function remember(userId: string, issued: IssuedPassword | null) {
   }
 }
 
+/** The number as an owner types it on the login form (`78947971`,
+ * `03123456`), not `+961…`: in an Arabic WhatsApp message the plus sign of
+ * an international number is drawn at the wrong end (the owners' report,
+ * 6 Nov 2026), and the login form asks for the local form anyway. */
+export function localPhone(phone: string): string {
+  const rest = phone.replace(/^\+?961/, '')
+  if (rest === phone) return phone
+  // Seven-digit numbers (03…) lose their leading 0 in the international form.
+  return rest.length === 7 ? `0${rest}` : rest
+}
+
 /** Fills `{phone}` and `{url}` in the administrator's own wording;
  * anything else in braces is left as typed. A line holding `{password}` is
  * dropped: the password goes alone, in a second message, because copied out
@@ -158,7 +169,9 @@ export function IssueCredentialsCard({
 
   // The administrator's own wording when one is set (site settings), else
   // the site's; filled here, so the password never goes to the server.
-  const values = issued ? { phone: issued.phone_number, url: window.location.origin } : null
+  const values = issued
+    ? { phone: localPhone(issued.phone_number), url: window.location.origin }
+    : null
   const message = values
     ? template.data?.message
       ? fillCredentialsMessage(template.data.message, values)
@@ -218,7 +231,7 @@ export function IssueCredentialsCard({
               <div>
                 <dt className="text-xs text-ink-500">{t('credentials.usernameLabel')}</dt>
                 <dd className="ltr-nums select-all font-semibold text-ink-900" dir="ltr">
-                  {issued.phone_number}
+                  {localPhone(issued.phone_number)}
                 </dd>
               </div>
               <div>
