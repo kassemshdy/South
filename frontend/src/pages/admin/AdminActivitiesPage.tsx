@@ -244,49 +244,54 @@ export function AdminActivitiesPage() {
           {activities.data?.map((activity) => (
             <li key={activity.id}>
               <Card>
-                <CardBody className="flex flex-wrap items-start gap-4 p-4">
-                  {activity.image_url ? (
-                    <img
-                      src={activity.card_thumb_url ?? activity.image_url}
-                      alt=""
-                      className="h-20 w-32 shrink-0 rounded-lg object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-20 w-32 shrink-0 items-center justify-center rounded-lg bg-sand-100 text-ink-500">
-                      <ImagePlus className="h-6 w-6" aria-hidden="true" />
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-bold text-ink-900" dir="auto">
-                        {activity.title}
-                      </p>
-                      <Badge
-                        className={
-                          activity.is_archived
-                            ? 'bg-ink-100 text-ink-700'
-                            : 'bg-olive-100 text-olive-700'
-                        }
-                      >
-                        {activity.is_archived ? t('admin.activityArchived') : t('admin.activityKept')}
-                      </Badge>
-                      {!activity.image_url ? (
-                        <Badge className="bg-clay-50 text-clay-800">{t('admin.activityNeedsImage')}</Badge>
-                      ) : null}
-                      {activity.in_carousel ? (
-                        <Badge className="bg-sea-50 text-sea-700">
-                          <GalleryHorizontal className="h-3.5 w-3.5" aria-hidden="true" />
-                          {t('adminActivity.inCarouselBadge')}
+                {/* The details on top and the actions in a row of their own
+                    underneath, so a long title keeps the width of the card.
+                    The photograph and the card crop are edited in the form. */}
+                <CardBody className="p-4">
+                  <div className="flex items-start gap-4">
+                    {activity.image_url ? (
+                      <img
+                        src={activity.card_thumb_url ?? activity.image_url}
+                        alt=""
+                        className="h-20 w-32 shrink-0 rounded-lg object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-20 w-32 shrink-0 items-center justify-center rounded-lg bg-sand-100 text-ink-500">
+                        <ImagePlus className="h-6 w-6" aria-hidden="true" />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-bold text-ink-900" dir="auto">
+                          {activity.title}
+                        </p>
+                        <Badge
+                          className={
+                            activity.is_archived
+                              ? 'bg-ink-100 text-ink-700'
+                              : 'bg-olive-100 text-olive-700'
+                          }
+                        >
+                          {activity.is_archived ? t('admin.activityArchived') : t('admin.activityKept')}
                         </Badge>
-                      ) : null}
+                        {!activity.image_url ? (
+                          <Badge className="bg-clay-50 text-clay-800">{t('admin.activityNeedsImage')}</Badge>
+                        ) : null}
+                        {activity.in_carousel ? (
+                          <Badge className="bg-sea-50 text-sea-700">
+                            <GalleryHorizontal className="h-3.5 w-3.5" aria-hidden="true" />
+                            {t('adminActivity.inCarouselBadge')}
+                          </Badge>
+                        ) : null}
+                      </div>
+                      <p className="mt-1 text-sm text-ink-500">
+                        {t(`adminActivity.kind.${activity.kind ?? 'ACTIVITY'}`)} ·{' '}
+                        {activity.starts_at ? formatDateTime(activity.starts_at, locale) : t('admin.activityNoDate')}
+                        {activity.location ? ` · ${activity.location}` : null}
+                      </p>
                     </div>
-                    <p className="mt-1 text-sm text-ink-500">
-                      {t(`adminActivity.kind.${activity.kind ?? 'ACTIVITY'}`)} ·{' '}
-                      {activity.starts_at ? formatDateTime(activity.starts_at, locale) : t('admin.activityNoDate')}
-                      {activity.location ? ` · ${activity.location}` : null}
-                    </p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-ink-100 pt-3">
                     {activity.registration_mode === 'ON_SITE' || activity.registration_count > 0 ? (
                       <Button
                         variant="outline"
@@ -302,75 +307,41 @@ export function AdminActivitiesPage() {
                         {t('admin.workshopRegistrations', { count: activity.registration_count })}
                       </Button>
                     ) : null}
+                    {canEdit ? (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          loading={toggleArchive.isPending && toggleArchive.variables?.id === activity.id}
+                          onClick={() => toggleArchive.mutate(activity)}
+                        >
+                          {activity.is_archived ? (
+                            <ArchiveRestore className="h-4 w-4" aria-hidden="true" />
+                          ) : (
+                            <Archive className="h-4 w-4" aria-hidden="true" />
+                          )}
+                          {activity.is_archived ? t('admin.activityRestore') : t('admin.activityArchive')}
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setEditing(activity)}>
+                          <Pencil className="h-4 w-4" aria-hidden="true" />
+                          {t('common.edit')}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="ms-auto text-clay-600"
+                          onClick={() => {
+                            if (window.confirm(t('admin.activityDeleteConfirm'))) {
+                              remove.mutate(activity.id)
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
+                          {t('common.delete')}
+                        </Button>
+                      </>
+                    ) : null}
                   </div>
-                  {canEdit ? (
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        loading={toggleArchive.isPending && toggleArchive.variables?.id === activity.id}
-                        onClick={() => toggleArchive.mutate(activity)}
-                      >
-                        {activity.is_archived ? (
-                          <ArchiveRestore className="h-4 w-4" aria-hidden="true" />
-                        ) : (
-                          <Archive className="h-4 w-4" aria-hidden="true" />
-                        )}
-                        {activity.is_archived ? t('admin.activityRestore') : t('admin.activityArchive')}
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => setEditing(activity)}>
-                        <Pencil className="h-4 w-4" aria-hidden="true" />
-                        {t('common.edit')}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        loading={uploadingId === activity.id && uploadImage.isPending}
-                        onClick={() => {
-                          setUploadingId(activity.id)
-                          fileRef.current?.click()
-                        }}
-                      >
-                        <ImagePlus className="h-4 w-4" aria-hidden="true" />
-                        {t('admin.activityImage')}
-                      </Button>
-                      {activity.image_url ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          loading={cardBusyId === activity.id}
-                          onClick={() => void cropCard(activity)}
-                        >
-                          <Crop className="h-4 w-4" aria-hidden="true" />
-                          {t('admin.activityCardImage')}
-                        </Button>
-                      ) : null}
-                      {activity.card_image_url ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          loading={resetCard.isPending && resetCard.variables === activity.id}
-                          onClick={() => resetCard.mutate(activity.id)}
-                        >
-                          <RotateCcw className="h-4 w-4" aria-hidden="true" />
-                          {t('admin.activityCardImageReset')}
-                        </Button>
-                      ) : null}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-clay-600"
-                        onClick={() => {
-                          if (window.confirm(t('admin.activityDeleteConfirm'))) {
-                            remove.mutate(activity.id)
-                          }
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" aria-hidden="true" />
-                        {t('common.delete')}
-                      </Button>
-                    </div>
-                  ) : null}
                   {openRegistrations === activity.id ? (
                     <div className="w-full">
                       <Registrations activity={activity} />
