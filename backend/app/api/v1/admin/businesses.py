@@ -32,7 +32,7 @@ from app.schemas.moderation import (
     RejectIn,
     SuspendIn,
 )
-from app.services import telegram_archive
+from app.services import staff_notices, telegram_archive
 from app.services.account import AccountDeletionService
 from app.services.business import BusinessService
 from app.services.business_documents import BusinessDocumentService
@@ -121,7 +121,7 @@ def set_outreach(
                 rows=[
                     ("shop", business.name),
                     ("note", business.outreach_note),
-                    ("staff", admin.display_name or admin.full_name or admin.email),
+                    ("staff", staff_notices.staff_name(admin)),
                 ],
                 path=f"/admin/businesses/{business.id}",
             )
@@ -166,6 +166,14 @@ def download_document(
 @router.post("/businesses/{business_id}/approve", response_model=AdminBusinessOut)
 def approve(business_id: uuid.UUID, db: DbSession, admin: AdminUser) -> AdminBusinessOut:
     business = ModerationService(db).approve(_load(db, business_id), admin)
+    staff_notices.moderated(
+        approved=True,
+        listing="shop",
+        name=business.name,
+        admin=admin,
+        reason=None,
+        path=f"/admin/businesses/{business.id}",
+    )
     return admin_business(business)
 
 
@@ -174,6 +182,14 @@ def reject(
     business_id: uuid.UUID, payload: RejectIn, db: DbSession, admin: AdminUser
 ) -> AdminBusinessOut:
     business = ModerationService(db).reject(_load(db, business_id), admin, payload.reason)
+    staff_notices.moderated(
+        approved=False,
+        listing="shop",
+        name=business.name,
+        admin=admin,
+        reason=payload.reason,
+        path=f"/admin/businesses/{business.id}",
+    )
     return admin_business(business)
 
 
