@@ -362,5 +362,10 @@
   "shopify.profile_queued": "أُرسلت هوية المتجر إلى شوبيفاي، وتظهر في المتجر خلال دقائق.",
   "shopify.reconnect_required": "اربط المتجر مجددًا لمنح التطبيق صلاحية تعديل مظهر المتجر.",
   "telegram.kind.outreach": "تواصل مع متجر بلا منتجات",
-  "telegram.label.staff": "الموظف"
+  "telegram.label.staff": "الموظف",
+  "telegram.kind.shop_approved": "تمت الموافقة على متجر",
+  "telegram.kind.shop_rejected": "تم رفض متجر",
+  "telegram.kind.service_approved": "تمت الموافقة على ملف خدمة",
+  "telegram.kind.service_rejected": "تم رفض ملف خدمة",
+  "telegram.label.reason": "السبب"
 }

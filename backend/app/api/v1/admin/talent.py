@@ -30,6 +30,7 @@ from app.schemas.talent import (
     TalentSkillChangeIn,
     TalentUpdateIn,
 )
+from app.services import staff_notices
 from app.services.account import AccountDeletionService
 from app.services.employer_request import EmployerRequestService
 from app.services.talent import TalentService
@@ -84,6 +85,14 @@ def get_talent(profile_id: uuid.UUID, db: DbSession, admin: AdminUser) -> AdminT
 @router.post("/talent/{profile_id}/approve", response_model=AdminTalentOut)
 def approve(profile_id: uuid.UUID, db: DbSession, admin: AdminUser) -> AdminTalentOut:
     profile = TalentModerationService(db).approve(_load(db, profile_id), admin)
+    staff_notices.moderated(
+        approved=True,
+        listing="service",
+        name=profile.display_name,
+        admin=admin,
+        reason=None,
+        path=f"/admin/talent/{profile.id}",
+    )
     return admin_talent(profile)
 
 
@@ -92,6 +101,14 @@ def reject(
     profile_id: uuid.UUID, payload: RejectIn, db: DbSession, admin: AdminUser
 ) -> AdminTalentOut:
     profile = TalentModerationService(db).reject(_load(db, profile_id), admin, payload.reason)
+    staff_notices.moderated(
+        approved=False,
+        listing="service",
+        name=profile.display_name,
+        admin=admin,
+        reason=payload.reason,
+        path=f"/admin/talent/{profile.id}",
+    )
     return admin_talent(profile)
 
 

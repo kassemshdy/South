@@ -168,3 +168,33 @@ def test_a_contact_note_is_posted_to_the_team_chat(
         json={"contacted": False},
     )
     assert len(sent) == 1
+
+
+def test_approving_or_rejecting_a_shop_is_posted_to_the_team_chat(
+    client: TestClient,
+    db: Session,
+    admin: User,
+    category: Category,
+    location: Location,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Who approved or rejected which listing, and why (the owners' request,
+    7 Nov 2026)."""
+    sent: list[telegram_archive.Notice] = []
+    monkeypatch.setattr(telegram_archive, "notify", sent.append)
+    headers = admin_headers(client)
+
+    first = _pending_business(client, db, category, location)
+    assert client.post(f"/api/admin/businesses/{first}/approve", headers=headers).status_code == 200
+    reason = ar("business.applicant_description")
+    second = _pending_business(client, db, category, location)
+    rejected = client.post(
+        f"/api/admin/businesses/{second}/reject", headers=headers, json={"reason": reason}
+    )
+    assert rejected.status_code == 200, rejected.text
+
+    kinds = [notice.title_key for notice in sent]
+    assert kinds == ["telegram.kind.shop_approved", "telegram.kind.shop_rejected"]
+    assert dict(sent[1].rows)["reason"] == reason
+    assert dict(sent[0].rows)["reason"] is None
+    assert all(dict(notice.rows)["staff"] for notice in sent)
