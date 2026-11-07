@@ -362,5 +362,10 @@
   "shopify.profile_queued": "The store profile was sent to Shopify and will appear in the store within minutes.",
   "shopify.reconnect_required": "Connect the store again to let the app update the store's theme.",
   "telegram.kind.outreach": "Shop with no products contacted",
-  "telegram.label.staff": "Staff"
+  "telegram.label.staff": "Staff",
+  "telegram.kind.shop_approved": "Shop approved",
+  "telegram.kind.shop_rejected": "Shop rejected",
+  "telegram.kind.service_approved": "Service profile approved",
+  "telegram.kind.service_rejected": "Service profile rejected",
+  "telegram.label.reason": "Reason"
 }
