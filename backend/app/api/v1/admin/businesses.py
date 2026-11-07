@@ -6,11 +6,13 @@ moderation action without that check.
 
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, File, Form, Query, Response, UploadFile
+from sqlalchemy import func, select, update
 
 from app.api.serializers import admin_business, paginate
 from app.core.dependencies import AdminUser, AppSettings, DbSession
@@ -27,6 +29,7 @@ from app.schemas.moderation import (
     AdminBusinessOut,
     CategoryChangeIn,
     GoodsOriginIn,
+    MoveItemsIn,
     OutreachIn,
     PlaceChangeIn,
     RejectIn,
@@ -39,6 +42,8 @@ from app.services.business_documents import BusinessDocumentService
 from app.services.business_images import store_business_image
 from app.services.moderation import ModerationService
 from app.storage.factory import get_storage
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin", tags=["admin-businesses"])
 
@@ -234,6 +239,43 @@ def delete_item(
     BusinessService(db).refresh_search_text(business)
     db.commit()
     return MessageResponse(message=translate("item.deleted"))
+
+
+@router.post("/businesses/{business_id}/items/move", response_model=AdminBusinessOut)
+def move_items(
+    business_id: uuid.UUID, body: MoveItemsIn, db: DbSession, admin: AdminUser
+) -> AdminBusinessOut:
+    """Move every product of a listing to another listing of the same owner.
+
+    For an owner who added their products to a second, never-submitted shop
+    instead of the approved one (the owners' report, 7 Nov 2026). The rows move, their photos stay where they are, so deleting the
+    emptied listing afterwards leaves them alone. Returns the target.
+    """
+    source = _load(db, business_id)
+    target = _load(db, body.target_business_id)
+    if target.id == source.id or target.owner_id != source.owner_id:
+        raise ValidationError("business.move_items_invalid", code="move_items_invalid")
+    after = db.scalar(
+        select(func.coalesce(func.max(BusinessItem.sort_order), -1)).where(
+            BusinessItem.business_id == target.id
+        )
+    )
+    moved = db.execute(
+        update(BusinessItem)
+        .where(BusinessItem.business_id == source.id)
+        .values(business_id=target.id, sort_order=BusinessItem.sort_order + (after or 0) + 1)
+        .execution_options(synchronize_session=False)
+    ).rowcount
+    db.expire_all()
+    service = BusinessService(db)
+    service.refresh_search_text(_load(db, source.id))
+    service.refresh_search_text(_load(db, target.id))
+    db.commit()
+    logger.info(
+        "Products moved between listings",
+        extra={"from": str(source.id), "to": str(target.id), "count": moved, "by": str(admin.id)},
+    )
+    return admin_business(_load(db, target.id))
 
 
 # --- Corrections an administrator makes on an owner's behalf ----------------

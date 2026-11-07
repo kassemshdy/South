@@ -935,6 +935,11 @@ export const adminApi = {
     apiRequest<{ message: string }>(`/api/admin/businesses/${businessId}/items/${itemId}`, {
       method: 'DELETE',
     }),
+  moveItems: (businessId: string, targetBusinessId: string) =>
+    apiRequest<AdminBusiness>(`/api/admin/businesses/${businessId}/items/move`, {
+      method: 'POST',
+      body: { target_business_id: targetBusinessId },
+    }),
   convertTalentToBusiness: (profileId: string, category_id: string) =>
     apiRequest<{ business_id: string }>(`/api/admin/talent/${profileId}/convert-to-business`, {
       method: 'POST',

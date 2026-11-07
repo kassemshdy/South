@@ -367,5 +367,6 @@
   "telegram.kind.shop_rejected": "تم رفض متجر",
   "telegram.kind.service_approved": "تمت الموافقة على ملف خدمة",
   "telegram.kind.service_rejected": "تم رفض ملف خدمة",
-  "telegram.label.reason": "السبب"
+  "telegram.label.reason": "السبب",
+  "business.move_items_invalid": "لا يمكن نقل المنتجات إلا إلى نشاط آخر لصاحب الحساب نفسه."
 }

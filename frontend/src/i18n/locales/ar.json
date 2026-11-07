@@ -2216,5 +2216,11 @@
   "wizard.addProductInstead": "إضافة منتج إلى نشاطي",
   "wizard.createAnyway": "إنشاء نشاط جديد رغم ذلك",
   "login.showPassword": "إظهار ما كُتب",
-  "login.hidePassword": "إخفاء ما كُتب"
+  "login.hidePassword": "إخفاء ما كُتب",
+  "admin.moveItemsTitle": "نقل المنتجات إلى نشاط آخر لصاحب الحساب",
+  "admin.moveItemsHint": "لصاحب هذا الحساب نشاط آخر. تُنقل المنتجات الـ{count} كلها بصورها إلى النشاط الذي تختاره.",
+  "admin.moveItemsTo": "نقل إلى {name}",
+  "admin.moveItemsConfirm": "ستُنقل المنتجات الـ{count} إلى «{name}». هل تريد المتابعة؟",
+  "admin.moveItemsDone": "نُقل {count} منتجًا إلى {name}",
+  "admin.moveItemsFailed": "تعذّر نقل المنتجات"
 }

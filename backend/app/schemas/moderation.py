@@ -126,3 +126,9 @@ class PlaceChangeIn(BaseModel):
         check_pin(self.latitude, self.longitude)
         return self
 
+
+
+class MoveItemsIn(BaseModel):
+    """Every product of a listing, to another listing of the same owner."""
+
+    target_business_id: uuid.UUID

@@ -21,6 +21,7 @@ import { useToast } from '@/components/ui/Toast'
 import { ImagePreviewDialog } from '@/features/admin/ImagePreviewDialog'
 import { openPrivateFile, type PreviewImage } from '@/features/admin/openPrivateFile'
 import { IssueCredentialsCard } from '@/features/admin/IssueCredentialsCard'
+import { MoveItemsCard } from '@/features/admin/MoveItemsCard'
 import { ViewAsButton } from '@/features/admin/ViewAsButton'
 import { OwnerIdentityCard } from '@/features/admin/OwnerIdentityCard'
 import { OwnerWhatsappButton } from '@/features/admin/OwnerWhatsappButton'
@@ -323,6 +324,8 @@ export function AdminReviewPage() {
               </CardBody>
             </Card>
           ) : null}
+
+          {canModerate ? <MoveItemsCard business={data} /> : null}
 
           {data.items.length > 0 ? (
             <Card>
