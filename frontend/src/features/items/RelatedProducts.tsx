@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Package, TrendingUp } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { Card, CardBody } from '@/components/ui/Card'
@@ -66,6 +66,8 @@ function QuickViewer({ slug, onClose }: { slug: string; onClose: () => void }) {
 export function RelatedProducts({ slug }: { slug: string }) {
   const t = useT()
   const [open, setOpen] = useState<string | null>(null)
+  // Moving to another product closes whatever popup was open here.
+  useEffect(() => setOpen(null), [slug])
   const related = useQuery({
     queryKey: queryKeys.relatedProducts(slug),
     queryFn: () => publicItemApi.related(slug),
