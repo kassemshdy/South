@@ -153,12 +153,15 @@ function ShopRow({
   const [editing, setEditing] = useState(false)
   const [note, setNote] = useState(shop.outreach_note ?? '')
 
-  const number = shop.whatsapp ?? shop.phone ?? shop.owner_phone
+  // The account holder's own number first: the shop's published WhatsApp
+  // can be a staff member's, and this is a conversation with the owner (the
+  // owners' request, 7 Nov 2026).
+  const number = shop.owner_phone ?? shop.whatsapp ?? shop.phone
   const wa = whatsappHref(
     number,
     uploaded ? undefined : t('adminShops.noProductsWhatsapp', { name: shop.name }),
   )
-  const call = telHref(shop.phone ?? shop.owner_phone)
+  const call = telHref(shop.owner_phone ?? shop.phone)
   const contacted = Boolean(shop.outreach_contacted_at)
 
   const save = useMutation({
