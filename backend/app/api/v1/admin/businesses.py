@@ -248,8 +248,9 @@ def move_items(
     """Move every product of a listing to another listing of the same owner.
 
     For an owner who added their products to a second, never-submitted shop
-    instead of the approved one (the owners' report, 7 Nov 2026). The rows move, their photos stay where they are, so deleting the
-    emptied listing afterwards leaves them alone. Returns the target.
+    instead of the approved one (the owners' report, 7 Nov 2026). The rows
+    move, their photos stay where they are, so deleting the emptied listing
+    afterwards leaves them alone. Returns the target.
     """
     source = _load(db, business_id)
     target = _load(db, body.target_business_id)
