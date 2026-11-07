@@ -4,6 +4,7 @@ the note off every public payload."""
 
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
@@ -11,6 +12,7 @@ from app.models.business import Business, BusinessItem
 from app.models.enums import BusinessStatus
 from app.models.taxonomy import Category, Location
 from app.models.user import User
+from app.services import telegram_archive
 from tests.conftest import admin_headers
 from tests.samples import ar
 from tests.test_permissions import _invite, _pending_business
@@ -130,3 +132,39 @@ def test_a_contacted_shop_that_adds_a_product_moves_to_its_own_tab(
     assert client.get(f"{LIST}&contacted=true", headers=headers).json()["meta"]["total"] == 0
     found = client.get(uploaded, headers=headers).json()
     assert found["meta"]["total"] == 1 and found["items"][0]["id"] == business_id
+
+
+def test_a_contact_note_is_posted_to_the_team_chat(
+    client: TestClient,
+    db: Session,
+    admin: User,
+    category: Category,
+    location: Location,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The shop, the note and who wrote it (the owners' request, 7 Nov 2026);
+    clearing it posts nothing."""
+    sent: list[telegram_archive.Notice] = []
+    monkeypatch.setattr(telegram_archive, "notify", sent.append)
+    headers = admin_headers(client)
+    business_id = _approved_without_products(client, db, category, location)
+    note = ar("business.applicant_description")
+
+    client.put(
+        f"/api/admin/businesses/{business_id}/outreach",
+        headers=headers,
+        json={"contacted": True, "note": note},
+    )
+    assert len(sent) == 1
+    rows = dict(sent[0].rows)
+    assert sent[0].title_key == "telegram.kind.outreach"
+    assert rows["note"] == note
+    assert rows["shop"] == db.get(Business, business_id).name  # type: ignore[union-attr]
+    assert rows["staff"] in {admin.display_name, admin.full_name, admin.email}
+
+    client.put(
+        f"/api/admin/businesses/{business_id}/outreach",
+        headers=headers,
+        json={"contacted": False},
+    )
+    assert len(sent) == 1
