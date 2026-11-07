@@ -32,6 +32,7 @@ from app.schemas.moderation import (
     RejectIn,
     SuspendIn,
 )
+from app.services import telegram_archive
 from app.services.account import AccountDeletionService
 from app.services.business import BusinessService
 from app.services.business_documents import BusinessDocumentService
@@ -111,6 +112,20 @@ def set_outreach(
         business.outreach_contacted_by = None
         business.outreach_note = None
     db.commit()
+    if body.contacted:
+        # The team sees each follow-up as it is written: the shop, the note
+        # and who wrote it (the owners' request, 7 Nov 2026).
+        telegram_archive.notify(
+            telegram_archive.Notice(
+                title_key="telegram.kind.outreach",
+                rows=[
+                    ("shop", business.name),
+                    ("note", business.outreach_note),
+                    ("staff", admin.display_name or admin.full_name or admin.email),
+                ],
+                path=f"/admin/businesses/{business.id}",
+            )
+        )
     return admin_business(_load(db, business_id))
 
 
