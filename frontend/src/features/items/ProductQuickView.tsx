@@ -82,8 +82,11 @@ export function ProductQuickView({
         {/* An unavailable product has no public page to open or share. */}
         {item.is_available ? (
           <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-ink-100 pt-4">
+            {/* Opening the page closes the popup: from a product page the
+                link stays on the same kind of page, so nothing else would
+                (the owners' report, 7 Nov 2026). */}
             <Button asChild variant="outline" size="sm">
-              <Link to={path}>
+              <Link to={path} onClick={() => onOpenChange(false)}>
                 <ExternalLink className="size-4" aria-hidden />
                 {t('products.openPage')}
               </Link>
