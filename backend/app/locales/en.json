@@ -367,5 +367,6 @@
   "telegram.kind.shop_rejected": "Shop rejected",
   "telegram.kind.service_approved": "Service profile approved",
   "telegram.kind.service_rejected": "Service profile rejected",
-  "telegram.label.reason": "Reason"
+  "telegram.label.reason": "Reason",
+  "business.move_items_invalid": "Products can only move to another listing of the same account."
 }

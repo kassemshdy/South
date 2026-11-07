@@ -198,3 +198,52 @@ def test_approving_or_rejecting_a_shop_is_posted_to_the_team_chat(
     assert dict(sent[1].rows)["reason"] == reason
     assert dict(sent[0].rows)["reason"] is None
     assert all(dict(notice.rows)["staff"] for notice in sent)
+
+
+def test_products_move_to_another_shop_of_the_same_owner(
+    client: TestClient,
+    db: Session,
+    admin: User,
+    category: Category,
+    location: Location,
+) -> None:
+    """An owner who filled a second, never-submitted shop: staff move the
+    products to the approved one (the owners' report, 7 Nov 2026)."""
+    headers = admin_headers(client)
+    approved = _approved_without_products(client, db, category, location)
+    draft = _pending_business(client, db, category, location)
+    for n in range(2):
+        db.add(
+            BusinessItem(
+                business_id=draft,
+                title=ar("item.generic"),
+                slug=f"moved-item-{n}",
+                image_url="/media/x.jpg",
+                image_storage_key=f"businesses/{draft}/item/{n}.jpg",
+                is_available=True,
+                sort_order=n,
+            )
+        )
+    db.commit()
+
+    moved = client.post(
+        f"/api/admin/businesses/{draft}/items/move",
+        headers=headers,
+        json={"target_business_id": approved},
+    )
+    assert moved.status_code == 200, moved.text
+    assert moved.json()["id"] == approved
+    assert len(moved.json()["items"]) == 2
+    assert client.get(f"/api/admin/businesses/{draft}", headers=headers).json()["items"] == []
+    # The approved shop now counts as having products.
+    assert client.get(f"{LIST}&contacted=false", headers=headers).json()["meta"]["total"] == 0
+
+    # Never to itself, nor to another owner's listing.
+    assert (
+        client.post(
+            f"/api/admin/businesses/{approved}/items/move",
+            headers=headers,
+            json={"target_business_id": approved},
+        ).status_code
+        == 422
+    )
