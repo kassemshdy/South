@@ -2216,5 +2216,11 @@
   "wizard.addProductInstead": "Add a product to my shop",
   "wizard.createAnyway": "Create a new shop anyway",
   "login.showPassword": "Show what you typed",
-  "login.hidePassword": "Hide what you typed"
+  "login.hidePassword": "Hide what you typed",
+  "admin.moveItemsTitle": "Move products to the account's other listing",
+  "admin.moveItemsHint": "This account has another listing. All {count} products move there, with their photos.",
+  "admin.moveItemsTo": "Move to {name}",
+  "admin.moveItemsConfirm": "The {count} products will move to \"{name}\". Continue?",
+  "admin.moveItemsDone": "{count} products moved to {name}",
+  "admin.moveItemsFailed": "Could not move the products"
 }
