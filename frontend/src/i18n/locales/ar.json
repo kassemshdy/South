@@ -2222,5 +2222,12 @@
   "admin.moveItemsTo": "نقل إلى {name}",
   "admin.moveItemsConfirm": "ستُنقل المنتجات الـ{count} إلى «{name}». هل تريد المتابعة؟",
   "admin.moveItemsDone": "نُقل {count} منتجًا إلى {name}",
-  "admin.moveItemsFailed": "تعذّر نقل المنتجات"
+  "admin.moveItemsFailed": "تعذّر نقل المنتجات",
+  "admin.mapTitle": "خريطة الأنشطة والخدمات",
+  "admin.mapHint": "كل نشاط تجاري وملف خدمة له موقع على الخريطة. تتجمّع الدبابيس المتقاربة في دوائر مرقّمة، وتتفرّق عند التكبير. الدبوس المفرّغ لما لم يُنشر بعد.",
+  "admin.mapShops": "الأنشطة التجارية ({count})",
+  "admin.mapServices": "ملفات الخدمات ({count})",
+  "admin.mapApprovedOnly": "المنشورة فقط",
+  "admin.mapOpen": "فتح في الإدارة",
+  "admin.mapLabel": "خريطة الأنشطة والخدمات"
 }

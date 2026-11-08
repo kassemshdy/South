@@ -8,6 +8,7 @@ import { Card, CardBody } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 import { GrowthPanel } from '@/features/admin/GrowthPanel'
+import { ListingsMapCard } from '@/features/admin/ListingsMapCard'
 import { useI18n } from '@/i18n'
 import { adminApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
@@ -74,6 +75,8 @@ export function AdminDashboardPage() {
       ) : null}
 
       <GrowthPanel />
+
+      <ListingsMapCard />
 
       <section>
         <h2 className="mb-4 text-xl">{t('admin.latestRequests')}</h2>

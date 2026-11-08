@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import uuid
 from datetime import date
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, Literal, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -92,3 +93,15 @@ class GrowthResponse(BaseModel):
     days: list[date] = Field(description="UTC days, oldest first, today last")
     totals: GrowthSeries
 
+
+
+class MapPointOut(BaseModel):
+    """One pinned listing on the administrators' map."""
+
+    kind: Literal["business", "service"]
+    id: uuid.UUID
+    name: str
+    status: str
+    category: str | None = None
+    latitude: float
+    longitude: float
