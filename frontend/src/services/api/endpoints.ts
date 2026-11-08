@@ -129,6 +129,7 @@ import type {
   TestimonialStatus,
   User,
   VerificationDocument,
+  AdminMapPoint,
 } from '@/types/api'
 
 export interface BusinessPayload {
@@ -821,6 +822,7 @@ export const adminEmployerRequestsApi = {
 
 export const adminApi = {
   stats: () => apiRequest<PlatformStats>('/api/admin/stats'),
+  listingsMap: () => apiRequest<AdminMapPoint[]>('/api/admin/stats/map'),
   growth: (days: number) =>
     apiRequest<PlatformGrowth>('/api/admin/stats/growth', { query: { days } }),
   growthReport: () => apiRequest<GrowthReport>('/api/admin/growth-report'),

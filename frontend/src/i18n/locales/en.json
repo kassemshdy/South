@@ -2222,5 +2222,12 @@
   "admin.moveItemsTo": "Move to {name}",
   "admin.moveItemsConfirm": "The {count} products will move to \"{name}\". Continue?",
   "admin.moveItemsDone": "{count} products moved to {name}",
-  "admin.moveItemsFailed": "Could not move the products"
+  "admin.moveItemsFailed": "Could not move the products",
+  "admin.mapTitle": "Shops and services map",
+  "admin.mapHint": "Every shop and service profile with a pin. Nearby pins group into numbered clusters that split as you zoom in. A hollow pin is not published yet.",
+  "admin.mapShops": "Shops ({count})",
+  "admin.mapServices": "Service profiles ({count})",
+  "admin.mapApprovedOnly": "Published only",
+  "admin.mapOpen": "Open in admin",
+  "admin.mapLabel": "Shops and services map"
 }

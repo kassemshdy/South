@@ -1659,3 +1659,14 @@ export interface AdminOpenServiceRequest {
   created_at: string
   solved_at: string | null
 }
+
+/** One pinned shop or service profile on the administrators' map. */
+export interface AdminMapPoint {
+  kind: 'business' | 'service'
+  id: string
+  name: string
+  status: BusinessStatus
+  category: string | null
+  latitude: number
+  longitude: number
+}
