@@ -130,6 +130,7 @@ import type {
   User,
   VerificationDocument,
   AdminMapPoint,
+  MapListing,
 } from '@/types/api'
 
 export interface BusinessPayload {
@@ -521,6 +522,11 @@ export const homeApi = {
 
 export const pageApi = {
   get: (key: PageKey) => apiRequest<PageText>(`/api/pages/${key}`),
+}
+
+/** The public map of the South: published shops and service providers. */
+export const southMapApi = {
+  listings: () => apiRequest<MapListing[]>('/api/map/listings'),
 }
 
 export const searchApi = {

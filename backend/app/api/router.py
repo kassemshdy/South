@@ -29,6 +29,7 @@ from app.api.v1 import (
     search,
     service_requests,
     site_settings,
+    south_map,
     stories,
     talent,
     talent_images,
@@ -102,6 +103,7 @@ api_router.include_router(businesses.public_router)
 api_router.include_router(articles.router)
 api_router.include_router(registration.router)
 api_router.include_router(search.router)
+api_router.include_router(south_map.router)
 api_router.include_router(open_service_requests.public_router)
 api_router.include_router(open_service_requests.admin_router)
 api_router.include_router(partners.public_router)

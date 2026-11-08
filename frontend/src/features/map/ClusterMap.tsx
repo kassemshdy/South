@@ -26,6 +26,8 @@ export interface ClusterMapProps {
   points: ClusterPoint[]
   label: string
   className?: string
+  /** Show this box, [[south, west], [north, east]], instead of fitting the pins. */
+  frame?: [[number, number], [number, number]]
 }
 
 const SOUTH: L.LatLngExpression = [33.3, 35.4]
@@ -54,7 +56,7 @@ function pinIcon(color: string, hollow: boolean): L.DivIcon {
  * zoom in (Leaflet.markercluster). OpenStreetMap like every map here, and
  * its own chunk: only the page that draws it downloads it.
  */
-export default function ClusterMap({ points, label, className }: ClusterMapProps) {
+export default function ClusterMap({ points, label, className, frame }: ClusterMapProps) {
   const container = useRef<HTMLDivElement>(null)
   const map = useRef<L.Map | null>(null)
   const layer = useRef<L.MarkerClusterGroup | null>(null)
@@ -96,10 +98,15 @@ export default function ClusterMap({ points, label, className }: ClusterMapProps
       }).bindPopup(`<div dir="rtl" style="display:grid;gap:4px">${lines.join('')}</div>`)
     })
     group.addLayers(markers)
-    if (markers.length > 0) {
+    // The container may have changed size since the map was made (fonts,
+    // the page settling on a phone): measure again before framing.
+    instance.invalidateSize()
+    if (frame) {
+      instance.fitBounds(frame, { padding: [8, 8] })
+    } else if (markers.length > 0) {
       instance.fitBounds(group.getBounds(), { padding: [24, 24], maxZoom: 13 })
     }
-  }, [points])
+  }, [points, frame])
 
   return (
     <div

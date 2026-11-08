@@ -1670,3 +1670,16 @@ export interface AdminMapPoint {
   latitude: number
   longitude: number
 }
+
+/** A published shop, or a service provider at the area of their town. */
+export interface MapListing {
+  kind: 'business' | 'service'
+  slug: string
+  name: string
+  category: string | null
+  category_slug: string | null
+  town: string | null
+  district: string | null
+  latitude: number
+  longitude: number
+}

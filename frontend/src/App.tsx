@@ -20,6 +20,7 @@ import { JobOfferPage } from '@/pages/JobOfferPage'
 import { JobsHubPage } from '@/pages/JobsHubPage'
 import { VacanciesPage } from '@/pages/VacanciesPage'
 import { VacancyPage } from '@/pages/VacancyPage'
+import { SouthMapPage } from '@/pages/SouthMapPage'
 import { ActivitiesPage } from '@/pages/ActivitiesPage'
 import { ActivityPage } from '@/pages/ActivityPage'
 import { WorkshopPage } from '@/pages/WorkshopPage'
@@ -267,6 +268,7 @@ export function App() {
           <Route path="workshops" element={<WorkshopsPage />} />
           <Route path="workshops/:slug" element={<WorkshopPage />} />
           <Route path="activities" element={<ActivitiesPage />} />
+          <Route path="map" element={<SouthMapPage />} />
           <Route path="activities/:slug" element={<ActivityPage />} />
           <Route path="vacancies" element={<VacanciesPage />} />
           <Route path="vacancies/offer" element={<JobOfferPage />} />

@@ -44,6 +44,7 @@ export const queryKeys = {
   myServiceRequests: ['my-talent', 'requests'] as const,
   adminStats: ['admin', 'stats'] as const,
   adminListingsMap: ['admin', 'stats', 'map'] as const,
+  southMap: ['map', 'listings'] as const,
   homeLayout: ['home', 'layout'] as const,
   siteMenu: ['menu'] as const,
   homeStories: ['home', 'stories'] as const,
