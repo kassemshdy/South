@@ -15,6 +15,7 @@ from app.models.business import Business, BusinessItem
 from app.models.enums import BusinessStatus, TestimonialStatus, UserRole
 from app.models.order import Order
 from app.models.talent import TalentProfile
+from app.models.taxonomy import Category
 from app.models.testimonial import Testimonial
 from app.repositories.business import BusinessRepository
 from app.repositories.talent import TalentRepository
@@ -22,6 +23,7 @@ from app.repositories.user import UserRepository
 from app.schemas.common import (
     GrowthResponse,
     GrowthSeries,
+    MapPointOut,
     PageMeta,
     PaginatedResponse,
     StatsResponse,
@@ -67,6 +69,60 @@ def platform_stats(db: DbSession, admin: AdminUser) -> StatsResponse:
             ).scalar_one()
         ),
     )
+
+
+@router.get("/stats/map", response_model=list[MapPointOut])
+def listings_map(db: DbSession, admin: AdminUser) -> list[MapPointOut]:
+    """Every pinned shop and service profile, in any status, for the
+    dashboard's map (the owners' request, 8 Nov 2026). Staff only, so a
+    service provider's exact pin -- shown publicly only as an area -- is
+    fine here."""
+    points: list[MapPointOut] = []
+    shops = db.execute(
+        select(
+            Business.id,
+            Business.name,
+            Business.status,
+            Category.name_ar,
+            Business.latitude,
+            Business.longitude,
+        )
+        .outerjoin(Category, Business.category_id == Category.id)
+        .where(Business.latitude.is_not(None), Business.longitude.is_not(None))
+    ).all()
+    points += [
+        MapPointOut(
+            kind="business",
+            id=row[0],
+            name=row[1],
+            status=row[2].value,
+            category=row[3],
+            latitude=float(row[4]),
+            longitude=float(row[5]),
+        )
+        for row in shops
+    ]
+    people = db.execute(
+        select(
+            TalentProfile.id,
+            TalentProfile.display_name,
+            TalentProfile.status,
+            TalentProfile.latitude,
+            TalentProfile.longitude,
+        ).where(TalentProfile.latitude.is_not(None), TalentProfile.longitude.is_not(None))
+    ).all()
+    points += [
+        MapPointOut(
+            kind="service",
+            id=row[0],
+            name=row[1],
+            status=row[2].value,
+            latitude=float(row[3]),
+            longitude=float(row[4]),
+        )
+        for row in people
+    ]
+    return points
 
 
 @router.get("/stats/growth", response_model=GrowthResponse)
