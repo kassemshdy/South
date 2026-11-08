@@ -296,7 +296,9 @@ def test_people_sign_up_on_the_site_by_default_and_only_staff_see_who(
     assert signed.status_code == 201, signed.text
 
     public = client.get("/api/activities/on-site").text
-    assert "111" not in public and ar("order.customer") not in public
+    # The whole number, not a fragment of it: "111" alone also turned up by
+    # chance in the random name of the activity's photo file.
+    assert "70111444" not in public and ar("order.customer") not in public
 
     listed = client.get(
         f"/api/admin/activities/{activity['id']}/registrations", headers=headers
