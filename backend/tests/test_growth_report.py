@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.models.analytics import ListingViewDaily
-from app.models.business import Business
+from app.models.business import Business, BusinessItem
 from app.models.enums import BusinessStatus, Currency, OrderStatus, ViewSubject
 from app.models.order import Order, OrderLine
 from app.models.taxonomy import Category, Location
@@ -273,3 +273,43 @@ def test_visitors_see_the_offer_only_while_the_popup_is_on(
     shown = client.get("/api/site-settings/offer-popup").json()
     assert shown == {"enabled": True, "offer": offer}
     assert "5000000" not in str(shown), "the sales goal stays with the staff"
+
+
+def test_staff_read_one_shop_s_views_to_send_its_owner(
+    client: TestClient, db: Session, admin: User, category: Category, location: Location
+) -> None:
+    """Page views and product views over 30 days, today included; older
+    days and other shops are not counted."""
+    shop = _shop(client, db, category, location, "03880811", ar("business.first"))
+    other = _shop(client, db, category, location, "03880812", ar("business.second"))
+    item = BusinessItem(
+        business_id=shop.id,
+        title=ar("item.generic"),
+        slug="views-item",
+        image_url="/media/x.jpg",
+        is_available=True,
+    )
+    db.add(item)
+    db.flush()
+    today = datetime.now(UTC).date()
+    for subject_type, subject_id, day, views in (
+        (ViewSubject.BUSINESS, shop.id, today, 5),
+        (ViewSubject.BUSINESS, shop.id, today - timedelta(days=29), 4),
+        (ViewSubject.BUSINESS, shop.id, today - timedelta(days=30), 100),
+        (ViewSubject.PRODUCT, item.id, today, 3),
+        (ViewSubject.BUSINESS, other.id, today, 50),
+    ):
+        db.add(
+            ListingViewDaily(
+                subject_type=subject_type, subject_id=subject_id, day=day, views=views
+            )
+        )
+    db.commit()
+
+    path = f"/api/admin/businesses/{shop.id}/views"
+    response = client.get(path, headers=admin_headers(client))
+    assert response.status_code == 200, response.text
+    assert response.json() == {"days": 30, "page_views": 9, "product_views": 3}
+
+    assert client.get(path).status_code == 401
+    assert client.get(path, headers=sign_in(client, "03880811")).status_code == 403

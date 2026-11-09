@@ -78,6 +78,7 @@ export const queryKeys = {
   adminBusinesses: (status: BusinessStatus | undefined, page: number, q?: string) =>
     ['admin', 'businesses', status ?? 'all', page, q ?? ''] as const,
   adminBusiness: (id: string) => ['admin', 'business', id] as const,
+  adminBusinessViews: (id: string) => ['admin', 'business', id, 'views'] as const,
   adminUsers: (page: number, filters: Record<string, unknown> = {}) =>
     ['admin', 'users', page, filters] as const,
   adminUser: (id: string) => ['admin', 'user', id] as const,

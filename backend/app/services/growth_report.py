@@ -275,6 +275,29 @@ class GrowthReportService:
             totals[shop_id] = totals.get(shop_id, 0) + int(views or 0)
         return totals
 
+    def shop_views(self, business_id: uuid.UUID, days: int = 30) -> tuple[int, int]:
+        """One shop's page views and its products' views over the last
+        ``days`` days, today included -- the numbers staff send the owner
+        as proof that people are looking (the owners' request, 9 Nov 2026)."""
+        since = datetime.now(UTC).date() - timedelta(days=days - 1)
+        page = self._count(
+            select(func.coalesce(func.sum(ListingViewDaily.views), 0)).where(
+                ListingViewDaily.subject_type == ViewSubject.BUSINESS,
+                ListingViewDaily.subject_id == business_id,
+                ListingViewDaily.day >= since,
+            )
+        )
+        products = self._count(
+            select(func.coalesce(func.sum(ListingViewDaily.views), 0))
+            .join(BusinessItem, BusinessItem.id == ListingViewDaily.subject_id)
+            .where(
+                ListingViewDaily.subject_type == ViewSubject.PRODUCT,
+                BusinessItem.business_id == business_id,
+                ListingViewDaily.day >= since,
+            )
+        )
+        return page, products
+
     def _views_total(self, since: date) -> int:
         return self._count(
             select(func.coalesce(func.sum(ListingViewDaily.views), 0)).where(
