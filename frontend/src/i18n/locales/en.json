@@ -2288,14 +2288,14 @@
   "adminContacted.call": "Call",
   "adminContacted.openPage": "Shop page",
   "adminContacted.whatsapp": "Hello 👋\nWe noticed customers reached you through your Janoubona page.\nCould you help us with a short video or a few words about your experience? Your story encourages others from the South to join.",
-  "admin.strayPinsHeading": "{count} pins outside Lebanon",
+  "admin.strayPinsHeading": "{count} locations outside Lebanon",
   "admin.strayPinsHint": "These pins were saved before the site checked the border, so no public map shows them. Open each one and correct its place from the place card.",
   "admin.strayPinShop": "Shop",
   "admin.strayPinService": "Service",
   "login.useEmail": "Sign in with an email",
   "login.usePhone": "Sign in with a phone number",
-  "admin.strayPinsTitle": "Pins to check",
-  "admin.farPinsHeading": "{count} pins far from their district",
+  "admin.strayPinsTitle": "Map locations to check",
+  "admin.farPinsHeading": "{count} locations far from their district",
   "admin.farPinsHint": "Inside Lebanon but far from the other pins of the same district. The owner may be displaced and pinned where they live now, so these stay on the map. Open each one, check it, and correct it if it is wrong.",
   "admin.farPinKm": "{count} km from the district"
 }
