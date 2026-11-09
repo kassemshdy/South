@@ -369,5 +369,8 @@
   "telegram.kind.service_approved": "Service profile approved",
   "telegram.kind.service_rejected": "Service profile rejected",
   "telegram.label.reason": "Reason",
-  "business.move_items_invalid": "Products can only move to another listing of the same account."
+  "business.move_items_invalid": "Products can only move to another listing of the same account.",
+  "sms.not_configured": "SMS is not set up yet.",
+  "sms.no_number": "This listing has no account number.",
+  "sms.refused": "The message was not sent: {reason}"
 }

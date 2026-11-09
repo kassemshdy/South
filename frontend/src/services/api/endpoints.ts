@@ -955,6 +955,13 @@ export const adminApi = {
   get: (id: string) => apiRequest<AdminBusiness>(`/api/admin/businesses/${id}`),
   contactedShops: (days: number) =>
     apiRequest<ContactedShop[]>('/api/admin/stats/contacted-shops', { query: { days } }),
+  smsStatus: () =>
+    apiRequest<{ enabled: boolean; balance: number | null }>('/api/admin/sms'),
+  sendSms: (id: string, message: string) =>
+    apiRequest<{ confirmation_id: string; parts: number }>(`/api/admin/businesses/${id}/sms`, {
+      method: 'POST',
+      body: { message },
+    }),
   views: (id: string) =>
     apiRequest<ShopViews>(`/api/admin/businesses/${id}/views`),
   // Permanent: the rows and every file they pointed at. See DeleteForeverButton.

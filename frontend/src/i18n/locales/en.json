@@ -2308,5 +2308,9 @@
   "adminMapPins.suggestTown": "Suggestion: the middle of the same town's locations",
   "adminMapPins.suggestDistrict": "Suggestion: the middle of the district (no other locations in the town)",
   "adminMapPins.noSuggestion": "No suggestion: correct it by hand from its page",
-  "adminMapPins.notPublished": "Not published"
+  "adminMapPins.notPublished": "Not published",
+  "adminSms.button": "Text message (SMS)",
+  "adminSms.send": "Send",
+  "adminSms.sent": "The text message was sent.",
+  "adminSms.hint": "{count} characters. Sent to the account number. A long Arabic message may count as more than one SMS."
 }
