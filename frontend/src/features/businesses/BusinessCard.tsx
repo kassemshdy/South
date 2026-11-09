@@ -14,7 +14,7 @@ import { CardImage } from '@/components/ui/CardImage'
  * A shop in a list. Its WhatsApp and call buttons are counted like the ones
  * on the shop's own page: a visitor who writes from the directory reached
  * the shop through the site too (the owners' report, 9 Nov 2026: a shop
- * contacted from its card was missing from «متاجر تواصل معها الزوار»).
+ * contacted from its card was missing from the contacted-shops page).
  */
 export function BusinessCard({ business }: { business: BusinessSummary }) {
   const t = useT()
