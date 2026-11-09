@@ -290,6 +290,37 @@ export interface Applicant {
   documents: ApplicantDocuments
 }
 
+/**
+ * Sign-up and password reset by SMS code (app/services/phone_auth.py). One
+ * flow for both: a code proves the number, then the password either opens
+ * the account or replaces the forgotten one.
+ */
+export const phoneAuthApi = {
+  config: () => apiRequest<{ enabled: boolean }>('/api/auth/phone/config'),
+  sendCode: (phone: string, captcha_token: string | null) =>
+    apiRequest<{ message: string }>('/api/auth/phone/code', {
+      method: 'POST',
+      body: { phone, captcha_token },
+    }),
+  check: (phone: string, code: string) =>
+    apiRequest<{ message: string }>('/api/auth/phone/check', {
+      method: 'POST',
+      body: { phone, code },
+    }),
+  complete: (phone: string, code: string, password: string) =>
+    apiRequest<AuthToken>('/api/auth/phone/complete', {
+      method: 'POST',
+      body: { phone, code, password },
+    }),
+}
+
+export interface SmsSignupSettings {
+  enabled: boolean
+  daily_cap: number
+  sms_configured: boolean
+  sent_today: number
+}
+
 export const authApi = {
   /**
    * The only sign-in a client calls.
@@ -964,6 +995,12 @@ export const adminApi = {
     apiRequest<ContactedShop[]>('/api/admin/stats/contacted-shops', { query: { days } }),
   smsStatus: () =>
     apiRequest<{ enabled: boolean; balance: number | null }>('/api/admin/sms'),
+  smsSignupSettings: () => apiRequest<SmsSignupSettings>('/api/admin/site-settings/sms-signup'),
+  setSmsSignupSettings: (enabled: boolean, daily_cap: number) =>
+    apiRequest<SmsSignupSettings>('/api/admin/site-settings/sms-signup', {
+      method: 'PUT',
+      body: { enabled, daily_cap },
+    }),
   sendSms: (id: string, message: string) =>
     apiRequest<{ confirmation_id: string; parts: number }>(`/api/admin/businesses/${id}/sms`, {
       method: 'POST',

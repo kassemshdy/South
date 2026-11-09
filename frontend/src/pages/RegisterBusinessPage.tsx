@@ -17,6 +17,7 @@ import { BasicsForm } from '@/features/businesses/BasicsForm'
 import { originFromParams } from '@/features/onboarding/destinations'
 import { RegistrationLogoField } from '@/features/onboarding/RegistrationLogoField'
 import { RegistrationShell, unwrapFieldErrors } from '@/features/onboarding/RegistrationShell'
+import { PhoneSignupGate } from '@/features/auth/PhoneSignup'
 import { useSeo } from '@/hooks/useSeo'
 import { useT } from '@/i18n'
 import { ApiError } from '@/services/api/client'
@@ -52,6 +53,10 @@ export function RegisterBusinessPage() {
   })
 
   return (
+    <PhoneSignupGate
+      next={`/dashboard/businesses/new${origin ? `?origin=${origin}` : ''}`}
+      formRequested={searchParams.get('form') === '1'}
+    >
     <RegistrationShell
       titleKey="register.businessTitle"
       subtitleKey="register.businessSubtitle"
@@ -95,5 +100,6 @@ export function RegisterBusinessPage() {
         />
       )}
     </RegistrationShell>
+    </PhoneSignupGate>
   )
 }

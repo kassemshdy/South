@@ -15,6 +15,7 @@ import { useToast } from '@/components/ui/Toast'
 import { RegistrationShell, unwrapFieldErrors } from '@/features/onboarding/RegistrationShell'
 import { kindFromQuery } from '@/features/talent/kind'
 import { TalentForm } from '@/features/talent/TalentForm'
+import { PhoneSignupGate } from '@/features/auth/PhoneSignup'
 import { useSeo } from '@/hooks/useSeo'
 import { useT } from '@/i18n'
 import { ApiError } from '@/services/api/client'
@@ -46,6 +47,10 @@ export function RegisterTalentPage() {
   })
 
   return (
+    <PhoneSignupGate
+      next={`/dashboard/talent${initialKind ? `?kind=${initialKind}` : ''}`}
+      formRequested={searchParams.get('form') === '1'}
+    >
     <RegistrationShell
       titleKey="register.talentTitle"
       subtitleKey="register.talentSubtitle"
@@ -81,5 +86,6 @@ export function RegisterTalentPage() {
         />
       )}
     </RegistrationShell>
+    </PhoneSignupGate>
   )
 }
