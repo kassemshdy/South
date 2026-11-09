@@ -28,9 +28,7 @@ export function ShopViewsWhatsappButton({ business }: { business: AdminBusiness 
   const href = whatsappHref(
     number,
     t('admin.viewsWhatsapp', {
-      name: business.name,
-      page: views.data.page_views,
-      products: views.data.product_views,
+      total: views.data.page_views + views.data.product_views,
       days: views.data.days,
       link: `${window.location.origin}/business/${business.slug}`,
     }),
