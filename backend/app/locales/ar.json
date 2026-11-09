@@ -375,5 +375,15 @@
   "sms.refused": "لم تُرسل الرسالة: {reason}",
   "telegram.csv_backup": "جداول البيانات بصيغة CSV (تُفتح في Excel)",
   "followers.not_configured": "لم يُضبط جلب أعداد المتابعين بعد.",
-  "followers.refresh_started": "بدأ تحديث أعداد المتابعين، وتظهر خلال دقائق."
+  "followers.refresh_started": "بدأ تحديث أعداد المتابعين، وتظهر خلال دقائق.",
+  "phoneAuth.sms": "رمز جنوبنا: {code}",
+  "phoneAuth.sent": "إذا كان الرقم يستقبل الرسائل، فسيصله رمز عبر رسالة نصية.",
+  "phoneAuth.code_ok": "الرمز صحيح.",
+  "phoneAuth.unavailable": "التسجيل عبر الرسائل النصية غير متاح حاليًا. يُرجى استخدام استمارة التسجيل.",
+  "phoneAuth.not_mobile": "أدخل رقم هاتف خلوي لبنانيًا، فالرمز يُرسل برسالة نصية.",
+  "phoneAuth.wait": "يُرجى الانتظار قليلًا قبل طلب رمز جديد.",
+  "phoneAuth.rate_limited": "طُلبت رموز كثيرة. يُرجى المحاولة لاحقًا.",
+  "phoneAuth.send_failed": "تعذّر إرسال الرسالة. حاول مجددًا، أو استخدم استمارة التسجيل.",
+  "phoneAuth.code_expired": "انتهت صلاحية هذا الرمز أو استُخدم. اطلب رمزًا جديدًا.",
+  "phoneAuth.code_invalid": "الرمز غير صحيح."
 }
