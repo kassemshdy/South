@@ -3,8 +3,9 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterator
-from urllib.parse import parse_qs
+from typing import Any
 
 import httpx
 import pytest
@@ -17,16 +18,16 @@ from app.services import sms
 from tests.conftest import admin_headers
 from tests.test_views import OWNER_PHONE, approved_business, owner_headers  # noqa: F401
 
-SENT: list[dict[str, list[str]]] = []
+SENT: list[dict[str, Any]] = []
 
 
-def _provider(answer: str) -> httpx.MockTransport:
+def _provider(answer: dict[str, Any]) -> httpx.MockTransport:
     def handle(request: httpx.Request) -> httpx.Response:
-        form = parse_qs(request.content.decode())
-        SENT.append(form)
         if request.url.path.endswith("getbalance.php"):
             return httpx.Response(200, text="125.50")
-        return httpx.Response(200, text=answer)
+        assert request.url.path.endswith("sendSmsAPIJson.php")
+        SENT.append(json.loads(request.content)[0])
+        return httpx.Response(200, json=answer)
 
     return httpx.MockTransport(handle)
 
@@ -46,7 +47,7 @@ def sms_on(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> Iterator[None
     client.app.dependency_overrides.pop(get_settings, None)  # type: ignore[attr-defined]
 
 
-def _answering(monkeypatch: pytest.MonkeyPatch, answer: str) -> None:
+def _answering(monkeypatch: pytest.MonkeyPatch, answer: dict[str, Any]) -> None:
     real = httpx.Client
     monkeypatch.setattr(
         sms.httpx, "Client", lambda **kwargs: real(transport=_provider(answer))
@@ -78,7 +79,21 @@ def test_an_sms_goes_to_the_owner_s_account_number(
     sms_on: None,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    _answering(monkeypatch, "110099887;96103960001;1")
+    _answering(
+        monkeypatch,
+        {
+            "status": 201,
+            "message": "Messages successfully queued",
+            "data": [
+                {
+                    "status": 201,
+                    "confirmationid": 110099887,
+                    "recipient": "96103960001",
+                    "numberofsmspermsg": 1,
+                }
+            ],
+        },
+    )
     headers = admin_headers(client)
     assert client.get("/api/admin/sms", headers=headers).json() == {
         "enabled": True,
@@ -93,9 +108,9 @@ def test_an_sms_goes_to_the_owner_s_account_number(
     assert sent.status_code == 200, sent.text
     assert sent.json() == {"confirmation_id": "110099887", "parts": 1}
     form = SENT[-1]
-    assert form["destination"] == ["961" + OWNER_PHONE.lstrip("0")]
-    assert form["senderid"] == ["Janoubona"]
-    assert form["api_key"] == ["key-1"] and form["message"] == ["hello"]
+    assert form["destination"] == "961" + OWNER_PHONE.lstrip("0")
+    assert form["senderid"] == "Janoubona"
+    assert form["api_key"] == "key-1" and form["message"] == "hello"
 
 
 def test_the_provider_s_refusal_reaches_staff(
@@ -105,7 +120,7 @@ def test_the_provider_s_refusal_reaches_staff(
     sms_on: None,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    _answering(monkeypatch, "No credits")
+    _answering(monkeypatch, {"status": 300, "message": "No credits"})
     refused = client.post(
         f"/api/admin/businesses/{approved_business.id}/sms",
         headers=admin_headers(client),
