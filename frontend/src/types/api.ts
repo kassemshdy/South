@@ -1706,3 +1706,15 @@ export interface ShopViews {
   page_views: number
   product_views: number
 }
+
+/** A shop visitors reached through the site (WhatsApp/call press or order). */
+export interface ContactedShop {
+  id: string
+  name: string
+  slug: string
+  logo_url: string | null
+  contact_clicks: number
+  orders: number
+  last_contact: string | null
+  owner_phone: string | null
+}

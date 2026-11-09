@@ -36,6 +36,7 @@ import type {
   JobLink,
   JobLinks,
   ShopViews,
+  ContactedShop,
   DiscardedApplication,
   GoodsOrigin,
   ContactChannel,
@@ -945,6 +946,8 @@ export const adminApi = {
   pending: (page = 1) =>
     apiRequest<Paginated<AdminBusiness>>('/api/admin/businesses/pending', { query: { page } }),
   get: (id: string) => apiRequest<AdminBusiness>(`/api/admin/businesses/${id}`),
+  contactedShops: (days: number) =>
+    apiRequest<ContactedShop[]>('/api/admin/stats/contacted-shops', { query: { days } }),
   views: (id: string) =>
     apiRequest<ShopViews>(`/api/admin/businesses/${id}/views`),
   // Permanent: the rows and every file they pointed at. See DeleteForeverButton.
