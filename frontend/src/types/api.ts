@@ -1718,3 +1718,13 @@ export interface ContactedShop {
   last_contact: string | null
   owner_phone: string | null
 }
+
+/** A listing whose map pin falls outside Lebanon, for staff to move. */
+export interface StrayPin {
+  kind: 'business' | 'service'
+  id: string
+  name: string
+  town: string | null
+  latitude: number
+  longitude: number
+}

@@ -17,6 +17,7 @@ from sqlalchemy.orm import aliased
 
 from app.core.cache import cached
 from app.core.dependencies import DbSession
+from app.core.pins import in_lebanon
 from app.models.business import Business
 from app.models.enums import BusinessStatus, LocationType, TalentKind
 from app.models.talent import TalentProfile, TalentSkill
@@ -70,6 +71,10 @@ def listings(db: DbSession) -> list[MapListingOut]:
             )
         ).all()
         for shop, category, location, district in shops:
+            # A pin saved across the border before pins were checked: shown
+            # nowhere until staff move it (see public_pin).
+            if not in_lebanon(float(shop.latitude), float(shop.longitude)):
+                continue
             town, district_name = _place(location, district)
             out.append(
                 MapListingOut(
@@ -97,6 +102,8 @@ def listings(db: DbSession) -> list[MapListingOut]:
             )
         ).all()
         for profile, skill, location, district in people:
+            if not in_lebanon(float(profile.latitude), float(profile.longitude)):
+                continue
             town, district_name = _place(location, district)
             out.append(
                 MapListingOut(
