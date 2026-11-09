@@ -88,6 +88,8 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     # Following up shops with nothing on sale: the roles that talk to owners.
     ("PUT", "/api/admin/businesses/{business_id}/outreach"): _CREDENTIALS,
     ("POST", "/api/admin/businesses/{business_id}/sms"): _CREDENTIALS,
+    # Runs paid Apify scrapers: the manager's, like the other settings.
+    ("POST", "/api/admin/businesses/followers/refresh"): frozenset({M}),
     **{
         ("POST", f"/api/admin/talent/{{profile_id}}/{action}"): _MODERATE
         for action in (

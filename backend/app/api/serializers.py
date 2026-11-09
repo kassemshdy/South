@@ -246,6 +246,9 @@ def admin_business(business: Business) -> AdminBusinessOut:
         ],
         outreach_contacted_at=business.outreach_contacted_at,
         outreach_note=business.outreach_note,
+        instagram_followers=business.instagram_followers,
+        facebook_followers=business.facebook_followers,
+        followers_checked_at=business.followers_checked_at,
     )
 
 

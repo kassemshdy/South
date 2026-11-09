@@ -2315,5 +2315,12 @@
   "adminSms.hint": "{count} حرفًا. تُرسل إلى رقم الحساب. الرسالة العربية الطويلة قد تُحتسب أكثر من رسالة.",
   "admin.exportIdsTitle": "صور الهويات",
   "admin.exportIdsHint": "كل صور الهويات، الوجه والظهر، في ملف مضغوط واحد. اسم كل صورة رقم الحساب. ملف حسّاس: لا تشاركه.",
-  "admin.exportIdsDownload": "تنزيل ملف ZIP"
+  "admin.exportIdsDownload": "تنزيل ملف ZIP",
+  "adminFollowers.sortLabel": "الترتيب:",
+  "adminFollowers.sortNewest": "الأحدث",
+  "adminFollowers.sortInstagram": "الأكثر متابعة على إنستغرام",
+  "adminFollowers.sortFacebook": "الأكثر متابعة على فيسبوك",
+  "adminFollowers.refresh": "تحديث أعداد المتابعين",
+  "adminFollowers.instagram": "إنستغرام: {count}",
+  "adminFollowers.facebook": "فيسبوك: {count}"
 }

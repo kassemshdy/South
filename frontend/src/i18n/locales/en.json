@@ -2315,5 +2315,12 @@
   "adminSms.hint": "{count} characters. Sent to the account number. A long Arabic message may count as more than one SMS.",
   "admin.exportIdsTitle": "ID scans",
   "admin.exportIdsHint": "Every ID scan, front and back, in one zip. Each file is named by the account number. Sensitive: do not share it.",
-  "admin.exportIdsDownload": "Download ZIP"
+  "admin.exportIdsDownload": "Download ZIP",
+  "adminFollowers.sortLabel": "Sort:",
+  "adminFollowers.sortNewest": "Newest",
+  "adminFollowers.sortInstagram": "Most Instagram followers",
+  "adminFollowers.sortFacebook": "Most Facebook followers",
+  "adminFollowers.refresh": "Refresh follower counts",
+  "adminFollowers.instagram": "Instagram: {count}",
+  "adminFollowers.facebook": "Facebook: {count}"
 }

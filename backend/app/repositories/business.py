@@ -8,9 +8,9 @@ exactly one enforcement point.
 from __future__ import annotations
 
 import uuid
-from typing import Literal
+from typing import Any, Literal
 
-from sqlalchemy import ColumnElement, Select, exists, func, nullslast, or_, select
+from sqlalchemy import ColumnElement, Select, UnaryExpression, exists, func, nullslast, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.core.arabic import normalize_arabic
@@ -24,6 +24,9 @@ from app.repositories.base import BaseRepository
 from app.repositories.geo import Point, nearest_first
 
 SortOption = Literal["newest", "name", "oldest", "nearest", "rating"]
+
+
+AdminSort = Literal["newest", "instagram", "facebook"]
 
 
 class BusinessRepository(BaseRepository[Business]):
@@ -225,6 +228,7 @@ class BusinessRepository(BaseRepository[Business]):
         without_products: bool = False,
         with_products: bool = False,
         contacted: bool | None = None,
+        sort: AdminSort = "newest",
         page: int = 1,
         page_size: int = 20,
     ) -> Page[Business]:
@@ -261,13 +265,19 @@ class BusinessRepository(BaseRepository[Business]):
 
         # Newest first everywhere, the review queue included (the owners'
         # decision, 30 Oct 2026, replacing oldest-pending-first).
-        order = (
+        order: UnaryExpression[Any] = (
             # An application from the public form is created pending and has no
             # submitted_at, so it counts from when it was created.
             func.coalesce(Business.submitted_at, Business.created_at).desc()
             if status is BusinessStatus.PENDING_REVIEW
             else Business.created_at.desc()
         )
+        # Most followed first, shops not yet read last (the owners' request,
+        # 9 Nov 2026).
+        if sort == "instagram":
+            order = Business.instagram_followers.desc().nulls_last()
+        elif sort == "facebook":
+            order = Business.facebook_followers.desc().nulls_last()
         rows = (
             self.db.execute(
                 self._with_relations(stmt)
