@@ -25,6 +25,7 @@ import { MoveItemsCard } from '@/features/admin/MoveItemsCard'
 import { ViewAsButton } from '@/features/admin/ViewAsButton'
 import { OwnerIdentityCard } from '@/features/admin/OwnerIdentityCard'
 import { OwnerWhatsappButton } from '@/features/admin/OwnerWhatsappButton'
+import { ShopViewsWhatsappButton } from '@/features/admin/ShopViewsWhatsappButton'
 import { OWNER_RELATION_KEYS } from '@/features/businesses/labels'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
 import { useI18n, type TranslationKey } from '@/i18n'
@@ -375,6 +376,7 @@ export function AdminReviewPage() {
               <Detail labelKey="admin.ownerAccount" value={data.owner_phone} ltr />
               <Detail labelKey="admin.ownerPersonalPhone" value={data.owner_personal_phone} ltr />
               <OwnerWhatsappButton phone={data.owner_phone} />
+              <ShopViewsWhatsappButton business={data} />
               <p className="text-xs text-ink-300">{t('admin.ownerPrivacyNote')}</p>
               {/* The shop's logo and cover beside the documents, opened in a
                   popup rather than a new tab (the owners' request, 3 Nov 2026). */}

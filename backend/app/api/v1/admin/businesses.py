@@ -25,6 +25,7 @@ from app.models.enums import BusinessStatus, ImageKind
 from app.repositories.business import BusinessRepository
 from app.schemas.business import BusinessUpdateIn
 from app.schemas.common import MessageResponse, PaginatedResponse
+from app.schemas.growth_report import ShopViewsOut
 from app.schemas.moderation import (
     AdminBusinessOut,
     CategoryChangeIn,
@@ -40,6 +41,7 @@ from app.services.account import AccountDeletionService
 from app.services.business import BusinessService
 from app.services.business_documents import BusinessDocumentService
 from app.services.business_images import store_business_image
+from app.services.growth_report import GrowthReportService
 from app.services.moderation import ModerationService
 from app.storage.factory import get_storage
 
@@ -137,6 +139,18 @@ def set_outreach(
 @router.get("/businesses/{business_id}", response_model=AdminBusinessOut)
 def get_business(business_id: uuid.UUID, db: DbSession, admin: AdminUser) -> AdminBusinessOut:
     return admin_business(_load(db, business_id))
+
+
+VIEWS_DAYS = 30
+
+
+@router.get("/businesses/{business_id}/views", response_model=ShopViewsOut)
+def business_views(business_id: uuid.UUID, db: DbSession, admin: AdminUser) -> ShopViewsOut:
+    """The shop's views over 30 days, for the WhatsApp message that tells
+    its owner people are looking (the owners' request, 9 Nov 2026)."""
+    business = _load(db, business_id)
+    page, products = GrowthReportService(db).shop_views(business.id, VIEWS_DAYS)
+    return ShopViewsOut(days=VIEWS_DAYS, page_views=page, product_views=products)
 
 
 @router.get("/businesses/{business_id}/documents/{document_id}/download")

@@ -11,16 +11,19 @@ from sqlalchemy import Date, cast, func, select
 
 from app.api.serializers import admin_user
 from app.core.dependencies import AdminUser, DbSession
+from app.models.analytics import ListingViewDaily
 from app.models.business import Business, BusinessItem
-from app.models.enums import BusinessStatus, TestimonialStatus, UserRole
+from app.models.enums import BusinessStatus, TestimonialStatus, UserRole, ViewSubject
 from app.models.order import Order
 from app.models.talent import TalentProfile
 from app.models.taxonomy import Category
 from app.models.testimonial import Testimonial
+from app.models.user import User
 from app.repositories.business import BusinessRepository
 from app.repositories.talent import TalentRepository
 from app.repositories.user import UserRepository
 from app.schemas.common import (
+    ContactedShopOut,
     GrowthResponse,
     GrowthSeries,
     MapPointOut,
@@ -123,6 +126,79 @@ def listings_map(db: DbSession, admin: AdminUser) -> list[MapPointOut]:
         for row in people
     ]
     return points
+
+
+@router.get("/stats/contacted-shops", response_model=list[ContactedShopOut])
+def contacted_shops(
+    db: DbSession,
+    admin: AdminUser,
+    days: Annotated[int, Query(ge=1, le=365)] = 90,
+) -> list[ContactedShopOut]:
+    """Published shops that visitors reached through the site in the last
+    ``days`` days -- a WhatsApp or call press, or an order -- most first.
+
+    The counter holds a number per shop per day and nothing about who
+    pressed (see ``ListingViewDaily``), so this names shops, never visitors.
+    """
+    since = datetime.now(UTC).date() - timedelta(days=days - 1)
+    clicks = {
+        shop_id: (int(total), last)
+        for shop_id, total, last in db.execute(
+            select(
+                ListingViewDaily.subject_id,
+                func.sum(ListingViewDaily.contact_clicks),
+                func.max(ListingViewDaily.day),
+            )
+            .where(
+                ListingViewDaily.subject_type == ViewSubject.BUSINESS,
+                ListingViewDaily.day >= since,
+                ListingViewDaily.contact_clicks > 0,
+            )
+            .group_by(ListingViewDaily.subject_id)
+        ).all()
+    }
+    orders = {
+        shop_id: (int(total), last)
+        for shop_id, total, last in db.execute(
+            select(
+                Order.business_id,
+                func.count(Order.id),
+                func.max(cast(Order.created_at, Date)),
+            )
+            .where(Order.created_at >= datetime.combine(since, time.min, tzinfo=UTC))
+            .group_by(Order.business_id)
+        ).all()
+    }
+    ids = set(clicks) | set(orders)
+    if not ids:
+        return []
+    rows = db.execute(
+        select(Business.id, Business.name, Business.slug, Business.logo_url, User.phone_number)
+        .join(User, User.id == Business.owner_id)
+        .where(Business.id.in_(ids), Business.status == BusinessStatus.APPROVED)
+    ).all()
+    shops = []
+    for row in rows:
+        click_count, click_day = clicks.get(row.id, (0, None))
+        order_count, order_day = orders.get(row.id, (0, None))
+        last = max((d for d in (click_day, order_day) if d is not None), default=None)
+        shops.append(
+            ContactedShopOut(
+                id=row.id,
+                name=row.name,
+                slug=row.slug,
+                logo_url=row.logo_url,
+                contact_clicks=click_count,
+                orders=order_count,
+                last_contact=last,
+                owner_phone=row.phone_number,
+            )
+        )
+    shops.sort(
+        key=lambda shop: (shop.orders + shop.contact_clicks, shop.last_contact or since),
+        reverse=True,
+    )
+    return shops
 
 
 @router.get("/stats/growth", response_model=GrowthResponse)

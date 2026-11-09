@@ -1699,3 +1699,22 @@ export interface JobLink {
 export interface JobLinks {
   links: JobLink[] | null
 }
+
+/** One shop's views over the last ``days`` days (page and products). */
+export interface ShopViews {
+  days: number
+  page_views: number
+  product_views: number
+}
+
+/** A shop visitors reached through the site (WhatsApp/call press or order). */
+export interface ContactedShop {
+  id: string
+  name: string
+  slug: string
+  logo_url: string | null
+  contact_clicks: number
+  orders: number
+  last_contact: string | null
+  owner_phone: string | null
+}

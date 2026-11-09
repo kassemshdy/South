@@ -105,3 +105,19 @@ class MapPointOut(BaseModel):
     category: str | None = None
     latitude: float
     longitude: float
+
+
+class ContactedShopOut(BaseModel):
+    """A shop visitors reached through the site -- a press of its WhatsApp or
+    call button, or an order -- for staff to ask its owner for a video or a
+    testimonial (the owners' request, 9 Nov 2026). Staff-only: it carries the
+    owner's account number, as the admin shop payload does."""
+
+    id: uuid.UUID
+    name: str
+    slug: str
+    logo_url: str | None = None
+    contact_clicks: int
+    orders: int
+    last_contact: date | None = None
+    owner_phone: str | None = None
