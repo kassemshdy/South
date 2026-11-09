@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 import { JOB_TYPE_LABELS, JobCard, WORK_MODE_KEYS } from '@/features/jobs/JobCard'
+import { JobLinksSidebar } from '@/features/jobs/JobLinksSidebar'
 import { useSeo } from '@/hooks/useSeo'
 import { useT } from '@/i18n'
 import { jobApi } from '@/services/api/endpoints'
@@ -92,108 +93,116 @@ export function VacanciesPage() {
         </Link>
       </header>
 
-      {all.length > 0 ? (
-        <div className="mb-6">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search
-                className="pointer-events-none absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-400"
-                aria-hidden="true"
-              />
-              <Input
-                type="search"
-                value={q}
-                onChange={(event) => set('q', event.target.value)}
-                placeholder={t('vacancies.searchLabel')}
-                aria-label={t('vacancies.searchLabel')}
-                className="ps-10"
-              />
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start lg:gap-8">
+        <div className="min-w-0">
+          {all.length > 0 ? (
+            <div className="mb-6">
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search
+                    className="pointer-events-none absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-400"
+                    aria-hidden="true"
+                  />
+                  <Input
+                    type="search"
+                    value={q}
+                    onChange={(event) => set('q', event.target.value)}
+                    placeholder={t('vacancies.searchLabel')}
+                    aria-label={t('vacancies.searchLabel')}
+                    className="ps-10"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="sm:hidden"
+                  onClick={() => setFiltersOpen((value) => !value)}
+                  aria-expanded={filtersOpen}
+                >
+                  <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+                  {t('vacancies.filters')}
+                </Button>
+              </div>
+              <div className={`mt-3 gap-3 sm:grid sm:grid-cols-3 ${filtersOpen ? 'grid' : 'hidden'}`}>
+                <FilterSelect
+                  label={t('directory.location')}
+                  allLabel={t('directory.allLocations')}
+                  value={location}
+                  onChange={(value) => set('location', value)}
+                  options={locations.map(([slug, name]) => [slug, name])}
+                />
+                <FilterSelect
+                  label={t('admin.jobTypeLabel')}
+                  allLabel={t('vacancies.allTypes')}
+                  value={type}
+                  onChange={(value) => set('type', value)}
+                  options={TYPES.map((value) => [value, t(JOB_TYPE_LABELS[value])])}
+                />
+                <FilterSelect
+                  label={t('admin.jobWorkModeLabel')}
+                  allLabel={t('talent.workModeAll')}
+                  value={mode}
+                  onChange={(value) => set('mode', value)}
+                  options={MODES.map((value) => [value, t(WORK_MODE_KEYS[value])])}
+                />
+              </div>
+              {hasFilters ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-2"
+                  onClick={() => setParams(new URLSearchParams(), { replace: true })}
+                >
+                  <X className="h-4 w-4" aria-hidden="true" />
+                  {t('states.clearFilters')}
+                </Button>
+              ) : null}
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              className="sm:hidden"
-              onClick={() => setFiltersOpen((value) => !value)}
-              aria-expanded={filtersOpen}
-            >
-              <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
-              {t('vacancies.filters')}
-            </Button>
-          </div>
-          <div className={`mt-3 gap-3 sm:grid sm:grid-cols-3 ${filtersOpen ? 'grid' : 'hidden'}`}>
-            <FilterSelect
-              label={t('directory.location')}
-              allLabel={t('directory.allLocations')}
-              value={location}
-              onChange={(value) => set('location', value)}
-              options={locations.map(([slug, name]) => [slug, name])}
-            />
-            <FilterSelect
-              label={t('admin.jobTypeLabel')}
-              allLabel={t('vacancies.allTypes')}
-              value={type}
-              onChange={(value) => set('type', value)}
-              options={TYPES.map((value) => [value, t(JOB_TYPE_LABELS[value])])}
-            />
-            <FilterSelect
-              label={t('admin.jobWorkModeLabel')}
-              allLabel={t('talent.workModeAll')}
-              value={mode}
-              onChange={(value) => set('mode', value)}
-              options={MODES.map((value) => [value, t(WORK_MODE_KEYS[value])])}
-            />
-          </div>
-          {hasFilters ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="mt-2"
-              onClick={() => setParams(new URLSearchParams(), { replace: true })}
-            >
-              <X className="h-4 w-4" aria-hidden="true" />
-              {t('states.clearFilters')}
-            </Button>
           ) : null}
-        </div>
-      ) : null}
 
-      {jobs.isLoading ? (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <Skeleton key={index} className="h-72 rounded-2xl" />
-          ))}
-        </div>
-      ) : jobs.isError ? (
-        <ErrorState error={jobs.error} onRetry={() => void jobs.refetch()} />
-      ) : (
-        <>
-          {open.length > 0 ? (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {open.map((job) => (
-                <JobCard key={job.id} job={job} />
+          {jobs.isLoading ? (
+            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <Skeleton key={index} className="h-72 rounded-2xl" />
               ))}
             </div>
-          ) : hasFilters && shown.length > 0 ? null : (
-            <EmptyState
-              icon={<Briefcase className="h-7 w-7" aria-hidden="true" />}
-              title={hasFilters ? t('vacancies.noMatches') : t('vacancies.empty')}
-              description={hasFilters ? undefined : t('vacancies.emptyInvite')}
-            />
+          ) : jobs.isError ? (
+            <ErrorState error={jobs.error} onRetry={() => void jobs.refetch()} />
+          ) : (
+            <>
+              {open.length > 0 ? (
+                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                  {open.map((job) => (
+                    <JobCard key={job.id} job={job} />
+                  ))}
+                </div>
+              ) : hasFilters && shown.length > 0 ? null : (
+                <EmptyState
+                  icon={<Briefcase className="h-7 w-7" aria-hidden="true" />}
+                  title={hasFilters ? t('vacancies.noMatches') : t('vacancies.empty')}
+                  description={hasFilters ? undefined : t('vacancies.emptyInvite')}
+                />
+              )}
+              {closed.length > 0 ? (
+                <section className="mt-12" aria-labelledby="closed-heading">
+                  <h2 id="closed-heading" className="mb-4 text-xl text-ink-700">
+                    {t('vacancies.closedHeading')}
+                  </h2>
+                  <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                    {closed.map((job) => (
+                      <JobCard key={job.id} job={job} />
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+            </>
           )}
-          {closed.length > 0 ? (
-            <section className="mt-12" aria-labelledby="closed-heading">
-              <h2 id="closed-heading" className="mb-4 text-xl text-ink-700">
-                {t('vacancies.closedHeading')}
-              </h2>
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {closed.map((job) => (
-                  <JobCard key={job.id} job={job} />
-                ))}
-              </div>
-            </section>
-          ) : null}
-        </>
-      )}
+        </div>
+        <JobLinksSidebar
+          audience="seekers"
+          className="mt-10 lg:sticky lg:top-24 lg:mt-0"
+        />
+      </div>
     </div>
   )
 }

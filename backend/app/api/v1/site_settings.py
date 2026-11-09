@@ -3,6 +3,8 @@ an admin. See ``SiteSetting``."""
 
 from __future__ import annotations
 
+import json
+
 from fastapi import APIRouter
 from sqlalchemy import select
 
@@ -13,6 +15,8 @@ from app.schemas.growth_report import OfferPopupOut
 from app.schemas.site_setting import (
     CredentialsMessageIn,
     CredentialsMessageOut,
+    JobLinksIn,
+    JobLinksOut,
     SiteSettingsIn,
     SiteSettingsOut,
 )
@@ -96,3 +100,36 @@ def set_credentials_message(
     db.commit()
     return CredentialsMessageOut(message=payload.message)
 
+
+
+#: The jobs pages' sidebar (the owners' request, 9 Nov 2026), stored as
+#: JSON. Public by nature: every link in it is shown to every visitor.
+JOB_LINKS_KEY = "job_links"
+
+
+def _job_links(db: DbSession) -> JobLinksOut:
+    row = db.get(SiteSetting, JOB_LINKS_KEY)
+    return JobLinksOut(links=json.loads(row.value) if row else None)
+
+
+@public_router.get("/job-links", response_model=JobLinksOut)
+def job_links(db: DbSession) -> JobLinksOut:
+    return _job_links(db)
+
+
+@admin_router.put("/job-links", response_model=JobLinksOut)
+def set_job_links(payload: JobLinksIn, db: DbSession, admin: AdminUser) -> JobLinksOut:
+    row = db.get(SiteSetting, JOB_LINKS_KEY)
+    if payload.links is None:
+        if row is not None:
+            db.delete(row)
+    else:
+        value = json.dumps(
+            [link.model_dump() for link in payload.links], ensure_ascii=False
+        )
+        if row is None:
+            db.add(SiteSetting(key=JOB_LINKS_KEY, value=value))
+        else:
+            row.value = value
+    db.commit()
+    return _job_links(db)

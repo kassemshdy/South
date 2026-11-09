@@ -175,3 +175,56 @@ def test_only_an_administrator_reads_or_sets_the_credentials_message(
     owner = sign_in(client, "03990001")
     assert client.get(path, headers=owner).status_code == 403
     assert client.put(path, headers=owner, json={"message": None}).status_code == 403
+
+
+def test_the_jobs_sidebar_links_are_set_by_staff_and_read_by_anyone(
+    client: TestClient, admin: User
+) -> None:
+    """Unset is null, so the site shows its own starting list; an empty list
+    hides the sidebar; null goes back to the starting list."""
+    public = "/api/site-settings/job-links"
+    path = "/api/admin/site-settings/job-links"
+    headers = admin_headers(client)
+    assert client.get(public).json() == {"links": None}
+
+    links = [
+        {"title": "Daleel Madani", "url": "daleel-madani.org", "audience": "seekers"},
+        {"title": "NSSF", "url": "https://www.cnss.gov.lb/", "note": " Registration "},
+    ]
+    saved = client.put(path, headers=headers, json={"links": links})
+    assert saved.status_code == 200, saved.text
+    assert client.get(public).json() == {
+        "links": [
+            {
+                "title": "Daleel Madani",
+                "url": "https://daleel-madani.org",
+                "note": None,
+                "audience": "seekers",
+            },
+            {
+                "title": "NSSF",
+                "url": "https://www.cnss.gov.lb/",
+                "note": "Registration",
+                "audience": "both",
+            },
+        ]
+    }
+
+    assert client.put(path, headers=headers, json={"links": []}).json() == {"links": []}
+    assert client.put(path, headers=headers, json={"links": None}).json() == {"links": None}
+
+
+def test_a_jobs_sidebar_link_must_be_a_web_address(client: TestClient, admin: User) -> None:
+    path = "/api/admin/site-settings/job-links"
+    for url in ("javascript:alert(1)", "not a link", "ftp://example.org", "a b.org"):
+        refused = client.put(
+            path, headers=admin_headers(client), json={"links": [{"title": "x", "url": url}]}
+        )
+        assert refused.status_code == 422, url
+
+
+def test_only_staff_set_the_jobs_sidebar_links(client: TestClient) -> None:
+    path = "/api/admin/site-settings/job-links"
+    assert client.put(path, json={"links": None}).status_code == 401
+    owner = sign_in(client, "03990001")
+    assert client.put(path, headers=owner, json={"links": None}).status_code == 403

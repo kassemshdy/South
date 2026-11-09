@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
 import { CoverUpload } from '@/features/admin/CoverUpload'
+import { JobLinksEditor } from '@/features/admin/JobLinksEditor'
 import { WELCOME_POSTERS, WELCOME_VIDEO_ID } from '@/features/home/WelcomeVideo'
 import { useT, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
@@ -169,6 +170,8 @@ export function AdminSiteSettingsPage() {
       )}
 
       <CredentialsMessage />
+
+      <JobLinksEditor />
 
       <VideoPosters homeVideo={current.data?.home_video ?? null} />
     </div>
