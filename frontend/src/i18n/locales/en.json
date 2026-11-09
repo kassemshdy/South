@@ -2297,5 +2297,16 @@
   "admin.strayPinsTitle": "Map locations to check",
   "admin.farPinsHeading": "{count} locations far from their district",
   "admin.farPinsHint": "Inside Lebanon but far from the other pins of the same district. The owner may be displaced and pinned where they live now, so these stay on the map. Open each one, check it, and correct it if it is wrong.",
-  "admin.farPinKm": "{count} km from the district"
+  "admin.farPinKm": "{count} km from the district",
+  "adminMapPins.nav": "Locations to check",
+  "adminMapPins.subtitle": "Map locations that need correcting. Each has a suggestion from the other listings in the same town, or in the district when the town has none.",
+  "adminMapPins.empty": "Every map location looks right.",
+  "adminMapPins.fixAll": "Fix {count} automatically",
+  "adminMapPins.fixAllConfirm": "Move {count} locations to their suggested places?",
+  "adminMapPins.apply": "Move to the suggestion",
+  "adminMapPins.applied": "{moved} moved, {skipped} left",
+  "adminMapPins.suggestTown": "Suggestion: the middle of the same town's locations",
+  "adminMapPins.suggestDistrict": "Suggestion: the middle of the district (no other locations in the town)",
+  "adminMapPins.noSuggestion": "No suggestion: correct it by hand from its page",
+  "adminMapPins.notPublished": "Not published"
 }

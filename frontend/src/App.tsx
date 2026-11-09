@@ -128,6 +128,11 @@ const AdminServiceRequestsPage = lazy(() =>
     default: m.AdminServiceRequestsPage,
   })),
 )
+const AdminMapLocationsPage = lazy(() =>
+  import('@/pages/admin/AdminMapLocationsPage').then((m) => ({
+    default: m.AdminMapLocationsPage,
+  })),
+)
 const AdminContactedShopsPage = lazy(() =>
   import('@/pages/admin/AdminContactedShopsPage').then((m) => ({
     default: m.AdminContactedShopsPage,
@@ -392,6 +397,7 @@ export function App() {
             <Route path="articles" element={<AdminArticlesPage />} />
             <Route path="shops-without-products" element={<AdminShopsWithoutProductsPage />} />
             <Route path="contacted-shops" element={<AdminContactedShopsPage />} />
+            <Route path="map-locations" element={<AdminMapLocationsPage />} />
             <Route path="workshops" element={<AdminWorkshopsPage />} />
             <Route path="activities" element={<AdminActivitiesPage />} />
             <Route path="carousel" element={<AdminCarouselPage />} />

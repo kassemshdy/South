@@ -2,25 +2,21 @@
 
 from __future__ import annotations
 
-import math
-import statistics
 import uuid
 from datetime import UTC, date, datetime, time, timedelta
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Query
 from sqlalchemy import Date, cast, func, select
-from sqlalchemy.orm import aliased
 
 from app.api.serializers import admin_user
 from app.core.dependencies import AdminUser, DbSession
-from app.core.pins import in_lebanon
 from app.models.analytics import ListingViewDaily
 from app.models.business import Business, BusinessItem
 from app.models.enums import BusinessStatus, TestimonialStatus, UserRole, ViewSubject
 from app.models.order import Order
 from app.models.talent import TalentProfile
-from app.models.taxonomy import Category, Location
+from app.models.taxonomy import Category
 from app.models.testimonial import Testimonial
 from app.models.user import User
 from app.repositories.business import BusinessRepository
@@ -35,10 +31,13 @@ from app.schemas.common import (
     PaginatedResponse,
     StatsResponse,
     StrayPinOut,
+    StrayPinsAppliedOut,
+    StrayPinsApplyIn,
 )
 from app.schemas.growth_report import GrowthPlanIn, GrowthPlanOut, GrowthReportOut
 from app.schemas.moderation import AdminUserOut
 from app.services.growth_report import GrowthReportService
+from app.services.map_pins import apply_suggestions, pins_to_check
 
 router = APIRouter(prefix="/admin", tags=["admin-stats"])
 
@@ -206,80 +205,40 @@ def contacted_shops(
     return shops
 
 
-#: How far a pin may sit from the middle of its district's other pins
-#: before staff are asked to look at it. A district in the South is about
-#: 20-30 km across, so a pin further than this is in another district.
-FAR_PIN_KM = 25
-#: A district needs this many pins before its middle means anything.
-FAR_PIN_MIN_PEERS = 3
-
-
-def _km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
-    """Distance on a flat map: accurate to a few percent across Lebanon."""
-    return math.hypot((lat1 - lat2) * 111.0, (lng1 - lng2) * 111.0 * math.cos(math.radians(33.6)))
-
-
 @router.get("/stats/stray-pins", response_model=list[StrayPinOut])
 def stray_pins(db: DbSession, admin: AdminUser) -> list[StrayPinOut]:
-    """Every shop and service profile, whatever its status, whose pin needs
-    a person to look at it: outside Lebanon (saved before pins were checked,
-    and hidden from the public maps), or inside it but far from the other
-    pins of its district (9 Nov 2026). Outside first, then furthest first."""
-    district = aliased(Location)
-    rows: list[tuple[str, uuid.UUID, str, str | None, str | None, float, float]] = []
-    for kind, model, name_col in (
-        ("business", Business, Business.name),
-        ("service", TalentProfile, TalentProfile.display_name),
-    ):
-        for listing_id, name, town, district_name, lat, lng in db.execute(
-            select(
-                model.id,
-                name_col,
-                Location.name_ar,
-                # A town's district; a listing placed on a district itself
-                # counts with that district.
-                func.coalesce(district.name_ar, Location.name_ar),
-                model.latitude,
-                model.longitude,
-            )
-            .outerjoin(Location, model.location_id == Location.id)
-            .outerjoin(district, Location.parent_id == district.id)
-            .where(model.latitude.is_not(None), model.longitude.is_not(None))
-        ).all():
-            rows.append((kind, listing_id, name, town, district_name, float(lat), float(lng)))
+    """Every shop and service profile, whatever its status, whose map
+    location needs a person to look at it, with a suggestion where one can
+    be made -- see ``app.services.map_pins``."""
+    return [
+        StrayPinOut(
+            kind=pin.kind,
+            id=pin.id,
+            name=pin.name,
+            town=pin.town,
+            published=pin.published,
+            latitude=pin.latitude,
+            longitude=pin.longitude,
+            reason=pin.reason or "outside",
+            km_from_district=pin.km_from_district,
+            suggested_latitude=pin.suggested[0] if pin.suggested else None,
+            suggested_longitude=pin.suggested[1] if pin.suggested else None,
+            suggested_from=pin.suggested_from,
+        )
+        for pin in pins_to_check(db)
+    ]
 
-    inside = [row for row in rows if in_lebanon(row[5], row[6])]
-    by_district: dict[str, list[tuple[float, float]]] = {}
-    for row in inside:
-        if row[4]:
-            by_district.setdefault(row[4], []).append((row[5], row[6]))
-    middle = {
-        name: (statistics.median(p[0] for p in pins), statistics.median(p[1] for p in pins))
-        for name, pins in by_district.items()
-        if len(pins) >= FAR_PIN_MIN_PEERS
-    }
 
-    outside: list[StrayPinOut] = []
-    far: list[StrayPinOut] = []
-    for kind, listing_id, name, town, district_name, lat, lng in rows:
-        common = {
-            "kind": kind,
-            "id": listing_id,
-            "name": name,
-            "town": town,
-            "latitude": lat,
-            "longitude": lng,
-        }
-        if not in_lebanon(lat, lng):
-            outside.append(StrayPinOut(**common, reason="outside"))  # type: ignore[arg-type]
-        elif district_name in middle:
-            km = _km(lat, lng, *middle[district_name])
-            if km > FAR_PIN_KM:
-                far.append(
-                    StrayPinOut(**common, reason="far", km_from_district=round(km))  # type: ignore[arg-type]
-                )
-    far.sort(key=lambda pin: pin.km_from_district or 0, reverse=True)
-    return outside + far
+@router.post("/stats/stray-pins/apply", response_model=StrayPinsAppliedOut)
+def apply_stray_pins(
+    payload: StrayPinsApplyIn, db: DbSession, admin: AdminUser
+) -> StrayPinsAppliedOut:
+    """Move the chosen listings to their suggested locations (the owners'
+    request, 9 Nov 2026: fix them automatically). A person chooses which:
+    the page offers every location outside Lebanon at once, and a far one
+    only on its own, since it may be a displaced owner's real address."""
+    moved, skipped = apply_suggestions(db, set(payload.ids), staff=str(admin.id))
+    return StrayPinsAppliedOut(moved=moved, skipped=skipped)
 
 
 @router.get("/stats/growth", response_model=GrowthResponse)

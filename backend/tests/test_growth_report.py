@@ -385,3 +385,38 @@ def test_a_pin_far_from_its_district_is_listed_for_staff_but_stays_public(
     assert [(row["id"], row["reason"]) for row in stray] == [(str(far.id), "far")]
     assert 60 <= stray[0]["km_from_district"] <= 75
     assert far.slug in client.get("/api/map/listings").text
+
+
+def test_a_location_across_the_border_is_moved_to_its_town_s_middle(
+    client: TestClient, db: Session, admin: User, category: Category, location: Location
+) -> None:
+    """The owners' request (9 Nov 2026): fix them automatically. A location
+    outside Lebanon gets the middle of the other locations in its town as a
+    suggestion, and staff move it there in one step; it is public again."""
+    for n in range(3):
+        _shop(client, db, category, location, f"0388084{n}", ar("business.first") + str(n))
+    stray = _shop(client, db, category, location, "03880849", ar("business.second"))
+    stray.latitude, stray.longitude = Decimal("33.18972"), Decimal("35.63578")
+    db.commit()
+    headers = admin_headers(client)
+
+    listed = client.get("/api/admin/stats/stray-pins", headers=headers).json()
+    assert [(row["id"], row["reason"], row["suggested_from"]) for row in listed] == [
+        (str(stray.id), "outside", "town")
+    ]
+    assert (listed[0]["suggested_latitude"], listed[0]["suggested_longitude"]) == (33.27, 35.2)
+    assert stray.slug not in client.get("/api/map/listings").text
+
+    applied = client.post(
+        "/api/admin/stats/stray-pins/apply", headers=headers, json={"ids": [str(stray.id)]}
+    )
+    assert applied.status_code == 200, applied.text
+    assert applied.json() == {"moved": 1, "skipped": 0}
+    assert client.get("/api/admin/stats/stray-pins", headers=headers).json() == []
+    assert stray.slug in client.get("/api/map/listings").text
+
+    owner = sign_in(client, "03880849")
+    refused = client.post(
+        "/api/admin/stats/stray-pins/apply", headers=owner, json={"ids": [str(stray.id)]}
+    )
+    assert refused.status_code == 403
