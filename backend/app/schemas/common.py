@@ -121,3 +121,16 @@ class ContactedShopOut(BaseModel):
     orders: int
     last_contact: date | None = None
     owner_phone: str | None = None
+
+
+class StrayPinOut(BaseModel):
+    """A listing whose map pin falls outside Lebanon -- saved before pins
+    were checked -- for staff to move. Hidden from every public map until
+    then (see ``public_pin``)."""
+
+    kind: Literal["business", "service"]
+    id: uuid.UUID
+    name: str
+    town: str | None = None
+    latitude: float
+    longitude: float

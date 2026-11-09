@@ -13,6 +13,7 @@ from decimal import Decimal
 from typing import Any, TypeVar
 
 from app.core.pagination import Page
+from app.core.pins import public_pin
 from app.models.article import Article
 from app.models.business import Business, BusinessItem
 from app.models.enums import BusinessStatus, Currency, ImageKind, TalentKind
@@ -167,8 +168,8 @@ def business_detail(
         website=business.website,
         youtube_video_id=business.youtube_video_id,
         address_text=business.address_text,
-        latitude=float(business.latitude) if business.latitude is not None else None,
-        longitude=float(business.longitude) if business.longitude is not None else None,
+        latitude=public_pin(business.latitude, business.longitude)[0],
+        longitude=public_pin(business.latitude, business.longitude)[1],
         maps_url=business.maps_url,
         years_of_experience=business.years_of_experience,
         images=_gallery(business),
@@ -422,8 +423,8 @@ def talent_detail(
         website=profile.website,
         preferred_contact=profile.preferred_contact,
         youtube_video_id=profile.youtube_video_id,
-        latitude=float(profile.latitude) if profile.latitude is not None else None,
-        longitude=float(profile.longitude) if profile.longitude is not None else None,
+        latitude=public_pin(profile.latitude, profile.longitude)[0],
+        longitude=public_pin(profile.latitude, profile.longitude)[1],
         images=_talent_gallery(profile),
         approved_at=profile.approved_at,
         testimonials=[
