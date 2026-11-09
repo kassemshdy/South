@@ -1,4 +1,4 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query'
 import { Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -7,10 +7,13 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/States'
+import { useToast } from '@/components/ui/Toast'
+import { useStaffCan } from '@/features/admin/staffAccess'
 import { Pagination } from '@/features/businesses/Pagination'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
 import { useI18n, type TranslationKey } from '@/i18n'
-import { adminApi } from '@/services/api/endpoints'
+import { ApiError } from '@/services/api/client'
+import { adminApi, type AdminBusinessSort } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { BusinessStatus } from '@/types/api'
 import { cn } from '@/utils/cn'
@@ -31,8 +34,19 @@ export function AdminBusinessesPage() {
   const status = (statusParam as BusinessStatus | null) ?? 'PENDING_REVIEW'
   const page = Number(searchParams.get('page') ?? '1')
   const q = searchParams.get('q') ?? ''
-  const [searchInput, setSearchInput] = useState(q)
   const { t, locale } = useI18n()
+  const sortParam = searchParams.get('sort')
+  const sort: AdminBusinessSort =
+    sortParam === 'instagram' || sortParam === 'facebook' ? sortParam : 'newest'
+  const canRefreshFollowers = useStaffCan('manage')
+  const toast = useToast()
+  const refreshFollowers = useMutation({
+    mutationFn: adminApi.refreshFollowers,
+    onSuccess: (result) => toast.success(result.message),
+    onError: (error) =>
+      toast.error(error instanceof ApiError ? error.message : t('states.errorFallback')),
+  })
+  const [searchInput, setSearchInput] = useState(q)
 
   // Follow the address when it changes from outside (a link, the back
   // button), but never undo what is being typed: a trailing space the search
@@ -62,11 +76,15 @@ export function AdminBusinessesPage() {
   }, [searchInput, q, setSearchParams])
 
   const results = useQuery({
-    queryKey: queryKeys.adminBusinesses(statusParam === 'ALL' ? undefined : status, page, q),
+    queryKey: [
+      ...queryKeys.adminBusinesses(statusParam === 'ALL' ? undefined : status, page, q),
+      sort,
+    ],
     queryFn: () =>
       adminApi.businesses({
         ...(statusParam === 'ALL' ? {} : { status }),
         ...(q ? { q } : {}),
+        ...(sort === 'newest' ? {} : { sort }),
         page,
         page_size: 20,
       }),
@@ -110,6 +128,44 @@ export function AdminBusinessesPage() {
             </button>
           )
         })}
+      </div>
+
+      {/* Sort by followers (the owners' request, 9 Nov 2026); the counts are
+          read daily through Apify, and a manager can refresh them now. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-semibold text-ink-500">{t('adminFollowers.sortLabel')}</span>
+        {(
+          [
+            ['newest', 'adminFollowers.sortNewest'],
+            ['instagram', 'adminFollowers.sortInstagram'],
+            ['facebook', 'adminFollowers.sortFacebook'],
+          ] as const
+        ).map(([value, labelKey]) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={sort === value}
+            onClick={() => update({ sort: value === 'newest' ? '' : value })}
+            className={cn(
+              'rounded-full px-3 py-1.5 text-sm font-semibold transition-colors',
+              sort === value
+                ? 'bg-brand-800 text-white'
+                : 'bg-white text-ink-700 ring-1 ring-ink-100 hover:bg-sand-100',
+            )}
+          >
+            {t(labelKey)}
+          </button>
+        ))}
+        {canRefreshFollowers ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            loading={refreshFollowers.isPending}
+            onClick={() => refreshFollowers.mutate()}
+          >
+            {t('adminFollowers.refresh')}
+          </Button>
+        ) : null}
       </div>
 
       <form
@@ -175,6 +231,25 @@ export function AdminBusinessesPage() {
                               {business.owner_phone ?? t('common.dash')}
                             </span>
                           </p>
+                          {business.instagram_followers != null ||
+                          business.facebook_followers != null ? (
+                            <p className="ltr-nums text-xs font-semibold text-ink-500">
+                              {[
+                                business.instagram_followers != null
+                                  ? t('adminFollowers.instagram', {
+                                      count: business.instagram_followers.toLocaleString('en'),
+                                    })
+                                  : null,
+                                business.facebook_followers != null
+                                  ? t('adminFollowers.facebook', {
+                                      count: business.facebook_followers.toLocaleString('en'),
+                                    })
+                                  : null,
+                              ]
+                                .filter(Boolean)
+                                .join(' · ')}
+                            </p>
+                          ) : null}
                           <p className="text-xs text-ink-300">
                             {business.status === 'PENDING_REVIEW'
                               ? t('admin.submittedAgo', {

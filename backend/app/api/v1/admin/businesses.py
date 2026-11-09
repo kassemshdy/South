@@ -12,7 +12,7 @@ from datetime import UTC, datetime
 from typing import Annotated
 
 import httpx
-from fastapi import APIRouter, File, Form, Query, Response, UploadFile
+from fastapi import APIRouter, BackgroundTasks, File, Form, Query, Response, UploadFile
 from sqlalchemy import func, select, update
 
 from app.api.serializers import admin_business, paginate
@@ -21,9 +21,10 @@ from app.core.downloads import content_disposition
 from app.core.errors import AppError, NotFoundError, PayloadTooLargeError, ValidationError
 from app.core.i18n import translate
 from app.core.uploads import read_at_most
+from app.database.session import SessionLocal
 from app.models.business import BusinessItem
 from app.models.enums import BusinessStatus, ImageKind
-from app.repositories.business import BusinessRepository
+from app.repositories.business import AdminSort, BusinessRepository
 from app.schemas.business import BusinessUpdateIn
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.growth_report import ShopViewsOut
@@ -40,7 +41,7 @@ from app.schemas.moderation import (
     SmsStatusOut,
     SuspendIn,
 )
-from app.services import staff_notices, telegram_archive
+from app.services import social_followers, staff_notices, telegram_archive
 from app.services.account import AccountDeletionService
 from app.services.business import BusinessService
 from app.services.business_documents import BusinessDocumentService
@@ -77,10 +78,14 @@ def list_businesses(
     contacted: Annotated[
         bool | None, Query(description="Only shops staff have (true) or have not (false) contacted")
     ] = None,
+    sort: Annotated[
+        AdminSort, Query(description="newest, or most Instagram/Facebook followers")
+    ] = "newest",
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> PaginatedResponse[AdminBusinessOut]:
     results = BusinessRepository(db).list_for_admin(
+        sort=sort,
         status=status,
         q=q,
         without_products=without_products,
@@ -156,6 +161,24 @@ def business_views(business_id: uuid.UUID, db: DbSession, admin: AdminUser) -> S
     business = _load(db, business_id)
     page, products = GrowthReportService(db).shop_views(business.id, VIEWS_DAYS)
     return ShopViewsOut(days=VIEWS_DAYS, page_views=page, product_views=products)
+
+
+@router.post("/businesses/followers/refresh", response_model=MessageResponse)
+def refresh_followers(
+    background: BackgroundTasks, settings: AppSettings, admin: AdminUser
+) -> MessageResponse:
+    """Read every shop's follower counts now rather than at the next daily
+    run. Answers at once; the counts arrive in a few minutes."""
+    if not settings.apify_token:
+        raise AppError("followers.not_configured", code="followers_not_configured", status_code=503)
+    token = settings.apify_token
+
+    def run() -> None:
+        with httpx.Client(timeout=330) as client, SessionLocal() as session:
+            social_followers.refresh(session, social_followers.ApifyFollowers(token, client))
+
+    background.add_task(run)
+    return MessageResponse(message=translate("followers.refresh_started"))
 
 
 @router.get("/sms", response_model=SmsStatusOut)

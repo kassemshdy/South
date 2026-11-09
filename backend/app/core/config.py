@@ -273,6 +273,13 @@ class Settings(BaseSettings):
     bestsms_api_secret: str | None = None
     bestsms_sender_id: str | None = None
 
+    # --- Social follower counts (Apify) ---------------------------------------
+    # Instagram and Facebook follower counts of each shop's own pages, read
+    # once a day through Apify's ready-made scrapers (the owners' request,
+    # 9 Nov 2026). Unset means nothing is fetched. A Railway secret.
+    apify_token: str | None = None
+    followers_refresh_hours: int = 24
+
     # --- Telegram archive --------------------------------------------------
     # Every save a user makes, posted to a Telegram chat with any files
     # attached (app/services/telegram_archive.py). Both unset means nothing

@@ -63,6 +63,7 @@ from app.services import (
     job_applications,
     media_replica,
     outbox,
+    social_followers,
     telegram_archive,
     telegram_db_backup,
     verification,
@@ -124,6 +125,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 interval_hours=settings.telegram_db_backup_hours,
             )
         )
+    # Instagram/Facebook follower counts through Apify, once a day.
+    followers: asyncio.Task[None] | None = None
+    if settings.is_production and settings.apify_token and settings.followers_refresh_hours > 0:
+        followers = asyncio.create_task(
+            social_followers.run_daily(
+                SessionLocal, settings.apify_token, settings.followers_refresh_hours
+            )
+        )
     # Pushes to the Shopify Connector (app/services/outbox.py).
     pushes: asyncio.Task[None] | None = None
     push_http: httpx.Client | None = None
@@ -147,6 +156,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         replica.cancel()
     if telegram_copies is not None:
         telegram_copies.cancel()
+    if followers is not None:
+        followers.cancel()
     logger.info("Application stopping")
 
 
