@@ -1727,4 +1727,7 @@ export interface StrayPin {
   town: string | null
   latitude: number
   longitude: number
+  /** outside: across the border, hidden publicly; far: far from its district. */
+  reason: 'outside' | 'far'
+  km_from_district: number | null
 }
