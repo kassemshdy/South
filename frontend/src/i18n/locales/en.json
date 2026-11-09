@@ -2273,5 +2273,19 @@
   "admin.jobLinksReset": "Restore the original list",
   "admin.viewsWhatsapp": "Hello 👋\nYour Janoubona page was viewed {total} times in the last {days} days.\nShare its link with people you know so more can find it:\n{link}",
   "admin.viewsWhatsappButton": "Send views on WhatsApp",
-  "admin.viewsWhatsappHint": "Page: {page} views, products: {products} views, last {days} days"
+  "admin.viewsWhatsappHint": "Page: {page} views, products: {products} views, last {days} days",
+  "adminContacted.nav": "Shops visitors contacted",
+  "adminContacted.title": "Shops visitors contacted through the site",
+  "adminContacted.subtitle": "Shops whose WhatsApp or call button visitors pressed, or that got an order through the site. Ask their owners for a video or a testimonial.",
+  "adminContacted.period": "Period",
+  "adminContacted.lastDays": "Last {count} days",
+  "adminContacted.empty": "No shop was contacted in this period.",
+  "adminContacted.count": "{count} shops",
+  "adminContacted.clicks": "{count} contact presses",
+  "adminContacted.orders": "{count} orders",
+  "adminContacted.lastContact": "Last contact: {date}",
+  "adminContacted.askButton": "Ask for a video or testimonial",
+  "adminContacted.call": "Call",
+  "adminContacted.openPage": "Shop page",
+  "adminContacted.whatsapp": "Hello 👋\nWe noticed customers reached you through your Janoubona page.\nCould you help us with a short video or a few words about your experience? Your story encourages others from the South to join."
 }

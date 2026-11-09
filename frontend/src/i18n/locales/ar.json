@@ -2273,5 +2273,19 @@
   "admin.jobLinksReset": "استعادة القائمة الأصلية",
   "admin.viewsWhatsapp": "مرحبًا 👋\nصفحتك على جنوبنا شوهدت {total} مرة خلال آخر {days} يومًا.\nشارك رابطها مع معارفك ليصل إليها المزيد:\n{link}",
   "admin.viewsWhatsappButton": "أرسل المشاهدات على واتساب",
-  "admin.viewsWhatsappHint": "الصفحة: {page} مشاهدة، المنتجات: {products} مشاهدة، خلال آخر {days} يومًا"
+  "admin.viewsWhatsappHint": "الصفحة: {page} مشاهدة، المنتجات: {products} مشاهدة، خلال آخر {days} يومًا",
+  "adminContacted.nav": "متاجر تواصل معها الزوار",
+  "adminContacted.title": "متاجر تواصل معها الزوار عبر المنصّة",
+  "adminContacted.subtitle": "المتاجر التي ضغط زوارها زرّ واتساب أو الاتصال في صفحتها، أو طلبوا منها عبر المنصّة. تواصلوا مع أصحابها لطلب فيديو أو شهادة عن تجربتهم.",
+  "adminContacted.period": "الفترة",
+  "adminContacted.lastDays": "آخر {count} يومًا",
+  "adminContacted.empty": "لم يتواصل الزوار مع أي متجر في هذه الفترة.",
+  "adminContacted.count": "{count} متجرًا",
+  "adminContacted.clicks": "{count} نقرة تواصل",
+  "adminContacted.orders": "{count} طلب",
+  "adminContacted.lastContact": "آخر تواصل: {date}",
+  "adminContacted.askButton": "اطلب فيديو أو شهادة",
+  "adminContacted.call": "اتصال",
+  "adminContacted.openPage": "صفحة المتجر",
+  "adminContacted.whatsapp": "مرحبًا 👋\nلاحظنا أن زبائن تواصلوا معك عبر صفحتك على جنوبنا.\nهل تساعدنا بفيديو قصير أو بكلمة عن تجربتك؟ قصتك تشجّع غيرك من أهل الجنوب على الانضمام."
 }

@@ -313,3 +313,56 @@ def test_staff_read_one_shop_s_views_to_send_its_owner(
 
     assert client.get(path).status_code == 401
     assert client.get(path, headers=sign_in(client, "03880811")).status_code == 403
+
+
+def test_staff_list_the_shops_visitors_reached_through_the_site(
+    client: TestClient, db: Session, admin: User, category: Category, location: Location
+) -> None:
+    """A WhatsApp or call press, or an order, puts a published shop on the
+    list with its owner's account number; nothing about the visitor."""
+    pressed = _shop(client, db, category, location, "03880821", ar("business.first"))
+    ordered = _shop(client, db, category, location, "03880822", ar("business.second"))
+    _shop(client, db, category, location, "03880823", ar("business.other_shop"))
+    today = datetime.now(UTC).date()
+    db.add(
+        ListingViewDaily(
+            subject_type=ViewSubject.BUSINESS,
+            subject_id=pressed.id,
+            day=today,
+            views=10,
+            contact_clicks=4,
+        )
+    )
+    db.add(
+        ListingViewDaily(
+            subject_type=ViewSubject.BUSINESS,
+            subject_id=ordered.id,
+            day=today - timedelta(days=200),
+            views=1,
+            contact_clicks=9,
+        )
+    )
+    db.add(
+        Order(
+            business_id=ordered.id,
+            customer_name=ar("order.customer"),
+            customer_phone=CUSTOMER_PHONE,
+            status=OrderStatus.NEW,
+        )
+    )
+    db.commit()
+
+    path = "/api/admin/stats/contacted-shops"
+    body = client.get(path, headers=admin_headers(client)).json()
+    assert [(s["slug"], s["contact_clicks"], s["orders"]) for s in body] == [
+        (pressed.slug, 4, 0),
+        (ordered.slug, 0, 1),
+    ]
+    assert body[0]["owner_phone"] and body[0]["last_contact"] == today.isoformat()
+    assert CUSTOMER_PHONE not in str(body)
+
+    year = client.get(f"{path}?days=365", headers=admin_headers(client)).json()
+    assert [(s["contact_clicks"], s["orders"]) for s in year] == [(9, 1), (4, 0)]
+
+    assert client.get(path).status_code == 401
+    assert client.get(path, headers=sign_in(client, "03880821")).status_code == 403
