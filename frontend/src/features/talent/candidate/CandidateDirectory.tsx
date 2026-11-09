@@ -26,6 +26,7 @@ import { BrowseSwitcher } from '@/features/onboarding/BrowseSwitcher'
 import { SearchBox } from '@/features/search/SearchBox'
 import { CandidateBanner } from '@/features/talent/candidate/CandidateBanner'
 import { CandidateCard } from '@/features/talent/candidate/CandidateCard'
+import { JobLinksSidebar } from '@/features/jobs/JobLinksSidebar'
 import {
   EDUCATION_KEYS,
   EDUCATION_LEVELS,
@@ -235,195 +236,203 @@ export function CandidateDirectory() {
       <div className="container-page py-8">
         <BrowseSwitcher current="jobs" />
 
-        <div className="mb-4">
-          <SearchBox
-            appearance="page"
-            value={q}
-            label={t('talent.searchLabel')}
-            onSearch={(value) => updateParams({ q: value })}
-          >
-            <Button
-              type="button"
-              variant="outline"
-              className="h-12 shrink-0 sm:hidden"
-              onClick={() => setFiltersOpen((open) => !open)}
-              aria-expanded={filtersOpen}
-            >
-              <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
-              {t('candidate.filtersButton')}
-            </Button>
-          </SearchBox>
-        </div>
-
-        <div className={cn('mb-4 gap-3 sm:grid-cols-3 lg:grid-cols-6', filtersOpen ? 'grid' : 'hidden sm:grid')}>
-          <div>
-            <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="filter-skill">
-              {t('talent.skill')}
-            </label>
-            <Select
-              value={skill || ALL}
-              onValueChange={(value) => updateParams({ skill: value === ALL ? '' : value })}
-            >
-              <SelectTrigger aria-labelledby="filter-skill">
-                <SelectValue placeholder={t('talent.allSkills')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>{t('talent.allSkills')}</SelectItem>
-                {[...(skills.data ?? [])]
-                  .sort((a, b) => b.job_count - a.job_count)
-                  .map((item) => (
-                    <SelectItem key={item.id} value={item.slug}>
-                      {t('directory.categoryWithCount', { name: item.name_ar, count: item.job_count })}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-sm font-semibold text-ink-700" htmlFor="filter-location">
-              {t('directory.location')}
-            </label>
-            <LocationCombobox
-              id="filter-location"
-              by="slug"
-              emptyLabel={t('directory.allLocations')}
-              value={location}
-              onChange={(value) => updateParams({ location: value })}
-              groups={groups}
-              placeholder={t('directory.allLocations')}
-              countOf={jobCount}
-            />
-          </div>
-
-          {selectFilter(
-            'filter-experience',
-            t('candidate.filterExperience'),
-            experience,
-            'experience',
-            EXPERIENCE_BANDS.map((band) => ({ value: band, label: t(EXPERIENCE_KEYS[band]) })),
-          )}
-          {selectFilter(
-            'filter-education',
-            t('candidate.filterEducation'),
-            education,
-            'education',
-            EDUCATION_LEVELS.map((level) => ({ value: level, label: t(EDUCATION_KEYS[level]) })),
-          )}
-          {selectFilter(
-            'filter-work-type',
-            t('candidate.filterWorkType'),
-            workType,
-            'work_type',
-            WORK_TYPES.map((type) => ({ value: type, label: t(WORK_TYPE_KEYS[type]) })),
-          )}
-
-          <div>
-            <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="filter-sort">
-              {t('directory.sort')}
-            </label>
-            <Select value={sort} onValueChange={(value) => chooseSort(value as CandidateSort)}>
-              <SelectTrigger aria-labelledby="filter-sort">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {SORTS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {t(option.key)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className={cn('mb-6 flex-wrap items-center gap-2', filtersOpen ? 'flex' : 'hidden sm:flex')}>
-          <Chip
-            active={availableNow}
-            onClick={() => toggle('available_now', availableNow)}
-            icon={<Zap className="h-4 w-4" aria-hidden="true" />}
-          >
-            {t('candidate.chipAvailableNow')}
-          </Chip>
-          <Chip
-            active={hasCv}
-            onClick={() => toggle('has_cv', hasCv)}
-            icon={<FileText className="h-4 w-4" aria-hidden="true" />}
-          >
-            {t('candidate.chipHasCv')}
-          </Chip>
-          <Chip
-            active={verified}
-            onClick={() => toggle('verified', verified)}
-            icon={<BadgeCheck className="h-4 w-4" aria-hidden="true" />}
-          >
-            {t('candidate.chipVerified')}
-          </Chip>
-          <Chip
-            active={sort === 'nearest'}
-            loading={locating}
-            onClick={() => chooseSort('nearest')}
-            icon={<LocateFixed className="h-4 w-4" aria-hidden="true" />}
-          >
-            {t('candidate.chipNearest')}
-          </Chip>
-          <Chip
-            active={displaced}
-            onClick={() => toggle('displaced', displaced)}
-            icon={<House className="h-4 w-4" aria-hidden="true" />}
-          >
-            {t('candidate.chipDisplaced')}
-          </Chip>
-          {hasFilters ? (
-            <Button variant="ghost" size="sm" onClick={resetFilters}>
-              <X className="h-4 w-4" aria-hidden="true" />
-              {t('states.clearFilters')}
-            </Button>
-          ) : null}
-        </div>
-
-        <div aria-live="polite" aria-busy={results.isFetching}>
-          {results.isLoading ? (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, index) => (
-                <BusinessCardSkeleton key={index} />
-              ))}
+        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start lg:gap-8">
+          <div className="min-w-0">
+            <div className="mb-4">
+              <SearchBox
+                appearance="page"
+                value={q}
+                label={t('talent.searchLabel')}
+                onSearch={(value) => updateParams({ q: value })}
+              >
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-12 shrink-0 sm:hidden"
+                  onClick={() => setFiltersOpen((open) => !open)}
+                  aria-expanded={filtersOpen}
+                >
+                  <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
+                  {t('candidate.filtersButton')}
+                </Button>
+              </SearchBox>
             </div>
-          ) : results.isError ? (
-            <ErrorState error={results.error} onRetry={() => void results.refetch()} />
-          ) : results.data && results.data.items.length > 0 ? (
-            <>
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {results.data.items.map((talent) => (
-                  <CandidateCard key={talent.id} talent={talent} />
-                ))}
+
+            <div className={cn('mb-4 gap-3 sm:grid-cols-3 lg:grid-cols-3 2xl:grid-cols-6', filtersOpen ? 'grid' : 'hidden sm:grid')}>
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="filter-skill">
+                  {t('talent.skill')}
+                </label>
+                <Select
+                  value={skill || ALL}
+                  onValueChange={(value) => updateParams({ skill: value === ALL ? '' : value })}
+                >
+                  <SelectTrigger aria-labelledby="filter-skill">
+                    <SelectValue placeholder={t('talent.allSkills')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL}>{t('talent.allSkills')}</SelectItem>
+                    {[...(skills.data ?? [])]
+                      .sort((a, b) => b.job_count - a.job_count)
+                      .map((item) => (
+                        <SelectItem key={item.id} value={item.slug}>
+                          {t('directory.categoryWithCount', { name: item.name_ar, count: item.job_count })}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <Pagination
-                meta={results.data.meta}
-                onChange={(nextPage) => updateParams({ page: String(nextPage) })}
-              />
-            </>
-          ) : (
-            <EmptyState
-              icon={<SearchX className="h-7 w-7" aria-hidden="true" />}
-              title={t('candidate.emptyTitle')}
-              action={
-                <div className="flex flex-wrap justify-center gap-2">
-                  {hasFilters ? (
-                    <Button variant="outline" onClick={resetFilters}>
-                      {t('states.clearFilters')}
-                    </Button>
-                  ) : null}
-                  <Button asChild variant="ghost">
-                    <Link to="/vacancies/offer">
-                      <BriefcaseBusiness className="h-4 w-4" aria-hidden="true" />
-                      {t('candidate.postJob')}
-                    </Link>
-                  </Button>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-ink-700" htmlFor="filter-location">
+                  {t('directory.location')}
+                </label>
+                <LocationCombobox
+                  id="filter-location"
+                  by="slug"
+                  emptyLabel={t('directory.allLocations')}
+                  value={location}
+                  onChange={(value) => updateParams({ location: value })}
+                  groups={groups}
+                  placeholder={t('directory.allLocations')}
+                  countOf={jobCount}
+                />
+              </div>
+
+              {selectFilter(
+                'filter-experience',
+                t('candidate.filterExperience'),
+                experience,
+                'experience',
+                EXPERIENCE_BANDS.map((band) => ({ value: band, label: t(EXPERIENCE_KEYS[band]) })),
+              )}
+              {selectFilter(
+                'filter-education',
+                t('candidate.filterEducation'),
+                education,
+                'education',
+                EDUCATION_LEVELS.map((level) => ({ value: level, label: t(EDUCATION_KEYS[level]) })),
+              )}
+              {selectFilter(
+                'filter-work-type',
+                t('candidate.filterWorkType'),
+                workType,
+                'work_type',
+                WORK_TYPES.map((type) => ({ value: type, label: t(WORK_TYPE_KEYS[type]) })),
+              )}
+
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="filter-sort">
+                  {t('directory.sort')}
+                </label>
+                <Select value={sort} onValueChange={(value) => chooseSort(value as CandidateSort)}>
+                  <SelectTrigger aria-labelledby="filter-sort">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SORTS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {t(option.key)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className={cn('mb-6 flex-wrap items-center gap-2', filtersOpen ? 'flex' : 'hidden sm:flex')}>
+              <Chip
+                active={availableNow}
+                onClick={() => toggle('available_now', availableNow)}
+                icon={<Zap className="h-4 w-4" aria-hidden="true" />}
+              >
+                {t('candidate.chipAvailableNow')}
+              </Chip>
+              <Chip
+                active={hasCv}
+                onClick={() => toggle('has_cv', hasCv)}
+                icon={<FileText className="h-4 w-4" aria-hidden="true" />}
+              >
+                {t('candidate.chipHasCv')}
+              </Chip>
+              <Chip
+                active={verified}
+                onClick={() => toggle('verified', verified)}
+                icon={<BadgeCheck className="h-4 w-4" aria-hidden="true" />}
+              >
+                {t('candidate.chipVerified')}
+              </Chip>
+              <Chip
+                active={sort === 'nearest'}
+                loading={locating}
+                onClick={() => chooseSort('nearest')}
+                icon={<LocateFixed className="h-4 w-4" aria-hidden="true" />}
+              >
+                {t('candidate.chipNearest')}
+              </Chip>
+              <Chip
+                active={displaced}
+                onClick={() => toggle('displaced', displaced)}
+                icon={<House className="h-4 w-4" aria-hidden="true" />}
+              >
+                {t('candidate.chipDisplaced')}
+              </Chip>
+              {hasFilters ? (
+                <Button variant="ghost" size="sm" onClick={resetFilters}>
+                  <X className="h-4 w-4" aria-hidden="true" />
+                  {t('states.clearFilters')}
+                </Button>
+              ) : null}
+            </div>
+
+            <div aria-live="polite" aria-busy={results.isFetching}>
+              {results.isLoading ? (
+                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                  {Array.from({ length: 6 }).map((_, index) => (
+                    <BusinessCardSkeleton key={index} />
+                  ))}
                 </div>
-              }
-            />
-          )}
+              ) : results.isError ? (
+                <ErrorState error={results.error} onRetry={() => void results.refetch()} />
+              ) : results.data && results.data.items.length > 0 ? (
+                <>
+                  <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                    {results.data.items.map((talent) => (
+                      <CandidateCard key={talent.id} talent={talent} />
+                    ))}
+                  </div>
+                  <Pagination
+                    meta={results.data.meta}
+                    onChange={(nextPage) => updateParams({ page: String(nextPage) })}
+                  />
+                </>
+              ) : (
+                <EmptyState
+                  icon={<SearchX className="h-7 w-7" aria-hidden="true" />}
+                  title={t('candidate.emptyTitle')}
+                  action={
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {hasFilters ? (
+                        <Button variant="outline" onClick={resetFilters}>
+                          {t('states.clearFilters')}
+                        </Button>
+                      ) : null}
+                      <Button asChild variant="ghost">
+                        <Link to="/vacancies/offer">
+                          <BriefcaseBusiness className="h-4 w-4" aria-hidden="true" />
+                          {t('candidate.postJob')}
+                        </Link>
+                      </Button>
+                    </div>
+                  }
+                />
+              )}
+            </div>
+          </div>
+          <JobLinksSidebar
+            audience="employers"
+            className="mt-10 lg:sticky lg:top-24 lg:mt-0"
+          />
         </div>
 
         <div className="mt-10 flex flex-col items-center justify-between gap-4 rounded-2xl border-2 border-brand-200 bg-brand-50 p-6 text-center sm:flex-row sm:text-start">

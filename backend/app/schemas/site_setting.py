@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from typing import Literal
+from urllib.parse import urlparse
+
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.core.i18n import translate
@@ -97,3 +100,51 @@ class CredentialsMessageIn(BaseModel):
             raise ValueError(translate("site_settings.credentials_placeholders_missing"))
         return value
 
+
+
+#: Who a useful link on the jobs pages is for: employers browsing the
+#: candidates on /jobs, people looking for work on /vacancies, or both.
+JobLinkAudience = Literal["employers", "seekers", "both"]
+
+
+class JobLink(BaseModel):
+    """One useful link in the jobs pages' sidebar, e.g. the civil-society
+    directory or the official employment platform."""
+
+    title: str = Field(min_length=1, max_length=80)
+    url: str = Field(min_length=1, max_length=500)
+    note: str | None = Field(default=None, max_length=160)
+    audience: JobLinkAudience = "both"
+
+    @field_validator("title", "url", "note", mode="before")
+    @classmethod
+    def _trimmed(cls, value: object) -> object:
+        if isinstance(value, str):
+            value = value.strip()
+            return value or None
+        return value
+
+    @field_validator("url")
+    @classmethod
+    def _web_address(cls, value: str) -> str:
+        """Rendered as a link on two public pages, so only an http(s)
+        address with a host: never ``javascript:`` or a bare word."""
+        parsed = urlparse(value if "://" in value else f"https://{value}")
+        bad_host = "." not in parsed.netloc or any(c.isspace() for c in value)
+        if parsed.scheme not in ("http", "https") or bad_host:
+            raise ValueError(translate("site_settings.job_link_invalid_url"))
+        return parsed.geturl()
+
+
+class JobLinksOut(BaseModel):
+    """The sidebar's links in their order; null while an administrator has
+    not set any, so the site shows its own starting list."""
+
+    links: list[JobLink] | None = None
+
+
+class JobLinksIn(BaseModel):
+    """The whole list at once; null goes back to the site's starting list
+    and an empty list hides the sidebar."""
+
+    links: list[JobLink] | None = Field(default=None, max_length=30)
