@@ -49,6 +49,7 @@ export function LoginPage() {
   const t = useT()
   const [submitting, setSubmitting] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [byEmail, setByEmail] = useState(false)
   const schema = useMemo(() => signInSchema(t), [t])
   // Only with a number to send the request to; see ForgotPasswordPage.
   const canAskForReset = Boolean(whatsappHref(useSupportWhatsapp()))
@@ -61,6 +62,7 @@ export function LoginPage() {
     register,
     handleSubmit,
     setError,
+    setFocus,
     formState: { errors },
   } = useForm<SignInValues>({ resolver: zodResolver(schema) })
 
@@ -112,16 +114,30 @@ export function LoginPage() {
                   {...fieldProps}
                   {...register('identifier')}
                   type="text"
-                  inputMode="tel"
+                  inputMode={byEmail ? 'email' : 'tel'}
+                  autoCapitalize="none"
                   autoComplete="username"
                   dir="ltr"
-                  placeholder="03 123 456"
+                  placeholder={byEmail ? 'name@janoubona.net' : '03 123 456'}
                   className="ltr-nums"
                   invalid={Boolean(errors.identifier)}
                   autoFocus
                 />
               )}
             </Field>
+            {/* A phone shows only digits for a number; staff sign in with an
+                email, so they switch the keyboard to letters (the ticket of
+                6 Nov 2026: no letter keyboard on an iPhone). */}
+            <button
+              type="button"
+              onClick={() => {
+                setByEmail((value) => !value)
+                setFocus('identifier')
+              }}
+              className="-mt-3 text-sm font-semibold text-brand-700 hover:underline"
+            >
+              {t(byEmail ? 'login.usePhone' : 'login.useEmail')}
+            </button>
 
             <Field
               label={t('login.passwordLabel')}
