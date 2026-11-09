@@ -1730,4 +1730,9 @@ export interface StrayPin {
   /** outside: across the border, hidden publicly; far: far from its district. */
   reason: 'outside' | 'far'
   km_from_district: number | null
+  published: boolean
+  /** Where it probably belongs: the middle of its town, or of its district. */
+  suggested_latitude: number | null
+  suggested_longitude: number | null
+  suggested_from: 'town' | 'district' | null
 }

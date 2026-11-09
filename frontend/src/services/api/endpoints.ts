@@ -836,6 +836,11 @@ export const adminApi = {
   stats: () => apiRequest<PlatformStats>('/api/admin/stats'),
   listingsMap: () => apiRequest<AdminMapPoint[]>('/api/admin/stats/map'),
   strayPins: () => apiRequest<StrayPin[]>('/api/admin/stats/stray-pins'),
+  applyStrayPins: (ids: string[]) =>
+    apiRequest<{ moved: number; skipped: number }>('/api/admin/stats/stray-pins/apply', {
+      method: 'POST',
+      body: { ids },
+    }),
   growth: (days: number) =>
     apiRequest<PlatformGrowth>('/api/admin/stats/growth', { query: { days } }),
   growthReport: () => apiRequest<GrowthReport>('/api/admin/growth-report'),
