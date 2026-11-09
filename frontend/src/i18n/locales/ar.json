@@ -2453,5 +2453,7 @@
   "setupMap.youText": "You decide: you ask, approve plans and approve releases. Nothing reaches the live site without your OK.",
   "setupMap.missingTitle": "What is missing",
   "setupMap.updated": "Last updated: 9 Nov 2026",
-  "adminNav.groupDev": "Dev"
+  "adminNav.groupDev": "Dev",
+  "setupMap.imageAlt": "Diagram of the Claude Code setup: from the owners' request, through the agent, its rules and tools, the checks, to the live site.",
+  "setupMap.imageCaption": "The whole setup on one page. Tap the picture to open it full size."
 }
