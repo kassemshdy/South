@@ -47,6 +47,8 @@ RESTRICTED_READS: dict[str, frozenset[StaffRole]] = {
 } | {
     # A spreadsheet of every account's identity and every customer's phone.
     "/api/admin/export/{dataset}.csv": frozenset({M}),
+    # Every identity paper on the site in one file.
+    "/api/admin/export/id-documents.zip": frozenset({M}),
     "/api/admin/staff": frozenset({M}),
     # Employers' names and numbers: the roles that act on the requests.
     "/api/admin/employer-requests": frozenset({M, R, S}),
@@ -86,6 +88,8 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     # Following up shops with nothing on sale: the roles that talk to owners.
     ("PUT", "/api/admin/businesses/{business_id}/outreach"): _CREDENTIALS,
     ("POST", "/api/admin/businesses/{business_id}/sms"): _CREDENTIALS,
+    # Runs paid Apify scrapers: the manager's, like the other settings.
+    ("POST", "/api/admin/businesses/followers/refresh"): frozenset({M}),
     **{
         ("POST", f"/api/admin/talent/{{profile_id}}/{action}"): _MODERATE
         for action in (

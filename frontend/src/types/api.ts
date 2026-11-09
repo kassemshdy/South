@@ -361,6 +361,10 @@ export interface AdminBusiness extends OwnerBusiness {
   /** Staff follow-up of a shop with nothing on sale: when it was contacted, and the note. */
   outreach_contacted_at?: string | null
   outreach_note?: string | null
+  /** Follower counts of the shop's own pages, read daily through Apify. */
+  instagram_followers?: number | null
+  facebook_followers?: number | null
+  followers_checked_at?: string | null
 }
 
 /** A member of staff, as the manager's staff page lists them. */

@@ -832,6 +832,9 @@ export const adminEmployerRequestsApi = {
     }),
 }
 
+/** Newest first, or most followed on Instagram/Facebook first. */
+export type AdminBusinessSort = 'newest' | 'instagram' | 'facebook'
+
 export const adminApi = {
   stats: () => apiRequest<PlatformStats>('/api/admin/stats'),
   listingsMap: () => apiRequest<AdminMapPoint[]>('/api/admin/stats/map'),
@@ -848,6 +851,7 @@ export const adminApi = {
   setGrowthPlan: (payload: GrowthPlan) =>
     apiRequest<GrowthPlan>('/api/admin/growth-plan', { method: 'PUT', body: payload }),
   exportCsv: (dataset: ExportDataset) => apiDownload(`/api/admin/export/${dataset}.csv`),
+  exportIdDocuments: () => apiDownload('/api/admin/export/id-documents.zip'),
   staff: () => apiRequest<StaffMember[]>('/api/admin/staff'),
   inviteStaff: (payload: {
     email: string
@@ -944,10 +948,13 @@ export const adminApi = {
     without_products?: boolean
     with_products?: boolean
     contacted?: boolean
+    sort?: AdminBusinessSort
     page?: number
     page_size?: number
   }) =>
     apiRequest<Paginated<AdminBusiness>>('/api/admin/businesses', { query: { ...params } }),
+  refreshFollowers: () =>
+    apiRequest<{ message: string }>('/api/admin/businesses/followers/refresh', { method: 'POST' }),
   setOutreach: (id: string, body: { contacted: boolean; note?: string | null }) =>
     apiRequest<AdminBusiness>(`/api/admin/businesses/${id}/outreach`, { method: 'PUT', body }),
   pending: (page = 1) =>

@@ -166,6 +166,15 @@ class Business(Base, TimestampMixin):
     )
     outreach_note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # Follower counts of the shop's own Instagram and Facebook pages, fetched
+    # through Apify once a day (the owners' request, 9 Nov 2026) so staff can
+    # sort shops by them. Null until read; staff-only like the outreach note.
+    instagram_followers: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    facebook_followers: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    followers_checked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     # Arabic-normalized haystack maintained by BusinessService on every write.
     # Keeping it denormalized lets a trigram index serve substring search.
     search_text: Mapped[str] = mapped_column(Text, default="", nullable=False)

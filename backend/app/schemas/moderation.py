@@ -67,6 +67,9 @@ class AdminBusinessOut(OwnerBusinessOut):
     # Staff follow-up of a shop with nothing on sale; never on a public schema.
     outreach_contacted_at: datetime | None = None
     outreach_note: str | None = None
+    instagram_followers: int | None = None
+    facebook_followers: int | None = None
+    followers_checked_at: datetime | None = None
 
 
 class OutreachIn(BaseModel):

@@ -89,7 +89,35 @@ def test_the_file_goes_once_an_hour_and_never_twice(db: Session) -> None:
 
     assert send(moment + timedelta(minutes=30)) is False, "not twice within the hour"
     assert send(moment + timedelta(hours=1, minutes=1)) is True
-    assert len(telegram.sent) == 2
+    documents = [sent for sent in telegram.sent if sent["url"].endswith("/sendDocument")]
+    assert len(documents) == 2
+
+
+def test_the_spreadsheets_follow_the_database_file(db: Session) -> None:
+    """The owners' request (9 Nov 2026): every admin export as a CSV, sent
+    together as one album right after the .sql copy."""
+    telegram = _Telegram()
+    moment = datetime(2026, 10, 28, 9, 0, tzinfo=UTC)
+    make_owner("03990051")
+    assert backup.send_if_due(
+        get_settings().database_url,
+        token="t0ken",
+        chat_id="-100",
+        interval=timedelta(hours=1),
+        client=telegram,  # type: ignore[arg-type]
+        now=lambda: moment,
+        run=_runner([]),
+    )
+    album = telegram.sent[1]
+    assert album["url"].endswith("/sendMediaGroup")
+    names = [name for name, _data, _kind in album["files"].values()]
+    assert names == [
+        f"{dataset}-20261028T0900Z.csv"
+        for dataset in ("businesses", "products", "users", "talent", "orders", "partners")
+    ]
+    users = next(data for name, data, _kind in album["files"].values() if name.startswith("users"))
+    assert users.startswith(b"\xef\xbb\xbf") and b"password_hash" not in users
+    assert b"3990051" in users
 
 
 def test_a_failed_send_is_tried_again_at_the_next_look(db: Session) -> None:
