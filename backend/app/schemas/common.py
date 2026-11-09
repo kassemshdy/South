@@ -140,3 +140,20 @@ class StrayPinOut(BaseModel):
     # the map and staff decide (the owners' report, 9 Nov 2026).
     reason: Literal["outside", "far"] = "outside"
     km_from_district: int | None = None
+    published: bool = True
+    # Where it probably belongs: the middle of the other locations in its
+    # town, or of its district when the town has none (see map_pins).
+    suggested_latitude: float | None = None
+    suggested_longitude: float | None = None
+    suggested_from: Literal["town", "district"] | None = None
+
+
+class StrayPinsApplyIn(BaseModel):
+    """The listings to move to their suggested locations."""
+
+    ids: list[uuid.UUID] = Field(min_length=1, max_length=500)
+
+
+class StrayPinsAppliedOut(BaseModel):
+    moved: int
+    skipped: int

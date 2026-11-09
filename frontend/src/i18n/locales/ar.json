@@ -2297,5 +2297,16 @@
   "admin.strayPinsTitle": "مواقع على الخريطة تحتاج مراجعة",
   "admin.farPinsHeading": "{count} موقعًا بعيدًا عن قضائه",
   "admin.farPinsHint": "داخل لبنان لكن بعيدة عن باقي مواقع القضاء نفسه. قد يكون صاحبها نازحًا حدّد مكان سكنه الحالي، فتبقى ظاهرة على الخريطة. افتح كل واحد وتأكّد، وصحّح موقعه إن كان خطأ.",
-  "admin.farPinKm": "{count} كم عن القضاء"
+  "admin.farPinKm": "{count} كم عن القضاء",
+  "adminMapPins.nav": "مواقع تحتاج مراجعة",
+  "adminMapPins.subtitle": "المواقع على الخريطة التي تحتاج تصحيحًا. لكل واحد اقتراح من مواقع المحالّ الأخرى في البلدة نفسها، أو في القضاء إن لم يكن في البلدة غيره.",
+  "adminMapPins.empty": "كل المواقع على الخريطة سليمة.",
+  "adminMapPins.fixAll": "صحّح {count} تلقائيًا",
+  "adminMapPins.fixAllConfirm": "نقل {count} موقعًا إلى المكان المقترح لكل منها؟",
+  "adminMapPins.apply": "انقل إلى المكان المقترح",
+  "adminMapPins.applied": "نُقل {moved} وتُرك {skipped}",
+  "adminMapPins.suggestTown": "الاقتراح: وسط مواقع البلدة نفسها",
+  "adminMapPins.suggestDistrict": "الاقتراح: وسط مواقع القضاء (لا مواقع أخرى في البلدة)",
+  "adminMapPins.noSuggestion": "لا اقتراح: صحّحه يدويًا من صفحته",
+  "adminMapPins.notPublished": "غير منشور"
 }
