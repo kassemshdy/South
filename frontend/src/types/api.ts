@@ -1683,3 +1683,19 @@ export interface MapListing {
   latitude: number
   longitude: number
 }
+
+/** Who a link in the jobs pages' sidebar is for. */
+export type JobLinkAudience = 'employers' | 'seekers' | 'both'
+
+/** One useful link in the jobs pages' sidebar (see JobLinksSidebar). */
+export interface JobLink {
+  title: string
+  url: string
+  note: string | null
+  audience: JobLinkAudience
+}
+
+/** Null while staff have set none, so the site shows its starting list. */
+export interface JobLinks {
+  links: JobLink[] | null
+}

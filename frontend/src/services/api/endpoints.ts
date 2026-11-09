@@ -33,6 +33,8 @@ import type {
   TalentKind,
   WorkMode,
   SiteSettings,
+  JobLink,
+  JobLinks,
   DiscardedApplication,
   GoodsOrigin,
   ContactChannel,
@@ -509,6 +511,7 @@ export const activityApi = {
 export const siteSettingsApi = {
   get: () => apiRequest<SiteSettings>('/api/site-settings'),
   offerPopup: () => apiRequest<OfferPopup>('/api/site-settings/offer-popup'),
+  jobLinks: () => apiRequest<JobLinks>('/api/site-settings/job-links'),
 }
 
 export const menuApi = {
@@ -910,6 +913,11 @@ export const adminApi = {
     apiRequest<{ message: string | null }>('/api/admin/site-settings/credentials-message', {
       method: 'PUT',
       body: { message },
+    }),
+  setJobLinks: (links: JobLink[] | null) =>
+    apiRequest<JobLinks>('/api/admin/site-settings/job-links', {
+      method: 'PUT',
+      body: { links },
     }),
   updateSiteSettings: (values: SiteSettings) =>
     apiRequest<SiteSettings>('/api/admin/site-settings', { method: 'PUT', body: values }),
