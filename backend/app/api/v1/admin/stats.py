@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import math
+import statistics
 import uuid
 from datetime import UTC, date, datetime, time, timedelta
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Query
 from sqlalchemy import Date, cast, func, select
+from sqlalchemy.orm import aliased
 
 from app.api.serializers import admin_user
 from app.core.dependencies import AdminUser, DbSession
@@ -203,42 +206,80 @@ def contacted_shops(
     return shops
 
 
+#: How far a pin may sit from the middle of its district's other pins
+#: before staff are asked to look at it. A district in the South is about
+#: 20-30 km across, so a pin further than this is in another district.
+FAR_PIN_KM = 25
+#: A district needs this many pins before its middle means anything.
+FAR_PIN_MIN_PEERS = 3
+
+
+def _km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+    """Distance on a flat map: accurate to a few percent across Lebanon."""
+    return math.hypot((lat1 - lat2) * 111.0, (lng1 - lng2) * 111.0 * math.cos(math.radians(33.6)))
+
+
 @router.get("/stats/stray-pins", response_model=list[StrayPinOut])
 def stray_pins(db: DbSession, admin: AdminUser) -> list[StrayPinOut]:
-    """Every shop and service profile, whatever its status, whose pin falls
-    outside Lebanon: saved before pins were checked, hidden from the public
-    maps, and waiting for staff to move it (9 Nov 2026)."""
-    out: list[StrayPinOut] = []
-    shops = db.execute(
-        select(Business.id, Business.name, Location.name_ar, Business.latitude, Business.longitude)
-        .outerjoin(Location, Business.location_id == Location.id)
-        .where(Business.latitude.is_not(None), Business.longitude.is_not(None))
-    ).all()
-    people = db.execute(
-        select(
-            TalentProfile.id,
-            TalentProfile.display_name,
-            Location.name_ar,
-            TalentProfile.latitude,
-            TalentProfile.longitude,
-        )
-        .outerjoin(Location, TalentProfile.location_id == Location.id)
-        .where(TalentProfile.latitude.is_not(None), TalentProfile.longitude.is_not(None))
-    ).all()
-    for kind, rows in (("business", shops), ("service", people)):
-        for listing_id, name, town, lat, lng in rows:
-            if not in_lebanon(float(lat), float(lng)):
-                out.append(
-                    StrayPinOut(
-                        kind=kind,  # type: ignore[arg-type]
-                        id=listing_id,
-                        name=name,
-                        town=town,
-                        latitude=float(lat),
-                        longitude=float(lng),
-                    )
+    """Every shop and service profile, whatever its status, whose pin needs
+    a person to look at it: outside Lebanon (saved before pins were checked,
+    and hidden from the public maps), or inside it but far from the other
+    pins of its district (9 Nov 2026). Outside first, then furthest first."""
+    district = aliased(Location)
+    rows: list[tuple[str, uuid.UUID, str, str | None, str | None, float, float]] = []
+    for kind, model, name_col in (
+        ("business", Business, Business.name),
+        ("service", TalentProfile, TalentProfile.display_name),
+    ):
+        for listing_id, name, town, district_name, lat, lng in db.execute(
+            select(
+                model.id,
+                name_col,
+                Location.name_ar,
+                # A town's district; a listing placed on a district itself
+                # counts with that district.
+                func.coalesce(district.name_ar, Location.name_ar),
+                model.latitude,
+                model.longitude,
+            )
+            .outerjoin(Location, model.location_id == Location.id)
+            .outerjoin(district, Location.parent_id == district.id)
+            .where(model.latitude.is_not(None), model.longitude.is_not(None))
+        ).all():
+            rows.append((kind, listing_id, name, town, district_name, float(lat), float(lng)))
+
+    inside = [row for row in rows if in_lebanon(row[5], row[6])]
+    by_district: dict[str, list[tuple[float, float]]] = {}
+    for row in inside:
+        if row[4]:
+            by_district.setdefault(row[4], []).append((row[5], row[6]))
+    middle = {
+        name: (statistics.median(p[0] for p in pins), statistics.median(p[1] for p in pins))
+        for name, pins in by_district.items()
+        if len(pins) >= FAR_PIN_MIN_PEERS
+    }
+
+    outside: list[StrayPinOut] = []
+    far: list[StrayPinOut] = []
+    for kind, listing_id, name, town, district_name, lat, lng in rows:
+        common = {
+            "kind": kind,
+            "id": listing_id,
+            "name": name,
+            "town": town,
+            "latitude": lat,
+            "longitude": lng,
+        }
+        if not in_lebanon(lat, lng):
+            outside.append(StrayPinOut(**common, reason="outside"))  # type: ignore[arg-type]
+        elif district_name in middle:
+            km = _km(lat, lng, *middle[district_name])
+            if km > FAR_PIN_KM:
+                far.append(
+                    StrayPinOut(**common, reason="far", km_from_district=round(km))  # type: ignore[arg-type]
                 )
-    return out
+    far.sort(key=lambda pin: pin.km_from_district or 0, reverse=True)
+    return outside + far
 
 
 @router.get("/stats/growth", response_model=GrowthResponse)
