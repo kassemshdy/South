@@ -366,3 +366,22 @@ def test_staff_list_the_shops_visitors_reached_through_the_site(
 
     assert client.get(path).status_code == 401
     assert client.get(path, headers=sign_in(client, "03880821")).status_code == 403
+
+
+def test_a_pin_far_from_its_district_is_listed_for_staff_but_stays_public(
+    client: TestClient, db: Session, admin: User, category: Category, location: Location
+) -> None:
+    """Three shops pinned together in their district and one 60 km away
+    (the owners' report, 9 Nov 2026): the far one is on the staff list with
+    its distance, and -- often a displaced owner pinned where they live now
+    -- stays on the public map."""
+    for n in range(3):
+        _shop(client, db, category, location, f"0388083{n}", ar("business.first") + str(n))
+    far = _shop(client, db, category, location, "03880839", ar("business.second"))
+    far.latitude, far.longitude = Decimal("33.86"), Decimal("35.50")
+    db.commit()
+
+    stray = client.get("/api/admin/stats/stray-pins", headers=admin_headers(client)).json()
+    assert [(row["id"], row["reason"]) for row in stray] == [(str(far.id), "far")]
+    assert 60 <= stray[0]["km_from_district"] <= 75
+    assert far.slug in client.get("/api/map/listings").text

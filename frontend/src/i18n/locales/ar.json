@@ -2293,5 +2293,9 @@
   "admin.strayPinShop": "محل",
   "admin.strayPinService": "خدمة",
   "login.useEmail": "تسجيل الدخول بالبريد الإلكتروني",
-  "login.usePhone": "تسجيل الدخول برقم الهاتف"
+  "login.usePhone": "تسجيل الدخول برقم الهاتف",
+  "admin.strayPinsTitle": "دبابيس تحتاج مراجعة",
+  "admin.farPinsHeading": "{count} دبوسًا بعيدًا عن قضائه",
+  "admin.farPinsHint": "داخل لبنان لكن بعيدة عن باقي دبابيس القضاء نفسه. قد يكون صاحبها نازحًا وضع مكان سكنه الحالي، فتبقى ظاهرة على الخريطة. افتح كل واحد وتأكّد، وصحّح موقعه إن كان خطأ.",
+  "admin.farPinKm": "{count} كم عن القضاء"
 }

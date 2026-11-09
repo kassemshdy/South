@@ -134,3 +134,9 @@ class StrayPinOut(BaseModel):
     town: str | None = None
     latitude: float
     longitude: float
+    # "outside": across Lebanon's border, hidden from the public maps.
+    # "far": inside Lebanon but far from the other pins of its district --
+    # often a displaced owner pinned where they live now, so it stays on
+    # the map and staff decide (the owners' report, 9 Nov 2026).
+    reason: Literal["outside", "far"] = "outside"
+    km_from_district: int | None = None
