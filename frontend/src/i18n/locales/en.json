@@ -2287,5 +2287,9 @@
   "adminContacted.askButton": "Ask for a video or testimonial",
   "adminContacted.call": "Call",
   "adminContacted.openPage": "Shop page",
-  "adminContacted.whatsapp": "Hello 👋\nWe noticed customers reached you through your Janoubona page.\nCould you help us with a short video or a few words about your experience? Your story encourages others from the South to join."
+  "adminContacted.whatsapp": "Hello 👋\nWe noticed customers reached you through your Janoubona page.\nCould you help us with a short video or a few words about your experience? Your story encourages others from the South to join.",
+  "admin.strayPinsHeading": "{count} pins outside Lebanon",
+  "admin.strayPinsHint": "These pins were saved before the site checked the border, so no public map shows them. Open each one and correct its place from the place card.",
+  "admin.strayPinShop": "Shop",
+  "admin.strayPinService": "Service"
 }

@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 import { GrowthPanel } from '@/features/admin/GrowthPanel'
 import { ListingsMapCard } from '@/features/admin/ListingsMapCard'
+import { StrayPinsCard } from '@/features/admin/StrayPinsCard'
 import { useI18n } from '@/i18n'
 import { adminApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
@@ -76,6 +77,7 @@ export function AdminDashboardPage() {
 
       <GrowthPanel />
 
+      <StrayPinsCard />
       <ListingsMapCard />
 
       <section>

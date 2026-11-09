@@ -11,12 +11,13 @@ from sqlalchemy import Date, cast, func, select
 
 from app.api.serializers import admin_user
 from app.core.dependencies import AdminUser, DbSession
+from app.core.pins import in_lebanon
 from app.models.analytics import ListingViewDaily
 from app.models.business import Business, BusinessItem
 from app.models.enums import BusinessStatus, TestimonialStatus, UserRole, ViewSubject
 from app.models.order import Order
 from app.models.talent import TalentProfile
-from app.models.taxonomy import Category
+from app.models.taxonomy import Category, Location
 from app.models.testimonial import Testimonial
 from app.models.user import User
 from app.repositories.business import BusinessRepository
@@ -30,6 +31,7 @@ from app.schemas.common import (
     PageMeta,
     PaginatedResponse,
     StatsResponse,
+    StrayPinOut,
 )
 from app.schemas.growth_report import GrowthPlanIn, GrowthPlanOut, GrowthReportOut
 from app.schemas.moderation import AdminUserOut
@@ -199,6 +201,44 @@ def contacted_shops(
         reverse=True,
     )
     return shops
+
+
+@router.get("/stats/stray-pins", response_model=list[StrayPinOut])
+def stray_pins(db: DbSession, admin: AdminUser) -> list[StrayPinOut]:
+    """Every shop and service profile, whatever its status, whose pin falls
+    outside Lebanon: saved before pins were checked, hidden from the public
+    maps, and waiting for staff to move it (9 Nov 2026)."""
+    out: list[StrayPinOut] = []
+    shops = db.execute(
+        select(Business.id, Business.name, Location.name_ar, Business.latitude, Business.longitude)
+        .outerjoin(Location, Business.location_id == Location.id)
+        .where(Business.latitude.is_not(None), Business.longitude.is_not(None))
+    ).all()
+    people = db.execute(
+        select(
+            TalentProfile.id,
+            TalentProfile.display_name,
+            Location.name_ar,
+            TalentProfile.latitude,
+            TalentProfile.longitude,
+        )
+        .outerjoin(Location, TalentProfile.location_id == Location.id)
+        .where(TalentProfile.latitude.is_not(None), TalentProfile.longitude.is_not(None))
+    ).all()
+    for kind, rows in (("business", shops), ("service", people)):
+        for listing_id, name, town, lat, lng in rows:
+            if not in_lebanon(float(lat), float(lng)):
+                out.append(
+                    StrayPinOut(
+                        kind=kind,  # type: ignore[arg-type]
+                        id=listing_id,
+                        name=name,
+                        town=town,
+                        latitude=float(lat),
+                        longitude=float(lng),
+                    )
+                )
+    return out
 
 
 @router.get("/stats/growth", response_model=GrowthResponse)

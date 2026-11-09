@@ -16,6 +16,7 @@ as a cheap first test.
 from __future__ import annotations
 
 import json
+from decimal import Decimal
 from functools import cache
 from pathlib import Path
 
@@ -60,3 +61,17 @@ def check_pin(latitude: float | None, longitude: float | None) -> None:
         return
     if not in_lebanon(latitude, longitude):
         raise ValueError(translate("location.pin_outside_lebanon"))
+
+
+def public_pin(
+    latitude: float | Decimal | None, longitude: float | Decimal | None
+) -> tuple[float | None, float | None]:
+    """The pin as a visitor may see it: none at all when it falls outside
+    Lebanon. ``check_pin`` refuses such a pin on every save, but pins saved
+    before that check existed are still in the database, and one of them
+    showed a shop across the border on the public map (9 Nov 2026). Staff
+    find and move them from the admin dashboard."""
+    if latitude is None or longitude is None:
+        return None, None
+    lat, lng = float(latitude), float(longitude)
+    return (lat, lng) if in_lebanon(lat, lng) else (None, None)
