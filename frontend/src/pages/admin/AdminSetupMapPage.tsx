@@ -62,8 +62,8 @@ export function AdminSetupMapPage() {
           <img
             src={setupMapImage}
             alt={t('setupMap.imageAlt')}
-            width={3600}
-            height={1834}
+            width={7200}
+            height={3668}
             className="h-auto w-full rounded-2xl border border-ink-100 bg-ink-900"
             loading="lazy"
           />
