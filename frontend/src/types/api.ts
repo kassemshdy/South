@@ -1699,3 +1699,10 @@ export interface JobLink {
 export interface JobLinks {
   links: JobLink[] | null
 }
+
+/** One shop's views over the last ``days`` days (page and products). */
+export interface ShopViews {
+  days: number
+  page_views: number
+  product_views: number
+}

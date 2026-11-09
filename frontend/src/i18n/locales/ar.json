@@ -2270,5 +2270,8 @@
   "admin.jobLinkRemove": "حذف الرابط",
   "admin.jobLinkUp": "نقل إلى الأعلى",
   "admin.jobLinkDown": "نقل إلى الأسفل",
-  "admin.jobLinksReset": "استعادة القائمة الأصلية"
+  "admin.jobLinksReset": "استعادة القائمة الأصلية",
+  "admin.viewsWhatsapp": "مرحبًا 👋\nصفحتك على جنوبنا شوهدت {total} مرة خلال آخر {days} يومًا.\nشارك رابطها مع معارفك ليصل إليها المزيد:\n{link}",
+  "admin.viewsWhatsappButton": "أرسل المشاهدات على واتساب",
+  "admin.viewsWhatsappHint": "الصفحة: {page} مشاهدة، المنتجات: {products} مشاهدة، خلال آخر {days} يومًا"
 }

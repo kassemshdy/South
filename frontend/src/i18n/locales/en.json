@@ -2270,5 +2270,8 @@
   "admin.jobLinkRemove": "Remove link",
   "admin.jobLinkUp": "Move up",
   "admin.jobLinkDown": "Move down",
-  "admin.jobLinksReset": "Restore the original list"
+  "admin.jobLinksReset": "Restore the original list",
+  "admin.viewsWhatsapp": "Hello 👋\nYour Janoubona page was viewed {total} times in the last {days} days.\nShare its link with people you know so more can find it:\n{link}",
+  "admin.viewsWhatsappButton": "Send views on WhatsApp",
+  "admin.viewsWhatsappHint": "Page: {page} views, products: {products} views, last {days} days"
 }

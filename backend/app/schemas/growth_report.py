@@ -117,3 +117,12 @@ class OfferPopupOut(BaseModel):
 
     enabled: bool = False
     offer: str | None = None
+
+
+class ShopViewsOut(BaseModel):
+    """One shop's views over the last ``days`` days, for the message staff
+    send its owner."""
+
+    days: int
+    page_views: int
+    product_views: int
