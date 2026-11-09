@@ -39,6 +39,7 @@ from app.schemas.talent import (
 )
 from app.services.analytics import ViewCounterService
 from app.services.slug import unique_slug
+from app.services.verification import has_identity_document
 
 logger = logging.getLogger(__name__)
 
@@ -246,6 +247,9 @@ class TalentService:
             missing.append("talent.field.cover")
         if not (profile.phone or profile.whatsapp):
             missing.append("talent.field.contact")
+        # The owner's ID, as for a shop (the owners' decision, 9 Nov 2026).
+        if not has_identity_document(self._db, profile.owner_id):
+            missing.append("talent.field.identity")
         # The owners made it compulsory for a service; a job application is
         # not asked.
         if profile.kind == TalentKind.SERVICE and profile.work_mode is None:

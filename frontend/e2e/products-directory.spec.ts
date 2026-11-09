@@ -10,6 +10,7 @@ import { demoOwnerPhone, signIn } from './support/sign-in'
 import { ADMIN_EMAIL, ADMIN_PASSWORD } from './support/admin'
 import { dropPin } from './support/map'
 import { cropAndUse } from './support/crop'
+import { uploadIdCard } from './support/identity'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
@@ -56,6 +57,8 @@ function jpeg(): { name: string; mimeType: string; buffer: Buffer } {
 
 async function signInAsOwner(page: Page) {
   await signIn(page, OWNER_PHONE)
+  // Review needs the owner's ID card on file (the owners' decision, 9 Nov 2026).
+  await uploadIdCard(page)
 }
 
 /**
@@ -89,18 +92,6 @@ test.describe('Products directory', () => {
     await page.getByLabel(t('form.address')).fill(fixture.address)
     await page.getByRole('button', { name: t('wizard.saveAndContinue') }).click()
 
-    await expect(page.getByRole('heading', { name: t('images.logoTitle') })).toBeVisible()
-    await page.locator('input[type="file"]').first().setInputFiles(jpeg())
-    await cropAndUse(page)
-    await expect(page.getByText(t('images.uploaded'), { exact: true }).first()).toBeVisible()
-    await page.getByRole('button', { name: t('common.continue'), exact: true }).click()
-
-    await page.getByRole('button', { name: t('wizard.saveAndContinue') }).click()
-
-    // Official papers sit between the social links and the catalogue, and are
-    // optional: this owner has none, so the step is walked straight past.
-    await page.getByRole('button', { name: t('common.continue'), exact: true }).click()
-
     // --- Two items: one available, one not -----------------------------------
     await page.getByRole('button', { name: t('items.addItem') }).first().click()
     await page.getByLabel(t('items.photoLabel'), { exact: true }).setInputFiles(jpeg())
@@ -122,6 +113,20 @@ test.describe('Products directory', () => {
     await expect(
       page.getByRole('heading', { name: fixture.unavailableItem.title, level: 4 }),
     ).toBeVisible()
+
+    // Products come before the images now (the gallery opens once there is
+    // one); then the logo, the social links and the optional papers.
+    await page.getByRole('button', { name: t('common.continue'), exact: true }).click()
+    await expect(page.getByRole('heading', { name: t('images.logoTitle') })).toBeVisible()
+    await page.locator('input[type="file"]').first().setInputFiles(jpeg())
+    await cropAndUse(page)
+    await expect(page.getByText(t('images.uploaded'), { exact: true }).first()).toBeVisible()
+    await page.getByRole('button', { name: t('common.continue'), exact: true }).click()
+
+    await page.getByRole('button', { name: t('wizard.saveAndContinue') }).click()
+
+    // Official papers are optional: this owner has none, so the step is
+    // walked straight past, to the review.
 
     await page.getByRole('button', { name: t('wizard.continueToReview') }).click()
     await expect(page.getByText(t('wizard.allComplete')).first()).toBeVisible()

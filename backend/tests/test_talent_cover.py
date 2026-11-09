@@ -56,6 +56,12 @@ def _profile(
         },
     )
     assert created.status_code == 201, created.text
+    # Review needs the owner's ID card on file (the owners' decision, 9 Nov 2026).
+    client.post(
+        "/api/me/verification-document",
+        headers=headers,
+        files={"file": ("id.pdf", b"%PDF-1.4\nfake\n", "application/pdf")},
+    )
     return created.json()["id"], created.json()["slug"], headers
 
 

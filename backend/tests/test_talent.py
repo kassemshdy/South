@@ -67,6 +67,12 @@ def _create_profile(
         },
     )
     assert response.status_code == 201, response.text
+    # Review needs the owner's ID card on file (the owners' decision, 9 Nov 2026).
+    client.post(
+        "/api/me/verification-document",
+        headers=headers,
+        files={"file": ("id.pdf", b"%PDF-1.4\nfake\n", "application/pdf")},
+    )
     return response.json()
 
 
@@ -290,6 +296,7 @@ def test_submission_lists_what_is_still_missing(
         "talent.field.cover",
         "talent.field.contact",
         "talent.field.work_mode",
+        "talent.field.identity",
     }
 
     submitted = client.post("/api/my/talent/submit", headers=headers)

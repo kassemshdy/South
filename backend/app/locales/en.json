@@ -385,5 +385,8 @@
   "phoneAuth.rate_limited": "Too many codes were requested. Please try again later.",
   "phoneAuth.send_failed": "The SMS could not be sent. Please try again, or use the application form.",
   "phoneAuth.code_expired": "This code has expired or was used. Ask for a new one.",
-  "phoneAuth.code_invalid": "The code is not correct."
+  "phoneAuth.code_invalid": "The code is not correct.",
+  "business.field.items": "at least one product",
+  "business.field.identity": "the front of your ID card (on your account page)",
+  "talent.field.identity": "the front of your ID card (on your account page)"
 }

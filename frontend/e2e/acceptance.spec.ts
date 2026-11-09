@@ -10,6 +10,7 @@ import { demoOwnerPhone, signIn } from './support/sign-in'
 import { ADMIN_EMAIL, ADMIN_PASSWORD } from './support/admin'
 import { dropPin } from './support/map'
 import { cropAndUse } from './support/crop'
+import { uploadIdCard } from './support/identity'
 
 const here = dirname(fileURLToPath(import.meta.url))
 // Read rather than import: Playwright's ESM loader would require import
@@ -77,6 +78,8 @@ function jpeg(): { name: string; mimeType: string; buffer: Buffer } {
 
 async function signInAsOwner(page: Page) {
   await signIn(page, OWNER_PHONE)
+  // Review needs the owner's ID card on file.
+  await uploadIdCard(page)
 }
 
 test.describe('MVP acceptance flow', () => {
@@ -150,32 +153,8 @@ test.describe('MVP acceptance flow', () => {
     await page.getByLabel(t('form.address')).fill(fixture.address)
     await page.getByRole('button', { name: t('wizard.saveAndContinue') }).click()
 
-    // --- 5. Images: a logo and three gallery photos -------------------------
-    await expect(page.getByRole('heading', { name: t('images.logoTitle') })).toBeVisible()
-    const fileInputs = page.locator('input[type="file"]')
-    await fileInputs.nth(0).setInputFiles(jpeg())
-    await cropAndUse(page)
-    await expect(page.getByText(t('images.uploaded'), { exact: true }).first()).toBeVisible()
-
-    for (let index = 0; index < 3; index += 1) {
-      await page.locator('input[type="file"]').last().setInputFiles(jpeg())
-      await cropAndUse(page)
-      await expect(page.getByText(ar['images.galleryCount']!.replace('{current}', String(index + 1)).replace('{max}', '10'), { exact: true })).toBeVisible()
-    }
-    await page.screenshot({ path: 'e2e/screenshots/02-images.png', fullPage: false })
-    await page.getByRole('button', { name: t('common.continue'), exact: true }).click()
-
-    // --- 6. Social links: Instagram ----------------------------------------
-    await page.getByLabel(t('platform.INSTAGRAM')).fill('instagram.com/manakish.aldayaa')
-    await page.getByRole('button', { name: t('wizard.saveAndContinue') }).click()
-
-    // --- 7. Official papers, which this owner does not have ------------------
-    // Optional by design: a shop with no commercial register is still a shop,
-    // so the step must be walkable past without attaching anything.
-    await expect(page.getByText(t('businessDocuments.empty'))).toBeVisible()
-    await page.getByRole('button', { name: t('common.continue'), exact: true }).click()
-
-    // --- 8. Items with prices ------------------------------------------------
+    // --- 5. Items with prices, before images: the gallery opens once
+    // there is a product (the owners' decision, 9 Nov 2026) ------------------------------------------------
     for (const { title, price } of fixture.items) {
       await page.getByRole('button', { name: t('items.addItem') }).first().click()
       // The photo is mandatory: the form refuses to save a product without one.
@@ -201,9 +180,35 @@ test.describe('MVP acceptance flow', () => {
       await expect(page.getByRole('heading', { name: title, level: 4 })).toBeVisible()
     }
     await page.screenshot({ path: 'e2e/screenshots/03-items.png', fullPage: false })
+    await page.getByRole('button', { name: t('common.continue'), exact: true }).click()
+
+    // --- 6. Images: a logo and three gallery photos -------------------------
+    await expect(page.getByRole('heading', { name: t('images.logoTitle') })).toBeVisible()
+    const fileInputs = page.locator('input[type="file"]')
+    await fileInputs.nth(0).setInputFiles(jpeg())
+    await cropAndUse(page)
+    await expect(page.getByText(t('images.uploaded'), { exact: true }).first()).toBeVisible()
+
+    for (let index = 0; index < 3; index += 1) {
+      await page.locator('input[type="file"]').last().setInputFiles(jpeg())
+      await cropAndUse(page)
+      await expect(page.getByText(ar['images.galleryCount']!.replace('{current}', String(index + 1)).replace('{max}', '10'), { exact: true })).toBeVisible()
+    }
+    await page.screenshot({ path: 'e2e/screenshots/02-images.png', fullPage: false })
+    await page.getByRole('button', { name: t('common.continue'), exact: true }).click()
+
+    // --- 6. Social links: Instagram ----------------------------------------
+    await page.getByLabel(t('platform.INSTAGRAM')).fill('instagram.com/manakish.aldayaa')
+    await page.getByRole('button', { name: t('wizard.saveAndContinue') }).click()
+
+    // --- 7. Official papers, which this owner does not have ------------------
+    // Optional by design: a shop with no commercial register is still a shop,
+    // so the step must be walkable past without attaching anything.
+    await expect(page.getByText(t('businessDocuments.empty'))).toBeVisible()
+    await page.getByRole('button', { name: t('wizard.continueToReview') }).click()
+
 
     // --- 9. Submit for review ----------------------------------------------
-    await page.getByRole('button', { name: t('wizard.continueToReview') }).click()
     await expect(page.getByText(t('wizard.allComplete')).first()).toBeVisible()
     await page.getByRole('button', { name: t('dashboard.submitForReview') }).click()
 
