@@ -2484,5 +2484,10 @@
   "smsSignup.sentToday": "{count} code messages sent in the last 24 hours.",
   "smsSignup.notConfigured": "The SMS provider's keys are not set, so SMS sign-up will not show even when turned on.",
   "smsSignup.save": "Save",
-  "smsSignup.saved": "Settings saved."
+  "smsSignup.saved": "Settings saved.",
+  "wizard.personalMissingId": "a photo of your ID card",
+  "images.galleryNeedsProduct": "Add at least one product first, then add gallery photos.",
+  "business.field.items": "at least one product",
+  "business.field.identity": "the front of your ID card (on your account page)",
+  "talent.field.identity": "the front of your ID card (on your account page)"
 }

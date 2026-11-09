@@ -240,3 +240,32 @@ def post_item(
         )
         assert uploaded.status_code == 200, uploaded.text
     return created
+
+
+def give_identity_document(db: Session, user_id: uuid.UUID) -> None:
+    """Put the front of an ID card on the account, as review requires (the
+    owners' decision, 9 Nov 2026). A row only: no file is read in tests."""
+    from app.models.enums import VerificationDocumentKind
+    from app.models.verification import OwnerVerificationDocument
+
+    db.add(
+        OwnerVerificationDocument(
+            user_id=user_id,
+            kind=VerificationDocumentKind.IDENTITY,
+            storage_key=f"owner-verification/{user_id}/test.pdf",
+            content_type="application/pdf",
+        )
+    )
+    db.commit()
+
+
+def make_reviewable(db: Session, business_id: str | uuid.UUID) -> None:
+    """Give a draft business what review needs beyond its own fields: one
+    product, and its owner's ID card."""
+    from app.models.business import Business, BusinessItem
+
+    business = db.get(Business, uuid.UUID(str(business_id)))
+    assert business is not None
+    db.add(BusinessItem(business_id=business.id, title="item", slug=f"item-{business.id}"))
+    db.commit()
+    give_identity_document(db, business.owner_id)

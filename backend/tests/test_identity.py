@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session
 from app.models.business import Business
 from app.models.taxonomy import Category, Location
 from app.models.user import User
-from tests.conftest import admin_headers, sign_in
+from tests.conftest import admin_headers, make_reviewable, sign_in
 from tests.samples import ar
 
 IDENTITY_FIELDS = (
@@ -109,6 +109,7 @@ def test_identity_never_reaches_a_public_business_payload(
     assert business is not None
     business.logo_url = "/media/test/logo.jpg"
     db.commit()
+    make_reviewable(db, business.id)
 
     submitted = client.post(
         f"/api/businesses/{created['id']}/submit", headers=owner_headers
@@ -192,6 +193,7 @@ def test_the_account_photo_never_reaches_a_public_payload(
     assert business is not None
     business.logo_url = "/media/test/logo.jpg"
     db.commit()
+    make_reviewable(db, business.id)
 
     assert (
         client.post(
@@ -359,6 +361,7 @@ def test_producer_detail_is_published_and_searchable(
     assert business is not None
     business.logo_url = "/media/test/logo.jpg"
     db.commit()
+    make_reviewable(db, business.id)
 
     client.post(f"/api/businesses/{business_id}/submit", headers=owner_headers)
     approved = client.post(

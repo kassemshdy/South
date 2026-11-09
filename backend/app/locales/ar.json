@@ -385,5 +385,8 @@
   "phoneAuth.rate_limited": "طُلبت رموز كثيرة. يُرجى المحاولة لاحقًا.",
   "phoneAuth.send_failed": "تعذّر إرسال الرسالة. حاول مجددًا، أو استخدم استمارة التسجيل.",
   "phoneAuth.code_expired": "انتهت صلاحية هذا الرمز أو استُخدم. اطلب رمزًا جديدًا.",
-  "phoneAuth.code_invalid": "الرمز غير صحيح."
+  "phoneAuth.code_invalid": "الرمز غير صحيح.",
+  "business.field.items": "منتج واحد على الأقل",
+  "business.field.identity": "الوجه الأمامي لبطاقة الهوية (من صفحة حسابك)",
+  "talent.field.identity": "الوجه الأمامي لبطاقة الهوية (من صفحة حسابك)"
 }

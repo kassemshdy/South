@@ -26,6 +26,7 @@ from app.repositories.taxonomy import CategoryRepository, LocationRepository
 from app.schemas.business import BusinessCreateIn, BusinessUpdateIn, SocialLinkIn
 from app.services.analytics import ViewCounterService
 from app.services.slug import slugify_name, unique_slug
+from app.services.verification import has_identity_document
 
 logger = logging.getLogger(__name__)
 
@@ -176,6 +177,13 @@ class BusinessService:
         # enough. Checked against None: 0.0 is a coordinate.
         if business.latitude is None or business.longitude is None:
             missing.append("business.field.map_pin")
+        # A shop is reviewed with something to sell and with its owner's ID
+        # (the owners' decision, 9 Nov 2026), now that anyone can open an
+        # account by SMS and fill a listing alone.
+        if not business.items:
+            missing.append("business.field.items")
+        if not has_identity_document(self._db, business.owner_id):
+            missing.append("business.field.identity")
         if (
             business.category is not None
             and business.category.slug == "other"

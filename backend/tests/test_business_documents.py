@@ -29,7 +29,7 @@ from sqlalchemy.orm import Session
 
 from app.models.business import Business
 from app.models.taxonomy import Category, Location
-from tests.conftest import admin_headers, sign_in
+from tests.conftest import admin_headers, make_reviewable, sign_in
 from tests.samples import ar
 
 OWNER_PHONE = "03810001"
@@ -77,6 +77,7 @@ def business(
     assert entity is not None
     entity.logo_url = "/media/test/logo.jpg"
     db.commit()
+    make_reviewable(db, business_id)
 
     return business_id, headers
 

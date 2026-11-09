@@ -12,7 +12,8 @@ from app.models.business import Business, ModerationAction
 from app.models.enums import BusinessStatus
 from app.models.taxonomy import Category, Location
 from app.models.user import User
-from tests.conftest import admin_headers, sign_in
+from app.models.verification import OwnerVerificationDocument
+from tests.conftest import admin_headers, make_reviewable, sign_in
 from tests.samples import ar
 
 
@@ -42,6 +43,7 @@ def complete_business(
     assert business is not None
     business.logo_url = "/media/test/logo.jpg"
     db.commit()
+    make_reviewable(db, business_id)
 
     return business_id, headers
 
@@ -56,6 +58,9 @@ def test_admin_review_payload_includes_owner_personal_details(
     complete_business: tuple[str, dict[str, str]], client: TestClient, db: Session
 ) -> None:
     business_id, owner_headers = complete_business
+    # Start from an account with no ID on file; the fixture gave it one.
+    db.query(OwnerVerificationDocument).delete()
+    db.commit()
     client.patch(
         "/api/me", json={"personal_phone_number": "03123456"}, headers=owner_headers
     )
@@ -91,7 +96,11 @@ def test_incomplete_business_cannot_be_submitted(
 
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "incomplete_business"
-    assert len(response.json()["error"]["details"]["missing"]) > 0
+    missing = response.json()["error"]["details"]["missing"]
+    # A product and the owner's ID are asked for too (the owners' decision,
+    # 9 Nov 2026), so each is named in what is still missing.
+    assert "business.field.items" in missing
+    assert "business.field.identity" in missing
 
 
 def test_other_category_requires_custom_category_text_before_submission(
@@ -116,6 +125,7 @@ def test_other_category_requires_custom_category_text_before_submission(
     assert business is not None
     business.logo_url = "/media/test/logo.jpg"
     db.commit()
+    make_reviewable(db, business_id)
 
     blocked = client.post(f"/api/businesses/{business_id}/submit", headers=headers)
     assert blocked.status_code == 422

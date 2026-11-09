@@ -2484,5 +2484,10 @@
   "smsSignup.sentToday": "أُرسلت {count} رسالة رمز خلال آخر 24 ساعة.",
   "smsSignup.notConfigured": "مفاتيح مزوّد الرسائل غير مضبوطة، لذلك لن يظهر التسجيل عبر الرسائل حتى لو فُعّل.",
   "smsSignup.save": "حفظ",
-  "smsSignup.saved": "حُفظت الإعدادات."
+  "smsSignup.saved": "حُفظت الإعدادات.",
+  "wizard.personalMissingId": "صورة بطاقة الهوية",
+  "images.galleryNeedsProduct": "أضف منتجًا واحدًا على الأقل أولًا، ثم أضف صور المعرض.",
+  "business.field.items": "منتج واحد على الأقل",
+  "business.field.identity": "الوجه الأمامي لبطاقة الهوية (من صفحة حسابك)",
+  "talent.field.identity": "الوجه الأمامي لبطاقة الهوية (من صفحة حسابك)"
 }
