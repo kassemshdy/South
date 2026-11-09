@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Card, CardBody } from '@/components/ui/Card'
 import { useT, type TranslationKey } from '@/i18n'
 import { cn } from '@/utils/cn'
+import setupMapImage from '@/assets/setup-map.webp'
 
 type SetupStatus = 'ok' | 'partial' | 'missing'
 type SetupSection = 'entry' | 'center' | 'harness' | 'tools' | 'checks' | 'ship' | 'knowledge'
@@ -53,6 +54,22 @@ export function AdminSetupMapPage() {
           <span className="text-ink-400">{t('setupMap.updated')}</span>
         </div>
       </header>
+
+      {/* The whole setup as one picture (the owners' request, 9 Nov 2026);
+          the cards below explain each item. */}
+      <figure>
+        <a href={setupMapImage} target="_blank" rel="noreferrer" className="block">
+          <img
+            src={setupMapImage}
+            alt={t('setupMap.imageAlt')}
+            width={3600}
+            height={1834}
+            className="h-auto w-full rounded-2xl border border-ink-100 bg-ink-900"
+            loading="lazy"
+          />
+        </a>
+        <figcaption className="mt-2 text-sm text-ink-500">{t('setupMap.imageCaption')}</figcaption>
+      </figure>
 
       <Card className="border-brand-200 bg-brand-50/50">
         <CardBody>
