@@ -122,14 +122,14 @@ function SetupItem({
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-start gap-3 px-3 py-2.5 text-start"
+        className="flex w-full items-start gap-3 px-3 py-2.5 text-left"
       >
         <span
           className={cn('mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full', STATUS_STYLE[status])}
           aria-label={t(`setupMap.${status}` as TranslationKey)}
         />
         <span className="min-w-0 flex-1">
-          <span className="block font-semibold" dir="auto">
+          <span className="block font-semibold">
             {t(`${base}.title` as TranslationKey)}
           </span>
           <span className="block text-sm text-ink-500">{t(`${base}.short` as TranslationKey)}</span>
