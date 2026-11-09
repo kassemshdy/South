@@ -263,6 +263,16 @@ class Settings(BaseSettings):
     # developer's tracebacks stay on their own machine.
     sentry_dsn: str | None = None
 
+    # --- SMS (bestsmsbulk.com) ----------------------------------------------
+    # Staff text a shop owner's account number from the admin screens (the
+    # owners' request, 9 Nov 2026). All three unset or any one missing means
+    # no SMS button anywhere and nothing sent. The key and secret are from
+    # the account's "API Keys & Secrets" page and live in Railway only; the
+    # sender id must be one the provider approved for the account.
+    bestsms_api_key: str | None = None
+    bestsms_api_secret: str | None = None
+    bestsms_sender_id: str | None = None
+
     # --- Telegram archive --------------------------------------------------
     # Every save a user makes, posted to a Telegram chat with any files
     # attached (app/services/telegram_archive.py). Both unset means nothing
@@ -342,6 +352,10 @@ class Settings(BaseSettings):
     @property
     def is_staging(self) -> bool:
         return self.app_env == "staging"
+
+    @property
+    def sms_enabled(self) -> bool:
+        return bool(self.bestsms_api_key and self.bestsms_api_secret and self.bestsms_sender_id)
 
     @property
     def connector_enabled(self) -> bool:

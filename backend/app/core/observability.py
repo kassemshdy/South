@@ -51,6 +51,8 @@ SENSITIVE_KEYS = frozenset(
         "pgpassword",
         "phone_number",
         "secret_key",
+        # The SMS provider's credentials travel in a POST body (app/services/sms.py).
+        "api_secret",
         "set-cookie",
         "token",
         "access_token",

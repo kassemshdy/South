@@ -11,13 +11,14 @@ import uuid
 from datetime import UTC, datetime
 from typing import Annotated
 
+import httpx
 from fastapi import APIRouter, File, Form, Query, Response, UploadFile
 from sqlalchemy import func, select, update
 
 from app.api.serializers import admin_business, paginate
 from app.core.dependencies import AdminUser, AppSettings, DbSession
 from app.core.downloads import content_disposition
-from app.core.errors import NotFoundError, PayloadTooLargeError, ValidationError
+from app.core.errors import AppError, NotFoundError, PayloadTooLargeError, ValidationError
 from app.core.i18n import translate
 from app.core.uploads import read_at_most
 from app.models.business import BusinessItem
@@ -34,6 +35,9 @@ from app.schemas.moderation import (
     OutreachIn,
     PlaceChangeIn,
     RejectIn,
+    SmsIn,
+    SmsSentOut,
+    SmsStatusOut,
     SuspendIn,
 )
 from app.services import staff_notices, telegram_archive
@@ -43,6 +47,7 @@ from app.services.business_documents import BusinessDocumentService
 from app.services.business_images import store_business_image
 from app.services.growth_report import GrowthReportService
 from app.services.moderation import ModerationService
+from app.services.sms import SmsError, SmsService
 from app.storage.factory import get_storage
 
 logger = logging.getLogger(__name__)
@@ -151,6 +156,45 @@ def business_views(business_id: uuid.UUID, db: DbSession, admin: AdminUser) -> S
     business = _load(db, business_id)
     page, products = GrowthReportService(db).shop_views(business.id, VIEWS_DAYS)
     return ShopViewsOut(days=VIEWS_DAYS, page_views=page, product_views=products)
+
+
+@router.get("/sms", response_model=SmsStatusOut)
+def sms_status(settings: AppSettings, admin: AdminUser) -> SmsStatusOut:
+    """Whether SMS is set up, so the screens show the button only then."""
+    service = SmsService(settings)
+    if not service.enabled:
+        return SmsStatusOut(enabled=False)
+    try:
+        balance = service.balance()
+    except httpx.HTTPError:
+        balance = None
+    return SmsStatusOut(enabled=True, balance=balance)
+
+
+@router.post("/businesses/{business_id}/sms", response_model=SmsSentOut)
+def send_sms(
+    business_id: uuid.UUID,
+    payload: SmsIn,
+    db: DbSession,
+    settings: AppSettings,
+    admin: AdminUser,
+) -> SmsSentOut:
+    """Text the shop owner's account number -- the number they sign in
+    with, not the shop's published one (the owners' request, 9 Nov 2026)."""
+    business = _load(db, business_id)
+    service = SmsService(settings)
+    if not service.enabled:
+        raise AppError("sms.not_configured", code="sms_not_configured", status_code=503)
+    number = business.owner.phone_number if business.owner else None
+    if not number:
+        raise ValidationError("sms.no_number", code="sms_no_number")
+    try:
+        sent = service.send(number, payload.message)
+    except (SmsError, httpx.HTTPError) as error:
+        raise AppError(
+            "sms.refused", code="sms_refused", status_code=502, params={"reason": str(error)}
+        ) from error
+    return SmsSentOut(confirmation_id=sent.confirmation_id, parts=sent.parts)
 
 
 @router.get("/businesses/{business_id}/documents/{document_id}/download")
