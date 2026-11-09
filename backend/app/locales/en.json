@@ -372,5 +372,6 @@
   "business.move_items_invalid": "Products can only move to another listing of the same account.",
   "sms.not_configured": "SMS is not set up yet.",
   "sms.no_number": "This listing has no account number.",
-  "sms.refused": "The message was not sent: {reason}"
+  "sms.refused": "The message was not sent: {reason}",
+  "telegram.csv_backup": "The data as CSV spreadsheets (they open in Excel)"
 }

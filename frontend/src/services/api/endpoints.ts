@@ -848,6 +848,7 @@ export const adminApi = {
   setGrowthPlan: (payload: GrowthPlan) =>
     apiRequest<GrowthPlan>('/api/admin/growth-plan', { method: 'PUT', body: payload }),
   exportCsv: (dataset: ExportDataset) => apiDownload(`/api/admin/export/${dataset}.csv`),
+  exportIdDocuments: () => apiDownload('/api/admin/export/id-documents.zip'),
   staff: () => apiRequest<StaffMember[]>('/api/admin/staff'),
   inviteStaff: (payload: {
     email: string

@@ -2312,5 +2312,8 @@
   "adminSms.button": "Text message (SMS)",
   "adminSms.send": "Send",
   "adminSms.sent": "The text message was sent.",
-  "adminSms.hint": "{count} characters. Sent to the account number. A long Arabic message may count as more than one SMS."
+  "adminSms.hint": "{count} characters. Sent to the account number. A long Arabic message may count as more than one SMS.",
+  "admin.exportIdsTitle": "ID scans",
+  "admin.exportIdsHint": "Every ID scan, front and back, in one zip. Each file is named by the account number. Sensitive: do not share it.",
+  "admin.exportIdsDownload": "Download ZIP"
 }
