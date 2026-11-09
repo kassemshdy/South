@@ -27,16 +27,17 @@ const DATASETS: { key: ExportDataset; labelKey: TranslationKey }[] = [
 export function AdminExportPage() {
   const t = useT()
   const toast = useToast()
-  const [busy, setBusy] = useState<ExportDataset | null>(null)
+  const [busy, setBusy] = useState<ExportDataset | 'ids' | null>(null)
 
-  const download = async (dataset: ExportDataset) => {
+  const download = async (dataset: ExportDataset | 'ids') => {
     setBusy(dataset)
     try {
-      const { blob, filename } = await adminApi.exportCsv(dataset)
+      const { blob, filename } =
+        dataset === 'ids' ? await adminApi.exportIdDocuments() : await adminApi.exportCsv(dataset)
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = filename ?? `${dataset}.csv`
+      link.download = filename ?? (dataset === 'ids' ? 'id-documents.zip' : `${dataset}.csv`)
       link.click()
       URL.revokeObjectURL(url)
     } catch (error) {
@@ -68,6 +69,22 @@ export function AdminExportPage() {
               </Button>
             </div>
           ))}
+        </CardBody>
+      </Card>
+
+      {/* Every ID scan, front and back, in one zip named by account number
+          (the owners' request, 9 Nov 2026). The manager's alone, like this
+          page; the server refuses anyone else. */}
+      <Card>
+        <CardBody className="flex flex-wrap items-center justify-between gap-3 p-4">
+          <div>
+            <p className="font-semibold">{t('admin.exportIdsTitle')}</p>
+            <p className="text-sm text-ink-500">{t('admin.exportIdsHint')}</p>
+          </div>
+          <Button size="sm" variant="outline" loading={busy === 'ids'} onClick={() => void download('ids')}>
+            <Download className="h-4 w-4" aria-hidden="true" />
+            {t('admin.exportIdsDownload')}
+          </Button>
         </CardBody>
       </Card>
     </div>

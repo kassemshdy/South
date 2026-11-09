@@ -47,6 +47,8 @@ RESTRICTED_READS: dict[str, frozenset[StaffRole]] = {
 } | {
     # A spreadsheet of every account's identity and every customer's phone.
     "/api/admin/export/{dataset}.csv": frozenset({M}),
+    # Every identity paper on the site in one file.
+    "/api/admin/export/id-documents.zip": frozenset({M}),
     "/api/admin/staff": frozenset({M}),
     # Employers' names and numbers: the roles that act on the requests.
     "/api/admin/employer-requests": frozenset({M, R, S}),

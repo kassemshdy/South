@@ -9,12 +9,18 @@ from __future__ import annotations
 
 import csv
 import io
+import zipfile
 
 import pytest
 from fastapi.testclient import TestClient
+from PIL import Image
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
+from app.models.enums import VerificationDocumentKind
 from app.models.user import User
+from app.services.verification import VerificationDocumentService
+from app.storage.factory import get_storage
 from tests.conftest import admin_headers, make_owner, sign_in
 
 DATASETS = ["businesses", "products", "users", "talent", "orders", "partners"]
@@ -113,3 +119,30 @@ def test_partner_requests_export_holds_open_and_solved_alike(
     rows = _read(response.content)
     assert {row["name"] for row in rows} == {"Open", "Solved"}
     assert {"phone", "offer", "solved_at"} <= set(rows[0])
+
+
+def test_the_manager_downloads_every_id_scan_in_one_zip(
+    client: TestClient, db: Session, admin: User
+) -> None:
+    """The owners' request (9 Nov 2026): every ID scan, front and back, as
+    one zip named by account number -- the manager's alone."""
+    buffer = io.BytesIO()
+    Image.new("RGB", (8, 8), "white").save(buffer, "JPEG")
+    owner = db.merge(make_owner("03990061"))
+    service = VerificationDocumentService(get_storage(), get_settings())
+    for kind in (VerificationDocumentKind.IDENTITY, VerificationDocumentKind.IDENTITY_BACK):
+        service.store(
+            db=db, user=owner, data=buffer.getvalue(), original_filename="x.jpg", kind=kind
+        )
+
+    response = client.get("/api/admin/export/id-documents.zip", headers=admin_headers(client))
+    assert response.status_code == 200, response.text
+    assert response.headers["content-type"] == "application/zip"
+    names = sorted(zipfile.ZipFile(io.BytesIO(response.content)).namelist())
+    assert names == ["9613990061_back.jpg", "9613990061_front.jpg"]
+
+    assert client.get("/api/admin/export/id-documents.zip").status_code == 401
+    owner_session = sign_in(client, "03990061")
+    assert (
+        client.get("/api/admin/export/id-documents.zip", headers=owner_session).status_code == 403
+    )
