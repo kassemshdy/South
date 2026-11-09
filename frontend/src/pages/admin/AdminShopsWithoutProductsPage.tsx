@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/Input'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
+import { SmsSender } from '@/features/admin/SmsSender'
 import { useStaffCan } from '@/features/admin/staffAccess'
 import { Pagination } from '@/features/businesses/Pagination'
 import { useI18n } from '@/i18n'
@@ -226,6 +227,13 @@ function ShopRow({
           ) : null}
         </div>
       </div>
+
+      {/* The same words as the WhatsApp message, by text to the account
+          number, once SMS is set up (the owners' request, 9 Nov 2026). */}
+      <SmsSender
+        businessId={shop.id}
+        defaultMessage={t('adminShops.noProductsWhatsapp', { name: shop.name })}
+      />
 
       {contacted && !editing ? (
         <div className="rounded-xl bg-olive-50 px-3 py-2 text-sm">

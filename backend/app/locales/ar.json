@@ -369,5 +369,8 @@
   "telegram.kind.service_approved": "تمت الموافقة على ملف خدمة",
   "telegram.kind.service_rejected": "تم رفض ملف خدمة",
   "telegram.label.reason": "السبب",
-  "business.move_items_invalid": "لا يمكن نقل المنتجات إلا إلى نشاط آخر لصاحب الحساب نفسه."
+  "business.move_items_invalid": "لا يمكن نقل المنتجات إلا إلى نشاط آخر لصاحب الحساب نفسه.",
+  "sms.not_configured": "لم تُضبط الرسائل النصية بعد.",
+  "sms.no_number": "لا رقم حساب لهذا النشاط.",
+  "sms.refused": "لم تُرسل الرسالة: {reason}"
 }

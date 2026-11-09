@@ -2308,5 +2308,9 @@
   "adminMapPins.suggestTown": "الاقتراح: وسط مواقع البلدة نفسها",
   "adminMapPins.suggestDistrict": "الاقتراح: وسط مواقع القضاء (لا مواقع أخرى في البلدة)",
   "adminMapPins.noSuggestion": "لا اقتراح: صحّحه يدويًا من صفحته",
-  "adminMapPins.notPublished": "غير منشور"
+  "adminMapPins.notPublished": "غير منشور",
+  "adminSms.button": "رسالة نصية SMS",
+  "adminSms.send": "أرسل الرسالة",
+  "adminSms.sent": "أُرسلت الرسالة النصية.",
+  "adminSms.hint": "{count} حرفًا. تُرسل إلى رقم الحساب. الرسالة العربية الطويلة قد تُحتسب أكثر من رسالة."
 }

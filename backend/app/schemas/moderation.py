@@ -132,3 +132,21 @@ class MoveItemsIn(BaseModel):
     """Every product of a listing, to another listing of the same owner."""
 
     target_business_id: uuid.UUID
+
+
+class SmsIn(BaseModel):
+    """One text message to a shop owner's account number."""
+
+    message: str = Field(min_length=1, max_length=1000)
+
+
+class SmsSentOut(BaseModel):
+    confirmation_id: str
+    parts: int
+
+
+class SmsStatusOut(BaseModel):
+    """Whether the SMS buttons are shown, and the account's credit."""
+
+    enabled: bool
+    balance: float | None = None
