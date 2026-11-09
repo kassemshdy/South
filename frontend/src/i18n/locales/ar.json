@@ -2291,5 +2291,7 @@
   "admin.strayPinsHeading": "{count} دبوسًا خارج لبنان",
   "admin.strayPinsHint": "وُضعت هذه الدبابيس قبل أن يتحقّق الموقع من الحدود، فلا تظهر على أي خريطة عامة. افتح كل واحد وصحّح موقعه من بطاقة المكان.",
   "admin.strayPinShop": "محل",
-  "admin.strayPinService": "خدمة"
+  "admin.strayPinService": "خدمة",
+  "login.useEmail": "تسجيل الدخول بالبريد الإلكتروني",
+  "login.usePhone": "تسجيل الدخول برقم الهاتف"
 }

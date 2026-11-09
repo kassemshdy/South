@@ -2291,5 +2291,7 @@
   "admin.strayPinsHeading": "{count} pins outside Lebanon",
   "admin.strayPinsHint": "These pins were saved before the site checked the border, so no public map shows them. Open each one and correct its place from the place card.",
   "admin.strayPinShop": "Shop",
-  "admin.strayPinService": "Service"
+  "admin.strayPinService": "Service",
+  "login.useEmail": "Sign in with an email",
+  "login.usePhone": "Sign in with a phone number"
 }
