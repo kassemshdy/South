@@ -17,6 +17,7 @@ from datetime import UTC, datetime
 from sqlalchemy.orm import Session
 
 from app.core.errors import NotFoundError, ValidationError
+from app.core.state_machine import Transitions
 from app.core.i18n import translate
 from app.models.enums import FeedbackStatus, UserRole
 from app.models.feedback import FeedbackComment, FeedbackTicket
@@ -32,6 +33,15 @@ from app.schemas.feedback import (
 from app.services import telegram_archive, triage_trigger
 
 logger = logging.getLogger(__name__)
+
+#: The board's one hard rule: APPROVED is the release gate, so a ticket only
+#: reaches it from NEEDS_APPROVAL -- the column where a person checked the fix
+#: on the develop site. Every other move (and a reorder within APPROVED)
+#: stays free, as the board has always been.
+TICKET_TRANSITIONS: Transitions[FeedbackStatus] = Transitions(
+    {FeedbackStatus.APPROVED: frozenset({FeedbackStatus.NEEDS_APPROVAL})},
+    message_key="feedback.approve_from_needs_approval",
+)
 
 
 def _clip(text: str | None) -> str | None:
@@ -116,6 +126,7 @@ class FeedbackService:
         server-derived rather than client-supplied.
         """
         origin_status = ticket.status
+        TICKET_TRANSITIONS.check(origin_status, payload.status)
 
         destination = [
             row for row in self._repo.list_in_status(payload.status) if row.id != ticket.id

@@ -375,5 +375,6 @@
   "sms.refused": "لم تُرسل الرسالة: {reason}",
   "telegram.csv_backup": "جداول البيانات بصيغة CSV (تُفتح في Excel)",
   "followers.not_configured": "لم يُضبط جلب أعداد المتابعين بعد.",
-  "followers.refresh_started": "بدأ تحديث أعداد المتابعين، وتظهر خلال دقائق."
+  "followers.refresh_started": "بدأ تحديث أعداد المتابعين، وتظهر خلال دقائق.",
+  "feedback.approve_from_needs_approval": "تتمّ الموافقة على التذكرة من عمود «بانتظار الموافقة» فقط، بعد التحقّق من الإصلاح على موقع التطوير."
 }

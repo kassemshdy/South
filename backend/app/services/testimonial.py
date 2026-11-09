@@ -110,7 +110,14 @@ class TestimonialService:
         return testimonial
 
     def approve(self, testimonial: Testimonial) -> Testimonial:
-        """Publish it. The only route by which a testimonial becomes visible."""
+        """Publish it. The only route by which a testimonial becomes visible.
+
+        Any unpublished status may be approved (a rejection can be undone,
+        and rows hidden under the old design come back this way). Approving
+        one already published is a no-op, so a double click or a retried
+        request does not move its publication date."""
+        if testimonial.status is TestimonialStatus.APPROVED:
+            return testimonial
         testimonial.status = TestimonialStatus.APPROVED
         testimonial.approved_at = datetime.now(UTC)
         self._refresh_rating(testimonial)
@@ -118,7 +125,10 @@ class TestimonialService:
         return testimonial
 
     def reject(self, testimonial: Testimonial) -> Testimonial:
-        """Refused. Never reaches the page; taken down if it was on it."""
+        """Refused. Never reaches the page; taken down if it was on it.
+        Rejecting one already rejected is a no-op."""
+        if testimonial.status is TestimonialStatus.REJECTED:
+            return testimonial
         testimonial.status = TestimonialStatus.REJECTED
         self._refresh_rating(testimonial)
         self._db.commit()

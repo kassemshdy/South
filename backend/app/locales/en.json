@@ -375,5 +375,6 @@
   "sms.refused": "The message was not sent: {reason}",
   "telegram.csv_backup": "The data as CSV spreadsheets (they open in Excel)",
   "followers.not_configured": "Follower counts are not set up yet.",
-  "followers.refresh_started": "Refreshing follower counts; they appear within minutes."
+  "followers.refresh_started": "Refreshing follower counts; they appear within minutes.",
+  "feedback.approve_from_needs_approval": "A ticket is approved only from “Needs approval”, once the fix has been checked on the develop site."
 }

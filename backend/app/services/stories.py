@@ -161,6 +161,11 @@ class StoryService:
         return story
 
     def approve(self, story: StoryImage) -> StoryImage:
+        """Publish for STORY_LIFETIME from now. Approving a story that is
+        already up is a no-op: a second click must not quietly extend its
+        day on the home page."""
+        if story.status == STORY_APPROVED:
+            return story
         moment = now()
         story.status = STORY_APPROVED
         story.approved_at = moment
@@ -170,6 +175,8 @@ class StoryService:
         return story
 
     def reject(self, story: StoryImage) -> StoryImage:
+        if story.status == STORY_REJECTED:
+            return story
         story.status = STORY_REJECTED
         story.approved_at = story.expires_at = None
         self._db.commit()
