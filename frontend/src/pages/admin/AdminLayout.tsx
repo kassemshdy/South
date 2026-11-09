@@ -25,6 +25,7 @@ import {
   Newspaper,
   MapPinOff,
   MousePointerClick,
+  Network,
   PackageX,
   PhoneCall,
   ShoppingBag,
@@ -142,6 +143,7 @@ const GROUPS: { labelKey: TranslationKey; icon: typeof BarChart3; items: NavItem
       { to: '/admin/growth', labelKey: 'growth.nav', icon: TrendingUp },
       { to: '/admin/feedback', labelKey: 'admin.navFeedback', icon: Bug },
       { to: '/admin/export', labelKey: 'admin.navExport', icon: Download, needs: 'manage' },
+      { to: '/admin/setup-map', labelKey: 'setupMap.nav', icon: Network, needs: 'manage' },
     ],
   },
 ]
