@@ -5,10 +5,17 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { DisplacedBadge } from '@/components/ui/DisplacedBadge'
 import { useT } from '@/i18n'
+import { publicBusinessApi } from '@/services/api/endpoints'
 import type { BusinessSummary } from '@/types/api'
 import { telHref, whatsappHref } from '@/utils/format'
 import { CardImage } from '@/components/ui/CardImage'
 
+/**
+ * A shop in a list. Its WhatsApp and call buttons are counted like the ones
+ * on the shop's own page: a visitor who writes from the directory reached
+ * the shop through the site too (the owners' report, 9 Nov 2026: a shop
+ * contacted from its card was missing from the contacted-shops page).
+ */
 export function BusinessCard({ business }: { business: BusinessSummary }) {
   const t = useT()
   const profileUrl = `/business/${encodeURIComponent(business.slug)}`
@@ -88,7 +95,12 @@ export function BusinessCard({ business }: { business: BusinessSummary }) {
               variant="whatsapp"
               aria-label={t('business.whatsappAria', { name: business.name })}
             >
-              <a href={whatsapp} target="_blank" rel="noopener noreferrer">
+              <a
+                href={whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => publicBusinessApi.countContactClick(business.slug)}
+              >
                 <MessageCircle className="h-5 w-5" aria-hidden="true" />
               </a>
             </Button>
@@ -100,7 +112,7 @@ export function BusinessCard({ business }: { business: BusinessSummary }) {
               variant="outline"
               aria-label={t('business.callAria', { name: business.name })}
             >
-              <a href={phone}>
+              <a href={phone} onClick={() => publicBusinessApi.countContactClick(business.slug)}>
                 <Phone className="h-5 w-5" aria-hidden="true" />
               </a>
             </Button>
