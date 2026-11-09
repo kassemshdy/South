@@ -36,10 +36,12 @@ export function AdminSetupMapPage() {
     items.filter((item) => item.status === 'missing').map((item) => ({ section, ...item })),
   )
 
+  // English for the developers whatever the site's language, so it reads
+  // left to right too.
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-left" dir="ltr">
       <header>
-        <h1 className="text-3xl">{t('setupMap.title')}</h1>
+        <h1 className="text-3xl" dir="ltr">{t('setupMap.title')}</h1>
         <p className="mt-2 max-w-3xl text-ink-500">{t('setupMap.subtitle')}</p>
         <div className="mt-3 flex flex-wrap gap-4 text-sm text-ink-600">
           {(['ok', 'partial', 'missing'] as const).map((status) => (

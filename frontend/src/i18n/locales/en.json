@@ -2444,7 +2444,7 @@
   "setupMap.knowledge.board.title": "Ticket board",
   "setupMap.knowledge.board.short": "Every request and its comments",
   "setupMap.knowledge.board.details": "A full record of everything asked for and done.",
-  "setupMap.nav": "How we work",
+  "setupMap.nav": "Dev: setup map",
   "setupMap.title": "How we work with Claude",
   "setupMap.subtitle": "How a request becomes a change on janoubona.net: where it starts, the rules around it, and the checks before release. Tap any item for its explanation.",
   "setupMap.ok": "In place",
@@ -2452,5 +2452,6 @@
   "setupMap.missing": "Missing",
   "setupMap.youText": "You decide: you ask, approve plans and approve releases. Nothing reaches the live site without your OK.",
   "setupMap.missingTitle": "What is missing",
-  "setupMap.updated": "Last updated: 9 Nov 2026"
+  "setupMap.updated": "Last updated: 9 Nov 2026",
+  "adminNav.groupDev": "Dev"
 }

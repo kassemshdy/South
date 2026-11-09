@@ -143,8 +143,14 @@ const GROUPS: { labelKey: TranslationKey; icon: typeof BarChart3; items: NavItem
       { to: '/admin/growth', labelKey: 'growth.nav', icon: TrendingUp },
       { to: '/admin/feedback', labelKey: 'admin.navFeedback', icon: Bug },
       { to: '/admin/export', labelKey: 'admin.navExport', icon: Download, needs: 'manage' },
-      { to: '/admin/setup-map', labelKey: 'setupMap.nav', icon: Network, needs: 'manage' },
     ],
+  },
+  {
+    // For the developers, in English whatever the site's language (the
+    // owners' request, 9 Nov 2026).
+    labelKey: 'adminNav.groupDev',
+    icon: Network,
+    items: [{ to: '/admin/setup-map', labelKey: 'setupMap.nav', icon: Network, needs: 'manage' }],
   },
 ]
 
