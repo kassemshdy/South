@@ -79,6 +79,8 @@ export const queryKeys = {
     ['admin', 'businesses', status ?? 'all', page, q ?? ''] as const,
   adminBusiness: (id: string) => ['admin', 'business', id] as const,
   adminSmsStatus: ['admin', 'sms'] as const,
+  adminSmsSignup: ['admin', 'sms-signup'] as const,
+  phoneAuthConfig: ['auth', 'phone', 'config'] as const,
   adminStrayPins: ['admin', 'stray-pins'] as const,
   adminContactedShops: (days: number) => ['admin', 'contacted-shops', days] as const,
   adminBusinessViews: (id: string) => ['admin', 'business', id, 'views'] as const,

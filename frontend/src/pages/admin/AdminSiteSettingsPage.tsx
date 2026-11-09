@@ -10,6 +10,7 @@ import { ErrorState } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
 import { CoverUpload } from '@/features/admin/CoverUpload'
 import { JobLinksEditor } from '@/features/admin/JobLinksEditor'
+import { SmsSignupSettings } from '@/features/admin/SmsSignupSettings'
 import { WELCOME_POSTERS, WELCOME_VIDEO_ID } from '@/features/home/WelcomeVideo'
 import { useT, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
@@ -168,6 +169,8 @@ export function AdminSiteSettingsPage() {
           </CardBody>
         </Card>
       )}
+
+      <SmsSignupSettings />
 
       <CredentialsMessage />
 
