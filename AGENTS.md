@@ -114,6 +114,7 @@ one person's head.
 | `.claude/commands/verify.md` | Slash command; it invokes the skill rather than restating it, so there is one copy to keep correct. |
 | `.claude/settings.json` | Pre-approved tools. Read-only commands and MCP reads are allowed; anything that writes still prompts. |
 | `docs/MCP.md` | The agent-facing MCP server: read the whole directory, write only to the ticket board. |
+| `docs/STATE_MACHINES.md` | Every status column as a state machine: the audit, the decisions, the open issues, and the prompt to re-run it. Read before adding or changing a status. |
 
 **When a mistake repeats, fix the artifact rather than the instance.** A skill
 or a line in this file is worth more than a correction in one conversation,

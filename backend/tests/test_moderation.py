@@ -368,3 +368,34 @@ def test_a_shop_without_a_logo_is_not_published(
     business.logo_url = "/media/test/logo.jpg"
     db.commit()
     assert client.post(approve, headers=admin_headers(client)).status_code == 200
+
+
+def test_staff_send_a_draft_to_review_on_the_owners_behalf(
+    client: TestClient, admin: User, category: Category, location: Location, db: Session
+) -> None:
+    """The owners' request (10 Nov 2026): drafts nobody sent reach the queue.
+    No readiness check -- a reviewer finishes the shop -- but approval still
+    needs a logo, so nothing incomplete is published by this."""
+    owner = sign_in(client, "03800077")
+    one = client.post("/api/businesses", headers=owner, json={"name": ar("business.incomplete")})
+    two = client.post("/api/businesses", headers=owner, json={"name": ar("business.other_shop")})
+    headers = admin_headers(client)
+
+    sent = client.post(f"/api/admin/businesses/{one.json()['id']}/send-to-review", headers=headers)
+    assert sent.status_code == 200, sent.text
+    assert sent.json()["status"] == "PENDING_REVIEW"
+    # Its audit row names the staff member who sent it.
+    action = db.query(ModerationAction).filter_by(business_id=one.json()["id"]).one()
+    assert action.admin_id == admin.id
+
+    # Approval still refuses a shop with no logo.
+    refused = client.post(f"/api/admin/businesses/{one.json()['id']}/approve", headers=headers)
+    assert refused.status_code == 422
+
+    everything = client.post("/api/admin/businesses/drafts/send-to-review", headers=headers)
+    assert everything.status_code == 200
+    second = client.get(f"/api/admin/businesses/{two.json()['id']}", headers=headers).json()
+    assert second["status"] == "PENDING_REVIEW"
+    # Already in review: sending again is refused, not repeated.
+    again = client.post(f"/api/admin/businesses/{one.json()['id']}/send-to-review", headers=headers)
+    assert again.status_code == 409

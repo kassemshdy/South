@@ -22,7 +22,7 @@ from app.core.errors import AppError, NotFoundError, PayloadTooLargeError, Valid
 from app.core.i18n import translate
 from app.core.uploads import read_at_most
 from app.database.session import SessionLocal
-from app.models.business import BusinessItem
+from app.models.business import Business, BusinessItem
 from app.models.enums import BusinessStatus, ImageKind
 from app.repositories.business import AdminSort, BusinessRepository
 from app.schemas.business import BusinessUpdateIn
@@ -247,6 +247,24 @@ def download_document(
         media_type=document.content_type,
         headers={"Content-Disposition": content_disposition(filename)},
     )
+
+
+@router.post("/businesses/drafts/send-to-review", response_model=MessageResponse)
+def send_all_drafts_to_review(db: DbSession, admin: AdminUser) -> MessageResponse:
+    """Every draft shop into the review queue at once (see send_to_review)."""
+    drafts = db.scalars(select(Business).where(Business.status == BusinessStatus.DRAFT)).all()
+    service = ModerationService(db)
+    for business in drafts:
+        service.send_to_review(business, admin)
+    return MessageResponse(message=translate("admin.drafts_sent", count=len(drafts)))
+
+
+@router.post("/businesses/{business_id}/send-to-review", response_model=AdminBusinessOut)
+def send_to_review(business_id: uuid.UUID, db: DbSession, admin: AdminUser) -> AdminBusinessOut:
+    """One draft, or a rejected shop, into the review queue on its owner's
+    behalf."""
+    business = ModerationService(db).send_to_review(_load(db, business_id), admin)
+    return admin_business(business)
 
 
 @router.post("/businesses/{business_id}/approve", response_model=AdminBusinessOut)

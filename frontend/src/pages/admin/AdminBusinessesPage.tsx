@@ -1,4 +1,4 @@
-import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -39,7 +39,27 @@ export function AdminBusinessesPage() {
   const sort: AdminBusinessSort =
     sortParam === 'instagram' || sortParam === 'facebook' ? sortParam : 'newest'
   const canRefreshFollowers = useStaffCan('manage')
+  const canModerate = useStaffCan('moderate')
   const toast = useToast()
+  const queryClient = useQueryClient()
+  // Drafts the owner never sent sit unseen; staff move them into the queue
+  // (the owners' request, 10 Nov 2026). A reviewer then finishes them.
+  const afterSend = (message: string) => {
+    toast.success(message)
+    void queryClient.invalidateQueries({ queryKey: ['admin', 'businesses'] })
+  }
+  const sendToReview = useMutation({
+    mutationFn: (id: string) => adminApi.sendToReview(id),
+    onSuccess: () => afterSend(t('admin.sentToReview')),
+    onError: (error) =>
+      toast.error(error instanceof ApiError ? error.message : t('states.errorFallback')),
+  })
+  const sendAllDrafts = useMutation({
+    mutationFn: adminApi.sendAllDraftsToReview,
+    onSuccess: (result) => afterSend(result.message),
+    onError: (error) =>
+      toast.error(error instanceof ApiError ? error.message : t('states.errorFallback')),
+  })
   const refreshFollowers = useMutation({
     mutationFn: adminApi.refreshFollowers,
     onSuccess: (result) => toast.success(result.message),
@@ -128,6 +148,18 @@ export function AdminBusinessesPage() {
             </button>
           )
         })}
+        {canModerate && statusParam === 'DRAFT' ? (
+          <Button
+            size="sm"
+            variant="outline"
+            loading={sendAllDrafts.isPending}
+            onClick={() => {
+              if (window.confirm(t('admin.sendAllDraftsConfirm'))) sendAllDrafts.mutate()
+            }}
+          >
+            {t('admin.sendAllDrafts')}
+          </Button>
+        ) : null}
       </div>
 
       {/* Sort by followers (the owners' request, 9 Nov 2026); the counts are
@@ -262,6 +294,17 @@ export function AdminBusinessesPage() {
                         </div>
                       </div>
 
+                      {canModerate &&
+                      (business.status === 'DRAFT' || business.status === 'REJECTED') ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          loading={sendToReview.isPending && sendToReview.variables === business.id}
+                          onClick={() => sendToReview.mutate(business.id)}
+                        >
+                          {t('admin.sendToReview')}
+                        </Button>
+                      ) : null}
                       <Button asChild size="sm">
                         <Link to={`/admin/businesses/${business.id}`}>
                           {business.status === 'PENDING_REVIEW'
