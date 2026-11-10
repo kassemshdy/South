@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, PackagePlus, PartyPopper, Send, UserRound } from 'lucide-react'
+import { Check, PackagePlus, PartyPopper, Send, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
@@ -25,6 +25,7 @@ import { authApi, ownerApi, type BusinessPayload } from '@/services/api/endpoint
 import { queryKeys } from '@/services/api/queryKeys'
 import { cn } from '@/utils/cn'
 import { normalizeForSearch } from '@/utils/search'
+import { DocumentCard, PhotoCard, ProfileCard } from '@/pages/dashboard/AccountPage'
 
 // `optional` marks the steps nothing in `SUBMISSION_REQUIREMENTS` depends on.
 // Unlabelled chips read as obligations; two of these are not, and an owner who
@@ -85,20 +86,25 @@ type StepKey = (typeof STEPS)[number]['key']
  * should be able to.
  */
 function PersonalStep({ onContinue }: { onContinue: () => void }) {
-  const { user } = useAuth()
+  const { user, refresh } = useAuth()
   const t = useT()
-  // The front of the ID card is needed before review (the owners' decision,
-  // 9 Nov 2026); it is uploaded on the account page.
+  // Filled here, in the wizard, rather than on another page (the owners'
+  // request, 10 Nov 2026: someone who has just signed up by SMS is guided
+  // through everything in one place). The same cards as the account page,
+  // so there is still one form per fact. The name and the front of the ID
+  // card are needed before going on: review cannot start without the card.
   const idCard = useQuery({
     queryKey: queryKeys.myVerificationDocument,
     queryFn: authApi.getVerificationDocument,
   })
+  if (!user) return <InlineSpinner />
 
   const missing = [
-    !user?.full_name && t('wizard.personalMissingName'),
-    !user?.photo_url && t('wizard.personalMissingPhoto'),
+    !user.full_name && t('wizard.personalMissingName'),
+    !user.photo_url && t('wizard.personalMissingPhoto'),
     idCard.isSuccess && !idCard.data && t('wizard.personalMissingId'),
   ].filter((entry): entry is string => Boolean(entry))
+  const canContinue = Boolean(user.full_name) && idCard.isSuccess && Boolean(idCard.data)
 
   return (
     <div className="space-y-5">
@@ -107,43 +113,42 @@ function PersonalStep({ onContinue }: { onContinue: () => void }) {
         <p className="mt-2 text-ink-500">{t('wizard.personalIntro')}</p>
       </div>
 
-      <div className="flex items-center gap-4 rounded-2xl bg-sand-50 p-4">
-        <span className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border-2 border-dashed border-ink-100 bg-white">
-          {user?.photo_url ? (
-            <img src={user.photo_url} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <span className="flex h-full items-center justify-center text-ink-300">
-              <UserRound className="h-6 w-6" aria-hidden="true" />
-            </span>
-          )}
-        </span>
-        <div className="min-w-0">
-          <p className="truncate font-semibold text-ink-900">
-            {user?.full_name ?? t('wizard.personalNoName')}
-          </p>
-          {missing.length > 0 ? (
-            <p className="mt-0.5 text-sm text-clay-700">
-              {t('wizard.personalMissing', { fields: missing.join(t('common.listSeparator')) })}
-            </p>
-          ) : (
-            <p className="mt-0.5 text-sm text-olive-700">{t('wizard.personalComplete')}</p>
-          )}
-        </div>
-      </div>
-
       <p className="rounded-xl bg-sand-100 p-3.5 text-sm text-clay-800">
         {t('wizard.personalPrivacyNote')}
       </p>
 
+      <ProfileCard user={user} onSaved={refresh} />
+      <PhotoCard user={user} onSaved={refresh} />
+      <DocumentCard
+        icon={<ShieldCheck className="h-5 w-5 text-brand-700" aria-hidden="true" />}
+        titleKey="account.documentFrontTitle"
+        hintKey="account.documentHint"
+        queryKey={queryKeys.myVerificationDocument}
+        read={authApi.getVerificationDocument}
+        upload={authApi.uploadVerificationDocument}
+      />
+      <DocumentCard
+        icon={<ShieldCheck className="h-5 w-5 text-brand-700" aria-hidden="true" />}
+        titleKey="account.documentBackTitle"
+        hintKey="account.documentBackHint"
+        queryKey={queryKeys.myVerificationDocumentBack}
+        read={authApi.getVerificationDocumentBack}
+        upload={authApi.uploadVerificationDocumentBack}
+      />
+
+      {missing.length > 0 ? (
+        <p className="rounded-xl bg-clay-50 p-3.5 text-sm text-clay-800">
+          {t('wizard.personalMissing', { fields: missing.join(t('common.listSeparator')) })}
+        </p>
+      ) : (
+        <p className="rounded-xl bg-olive-50 p-3.5 text-sm text-olive-800">
+          {t('wizard.personalComplete')}
+        </p>
+      )}
+
       <div className="flex flex-wrap gap-3 pt-2">
-        <Button size="lg" onClick={onContinue}>
+        <Button size="lg" onClick={onContinue} disabled={!canContinue}>
           {t('common.continue')}
-        </Button>
-        <Button asChild variant="outline" size="lg">
-          <Link to="/dashboard/account">
-            <UserRound className="h-4 w-4" aria-hidden="true" />
-            {t('wizard.personalEdit')}
-          </Link>
         </Button>
       </div>
     </div>

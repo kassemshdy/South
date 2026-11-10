@@ -670,3 +670,16 @@ def test_nothing_is_mentioned_when_no_one_is_configured() -> None:
 
     assert "@" not in fake.messages[0]
     assert label("mention") not in fake.messages[0]
+
+
+def test_an_id_scan_on_its_own_is_not_a_new_account() -> None:
+    """One sign-up showed as three «new accounts» (10 Nov 2026): the account,
+    then each side of the ID card uploaded from the wizard."""
+    from app.services.telegram_archive import Change, _kind
+
+    account = Change(action="created", table="users", row_id="1")
+    scan = Change(action="created", table="owner_verification_documents", row_id="2")
+    assert _kind([account]) == "account"
+    # An application creates both in one commit: still one new account.
+    assert _kind([account, scan]) == "account"
+    assert _kind([scan]) == "id_document"
