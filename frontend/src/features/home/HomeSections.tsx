@@ -608,8 +608,8 @@ export function ShopsSection() {
 }
 
 /**
- * People offering a trade, drawn without their photograph: an initial in a
- * circle, the trade, where and how they work, and a button to ask for it.
+ * People offering a trade: their photo or logo (an initial when there is
+ * none), the trade, where and how they work, and a button to their page.
  */
 export function TalentsSection({
   showMore = true,
@@ -647,12 +647,23 @@ export function TalentsSection({
               return (
                 <li key={talent.id} className="flex min-w-0 flex-col gap-3 rounded-2xl bg-white p-4">
                   <div className="flex items-center gap-3">
-                    <span
-                      aria-hidden="true"
-                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-600 font-display text-lg font-bold text-white"
-                    >
-                      {talent.display_name.trim().slice(0, 1)}
-                    </span>
+                    {/* Their photo or logo when they have one (the owners'
+                        request, 10 Nov 2026); otherwise the initial. */}
+                    {talent.photo_thumb_url ?? talent.photo_url ? (
+                      <img
+                        src={(talent.photo_thumb_url ?? talent.photo_url) as string}
+                        alt=""
+                        loading="lazy"
+                        className="h-12 w-12 shrink-0 rounded-full border border-ink-100 bg-sand-50 object-cover"
+                      />
+                    ) : (
+                      <span
+                        aria-hidden="true"
+                        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-600 font-display text-lg font-bold text-white"
+                      >
+                        {talent.display_name.trim().slice(0, 1)}
+                      </span>
+                    )}
                     <span className="flex min-w-0 flex-1 flex-col">
                       <Link to={page} dir="auto" className="truncate font-bold text-ink-900 hover:text-brand-700">
                         {talent.display_name}
