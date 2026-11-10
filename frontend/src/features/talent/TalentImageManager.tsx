@@ -118,8 +118,8 @@ export function TalentImageManager({ profile, maxGallery = 10 }: TalentImageMana
       {photoCrop.dialog}
       {coverCrop.dialog}
       {galleryCrop.dialog}
-      {/* Both required before review for a service (the owners' ticket, 29
-          Oct 2026). Removed by kind: the payload lists only the portfolio. */}
+      {/* The photo is required before review. There is no wide cover any
+          more (the owners' decision, 10 Nov 2026). */}
       <div className="grid gap-6 sm:grid-cols-2">
         <SingleImageSlot
           label={t('talentImages.photoTitle')}
@@ -129,15 +129,6 @@ export function TalentImageManager({ profile, maxGallery = 10 }: TalentImageMana
           uploading={uploadingKind === PHOTO_KIND}
           onSelect={(file) => void handleFile(file, PHOTO_KIND)}
           onRemove={() => removeSingle.mutate(PHOTO_KIND)}
-        />
-        <SingleImageSlot
-          label={t('images.coverTitle')}
-          hint={t('images.coverHint')}
-          required={profile.kind === 'SERVICE'}
-          url={profile.cover_url ?? null}
-          uploading={uploadingKind === COVER_KIND}
-          onSelect={(file) => void handleFile(file, COVER_KIND)}
-          onRemove={() => removeSingle.mutate(COVER_KIND)}
         />
       </div>
 

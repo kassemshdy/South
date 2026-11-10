@@ -132,17 +132,8 @@ test.describe('Talent directory', () => {
     await cropAndUse(page)
     await expect(page.getByText(t('images.uploaded'), { exact: true }).first()).toBeVisible()
 
-    // --- And the cover, also required for a service --------------------------------
-    // Waited on by its response: the photo's toast may still be on screen.
-    const coverSaved = page.waitForResponse(
-      (response) =>
-        response.url().includes('/api/my/talent/images') &&
-        response.request().method() === 'POST' &&
-        response.ok(),
-    )
-    await page.locator('input[type="file"]').nth(1).setInputFiles(jpeg())
-    await cropAndUse(page)
-    await coverSaved
+    // No cover is asked for any more (the owners' decision, 10 Nov 2026):
+    // the photo is the only picture review needs.
 
     // --- Not reachable before approval ------------------------------------------
     await page.goto('/services')

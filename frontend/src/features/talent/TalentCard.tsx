@@ -94,22 +94,13 @@ function ServiceCard({ talent }: { talent: TalentSummary }) {
 
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-2xl border border-ink-100 bg-white shadow-card transition-shadow hover:shadow-lift">
-      {/* The work, 16:9. Without a cover, the category's colour and icon
-          rather than an empty grey box. */}
-      <div className="relative aspect-video bg-sand-100" aria-hidden="true">
-        {talent.cover_url ? (
-          <img
-            src={talent.cover_url}
-            alt=""
-            loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center bg-gradient-to-br from-sand-100 to-olive-100 text-brand-700/40">
-            <CategoryIcon name={talent.skill?.icon} className="h-12 w-12" />
-          </div>
-        )}
-        <div className="absolute -bottom-8 start-5 h-16 w-16 overflow-hidden rounded-full border-4 border-white bg-sand-100 shadow-card">
+      {/* No wide cover (the owners' decision, 10 Nov 2026): the person's
+          photo or logo is the picture. Without one, the trade's icon. */}
+      <div className="flex flex-1 flex-col p-5">
+        <div
+          className="mb-3 h-16 w-16 overflow-hidden rounded-full border border-ink-100 bg-sand-100"
+          aria-hidden="true"
+        >
           {talent.photo_url ? (
             <CardImage
               src={talent.photo_url}
@@ -119,14 +110,15 @@ function ServiceCard({ talent }: { talent: TalentSummary }) {
               className="h-full w-full object-cover"
             />
           ) : (
-            <div className="flex h-full items-center justify-center text-sand-500">
-              <UserRound className="h-7 w-7" />
+            <div className="flex h-full items-center justify-center text-brand-700/50">
+              {talent.skill?.icon ? (
+                <CategoryIcon name={talent.skill.icon} className="h-7 w-7" />
+              ) : (
+                <UserRound className="h-7 w-7" />
+              )}
             </div>
           )}
         </div>
-      </div>
-
-      <div className="flex flex-1 flex-col px-5 pb-5 pt-10">
         <h3 className="flex items-center gap-1.5 text-lg font-bold text-ink-900">
           {/* The whole card opens the profile: this link's hit area is
               stretched over it, and the WhatsApp button sits above that. */}

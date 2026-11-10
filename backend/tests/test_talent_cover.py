@@ -1,8 +1,9 @@
-"""A service profile's cover: uploaded, published, removed, and required.
+"""A service profile's photo and cover.
 
 The owners' ticket of 29 Oct 2026 made the photo and a cover compulsory for a
-service before review, as a business's logo is. The rule bites at submission
-only: a profile already approved without a cover stays public.
+service before review. On 10 Nov 2026 they dropped the wide cover: only the
+photo is required now, and the pages no longer show a cover. The upload
+routes stay, so a stored cover is not lost and can still be removed.
 """
 
 from __future__ import annotations
@@ -76,22 +77,16 @@ def _upload(client: TestClient, headers: dict[str, str], kind: str) -> dict:
     return response.json()
 
 
-def test_a_service_cannot_go_to_review_without_its_photo_and_cover(
+def test_a_service_goes_to_review_with_its_photo_and_no_cover(
     client: TestClient, skill: TalentSkill, location: Location
 ) -> None:
     _, _, headers = _profile(client, "03960001", skill, location)
     missing = client.get("/api/my/talent/readiness", headers=headers).json()
-    assert {"talent.field.photo", "talent.field.cover"} <= set(missing)
+    assert "talent.field.photo" in missing
+    assert "talent.field.cover" not in missing
     assert client.post("/api/my/talent/submit", headers=headers).status_code == 422
 
     _upload(client, headers, "LOGO")
-    missing = client.get("/api/my/talent/readiness", headers=headers).json()
-    assert "talent.field.photo" not in missing
-    assert "talent.field.cover" in missing
-    assert client.post("/api/my/talent/submit", headers=headers).status_code == 422
-
-    owner = _upload(client, headers, "COVER")
-    assert owner["cover_url"]
     assert client.get("/api/my/talent/readiness", headers=headers).json() == []
     submitted = client.post("/api/my/talent/submit", headers=headers)
     assert submitted.status_code == 200, submitted.text
