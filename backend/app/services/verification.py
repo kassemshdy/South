@@ -17,6 +17,7 @@ from __future__ import annotations
 import logging
 import uuid
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
@@ -131,3 +132,19 @@ class VerificationDocumentService:
             if data.startswith(magic):
                 return content_type
         raise UnsupportedMediaTypeError("verification.unsupported_format")
+
+
+def has_identity_document(db: Session, user_id: uuid.UUID | None) -> bool:
+    """Whether the account has the front of its ID card on file -- the side
+    a listing must have before it is sent for review."""
+    if user_id is None:
+        return False
+    return (
+        db.scalar(
+            select(OwnerVerificationDocument.id).where(
+                OwnerVerificationDocument.user_id == user_id,
+                OwnerVerificationDocument.kind == VerificationDocumentKind.IDENTITY,
+            )
+        )
+        is not None
+    )

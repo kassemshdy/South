@@ -55,7 +55,7 @@ class TestimonialRepository(BaseRepository[Testimonial]):
         stmt = stmt.order_by(Testimonial.created_at.desc())
         return list(self.db.execute(stmt).scalars().all())
 
-    def featured(self, limit: int) -> list[Testimonial]:
+    def featured(self, limit: int, kind: str | None = None) -> list[Testimonial]:
         """The home page's few: published, about a listing a visitor can open,
         the highest rated first and then the newest -- and only the best one of
         each listing, so a single shop with many reviews cannot fill the row."""
@@ -76,6 +76,13 @@ class TestimonialRepository(BaseRepository[Testimonial]):
                 nullslast(Testimonial.approved_at.desc()),
             )
         )
+        # A directory page shows only its own kind: shops under the
+        # products, services under the services (the owners' request,
+        # 10 Nov 2026).
+        if kind == "business":
+            stmt = stmt.where(Testimonial.business_id.is_not(None))
+        elif kind == "talent":
+            stmt = stmt.where(Testimonial.talent_profile_id.is_not(None))
         chosen: list[Testimonial] = []
         seen: set[object] = set()
         for testimonial in self.db.execute(stmt).unique().scalars():

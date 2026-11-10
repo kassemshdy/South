@@ -31,6 +31,7 @@ import { Field } from '@/components/ui/Field'
 import { Input } from '@/components/ui/Input'
 import { useToast } from '@/components/ui/Toast'
 import { useAuth } from '@/features/auth/AuthContext'
+import { usePhoneSignupEnabled } from '@/features/auth/PhoneSignup'
 import { useSeo } from '@/hooks/useSeo'
 import { useSupportWhatsapp } from '@/hooks/useSiteSettings'
 import { useT } from '@/i18n'
@@ -52,7 +53,8 @@ export function LoginPage() {
   const [byEmail, setByEmail] = useState(false)
   const schema = useMemo(() => signInSchema(t), [t])
   // Only with a number to send the request to; see ForgotPasswordPage.
-  const canAskForReset = Boolean(whatsappHref(useSupportWhatsapp()))
+  const smsSignup = usePhoneSignupEnabled()
+  const canAskForReset = Boolean(whatsappHref(useSupportWhatsapp())) || Boolean(smsSignup)
 
   useSeo({ title: t('login.seoTitle'), noIndex: true })
 

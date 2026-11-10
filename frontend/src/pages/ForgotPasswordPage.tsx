@@ -1,5 +1,6 @@
 /**
- * A forgotten password, without a "forgot password" email or SMS.
+ * A forgotten password. With SMS sign-up on, a code by SMS replaces it at
+ * once (PhoneSignupCard); otherwise, without a gateway, the request below.
  *
  * There is no gateway, so the site cannot reset anything by itself. What it
  * can do is write the request: the owner types the phone number their account
@@ -21,6 +22,7 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Field } from '@/components/ui/Field'
 import { Input } from '@/components/ui/Input'
+import { PhoneSignupCard, usePhoneSignupEnabled } from '@/features/auth/PhoneSignup'
 import { useSeo } from '@/hooks/useSeo'
 import { useSiteSettings, useSupportWhatsapp } from '@/hooks/useSiteSettings'
 import { useT } from '@/i18n'
@@ -33,8 +35,14 @@ export function ForgotPasswordPage() {
   const support = useSupportWhatsapp()
   const [phone, setPhone] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const smsReset = usePhoneSignupEnabled()
 
   useSeo({ title: t('forgot.seoTitle'), noIndex: true })
+
+  // With SMS sign-up on, a code replaces the password here and now; the
+  // WhatsApp request below is the way when it is off.
+  if (smsReset === undefined) return null
+  if (smsReset) return <PhoneSignupCard mode="reset" next="/dashboard" />
 
   // Wait for the settings before deciding there is no number: the
   // environment fallback alone would bounce somebody whose number is set

@@ -72,6 +72,9 @@ export function ItemManager({ businessId }: { businessId: string }) {
     void queryClient.invalidateQueries({ queryKey: queryKeys.myBusinessItems(businessId) })
     void queryClient.invalidateQueries({ queryKey: queryKeys.myBusiness(businessId) })
     void queryClient.invalidateQueries({ queryKey: queryKeys.myBusinesses })
+    // A product is required before review, so adding or removing one can
+    // change whether the listing is ready.
+    void queryClient.invalidateQueries({ queryKey: queryKeys.readiness(businessId) })
   }
 
   const remove = useMutation({

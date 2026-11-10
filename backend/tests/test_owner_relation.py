@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session
 from app.models.business import Business
 from app.models.taxonomy import Category, Location
 from app.models.user import User
-from tests.conftest import admin_headers, sign_in
+from tests.conftest import admin_headers, make_reviewable, sign_in
 from tests.samples import ar
 
 
@@ -58,6 +58,7 @@ def test_years_of_experience_reaches_an_anonymous_reader(
     assert business is not None
     business.logo_url = "/media/test/logo.jpg"
     db.commit()
+    make_reviewable(db, business.id)
 
     client.post(f"/api/businesses/{created['id']}/submit", headers=owner_headers)
     client.post(
@@ -84,6 +85,7 @@ def test_owner_relation_reaches_the_owner_but_not_an_anonymous_reader(
     assert business is not None
     business.logo_url = "/media/test/logo.jpg"
     db.commit()
+    make_reviewable(db, business.id)
 
     client.post(f"/api/businesses/{created['id']}/submit", headers=owner_headers)
     client.post(

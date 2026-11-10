@@ -5,6 +5,7 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { demoOwnerPhone, signIn } from './support/sign-in'
+import { uploadIdCard } from './support/identity'
 import { ADMIN_EMAIL, ADMIN_PASSWORD } from './support/admin'
 import { dropPin } from './support/map'
 import { cropAndUse } from './support/crop'
@@ -52,6 +53,8 @@ function jpeg(): { name: string; mimeType: string; buffer: Buffer } {
 
 async function signInAsOwner(page: Page) {
   await signIn(page, OWNER_PHONE)
+  // Review needs the owner's ID card on file (the owners' decision, 9 Nov 2026).
+  await uploadIdCard(page)
 }
 
 async function signInAsAdmin(page: Page) {
@@ -187,8 +190,14 @@ test.describe('Talent directory', () => {
     await expect(page.getByText(fixture.displayName, { exact: true })).toHaveCount(0)
 
     // --- The public profile page renders, with no moderation state on it ----------
+    // Through the profile's card in the list: the newest-providers row above
+    // the filters links to the same page.
     await page.goto('/services')
-    await page.getByRole('link', { name: fixture.displayName, exact: true }).click()
+    await page
+      .getByRole('article')
+      .filter({ hasText: fixture.displayName })
+      .getByRole('link', { name: fixture.displayName, exact: true })
+      .click()
     await expect(page.getByRole('heading', { name: fixture.displayName, level: 1 })).toBeVisible()
     await expect(page.getByText(fixture.bio)).toBeVisible()
     // A public page never carries a status badge.

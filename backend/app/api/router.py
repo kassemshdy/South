@@ -24,6 +24,7 @@ from app.api.v1 import (
     pages,
     partner_api,
     partners,
+    phone_auth,
     reels,
     registration,
     search,
@@ -102,6 +103,8 @@ api_router.include_router(orders.public_router)
 api_router.include_router(businesses.public_router)
 api_router.include_router(articles.router)
 api_router.include_router(registration.router)
+api_router.include_router(phone_auth.router)
+api_router.include_router(phone_auth.admin_router)
 api_router.include_router(search.router)
 api_router.include_router(south_map.router)
 api_router.include_router(open_service_requests.public_router)

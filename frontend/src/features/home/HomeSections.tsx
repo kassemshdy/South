@@ -410,11 +410,12 @@ export function MostOrderedProductsSection() {
  * service it praises. What a stranger trusts before a first order: other
  * customers, in their own words. Nothing at all until one is published.
  */
-export function TestimonialsSection() {
+export function TestimonialsSection({ kind }: { kind?: 'business' | 'talent' } = {}) {
   const t = useT()
+  // ``kind`` narrows the row to shops or to services, for the directory pages.
   const testimonials = useQuery({
-    queryKey: queryKeys.featuredTestimonials,
-    queryFn: testimonialApi.featured,
+    queryKey: kind ? queryKeys.featuredTestimonialsOf(kind) : queryKeys.featuredTestimonials,
+    queryFn: () => testimonialApi.featured(kind),
   })
   const items = testimonials.data ?? []
   if (items.length === 0) return null
@@ -607,21 +608,28 @@ export function ShopsSection() {
 }
 
 /**
- * People offering a trade, drawn without their photograph: an initial in a
- * circle, the trade, where and how they work, and a button to ask for it.
+ * People offering a trade: their photo or logo (an initial when there is
+ * none), the trade, where and how they work, and a button to their page.
  */
-export function TalentsSection() {
+export function TalentsSection({
+  showMore = true,
+  limit = 8,
+}: { showMore?: boolean; limit?: number } = {}) {
   const t = useT()
   const talents = useQuery({
-    queryKey: queryKeys.latestTalents(8),
-    queryFn: () => publicTalentApi.latest(8),
+    queryKey: queryKeys.latestTalents(limit),
+    queryFn: () => publicTalentApi.latest(limit),
   })
   if (!talents.data || talents.data.length === 0) return null
   return (
     <section className="py-10 sm:py-12">
       <div className="container-page">
         <div className="rounded-3xl bg-brand-50 p-5 sm:p-7">
-          <SectionHeading title={t('home.talentsTitle')} to="/services" more={t('home.viewAll')} />
+          {showMore ? (
+            <SectionHeading title={t('home.talentsTitle')} to="/services" more={t('home.viewAll')} />
+          ) : (
+            <SectionHeading title={t('home.talentsTitle')} />
+          )}
           {/* grid-cols-1, not the implicit column: an implicit track sizes to its
               content, so one long name or trade widened the whole page on a
               phone and the home page scrolled sideways. */}
@@ -639,12 +647,23 @@ export function TalentsSection() {
               return (
                 <li key={talent.id} className="flex min-w-0 flex-col gap-3 rounded-2xl bg-white p-4">
                   <div className="flex items-center gap-3">
-                    <span
-                      aria-hidden="true"
-                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-600 font-display text-lg font-bold text-white"
-                    >
-                      {talent.display_name.trim().slice(0, 1)}
-                    </span>
+                    {/* Their photo or logo when they have one (the owners'
+                        request, 10 Nov 2026); otherwise the initial. */}
+                    {talent.photo_thumb_url ?? talent.photo_url ? (
+                      <img
+                        src={(talent.photo_thumb_url ?? talent.photo_url) as string}
+                        alt=""
+                        loading="lazy"
+                        className="h-12 w-12 shrink-0 rounded-full border border-ink-100 bg-sand-50 object-cover"
+                      />
+                    ) : (
+                      <span
+                        aria-hidden="true"
+                        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-600 font-display text-lg font-bold text-white"
+                      >
+                        {talent.display_name.trim().slice(0, 1)}
+                      </span>
+                    )}
                     <span className="flex min-w-0 flex-1 flex-col">
                       <Link to={page} dir="auto" className="truncate font-bold text-ink-900 hover:text-brand-700">
                         {talent.display_name}

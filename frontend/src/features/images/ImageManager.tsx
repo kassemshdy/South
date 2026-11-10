@@ -45,6 +45,10 @@ export function ImageManager({ business, maxGallery = 10 }: ImageManagerProps) {
   }
 
   const gallery = business.images.filter((image) => image.kind === 'GALLERY')
+  // The gallery opens once the shop has a product (the owners' decision,
+  // 9 Nov 2026): products first, then pictures of the place. Photos already
+  // there stay visible and can still be removed.
+  const galleryLocked = business.items.length === 0
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.myBusiness(business.id) })
@@ -150,12 +154,17 @@ export function ImageManager({ business, maxGallery = 10 }: ImageManagerProps) {
           </h3>
           <UploadButton
             label={t('images.addImage')}
-            disabled={gallery.length >= maxGallery}
+            disabled={gallery.length >= maxGallery || galleryLocked}
             uploading={uploadingKind === 'GALLERY'}
             onSelect={(file) => void handleFile(file, 'GALLERY')}
           />
         </div>
 
+        {galleryLocked ? (
+          <p className="mb-3 rounded-xl bg-sand-100 p-3.5 text-sm text-clay-800">
+            {t('images.galleryNeedsProduct')}
+          </p>
+        ) : null}
         {gallery.length === 0 ? (
           <p className="rounded-xl border-2 border-dashed border-ink-100 p-8 text-center text-ink-500">
             {t('images.emptyGallery')}

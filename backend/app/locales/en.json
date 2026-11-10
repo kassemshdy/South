@@ -375,5 +375,18 @@
   "sms.refused": "The message was not sent: {reason}",
   "telegram.csv_backup": "The data as CSV spreadsheets (they open in Excel)",
   "followers.not_configured": "Follower counts are not set up yet.",
-  "followers.refresh_started": "Refreshing follower counts; they appear within minutes."
+  "followers.refresh_started": "Refreshing follower counts; they appear within minutes.",
+  "phoneAuth.sms": "Janoubona code: {code}",
+  "phoneAuth.sent": "If the number can receive it, a code is on its way by SMS.",
+  "phoneAuth.code_ok": "The code is correct.",
+  "phoneAuth.unavailable": "Sign-up by SMS is not available right now. Please use the application form.",
+  "phoneAuth.not_mobile": "Enter a Lebanese mobile number: the code is sent by SMS.",
+  "phoneAuth.wait": "Please wait a moment before asking for another code.",
+  "phoneAuth.rate_limited": "Too many codes were requested. Please try again later.",
+  "phoneAuth.send_failed": "The SMS could not be sent. Please try again, or use the application form.",
+  "phoneAuth.code_expired": "This code has expired or was used. Ask for a new one.",
+  "phoneAuth.code_invalid": "The code is not correct.",
+  "business.field.items": "at least one product",
+  "business.field.identity": "the front of your ID card (on your account page)",
+  "talent.field.identity": "the front of your ID card (on your account page)"
 }

@@ -4,7 +4,7 @@ from app.models.activity import Activity, ActivityRegistration, CarouselSlide
 from app.models.analytics import ListingViewDaily
 from app.models.application import DiscardedApplication
 from app.models.article import Article
-from app.models.auth import RateLimitEvent
+from app.models.auth import PhoneCode, RateLimitEvent
 from app.models.business import (
     Business,
     BusinessDocument,
@@ -112,6 +112,7 @@ __all__ = [
     "Page",
     "PageCover",
     "PartnerRequest",
+    "PhoneCode",
     "RateLimitEvent",
     "Reel",
     "ServiceRequest",

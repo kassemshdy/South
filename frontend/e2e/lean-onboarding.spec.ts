@@ -9,6 +9,7 @@ import { openBusinessWizard } from './support/wizard'
 import { demoOwnerPhone, signIn } from './support/sign-in'
 import { dropPin } from './support/map'
 import { cropAndUse } from './support/crop'
+import { uploadIdCard } from './support/identity'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const load = <T>(relative: string): T =>
@@ -52,6 +53,8 @@ const JPEG = Buffer.from(
 test.describe('Lean onboarding', () => {
   test('an owner reaches review without touching an optional step', async ({ page }) => {
     await signIn(page, OWNER_PHONE)
+    // Review needs the owner's ID card on file (the owners' decision, 9 Nov 2026).
+    await uploadIdCard(page)
 
     await openBusinessWizard(page)
 
@@ -63,12 +66,12 @@ test.describe('Lean onboarding', () => {
     await expect(page.getByLabel(t('form.description'))).toBeVisible()
 
     // The steps nothing depends on say so, before they are walked into.
-    // Three of them now: social links, official papers and the item
-    // catalogue. The papers are evidence a reviewer may want and a shop with
-    // none is still a shop, so the chip is what keeps a blank upload box from
-    // reading as an obligation.
+    // Two of them now: social links and official papers. Products became
+    // required (the owners' decision, 9 Nov 2026). The papers are evidence a
+    // reviewer may want and a shop with none is still a shop, so the chip is
+    // what keeps a blank upload box from reading as an obligation.
     const optionalChips = page.getByRole('button', { name: new RegExp(t('wizard.optionalStep')) })
-    await expect(optionalChips).toHaveCount(3)
+    await expect(optionalChips).toHaveCount(2)
 
     // --- Required basics only ------------------------------------------------
     await page.getByLabel(t('form.name')).fill(fixture.name)
@@ -78,7 +81,7 @@ test.describe('Lean onboarding', () => {
     await page.getByLabel(t('form.whatsapp')).fill(OWNER_PHONE)
     await page.getByRole('button', { name: t('wizard.saveAndContinue') }).click()
 
-    // Not ready yet — an area and a logo are still missing, and claiming
+    // Not ready yet — an area, a product and a logo are still missing, and claiming
     // otherwise would send an owner into a rejection.
     await expect(page.getByLabel(t('form.area'))).toBeVisible()
     await expect(page.getByText(t('wizard.readyTitle'))).toHaveCount(0)
@@ -89,6 +92,23 @@ test.describe('Lean onboarding', () => {
     // Every seller pins themselves on the map; a tap anywhere drops it.
     await dropPin(page, t('form.mapPinLabel'))
     await page.getByRole('button', { name: t('wizard.saveAndContinue') }).click()
+
+    // --- One product, now required, and before the images --------------------
+    await page.getByRole('button', { name: t('items.addItem') }).first().click()
+    await page.getByLabel(t('items.photoLabel'), { exact: true }).setInputFiles({
+      name: 'product.jpg',
+      mimeType: 'image/jpeg',
+      buffer: JPEG,
+    })
+    await cropAndUse(page)
+    await page.getByLabel(t('items.nameLabel')).fill(fixture.name)
+    await page.getByLabel(t('items.priceLabel')).fill('5')
+    const addProduct = page.getByRole('button', { name: t('items.addAction') })
+    await addProduct.scrollIntoViewIfNeeded()
+    await addProduct.click()
+    await expect(page.getByRole('heading', { name: fixture.name, level: 4 })).toBeVisible()
+    await expect(page.getByText(t('wizard.readyTitle'))).toHaveCount(0)
+    await page.getByRole('button', { name: t('common.continue'), exact: true }).click()
 
     // --- Logo, which completes the required set ------------------------------
     await expect(page.getByRole('heading', { name: t('images.logoTitle') })).toBeVisible()
@@ -103,7 +123,7 @@ test.describe('Lean onboarding', () => {
     await expect(page.getByText(t('images.uploaded'), { exact: true }).first()).toBeVisible()
 
     // The moment it is submittable, the owner is told — while still standing
-    // on the images step, two optional steps short of the old route.
+    // on the images step, two optional steps short of the review.
     await expect(page.getByText(t('wizard.readyTitle'))).toBeVisible()
     await page.getByRole('button', { name: t('wizard.readyCta') }).click()
 

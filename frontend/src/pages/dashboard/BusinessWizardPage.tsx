@@ -21,7 +21,7 @@ import { originFromParams } from '@/features/onboarding/destinations'
 import { useSeo } from '@/hooks/useSeo'
 import { useT, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
-import { ownerApi, type BusinessPayload } from '@/services/api/endpoints'
+import { authApi, ownerApi, type BusinessPayload } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import { cn } from '@/utils/cn'
 import { normalizeForSearch } from '@/utils/search'
@@ -48,10 +48,12 @@ const STEPS = [
   { key: 'personal', labelKey: 'wizard.stepPersonal' },
   { key: 'basics', labelKey: 'wizard.stepBasics' },
   { key: 'location', labelKey: 'wizard.stepLocation' },
+  // Products before images: review needs at least one product, and the
+  // gallery opens only once there is one (the owners' decision, 9 Nov 2026).
+  { key: 'items', labelKey: 'wizard.stepItems' },
   { key: 'images', labelKey: 'wizard.stepImages' },
   { key: 'social', labelKey: 'wizard.stepSocial', optional: true },
   { key: 'documents', labelKey: 'wizard.stepDocuments', optional: true },
-  { key: 'items', labelKey: 'wizard.stepItems', optional: true },
   { key: 'review', labelKey: 'wizard.stepReview' },
 ] as const satisfies readonly {
   key: string
@@ -85,10 +87,17 @@ type StepKey = (typeof STEPS)[number]['key']
 function PersonalStep({ onContinue }: { onContinue: () => void }) {
   const { user } = useAuth()
   const t = useT()
+  // The front of the ID card is needed before review (the owners' decision,
+  // 9 Nov 2026); it is uploaded on the account page.
+  const idCard = useQuery({
+    queryKey: queryKeys.myVerificationDocument,
+    queryFn: authApi.getVerificationDocument,
+  })
 
   const missing = [
     !user?.full_name && t('wizard.personalMissingName'),
     !user?.photo_url && t('wizard.personalMissingPhoto'),
+    idCard.isSuccess && !idCard.data && t('wizard.personalMissingId'),
   ].filter((entry): entry is string => Boolean(entry))
 
   return (
@@ -397,7 +406,7 @@ export function BusinessWizardPage() {
                   business={data}
                   submitLabel={t('wizard.saveAndContinue')}
                   pending={update.isPending}
-                  onSubmit={(payload) => update.mutate({ payload, next: 'images' })}
+                  onSubmit={(payload) => update.mutate({ payload, next: 'items' })}
                   footer={
                     <Button type="button" variant="ghost" onClick={() => setStep('basics')}>
                       {t('common.back')}
@@ -413,7 +422,7 @@ export function BusinessWizardPage() {
                     <Button size="lg" onClick={() => setStep('social')}>
                       {t('common.continue')}
                     </Button>
-                    <Button variant="ghost" onClick={() => setStep('location')}>
+                    <Button variant="ghost" onClick={() => setStep('items')}>
                       {t('common.back')}
                     </Button>
                   </div>
@@ -439,8 +448,8 @@ export function BusinessWizardPage() {
                 <div className="space-y-6">
                   <DocumentManager business={data} />
                   <div className="flex gap-3 border-t border-ink-100 pt-5">
-                    <Button size="lg" onClick={() => setStep('items')}>
-                      {t('common.continue')}
+                    <Button size="lg" onClick={() => setStep('review')}>
+                      {t('wizard.continueToReview')}
                     </Button>
                     <Button variant="ghost" onClick={() => setStep('social')}>
                       {t('common.back')}
@@ -453,10 +462,10 @@ export function BusinessWizardPage() {
                 <div className="space-y-6">
                   <ItemManager businessId={data.id} />
                   <div className="flex gap-3 border-t border-ink-100 pt-5">
-                    <Button size="lg" onClick={() => setStep('review')}>
-                      {t('wizard.continueToReview')}
+                    <Button size="lg" onClick={() => setStep('images')}>
+                      {t('common.continue')}
                     </Button>
-                    <Button variant="ghost" onClick={() => setStep('documents')}>
+                    <Button variant="ghost" onClick={() => setStep('location')}>
                       {t('common.back')}
                     </Button>
                   </div>
@@ -467,7 +476,7 @@ export function BusinessWizardPage() {
                 <ReviewStep
                   businessId={data.id}
                   name={data.name}
-                  onBack={() => setStep('items')}
+                  onBack={() => setStep('documents')}
                   onSubmit={() => submit.mutate()}
                   submitting={submit.isPending}
                 />
