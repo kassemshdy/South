@@ -262,3 +262,9 @@ def test_featured_testimonials_are_the_best_one_per_open_listing(
     assert [row["body"] for row in rows] == ["5-APPROVED-2", "4-APPROVED-8"]
     assert rows[0]["subject_kind"] == "business" and rows[0]["subject_slug"] == shop.slug
     assert "status" not in rows[0] and "customer_phone" not in rows[0]
+    # The directory pages ask for one kind: these are all shops', so the
+    # shops' row has both and the services' row none (10 Nov 2026).
+    shops_only = client.get("/api/testimonials/featured", params={"kind": "business"}).json()
+    assert [row["body"] for row in shops_only] == ["5-APPROVED-2", "4-APPROVED-8"]
+    assert client.get("/api/testimonials/featured", params={"kind": "talent"}).json() == []
+    assert client.get("/api/testimonials/featured", params={"kind": "other"}).status_code == 422

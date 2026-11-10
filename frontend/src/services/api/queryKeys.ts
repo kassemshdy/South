@@ -72,6 +72,7 @@ export const queryKeys = {
   mostOrderedProducts: ['products', 'most-ordered'] as const,
   relatedProducts: (slug: string) => ['products', 'related', slug] as const,
   featuredTestimonials: ['testimonials', 'featured'] as const,
+  featuredTestimonialsOf: (kind: 'business' | 'talent') => ['testimonials', 'featured', kind] as const,
   adminGrowthReport: ['admin', 'growth-report'] as const,
   adminGrowthPlan: ['admin', 'growth-plan'] as const,
   adminStaff: ['admin', 'staff'] as const,

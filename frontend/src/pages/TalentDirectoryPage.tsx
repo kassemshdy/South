@@ -24,6 +24,7 @@ import { trackDirectoryView } from '@/services/analytics'
 import { publicTalentApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { PageCoverKey, TalentKind, TalentQuery, TalentSortOption } from '@/types/api'
+import { TalentsSection, TestimonialsSection } from '@/features/home/HomeSections'
 
 const ALL = '__all__'
 
@@ -230,6 +231,9 @@ function TalentDirectory({ kind }: { kind: TalentKind }) {
             : t('talent.introFallback')
         }
       />
+      {/* The services that joined lately, above the filters (the owners'
+          request, 10 Nov 2026). */}
+      {kind === 'SERVICE' ? <TalentsSection showMore={false} limit={4} /> : null}
       <div className="container-page py-10">
         {/* The other two directories, one tap away. Without this each
             directory was an island: a search that came up empty here left
@@ -504,6 +508,8 @@ function TalentDirectory({ kind }: { kind: TalentKind }) {
           </aside>
         ) : null}
       </div>
+      {/* What customers say about services, at the end of the list. */}
+      {kind === 'SERVICE' ? <TestimonialsSection kind="talent" /> : null}
     </>
   )
 }

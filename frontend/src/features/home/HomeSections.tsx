@@ -410,11 +410,12 @@ export function MostOrderedProductsSection() {
  * service it praises. What a stranger trusts before a first order: other
  * customers, in their own words. Nothing at all until one is published.
  */
-export function TestimonialsSection() {
+export function TestimonialsSection({ kind }: { kind?: 'business' | 'talent' } = {}) {
   const t = useT()
+  // ``kind`` narrows the row to shops or to services, for the directory pages.
   const testimonials = useQuery({
-    queryKey: queryKeys.featuredTestimonials,
-    queryFn: testimonialApi.featured,
+    queryKey: kind ? queryKeys.featuredTestimonialsOf(kind) : queryKeys.featuredTestimonials,
+    queryFn: () => testimonialApi.featured(kind),
   })
   const items = testimonials.data ?? []
   if (items.length === 0) return null
@@ -610,18 +611,25 @@ export function ShopsSection() {
  * People offering a trade, drawn without their photograph: an initial in a
  * circle, the trade, where and how they work, and a button to ask for it.
  */
-export function TalentsSection() {
+export function TalentsSection({
+  showMore = true,
+  limit = 8,
+}: { showMore?: boolean; limit?: number } = {}) {
   const t = useT()
   const talents = useQuery({
-    queryKey: queryKeys.latestTalents(8),
-    queryFn: () => publicTalentApi.latest(8),
+    queryKey: queryKeys.latestTalents(limit),
+    queryFn: () => publicTalentApi.latest(limit),
   })
   if (!talents.data || talents.data.length === 0) return null
   return (
     <section className="py-10 sm:py-12">
       <div className="container-page">
         <div className="rounded-3xl bg-brand-50 p-5 sm:p-7">
-          <SectionHeading title={t('home.talentsTitle')} to="/services" more={t('home.viewAll')} />
+          {showMore ? (
+            <SectionHeading title={t('home.talentsTitle')} to="/services" more={t('home.viewAll')} />
+          ) : (
+            <SectionHeading title={t('home.talentsTitle')} />
+          )}
           {/* grid-cols-1, not the implicit column: an implicit track sizes to its
               content, so one long name or trade widened the whole page on a
               phone and the home page scrolled sideways. */}
