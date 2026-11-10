@@ -31,14 +31,19 @@ const t = (key: string): string => ar[key]!
 
 /** Open the wizard and step past the personal summary onto the basics form. */
 export async function openBusinessWizard(page: Page): Promise<void> {
-  // A full name and the ID card's front: what step 1 waits for.
+  // A full name and the ID card's front: what step 1 waits for. Only when
+  // missing, so a spec that typed its own (account-and-verification) keeps it.
   const token = await page.evaluate(() => window.localStorage.getItem('south.auth.token'))
-  const named = await page.request.patch('/api/me', {
-    headers: { Authorization: `Bearer ${token}` },
-    data: { full_name: 'E2E Owner' },
-  })
-  expect(named.status(), await named.text()).toBeLessThan(300)
-  await uploadIdCard(page)
+  const headers = { Authorization: `Bearer ${token}` }
+  const me = (await (await page.request.get('/api/me', { headers })).json()) as {
+    full_name: string | null
+  }
+  if (!me.full_name) {
+    const named = await page.request.patch('/api/me', { headers, data: { full_name: 'E2E Owner' } })
+    expect(named.status(), await named.text()).toBeLessThan(300)
+  }
+  const card = await page.request.get('/api/me/verification-document', { headers })
+  if ((await card.text()).trim() === 'null') await uploadIdCard(page)
   await page.goto('/dashboard/businesses/new')
   await expect(page.getByRole('heading', { name: t('wizard.personalHeading') })).toBeVisible()
   await page.getByRole('button', { name: t('common.continue'), exact: true }).click()
