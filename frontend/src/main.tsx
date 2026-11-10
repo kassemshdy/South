@@ -16,6 +16,7 @@ import { initAnalytics } from '@/services/analytics'
 import { initClarity } from '@/services/clarity'
 import { ApiError } from '@/services/api/client'
 import { installStaleBuildRecovery } from '@/utils/staleBuild'
+import { preloadAdminFor } from '@/pages/admin/preload'
 import '@/index.css'
 
 // Inert in local dev unless VITE_SENTRY_DSN is set. Owner phone numbers, OTP
@@ -44,6 +45,10 @@ initClarity()
 // A tab left open across a release asks for chunks that no longer exist;
 // reload it once rather than leave a white page.
 installStaleBuildRecovery()
+
+// Opening an admin URL: fetch the admin code alongside the session check
+// instead of after it. See pages/admin/preload.ts.
+if (window.location.pathname.startsWith('/admin')) preloadAdminFor(window.location.pathname)
 
 const queryClient = new QueryClient({
   defaultOptions: {

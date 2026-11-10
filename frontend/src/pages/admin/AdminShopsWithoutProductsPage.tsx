@@ -44,14 +44,9 @@ export function AdminShopsWithoutProductsPage() {
   const { t, locale } = useI18n()
   const [tab, setTab] = useState<Tab>('todo')
   const [page, setPage] = useState(1)
-  const count = (which: Tab) =>
-    adminApi.businesses({ status: 'APPROVED', ...FILTERS[which], page: 1, page_size: 1 })
-  const todoCount = useQuery({ queryKey: [...LIST_KEY, 'count', 'todo'], queryFn: () => count('todo') })
-  const doneCount = useQuery({ queryKey: [...LIST_KEY, 'count', 'done'], queryFn: () => count('done') })
-  const uploadedCount = useQuery({
-    queryKey: [...LIST_KEY, 'count', 'uploaded'],
-    queryFn: () => count('uploaded'),
-  })
+  // One call for all three tab sizes; it used to be three list calls that
+  // ran together with the list itself and slowed each other down.
+  const counts = useQuery({ queryKey: [...LIST_KEY, 'counts'], queryFn: adminApi.outreachCounts })
   const shops = useQuery({
     queryKey: [...LIST_KEY, tab, page],
     queryFn: () =>
@@ -59,15 +54,11 @@ export function AdminShopsWithoutProductsPage() {
     placeholderData: keepPreviousData,
   })
 
-  const total =
-    todoCount.data && doneCount.data ? todoCount.data.meta.total + doneCount.data.meta.total : null
+  const total = counts.data ? counts.data.not_contacted + counts.data.contacted : null
   const tabs: { id: Tab; label: string }[] = [
-    { id: 'todo', label: t('adminShops.tabNotContacted', { count: todoCount.data?.meta.total ?? '…' }) },
-    { id: 'done', label: t('adminShops.tabContacted', { count: doneCount.data?.meta.total ?? '…' }) },
-    {
-      id: 'uploaded',
-      label: t('adminShops.tabUploaded', { count: uploadedCount.data?.meta.total ?? '…' }),
-    },
+    { id: 'todo', label: t('adminShops.tabNotContacted', { count: counts.data?.not_contacted ?? '…' }) },
+    { id: 'done', label: t('adminShops.tabContacted', { count: counts.data?.contacted ?? '…' }) },
+    { id: 'uploaded', label: t('adminShops.tabUploaded', { count: counts.data?.uploaded ?? '…' }) },
   ]
 
   return (

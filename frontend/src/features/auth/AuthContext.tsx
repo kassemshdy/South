@@ -17,6 +17,7 @@ import {
   type ReactNode,
 } from 'react'
 
+import { preloadAdmin } from '@/pages/admin/preload'
 import { authApi } from '@/services/api/endpoints'
 import { tokenStorage, UNAUTHORIZED_EVENT } from '@/services/api/client'
 import type { AuthToken, User } from '@/types/api'
@@ -58,6 +59,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void loadUser()
   }, [loadUser])
+
+  // An administrator will open the admin area; fetch its code in the
+  // background now so moving between its screens does not wait on downloads.
+  const role = user?.role
+  useEffect(() => {
+    if (role === 'ADMIN') preloadAdmin()
+  }, [role])
 
   // Any 401 anywhere in the app ends the session exactly once.
   useEffect(() => {

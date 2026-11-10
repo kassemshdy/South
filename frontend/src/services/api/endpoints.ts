@@ -987,6 +987,10 @@ export const adminApi = {
     page_size?: number
   }) =>
     apiRequest<Paginated<AdminBusiness>>('/api/admin/businesses', { query: { ...params } }),
+  outreachCounts: () =>
+    apiRequest<{ not_contacted: number; contacted: number; uploaded: number }>(
+      '/api/admin/businesses/outreach-counts',
+    ),
   refreshFollowers: () =>
     apiRequest<{ message: string }>('/api/admin/businesses/followers/refresh', { method: 'POST' }),
   setOutreach: (id: string, body: { contacted: boolean; note?: string | null }) =>
