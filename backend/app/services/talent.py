@@ -241,10 +241,8 @@ class TalentService:
             missing.append("talent.field.map_pin")
         if not profile.photo_url:
             missing.append("talent.field.photo")
-        # A service shows a cover across the top of its page (the owners'
-        # ticket, 29 Oct 2026); a job application is not asked for one.
-        if profile.kind == TalentKind.SERVICE and not profile.cover_url:
-            missing.append("talent.field.cover")
+        # No cover is asked for any more: the owners dropped the wide cover
+        # (10 Nov 2026), so the photo is the one picture review needs.
         if not (profile.phone or profile.whatsapp):
             missing.append("talent.field.contact")
         # The owner's ID, as for a shop (the owners' decision, 9 Nov 2026).
