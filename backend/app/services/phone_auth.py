@@ -187,8 +187,8 @@ class PhoneAuthService:
         self._db.commit()
 
         try:
-            # Latin text on purpose: «رمز جنوبنا: 123456» was held by the
-            # carrier as an unregistered one-time code, while
+            # Latin text on purpose: the Arabic wording of the code was held
+            # by the carrier as an unregistered one-time code, while
             # "Janoubona code 482913" arrived (tested 10 Nov 2026).
             self._sms.send(phone, translate("phoneAuth.sms", "ar", code=code))
         except SmsError as error:
