@@ -2500,9 +2500,9 @@
   "wizard.personalMore": "المزيد",
   "wizard.progress": "الخطوة {current} من {total}",
   "wizard.progressOptional": "خطوة اختيارية، يمكنك تخطيها",
-  "dashboard.addProduct": "نزّل منتجاً",
-  "dashboard.howToAdd": "كيف أنزّل منتجاً؟",
-  "dashboard.addStep1": "اضغط «نزّل منتجاً».",
+  "dashboard.addProduct": "أضف منتجاً",
+  "dashboard.howToAdd": "كيف أضيف منتجاً؟",
+  "dashboard.addStep1": "اضغط «أضف منتجاً».",
   "dashboard.addStep2": "أضف صورة المنتج واسمه وسعره، وصوراً إضافية إن أردت.",
   "dashboard.addStep3": "احفظ، ويظهر المنتج في قائمة منتجاتك."
 }
