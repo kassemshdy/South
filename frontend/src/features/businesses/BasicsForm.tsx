@@ -51,6 +51,9 @@ interface BasicsFormProps {
    * listing's own mark always wins, and anything else starts local.
    */
   defaultOrigin?: GoodsOrigin | undefined
+  /** A new listing's WhatsApp starts as this (the account's own number), so
+   *  someone who just signed up by phone does not type it twice. */
+  defaultWhatsapp?: string | null
   /**
    * Ask for the area here, and require it. The application form does: the
    * listing goes straight to review, and a reviewer cannot judge "from the
@@ -71,6 +74,7 @@ export function BasicsForm({
   onInvalid,
   identityElsewhere = true,
   defaultOrigin,
+  defaultWhatsapp,
   askLocation = false,
 }: BasicsFormProps) {
   const categories = useCategories()
@@ -107,7 +111,7 @@ export function BasicsForm({
       years_of_experience: business?.years_of_experience?.toString() ?? '',
       owner_relation: business?.owner_relation ?? '',
       phone: business?.phone ?? '',
-      whatsapp: business?.whatsapp ?? '',
+      whatsapp: business ? (business.whatsapp ?? '') : (defaultWhatsapp ?? ''),
       phone_public: business?.phone_public ?? true,
       email: business?.email ?? '',
       website: business?.website ?? '',

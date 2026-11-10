@@ -6,6 +6,8 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
+import { Input } from '@/components/ui/Input'
+import { Field } from '@/components/ui/Field'
 import { InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
 import { BasicsForm } from '@/features/businesses/BasicsForm'
@@ -85,6 +87,55 @@ type StepKey = (typeof STEPS)[number]['key']
  * time, and an owner who wants to fill in their business first and come back
  * should be able to.
  */
+/** +96171123456 -> 71123456, +9613123456 -> 03123456: how people type it. */
+function localNumber(e164: string | null | undefined): string | null {
+  if (!e164) return null
+  const rest = e164.replace(/^\+961/, '')
+  return rest.length === 7 ? `0${rest}` : rest
+}
+
+/** The one identity field step 1 asks for up front; saved on the account. */
+function NameField({ initial, onSaved }: { initial: string; onSaved: () => Promise<void> }) {
+  const t = useT()
+  const toast = useToast()
+  const [value, setValue] = useState(initial)
+  const save = useMutation({
+    mutationFn: () => authApi.updateProfile({ full_name: value.trim() || null }),
+    onSuccess: async () => {
+      await onSaved()
+      toast.success(t('account.profileSaved'))
+    },
+    onError: (error) =>
+      toast.error(error instanceof ApiError ? error.message : t('states.errorFallback')),
+  })
+  const dirty = value.trim() !== initial.trim()
+  return (
+    <Card>
+      <CardBody className="space-y-3">
+        <Field label={t('account.fullNameLabel')} required>
+          {(fieldProps) => (
+            <Input
+              {...fieldProps}
+              dir="auto"
+              autoComplete="name"
+              value={value}
+              onChange={(event) => setValue(event.target.value)}
+            />
+          )}
+        </Field>
+        <Button
+          size="sm"
+          disabled={!dirty || !value.trim()}
+          loading={save.isPending}
+          onClick={() => save.mutate()}
+        >
+          {t('account.saveProfile')}
+        </Button>
+      </CardBody>
+    </Card>
+  )
+}
+
 function PersonalStep({ onContinue }: { onContinue: () => void }) {
   const { user, refresh } = useAuth()
   const t = useT()
@@ -117,8 +168,10 @@ function PersonalStep({ onContinue }: { onContinue: () => void }) {
         {t('wizard.personalPrivacyNote')}
       </p>
 
-      <ProfileCard user={user} onSaved={refresh} />
-      <PhotoCard user={user} onSaved={refresh} />
+      {/* Required first, in the step itself: the full name and the front
+          of the ID card. Everything else under the "more" section (the owners'
+          choice, 10 Nov 2026). */}
+      <NameField initial={user.full_name ?? ''} onSaved={refresh} />
       <DocumentCard
         icon={<ShieldCheck className="h-5 w-5 text-brand-700" aria-hidden="true" />}
         titleKey="account.documentFrontTitle"
@@ -127,14 +180,27 @@ function PersonalStep({ onContinue }: { onContinue: () => void }) {
         read={authApi.getVerificationDocument}
         upload={authApi.uploadVerificationDocument}
       />
-      <DocumentCard
-        icon={<ShieldCheck className="h-5 w-5 text-brand-700" aria-hidden="true" />}
-        titleKey="account.documentBackTitle"
-        hintKey="account.documentBackHint"
-        queryKey={queryKeys.myVerificationDocumentBack}
-        read={authApi.getVerificationDocumentBack}
-        upload={authApi.uploadVerificationDocumentBack}
-      />
+
+      <details className="group rounded-2xl border border-ink-100 bg-white">
+        <summary className="flex cursor-pointer list-none items-center justify-between px-5 py-4 font-bold text-ink-900">
+          {t('wizard.personalMore')}
+          <span aria-hidden="true" className="text-ink-400 transition-transform group-open:rotate-180">
+            ▾
+          </span>
+        </summary>
+        <div className="space-y-5 border-t border-ink-100 p-4">
+          <PhotoCard user={user} onSaved={refresh} />
+          <DocumentCard
+            icon={<ShieldCheck className="h-5 w-5 text-brand-700" aria-hidden="true" />}
+            titleKey="account.documentBackTitle"
+            hintKey="account.documentBackHint"
+            queryKey={queryKeys.myVerificationDocumentBack}
+            read={authApi.getVerificationDocumentBack}
+            upload={authApi.uploadVerificationDocumentBack}
+          />
+          <ProfileCard user={user} onSaved={refresh} />
+        </div>
+      </details>
 
       {missing.length > 0 ? (
         <p className="rounded-xl bg-clay-50 p-3.5 text-sm text-clay-800">
@@ -156,6 +222,7 @@ function PersonalStep({ onContinue }: { onContinue: () => void }) {
 }
 
 export function BusinessWizardPage() {
+  const { user } = useAuth()
   const [step, setStep] = useState<StepKey>('personal')
   const [businessId, setBusinessId] = useState<string | null>(null)
   const queryClient = useQueryClient()
@@ -355,6 +422,7 @@ export function BusinessWizardPage() {
               // save, so the form starts from the door now chosen.
               key={businessId ?? origin ?? 'LOCAL'}
               defaultOrigin={origin}
+              defaultWhatsapp={localNumber(user?.phone_number)}
               serverError={create.error ?? update.error}
               business={data}
               submitLabel={t('wizard.saveAndContinue')}
