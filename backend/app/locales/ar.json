@@ -373,7 +373,6 @@
   "sms.not_configured": "لم تُضبط الرسائل النصية بعد.",
   "sms.no_number": "لا رقم حساب لهذا النشاط.",
   "sms.refused": "لم تُرسل الرسالة: {reason}",
-  "telegram.csv_backup": "جداول البيانات بصيغة CSV (تُفتح في Excel)",
   "followers.not_configured": "لم يُضبط جلب أعداد المتابعين بعد.",
   "followers.refresh_started": "بدأ تحديث أعداد المتابعين، وتظهر خلال دقائق.",
   "phoneAuth.sms": "Janoubona code: {code}",

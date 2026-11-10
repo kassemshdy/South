@@ -295,6 +295,25 @@ class BusinessRepository(BaseRepository[Business]):
         )
         return Page(items=list(rows), total=total, page=page, page_size=page_size)
 
+    def outreach_counts(self) -> tuple[int, int, int]:
+        """How many approved shops sit in each tab of the staff follow-up
+        page: not contacted and nothing on sale, contacted and still nothing,
+        contacted and since added products.
+
+        One query in place of three list calls the page used to make for its
+        tab labels, which ran together and slowed each other down.
+        """
+        contacted = Business.outreach_contacted_at.is_not(None)
+        stocked = has_products()
+        row = self.db.execute(
+            select(
+                func.count().filter(~contacted, ~stocked),
+                func.count().filter(contacted, ~stocked),
+                func.count().filter(contacted, stocked),
+            ).where(Business.status == BusinessStatus.APPROVED)
+        ).one()
+        return int(row[0]), int(row[1]), int(row[2])
+
     def get_for_admin(self, business_id: uuid.UUID) -> Business | None:
         stmt = (
             self._with_relations(select(Business).where(Business.id == business_id))

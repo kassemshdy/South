@@ -1,5 +1,6 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowRight, ExternalLink } from 'lucide-react'
+import { useEffect } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
@@ -10,6 +11,7 @@ import { DeleteForeverButton } from '@/features/admin/DeleteForeverButton'
 import { ViewAsButton } from '@/features/admin/ViewAsButton'
 import { IssueCredentialsCard } from '@/features/admin/IssueCredentialsCard'
 import { OwnerIdentityCard } from '@/features/admin/OwnerIdentityCard'
+import { useStaffCan } from '@/features/admin/staffAccess'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
 import { useI18n } from '@/i18n'
 import { adminApi } from '@/services/api/endpoints'
@@ -97,6 +99,23 @@ export function AdminUserDetailPage() {
     queryFn: () => adminApi.user(id),
     enabled: id.length > 0,
   })
+
+  // The credentials card asks for these once the account has loaded. Ask now,
+  // alongside the account, so the page waits on one round trip, not two. The
+  // card reads them from the cache under the same keys.
+  const queryClient = useQueryClient()
+  const canIssue = useStaffCan('credentials')
+  useEffect(() => {
+    if (!id || !canIssue) return
+    void queryClient.prefetchQuery({
+      queryKey: queryKeys.adminCredentialsMessage,
+      queryFn: adminApi.credentialsMessage,
+    })
+    void queryClient.prefetchQuery({
+      queryKey: queryKeys.adminCredentials(id),
+      queryFn: () => adminApi.credentialState(id),
+    })
+  }, [id, canIssue, queryClient])
 
   if (user.isLoading) return <Skeleton className="h-96 rounded-2xl" />
   if (user.isError) return <ErrorState error={user.error} onRetry={() => void user.refetch()} />
