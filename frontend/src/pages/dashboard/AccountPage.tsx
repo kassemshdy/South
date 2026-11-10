@@ -107,7 +107,7 @@ export function AccountPage() {
   )
 }
 
-function ProfileCard({ user, onSaved }: { user: User; onSaved: () => Promise<void> }) {
+export function ProfileCard({ user, onSaved }: { user: User; onSaved: () => Promise<void> }) {
   const t = useT()
   const toast = useToast()
   const schema = accountSchema(t)
@@ -384,7 +384,7 @@ function ProfileCard({ user, onSaved }: { user: User; onSaved: () => Promise<voi
  * `backend/tests/test_identity.py` pins; the note under the picture is so the
  * person uploading it knows.
  */
-function PhotoCard({ user, onSaved }: { user: User; onSaved: () => Promise<void> }) {
+export function PhotoCard({ user, onSaved }: { user: User; onSaved: () => Promise<void> }) {
   const t = useT()
   const toast = useToast()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -527,7 +527,7 @@ function PasswordCard() {
  * and stored identically and differ only in copy and endpoint, so they share
  * a card rather than two near-identical ones drifting apart.
  */
-function DocumentCard({
+export function DocumentCard({
   icon,
   titleKey,
   hintKey,

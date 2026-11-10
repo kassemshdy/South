@@ -351,7 +351,12 @@ _KINDS = (
     (("activity_registrations",), "activity_signup"),
     (("job_applications",), "job_application"),
     (("job_openings",), "job_offer"),
-    (("users", "owner_verification_documents"), "account"),
+    # A new account first: an application creates the account and its ID
+    # scan in one commit, and that is one new account. An ID scan uploaded
+    # later on its own is not a new account (the owners' report, 10 Nov
+    # 2026: one sign-up showed as three «new accounts»).
+    (("users",), "account"),
+    (("owner_verification_documents",), "id_document"),
 )
 
 MAX_DETAIL = 300

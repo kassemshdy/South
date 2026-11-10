@@ -2496,5 +2496,6 @@
   "admin.sendAllDrafts": "Send all drafts to review",
   "admin.sendAllDraftsConfirm": "Send every draft to the review queue? You can then complete, approve or reject each one.",
   "admin.sentToReview": "Sent to review.",
-  "adminNav.generalSettings": "General settings"
+  "adminNav.generalSettings": "General settings",
+  "wizard.personalMore": "More"
 }

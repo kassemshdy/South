@@ -1,11 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, PackagePlus, PartyPopper, Send, UserRound } from 'lucide-react'
+import { Check, PackagePlus, PartyPopper, Send, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
+import { Input } from '@/components/ui/Input'
+import { Field } from '@/components/ui/Field'
 import { InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
 import { BasicsForm } from '@/features/businesses/BasicsForm'
@@ -25,6 +27,7 @@ import { authApi, ownerApi, type BusinessPayload } from '@/services/api/endpoint
 import { queryKeys } from '@/services/api/queryKeys'
 import { cn } from '@/utils/cn'
 import { normalizeForSearch } from '@/utils/search'
+import { DocumentCard, PhotoCard, ProfileCard } from '@/pages/dashboard/AccountPage'
 
 // `optional` marks the steps nothing in `SUBMISSION_REQUIREMENTS` depends on.
 // Unlabelled chips read as obligations; two of these are not, and an owner who
@@ -84,21 +87,75 @@ type StepKey = (typeof STEPS)[number]['key']
  * time, and an owner who wants to fill in their business first and come back
  * should be able to.
  */
-function PersonalStep({ onContinue }: { onContinue: () => void }) {
-  const { user } = useAuth()
+/** +96171123456 -> 71123456, +9613123456 -> 03123456: how people type it. */
+function localNumber(e164: string | null | undefined): string | null {
+  if (!e164) return null
+  const rest = e164.replace(/^\+961/, '')
+  return rest.length === 7 ? `0${rest}` : rest
+}
+
+/** The one identity field step 1 asks for up front; saved on the account. */
+function NameField({ initial, onSaved }: { initial: string; onSaved: () => Promise<void> }) {
   const t = useT()
-  // The front of the ID card is needed before review (the owners' decision,
-  // 9 Nov 2026); it is uploaded on the account page.
+  const toast = useToast()
+  const [value, setValue] = useState(initial)
+  const save = useMutation({
+    mutationFn: () => authApi.updateProfile({ full_name: value.trim() || null }),
+    onSuccess: async () => {
+      await onSaved()
+      toast.success(t('account.profileSaved'))
+    },
+    onError: (error) =>
+      toast.error(error instanceof ApiError ? error.message : t('states.errorFallback')),
+  })
+  const dirty = value.trim() !== initial.trim()
+  return (
+    <Card>
+      <CardBody className="space-y-3">
+        <Field label={t('account.fullNameLabel')} required>
+          {(fieldProps) => (
+            <Input
+              {...fieldProps}
+              dir="auto"
+              autoComplete="name"
+              value={value}
+              onChange={(event) => setValue(event.target.value)}
+            />
+          )}
+        </Field>
+        <Button
+          size="sm"
+          disabled={!dirty || !value.trim()}
+          loading={save.isPending}
+          onClick={() => save.mutate()}
+        >
+          {t('account.saveProfile')}
+        </Button>
+      </CardBody>
+    </Card>
+  )
+}
+
+function PersonalStep({ onContinue }: { onContinue: () => void }) {
+  const { user, refresh } = useAuth()
+  const t = useT()
+  // Filled here, in the wizard, rather than on another page (the owners'
+  // request, 10 Nov 2026: someone who has just signed up by SMS is guided
+  // through everything in one place). The same cards as the account page,
+  // so there is still one form per fact. The name and the front of the ID
+  // card are needed before going on: review cannot start without the card.
   const idCard = useQuery({
     queryKey: queryKeys.myVerificationDocument,
     queryFn: authApi.getVerificationDocument,
   })
+  if (!user) return <InlineSpinner />
 
   const missing = [
-    !user?.full_name && t('wizard.personalMissingName'),
-    !user?.photo_url && t('wizard.personalMissingPhoto'),
+    !user.full_name && t('wizard.personalMissingName'),
+    !user.photo_url && t('wizard.personalMissingPhoto'),
     idCard.isSuccess && !idCard.data && t('wizard.personalMissingId'),
   ].filter((entry): entry is string => Boolean(entry))
+  const canContinue = Boolean(user.full_name) && idCard.isSuccess && Boolean(idCard.data)
 
   return (
     <div className="space-y-5">
@@ -107,43 +164,57 @@ function PersonalStep({ onContinue }: { onContinue: () => void }) {
         <p className="mt-2 text-ink-500">{t('wizard.personalIntro')}</p>
       </div>
 
-      <div className="flex items-center gap-4 rounded-2xl bg-sand-50 p-4">
-        <span className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border-2 border-dashed border-ink-100 bg-white">
-          {user?.photo_url ? (
-            <img src={user.photo_url} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <span className="flex h-full items-center justify-center text-ink-300">
-              <UserRound className="h-6 w-6" aria-hidden="true" />
-            </span>
-          )}
-        </span>
-        <div className="min-w-0">
-          <p className="truncate font-semibold text-ink-900">
-            {user?.full_name ?? t('wizard.personalNoName')}
-          </p>
-          {missing.length > 0 ? (
-            <p className="mt-0.5 text-sm text-clay-700">
-              {t('wizard.personalMissing', { fields: missing.join(t('common.listSeparator')) })}
-            </p>
-          ) : (
-            <p className="mt-0.5 text-sm text-olive-700">{t('wizard.personalComplete')}</p>
-          )}
-        </div>
-      </div>
-
       <p className="rounded-xl bg-sand-100 p-3.5 text-sm text-clay-800">
         {t('wizard.personalPrivacyNote')}
       </p>
 
+      {/* Required first, in the step itself: the full name and the front
+          of the ID card. Everything else under the "more" section (the owners'
+          choice, 10 Nov 2026). */}
+      <NameField initial={user.full_name ?? ''} onSaved={refresh} />
+      <DocumentCard
+        icon={<ShieldCheck className="h-5 w-5 text-brand-700" aria-hidden="true" />}
+        titleKey="account.documentFrontTitle"
+        hintKey="account.documentHint"
+        queryKey={queryKeys.myVerificationDocument}
+        read={authApi.getVerificationDocument}
+        upload={authApi.uploadVerificationDocument}
+      />
+
+      <details className="group rounded-2xl border border-ink-100 bg-white">
+        <summary className="flex cursor-pointer list-none items-center justify-between px-5 py-4 font-bold text-ink-900">
+          {t('wizard.personalMore')}
+          <span aria-hidden="true" className="text-ink-400 transition-transform group-open:rotate-180">
+            ▾
+          </span>
+        </summary>
+        <div className="space-y-5 border-t border-ink-100 p-4">
+          <PhotoCard user={user} onSaved={refresh} />
+          <DocumentCard
+            icon={<ShieldCheck className="h-5 w-5 text-brand-700" aria-hidden="true" />}
+            titleKey="account.documentBackTitle"
+            hintKey="account.documentBackHint"
+            queryKey={queryKeys.myVerificationDocumentBack}
+            read={authApi.getVerificationDocumentBack}
+            upload={authApi.uploadVerificationDocumentBack}
+          />
+          <ProfileCard user={user} onSaved={refresh} />
+        </div>
+      </details>
+
+      {missing.length > 0 ? (
+        <p className="rounded-xl bg-clay-50 p-3.5 text-sm text-clay-800">
+          {t('wizard.personalMissing', { fields: missing.join(t('common.listSeparator')) })}
+        </p>
+      ) : (
+        <p className="rounded-xl bg-olive-50 p-3.5 text-sm text-olive-800">
+          {t('wizard.personalComplete')}
+        </p>
+      )}
+
       <div className="flex flex-wrap gap-3 pt-2">
-        <Button size="lg" onClick={onContinue}>
+        <Button size="lg" onClick={onContinue} disabled={!canContinue}>
           {t('common.continue')}
-        </Button>
-        <Button asChild variant="outline" size="lg">
-          <Link to="/dashboard/account">
-            <UserRound className="h-4 w-4" aria-hidden="true" />
-            {t('wizard.personalEdit')}
-          </Link>
         </Button>
       </div>
     </div>
@@ -151,6 +222,7 @@ function PersonalStep({ onContinue }: { onContinue: () => void }) {
 }
 
 export function BusinessWizardPage() {
+  const { user } = useAuth()
   const [step, setStep] = useState<StepKey>('personal')
   const [businessId, setBusinessId] = useState<string | null>(null)
   const queryClient = useQueryClient()
@@ -350,6 +422,7 @@ export function BusinessWizardPage() {
               // save, so the form starts from the door now chosen.
               key={businessId ?? origin ?? 'LOCAL'}
               defaultOrigin={origin}
+              defaultWhatsapp={localNumber(user?.phone_number)}
               serverError={create.error ?? update.error}
               business={data}
               submitLabel={t('wizard.saveAndContinue')}
