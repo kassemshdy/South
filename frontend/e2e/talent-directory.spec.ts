@@ -190,8 +190,14 @@ test.describe('Talent directory', () => {
     await expect(page.getByText(fixture.displayName, { exact: true })).toHaveCount(0)
 
     // --- The public profile page renders, with no moderation state on it ----------
+    // Through the profile's card in the list: the newest-providers row above
+    // the filters links to the same page.
     await page.goto('/services')
-    await page.getByRole('link', { name: fixture.displayName, exact: true }).click()
+    await page
+      .getByRole('article')
+      .filter({ hasText: fixture.displayName })
+      .getByRole('link', { name: fixture.displayName, exact: true })
+      .click()
     await expect(page.getByRole('heading', { name: fixture.displayName, level: 1 })).toBeVisible()
     await expect(page.getByText(fixture.bio)).toBeVisible()
     // A public page never carries a status badge.

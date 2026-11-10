@@ -232,8 +232,9 @@ function TalentDirectory({ kind }: { kind: TalentKind }) {
         }
       />
       {/* The services that joined lately, above the filters (the owners'
-          request, 10 Nov 2026). */}
-      {kind === 'SERVICE' ? <TalentsSection showMore={false} limit={4} /> : null}
+          request, 10 Nov 2026) -- only while nothing is filtered, or the row
+          would show providers the filters have just excluded. */}
+      {kind === 'SERVICE' && !hasFilters ? <TalentsSection showMore={false} limit={4} /> : null}
       <div className="container-page py-10">
         {/* The other two directories, one tap away. Without this each
             directory was an island: a search that came up empty here left
