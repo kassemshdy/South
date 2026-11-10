@@ -2495,5 +2495,6 @@
   "admin.sendToReview": "أرسل إلى المراجعة",
   "admin.sendAllDrafts": "أرسل كل المسودات إلى المراجعة",
   "admin.sendAllDraftsConfirm": "إرسال كل المسودات إلى قائمة المراجعة؟ يمكنك بعدها إكمالها والموافقة عليها أو رفضها.",
-  "admin.sentToReview": "أُرسل النشاط إلى المراجعة."
+  "admin.sentToReview": "أُرسل النشاط إلى المراجعة.",
+  "adminNav.generalSettings": "الإعدادات العامة"
 }
