@@ -388,5 +388,6 @@
   "phoneAuth.code_invalid": "الرمز غير صحيح.",
   "business.field.items": "منتج واحد على الأقل",
   "business.field.identity": "الوجه الأمامي لبطاقة الهوية (من صفحة حسابك)",
-  "talent.field.identity": "الوجه الأمامي لبطاقة الهوية (من صفحة حسابك)"
+  "talent.field.identity": "الوجه الأمامي لبطاقة الهوية (من صفحة حسابك)",
+  "admin.drafts_sent": "أُرسلت {count} مسودة إلى المراجعة."
 }

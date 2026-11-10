@@ -110,6 +110,16 @@ class ModerationService:
     def submit_for_review(self, business: Business, owner: User) -> Business:
         return self._transition(business, A.SUBMIT, actor=owner)
 
+    def send_to_review(self, business: Business, admin: User) -> Business:
+        """Staff move a draft the owner never sent into the review queue (the
+        owners' request, 10 Nov 2026: eleven shops sat unseen as drafts).
+
+        The owner's readiness list is not checked here: the point is for a
+        reviewer to see the shop and finish it with its owner. Approval keeps
+        its own rule (a logo), so nothing incomplete is published by this.
+        The audit row names the staff member, not the owner."""
+        return self._transition(business, A.SUBMIT, actor=admin)
+
     def approve(self, business: Business, admin: User) -> Business:
         """Publish a shop -- only one with a logo (the owners' decision,
         29 Oct 2026: 63 of 85 live shops showed a grey icon). An application

@@ -1127,6 +1127,13 @@ export const adminApi = {
     }),
   reactivate: (id: string) =>
     apiRequest<AdminBusiness>(`/api/admin/businesses/${id}/reactivate`, { method: 'POST' }),
+  /** A draft (or a rejected shop) into the review queue, by staff. */
+  sendToReview: (id: string) =>
+    apiRequest<AdminBusiness>(`/api/admin/businesses/${id}/send-to-review`, { method: 'POST' }),
+  sendAllDraftsToReview: () =>
+    apiRequest<{ message: string }>('/api/admin/businesses/drafts/send-to-review', {
+      method: 'POST',
+    }),
 
   users: (page = 1, filters: AdminUserFilters = {}) =>
     apiRequest<Paginated<AdminUser>>('/api/admin/users', { query: { page, ...filters } }),
