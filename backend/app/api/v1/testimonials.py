@@ -13,7 +13,7 @@ Three audiences, three routers, and the split is the disclosure boundary:
 from __future__ import annotations
 
 import uuid
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Path, Query, status
 
@@ -56,11 +56,14 @@ FEATURED_LIMIT = 6
 
 
 @public_router.get("/testimonials/featured", response_model=list[FeaturedTestimonialOut])
-def featured_testimonials(db: DbSession) -> list[FeaturedTestimonialOut]:
+def featured_testimonials(
+    db: DbSession, kind: Literal["business", "talent"] | None = None
+) -> list[FeaturedTestimonialOut]:
     """The home page's testimonials: the six best published ones, one per
-    listing, each with the listing it is about."""
+    listing, each with the listing it is about. ``kind`` keeps only shops'
+    or only services' (the directory pages)."""
     featured: list[FeaturedTestimonialOut] = []
-    for testimonial in TestimonialRepository(db).featured(FEATURED_LIMIT):
+    for testimonial in TestimonialRepository(db).featured(FEATURED_LIMIT, kind):
         business, profile = testimonial.business, testimonial.talent_profile
         base = TestimonialOut.model_validate(testimonial).model_dump()
         if business is not None:

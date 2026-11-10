@@ -24,6 +24,7 @@ import { trackDirectoryView } from '@/services/analytics'
 import { adminApi, publicBusinessApi, publicItemApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { GoodsOrigin, ProductSortOption } from '@/types/api'
+import { ShopsSection, TestimonialsSection } from '@/features/home/HomeSections'
 
 const ALL = '__all__'
 /**
@@ -191,6 +192,10 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
             : t('products.introFallback')
         }
       />
+      {/* The shops that joined lately, above the filters, as on the home
+          page (the owners' request, 10 Nov 2026) -- only while nothing is
+          filtered, so the row never contradicts the list under it. */}
+      {hasFilters ? null : <ShopsSection />}
       <div className="container-page py-10">
         {/* The other two directories, one tap away. Without this each
             directory was an island: a search that came up empty here left
@@ -357,6 +362,8 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
           )}
         </div>
       </div>
+      {/* What customers say about shops, at the end of the list. */}
+      <TestimonialsSection kind="business" />
     </>
   )
 }

@@ -684,7 +684,10 @@ export const testimonialApi = {
     apiRequest<OwnerTestimonial[]>(`/api/businesses/${businessId}/testimonials`),
   listMyTalent: () => apiRequest<OwnerTestimonial[]>('/api/my/talent/testimonials'),
   /** The home page's six best published testimonials, one per listing. */
-  featured: () => apiRequest<FeaturedTestimonial[]>('/api/testimonials/featured'),
+  featured: (kind?: 'business' | 'talent') =>
+    apiRequest<FeaturedTestimonial[]>('/api/testimonials/featured', {
+      query: kind ? { kind } : undefined,
+    }),
 }
 
 export interface OrderPayload {
