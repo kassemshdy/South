@@ -1,11 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, PackagePlus, PartyPopper, Send, UserRound } from 'lucide-react'
+import { Check, PackagePlus, PartyPopper, Send, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
+import { Input } from '@/components/ui/Input'
+import { Field } from '@/components/ui/Field'
 import { InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
 import { BasicsForm } from '@/features/businesses/BasicsForm'
@@ -25,6 +27,7 @@ import { authApi, ownerApi, type BusinessPayload } from '@/services/api/endpoint
 import { queryKeys } from '@/services/api/queryKeys'
 import { cn } from '@/utils/cn'
 import { normalizeForSearch } from '@/utils/search'
+import { DocumentCard, PhotoCard, ProfileCard } from '@/pages/dashboard/AccountPage'
 
 // `optional` marks the steps nothing in `SUBMISSION_REQUIREMENTS` depends on.
 // Unlabelled chips read as obligations; two of these are not, and an owner who
@@ -63,6 +66,10 @@ const STEPS = [
 
 type StepKey = (typeof STEPS)[number]['key']
 
+const REQUIRED_STEPS: readonly StepKey[] = STEPS.filter(
+  (item) => !('optional' in item && item.optional),
+).map((item) => item.key)
+
 /**
  * Multi-step creation flow.
  *
@@ -84,21 +91,70 @@ type StepKey = (typeof STEPS)[number]['key']
  * time, and an owner who wants to fill in their business first and come back
  * should be able to.
  */
-function PersonalStep({ onContinue }: { onContinue: () => void }) {
-  const { user } = useAuth()
+/** +96171123456 -> 71123456, +9613123456 -> 03123456: how people type it. */
+function localNumber(e164: string | null | undefined): string | null {
+  if (!e164) return null
+  const rest = e164.replace(/^\+961/, '')
+  return rest.length === 7 ? `0${rest}` : rest
+}
+
+/** The one identity field step 1 asks for up front. Saved by the step's
+ *  Continue, so there is one button to press, not two (the owners' review of
+ *  the flow, 10 Nov 2026). */
+function NameField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const t = useT()
-  // The front of the ID card is needed before review (the owners' decision,
-  // 9 Nov 2026); it is uploaded on the account page.
+  return (
+    <Card>
+      <CardBody>
+        <Field label={t('account.fullNameLabel')} required>
+          {(fieldProps) => (
+            <Input
+              {...fieldProps}
+              dir="auto"
+              autoComplete="name"
+              value={value}
+              onChange={(event) => onChange(event.target.value)}
+            />
+          )}
+        </Field>
+      </CardBody>
+    </Card>
+  )
+}
+
+function PersonalStep({ onContinue }: { onContinue: () => void }) {
+  const { user, refresh } = useAuth()
+  const t = useT()
+  // Filled here, in the wizard, rather than on another page (the owners'
+  // request, 10 Nov 2026: someone who has just signed up by SMS is guided
+  // through everything in one place). The same cards as the account page,
+  // so there is still one form per fact. The name and the front of the ID
+  // card are needed before going on: review cannot start without the card.
   const idCard = useQuery({
     queryKey: queryKeys.myVerificationDocument,
     queryFn: authApi.getVerificationDocument,
   })
+  const [name, setName] = useState(user?.full_name ?? '')
+  const toast = useToast()
+  const saveAndContinue = useMutation({
+    mutationFn: async () => {
+      if (name.trim() !== (user?.full_name ?? '').trim()) {
+        await authApi.updateProfile({ full_name: name.trim() })
+        await refresh()
+      }
+    },
+    onSuccess: onContinue,
+    onError: (error) =>
+      toast.error(error instanceof ApiError ? error.message : t('states.errorFallback')),
+  })
+  if (!user) return <InlineSpinner />
 
   const missing = [
-    !user?.full_name && t('wizard.personalMissingName'),
-    !user?.photo_url && t('wizard.personalMissingPhoto'),
+    !name.trim() && t('wizard.personalMissingName'),
+    !user.photo_url && t('wizard.personalMissingPhoto'),
     idCard.isSuccess && !idCard.data && t('wizard.personalMissingId'),
   ].filter((entry): entry is string => Boolean(entry))
+  const canContinue = Boolean(name.trim()) && idCard.isSuccess && Boolean(idCard.data)
 
   return (
     <div className="space-y-5">
@@ -107,43 +163,62 @@ function PersonalStep({ onContinue }: { onContinue: () => void }) {
         <p className="mt-2 text-ink-500">{t('wizard.personalIntro')}</p>
       </div>
 
-      <div className="flex items-center gap-4 rounded-2xl bg-sand-50 p-4">
-        <span className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border-2 border-dashed border-ink-100 bg-white">
-          {user?.photo_url ? (
-            <img src={user.photo_url} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <span className="flex h-full items-center justify-center text-ink-300">
-              <UserRound className="h-6 w-6" aria-hidden="true" />
-            </span>
-          )}
-        </span>
-        <div className="min-w-0">
-          <p className="truncate font-semibold text-ink-900">
-            {user?.full_name ?? t('wizard.personalNoName')}
-          </p>
-          {missing.length > 0 ? (
-            <p className="mt-0.5 text-sm text-clay-700">
-              {t('wizard.personalMissing', { fields: missing.join(t('common.listSeparator')) })}
-            </p>
-          ) : (
-            <p className="mt-0.5 text-sm text-olive-700">{t('wizard.personalComplete')}</p>
-          )}
-        </div>
-      </div>
-
       <p className="rounded-xl bg-sand-100 p-3.5 text-sm text-clay-800">
         {t('wizard.personalPrivacyNote')}
       </p>
 
+      {/* Required first, in the step itself: the full name and the front
+          of the ID card. Everything else under the "more" section (the owners'
+          choice, 10 Nov 2026). */}
+      <NameField value={name} onChange={setName} />
+      <DocumentCard
+        icon={<ShieldCheck className="h-5 w-5 text-brand-700" aria-hidden="true" />}
+        titleKey="account.documentFrontTitle"
+        hintKey="account.documentHint"
+        queryKey={queryKeys.myVerificationDocument}
+        read={authApi.getVerificationDocument}
+        upload={authApi.uploadVerificationDocument}
+      />
+
+      <details className="group rounded-2xl border border-ink-100 bg-white">
+        <summary className="flex cursor-pointer list-none items-center justify-between px-5 py-4 font-bold text-ink-900">
+          {t('wizard.personalMore')}
+          <span aria-hidden="true" className="text-ink-400 transition-transform group-open:rotate-180">
+            ▾
+          </span>
+        </summary>
+        <div className="space-y-5 border-t border-ink-100 p-4">
+          <PhotoCard user={user} onSaved={refresh} />
+          <DocumentCard
+            icon={<ShieldCheck className="h-5 w-5 text-brand-700" aria-hidden="true" />}
+            titleKey="account.documentBackTitle"
+            hintKey="account.documentBackHint"
+            queryKey={queryKeys.myVerificationDocumentBack}
+            read={authApi.getVerificationDocumentBack}
+            upload={authApi.uploadVerificationDocumentBack}
+          />
+          <ProfileCard user={user} onSaved={refresh} />
+        </div>
+      </details>
+
+      {missing.length > 0 ? (
+        <p className="rounded-xl bg-clay-50 p-3.5 text-sm text-clay-800">
+          {t('wizard.personalMissing', { fields: missing.join(t('common.listSeparator')) })}
+        </p>
+      ) : (
+        <p className="rounded-xl bg-olive-50 p-3.5 text-sm text-olive-800">
+          {t('wizard.personalComplete')}
+        </p>
+      )}
+
       <div className="flex flex-wrap gap-3 pt-2">
-        <Button size="lg" onClick={onContinue}>
+        <Button
+          size="lg"
+          onClick={() => saveAndContinue.mutate()}
+          loading={saveAndContinue.isPending}
+          disabled={!canContinue}
+        >
           {t('common.continue')}
-        </Button>
-        <Button asChild variant="outline" size="lg">
-          <Link to="/dashboard/account">
-            <UserRound className="h-4 w-4" aria-hidden="true" />
-            {t('wizard.personalEdit')}
-          </Link>
         </Button>
       </div>
     </div>
@@ -151,6 +226,7 @@ function PersonalStep({ onContinue }: { onContinue: () => void }) {
 }
 
 export function BusinessWizardPage() {
+  const { user } = useAuth()
   const [step, setStep] = useState<StepKey>('personal')
   const [businessId, setBusinessId] = useState<string | null>(null)
   const queryClient = useQueryClient()
@@ -227,6 +303,10 @@ export function BusinessWizardPage() {
   })
 
   const currentIndex = STEPS.findIndex((item) => item.key === step)
+  const currentStep = STEPS[currentIndex]
+  // Position among the required steps: the optional ones are skippable.
+  const requiredDone = REQUIRED_STEPS.filter((key) => STEPS.findIndex((item) => item.key === key) < currentIndex).length
+  const requiredPosition = Math.min(requiredDone + 1, REQUIRED_STEPS.length)
   const data = business.data
 
   // The backend owns the definition of "complete", so the shortcut asks it
@@ -254,7 +334,26 @@ export function BusinessWizardPage() {
         <OfferSwitcher current="business" />
       ) : null}
 
-      <ol className="mb-8 flex flex-wrap gap-2" aria-label={t('wizard.stepsAria')}>
+      {/* Where they are among the steps that count (the owners' review,
+          10 Nov 2026): eight chips across three lines read as a long form.
+          The optional ones are named as such, not counted. */}
+      <div className="mb-3">
+        <p className="mb-2 text-sm font-semibold text-ink-700">
+          {currentStep && 'optional' in currentStep && currentStep.optional
+            ? t('wizard.progressOptional')
+            : t('wizard.progress', { current: requiredPosition, total: REQUIRED_STEPS.length })}
+        </p>
+        <div className="h-2 overflow-hidden rounded-full bg-sand-100">
+          <div
+            className="h-full rounded-full bg-olive-600 transition-all"
+            style={{ width: `${Math.round((requiredDone / REQUIRED_STEPS.length) * 100)}%` }}
+          />
+        </div>
+      </div>
+      <ol
+        className="mb-8 flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible"
+        aria-label={t('wizard.stepsAria')}
+      >
         {STEPS.map((item, index) => {
           const isDone = index < currentIndex
           const isCurrent = item.key === step
@@ -267,7 +366,7 @@ export function BusinessWizardPage() {
                 onClick={() => setStep(item.key)}
                 aria-current={isCurrent ? 'step' : undefined}
                 className={cn(
-                  'flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40',
+                  'flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40',
                   isCurrent
                     ? 'bg-brand-800 text-white'
                     : isDone
@@ -350,6 +449,7 @@ export function BusinessWizardPage() {
               // save, so the form starts from the door now chosen.
               key={businessId ?? origin ?? 'LOCAL'}
               defaultOrigin={origin}
+              defaultWhatsapp={localNumber(user?.phone_number)}
               serverError={create.error ?? update.error}
               business={data}
               submitLabel={t('wizard.saveAndContinue')}

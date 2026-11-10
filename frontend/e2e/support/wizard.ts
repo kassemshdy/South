@@ -8,14 +8,16 @@
  * `src/features/onboarding/destinations.ts` records about hand-written copies
  * of one list drifting apart.
  *
- * The personal step is a summary of the account rather than a form, and it
- * blocks nothing: identity is checked by a person at review time, not by the
- * wizard. So stepping past it is exactly what an owner who has already filled
- * their account in — or who means to come back to it — does, and that is what
- * this helper is.
+ * The personal step holds the account's own forms, and its Continue waits
+ * for a full name and the front of the ID card (the owners' request, 10 Nov
+ * 2026). The account page's forms have their own spec
+ * (account-and-verification.spec.ts), so this helper puts both on the
+ * account through the API with the page's session, then steps past.
  */
 
 import { expect, type Page } from '@playwright/test'
+
+import { uploadIdCard } from './identity'
 
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
@@ -29,6 +31,19 @@ const t = (key: string): string => ar[key]!
 
 /** Open the wizard and step past the personal summary onto the basics form. */
 export async function openBusinessWizard(page: Page): Promise<void> {
+  // A full name and the ID card's front: what step 1 waits for. Only when
+  // missing, so a spec that typed its own (account-and-verification) keeps it.
+  const token = await page.evaluate(() => window.localStorage.getItem('south.auth.token'))
+  const headers = { Authorization: `Bearer ${token}` }
+  const me = (await (await page.request.get('/api/me', { headers })).json()) as {
+    full_name: string | null
+  }
+  if (!me.full_name) {
+    const named = await page.request.patch('/api/me', { headers, data: { full_name: 'E2E Owner' } })
+    expect(named.status(), await named.text()).toBeLessThan(300)
+  }
+  const card = await page.request.get('/api/me/verification-document', { headers })
+  if ((await card.text()).trim() === 'null') await uploadIdCard(page)
   await page.goto('/dashboard/businesses/new')
   await expect(page.getByRole('heading', { name: t('wizard.personalHeading') })).toBeVisible()
   await page.getByRole('button', { name: t('common.continue'), exact: true }).click()

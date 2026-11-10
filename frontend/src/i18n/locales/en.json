@@ -2496,5 +2496,13 @@
   "admin.sendAllDrafts": "Send all drafts to review",
   "admin.sendAllDraftsConfirm": "Send every draft to the review queue? You can then complete, approve or reject each one.",
   "admin.sentToReview": "Sent to review.",
-  "adminNav.generalSettings": "General settings"
+  "adminNav.generalSettings": "General settings",
+  "wizard.personalMore": "More",
+  "wizard.progress": "Step {current} of {total}",
+  "wizard.progressOptional": "Optional step, you can skip it",
+  "dashboard.addProduct": "Add a product",
+  "dashboard.howToAdd": "How do I add a product?",
+  "dashboard.addStep1": "Tap “Add a product”.",
+  "dashboard.addStep2": "Add the product's photo, name and price, plus more photos if you like.",
+  "dashboard.addStep3": "Save, and it joins your product list."
 }

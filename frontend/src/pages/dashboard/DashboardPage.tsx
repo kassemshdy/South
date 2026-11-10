@@ -165,12 +165,45 @@ export function DashboardPage() {
   )
 }
 
+/**
+ * Three steps to a first product, open while there is none and folded away
+ * after, so it guides a newcomer without crowding a shop that already sells.
+ */
+function AddProductGuide({ open, newItemPath }: { open: boolean; newItemPath: string }) {
+  const t = useT()
+  const steps: TranslationKey[] = ['dashboard.addStep1', 'dashboard.addStep2', 'dashboard.addStep3']
+  return (
+    <details open={open} className="mb-4 rounded-xl border-2 border-dashed border-sand-300 bg-sand-50 p-4">
+      <summary className="cursor-pointer font-semibold text-ink-700">{t('dashboard.howToAdd')}</summary>
+      <ol className="mt-3 space-y-2">
+        {steps.map((key, index) => (
+          <li key={key} className="flex items-start gap-2.5 text-sm text-ink-700">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-700 text-xs font-bold text-white ltr-nums">
+              {index + 1}
+            </span>
+            <span className="pt-0.5">{t(key)}</span>
+          </li>
+        ))}
+      </ol>
+      {open ? (
+        <Button asChild size="sm" className="mt-4">
+          <Link to={newItemPath}>
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            {t('dashboard.addProduct')}
+          </Link>
+        </Button>
+      ) : null}
+    </details>
+  )
+}
+
 /** The most products the dashboard lists before pointing to the full page. */
 const PRODUCTS_PREVIEW = 6
 
 function OwnerProductsPanel({ business }: { business: OwnerBusiness }) {
   const t = useT()
   const itemsPath = `/dashboard/businesses/${business.id}/items`
+  const newItemPath = `${itemsPath}?item=new`
   const shown = business.items.slice(0, PRODUCTS_PREVIEW)
 
   return (
@@ -178,26 +211,25 @@ function OwnerProductsPanel({ business }: { business: OwnerBusiness }) {
       <CardBody>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-lg font-bold">{t('itemsPage.heading')}</h3>
-          <Button asChild variant="outline" size="sm">
-            <Link to={itemsPath}>
-              <ListPlus className="h-4 w-4" aria-hidden="true" />
-              {t('dashboard.manageItems', { count: business.items.length })}
-            </Link>
-          </Button>
-        </div>
-
-        {shown.length === 0 ? (
-          <div className="rounded-xl border-2 border-dashed border-ink-100 p-6 text-center">
-            <Package className="mx-auto h-7 w-7 text-ink-300" aria-hidden="true" />
-            <p className="mt-2 font-semibold text-ink-700">{t('items.emptyTitle')}</p>
-            <Button asChild size="sm" className="mt-3">
-              <Link to={itemsPath}>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild size="sm">
+              <Link to={newItemPath}>
                 <Plus className="h-4 w-4" aria-hidden="true" />
-                {t('items.addItem')}
+                {t('dashboard.addProduct')}
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link to={itemsPath}>
+                <ListPlus className="h-4 w-4" aria-hidden="true" />
+                {t('dashboard.manageItems', { count: business.items.length })}
               </Link>
             </Button>
           </div>
-        ) : (
+        </div>
+
+        <AddProductGuide open={shown.length === 0} newItemPath={newItemPath} />
+
+        {shown.length === 0 ? null : (
           <ul className="divide-y divide-ink-100">
             {shown.map((item) => {
               const price = formatPrice(item.price, item.currency)
@@ -328,6 +360,15 @@ function OwnerBusinessCard({
         ) : null}
 
         <div className="mt-5 flex flex-wrap gap-2 pt-1">
+          {/* First and filled: adding a product is what an owner comes back
+              to do most, and it was only reachable through "manage". */}
+          <Button asChild size="sm">
+            <Link to={`/dashboard/businesses/${business.id}/items?item=new`}>
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              {t('dashboard.addProduct')}
+            </Link>
+          </Button>
+
           <Button asChild variant="outline" size="sm">
             <Link to={`/dashboard/businesses/${business.id}/edit`}>
               <Pencil className="h-4 w-4" aria-hidden="true" />
