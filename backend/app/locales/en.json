@@ -388,5 +388,6 @@
   "phoneAuth.code_invalid": "The code is not correct.",
   "business.field.items": "at least one product",
   "business.field.identity": "the front of your ID card (on your account page)",
-  "talent.field.identity": "the front of your ID card (on your account page)"
+  "talent.field.identity": "the front of your ID card (on your account page)",
+  "admin.drafts_sent": "{count} drafts sent to review."
 }

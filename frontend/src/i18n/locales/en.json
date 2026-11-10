@@ -2491,5 +2491,10 @@
   "images.galleryNeedsProduct": "Add at least one product first, then add gallery photos.",
   "business.field.items": "at least one product",
   "business.field.identity": "the front of your ID card (on your account page)",
-  "talent.field.identity": "the front of your ID card (on your account page)"
+  "talent.field.identity": "the front of your ID card (on your account page)",
+  "admin.sendToReview": "Send to review",
+  "admin.sendAllDrafts": "Send all drafts to review",
+  "admin.sendAllDraftsConfirm": "Send every draft to the review queue? You can then complete, approve or reject each one.",
+  "admin.sentToReview": "Sent to review.",
+  "adminNav.generalSettings": "General settings"
 }

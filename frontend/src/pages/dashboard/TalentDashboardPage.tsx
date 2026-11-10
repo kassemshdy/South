@@ -238,7 +238,7 @@ export function TalentDashboardPage() {
         <Tabs.Root
           value={
             tab ??
-            (!data.photo_url || (data.kind === 'SERVICE' && !data.cover_url) ? 'images' : 'details')
+            (!data.photo_url ? 'images' : 'details')
           }
           onValueChange={setTab}
         >

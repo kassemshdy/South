@@ -2491,5 +2491,10 @@
   "images.galleryNeedsProduct": "أضف منتجًا واحدًا على الأقل أولًا، ثم أضف صور المعرض.",
   "business.field.items": "منتج واحد على الأقل",
   "business.field.identity": "الوجه الأمامي لبطاقة الهوية (من صفحة حسابك)",
-  "talent.field.identity": "الوجه الأمامي لبطاقة الهوية (من صفحة حسابك)"
+  "talent.field.identity": "الوجه الأمامي لبطاقة الهوية (من صفحة حسابك)",
+  "admin.sendToReview": "أرسل إلى المراجعة",
+  "admin.sendAllDrafts": "أرسل كل المسودات إلى المراجعة",
+  "admin.sendAllDraftsConfirm": "إرسال كل المسودات إلى قائمة المراجعة؟ يمكنك بعدها إكمالها والموافقة عليها أو رفضها.",
+  "admin.sentToReview": "أُرسل النشاط إلى المراجعة.",
+  "adminNav.generalSettings": "الإعدادات العامة"
 }

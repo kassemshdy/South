@@ -376,7 +376,7 @@
   "telegram.csv_backup": "جداول البيانات بصيغة CSV (تُفتح في Excel)",
   "followers.not_configured": "لم يُضبط جلب أعداد المتابعين بعد.",
   "followers.refresh_started": "بدأ تحديث أعداد المتابعين، وتظهر خلال دقائق.",
-  "phoneAuth.sms": "رمز جنوبنا: {code}",
+  "phoneAuth.sms": "Janoubona code: {code}",
   "phoneAuth.sent": "إذا كان الرقم يستقبل الرسائل، فسيصله رمز عبر رسالة نصية.",
   "phoneAuth.code_ok": "الرمز صحيح.",
   "phoneAuth.unavailable": "التسجيل عبر الرسائل النصية غير متاح حاليًا. يُرجى استخدام استمارة التسجيل.",
@@ -388,5 +388,6 @@
   "phoneAuth.code_invalid": "الرمز غير صحيح.",
   "business.field.items": "منتج واحد على الأقل",
   "business.field.identity": "الوجه الأمامي لبطاقة الهوية (من صفحة حسابك)",
-  "talent.field.identity": "الوجه الأمامي لبطاقة الهوية (من صفحة حسابك)"
+  "talent.field.identity": "الوجه الأمامي لبطاقة الهوية (من صفحة حسابك)",
+  "admin.drafts_sent": "أُرسلت {count} مسودة إلى المراجعة."
 }
