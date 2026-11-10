@@ -27,7 +27,7 @@ import {
   MousePointerClick,
   Network,
   PackageX,
-  PhoneCall,
+  Settings,
   ShoppingBag,
   ShieldCheck,
   Sparkles,
@@ -117,7 +117,7 @@ const GROUPS: { labelKey: TranslationKey; icon: typeof BarChart3; items: NavItem
       { to: '/admin/home-layout', labelKey: 'admin.navHomeLayout', icon: LayoutList, needs: 'content' },
       { to: '/admin/menu', labelKey: 'admin.navMenu', icon: MenuIcon, needs: 'content' },
       { to: '/admin/page-covers', labelKey: 'admin.navPageCovers', icon: ImageIcon },
-      { to: '/admin/site-settings', labelKey: 'nav.contact', icon: PhoneCall, needs: 'manage' },
+      { to: '/admin/site-settings', labelKey: 'adminNav.generalSettings', icon: Settings, needs: 'manage' },
     ],
   },
   {

@@ -133,7 +133,7 @@ export function AdminSiteSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl">{t('nav.contact')}</h1>
+      <h1 className="text-3xl">{t('adminNav.generalSettings')}</h1>
 
       {current.isLoading ? (
         <Skeleton className="h-96 w-full" />
