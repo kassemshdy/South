@@ -2497,5 +2497,7 @@
   "admin.sendAllDraftsConfirm": "إرسال كل المسودات إلى قائمة المراجعة؟ يمكنك بعدها إكمالها والموافقة عليها أو رفضها.",
   "admin.sentToReview": "أُرسل النشاط إلى المراجعة.",
   "adminNav.generalSettings": "الإعدادات العامة",
-  "wizard.personalMore": "المزيد"
+  "wizard.personalMore": "المزيد",
+  "wizard.progress": "الخطوة {current} من {total}",
+  "wizard.progressOptional": "خطوة اختيارية، يمكنك تخطيها"
 }

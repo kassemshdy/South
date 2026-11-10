@@ -66,6 +66,10 @@ const STEPS = [
 
 type StepKey = (typeof STEPS)[number]['key']
 
+const REQUIRED_STEPS: readonly StepKey[] = STEPS.filter(
+  (item) => !('optional' in item && item.optional),
+).map((item) => item.key)
+
 /**
  * Multi-step creation flow.
  *
@@ -94,24 +98,14 @@ function localNumber(e164: string | null | undefined): string | null {
   return rest.length === 7 ? `0${rest}` : rest
 }
 
-/** The one identity field step 1 asks for up front; saved on the account. */
-function NameField({ initial, onSaved }: { initial: string; onSaved: () => Promise<void> }) {
+/** The one identity field step 1 asks for up front. Saved by the step's
+ *  Continue, so there is one button to press, not two (the owners' review of
+ *  the flow, 10 Nov 2026). */
+function NameField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const t = useT()
-  const toast = useToast()
-  const [value, setValue] = useState(initial)
-  const save = useMutation({
-    mutationFn: () => authApi.updateProfile({ full_name: value.trim() || null }),
-    onSuccess: async () => {
-      await onSaved()
-      toast.success(t('account.profileSaved'))
-    },
-    onError: (error) =>
-      toast.error(error instanceof ApiError ? error.message : t('states.errorFallback')),
-  })
-  const dirty = value.trim() !== initial.trim()
   return (
     <Card>
-      <CardBody className="space-y-3">
+      <CardBody>
         <Field label={t('account.fullNameLabel')} required>
           {(fieldProps) => (
             <Input
@@ -119,18 +113,10 @@ function NameField({ initial, onSaved }: { initial: string; onSaved: () => Promi
               dir="auto"
               autoComplete="name"
               value={value}
-              onChange={(event) => setValue(event.target.value)}
+              onChange={(event) => onChange(event.target.value)}
             />
           )}
         </Field>
-        <Button
-          size="sm"
-          disabled={!dirty || !value.trim()}
-          loading={save.isPending}
-          onClick={() => save.mutate()}
-        >
-          {t('account.saveProfile')}
-        </Button>
       </CardBody>
     </Card>
   )
@@ -148,14 +134,27 @@ function PersonalStep({ onContinue }: { onContinue: () => void }) {
     queryKey: queryKeys.myVerificationDocument,
     queryFn: authApi.getVerificationDocument,
   })
+  const [name, setName] = useState(user?.full_name ?? '')
+  const toast = useToast()
+  const saveAndContinue = useMutation({
+    mutationFn: async () => {
+      if (name.trim() !== (user?.full_name ?? '').trim()) {
+        await authApi.updateProfile({ full_name: name.trim() })
+        await refresh()
+      }
+    },
+    onSuccess: onContinue,
+    onError: (error) =>
+      toast.error(error instanceof ApiError ? error.message : t('states.errorFallback')),
+  })
   if (!user) return <InlineSpinner />
 
   const missing = [
-    !user.full_name && t('wizard.personalMissingName'),
+    !name.trim() && t('wizard.personalMissingName'),
     !user.photo_url && t('wizard.personalMissingPhoto'),
     idCard.isSuccess && !idCard.data && t('wizard.personalMissingId'),
   ].filter((entry): entry is string => Boolean(entry))
-  const canContinue = Boolean(user.full_name) && idCard.isSuccess && Boolean(idCard.data)
+  const canContinue = Boolean(name.trim()) && idCard.isSuccess && Boolean(idCard.data)
 
   return (
     <div className="space-y-5">
@@ -171,7 +170,7 @@ function PersonalStep({ onContinue }: { onContinue: () => void }) {
       {/* Required first, in the step itself: the full name and the front
           of the ID card. Everything else under the "more" section (the owners'
           choice, 10 Nov 2026). */}
-      <NameField initial={user.full_name ?? ''} onSaved={refresh} />
+      <NameField value={name} onChange={setName} />
       <DocumentCard
         icon={<ShieldCheck className="h-5 w-5 text-brand-700" aria-hidden="true" />}
         titleKey="account.documentFrontTitle"
@@ -213,7 +212,12 @@ function PersonalStep({ onContinue }: { onContinue: () => void }) {
       )}
 
       <div className="flex flex-wrap gap-3 pt-2">
-        <Button size="lg" onClick={onContinue} disabled={!canContinue}>
+        <Button
+          size="lg"
+          onClick={() => saveAndContinue.mutate()}
+          loading={saveAndContinue.isPending}
+          disabled={!canContinue}
+        >
           {t('common.continue')}
         </Button>
       </div>
@@ -299,6 +303,10 @@ export function BusinessWizardPage() {
   })
 
   const currentIndex = STEPS.findIndex((item) => item.key === step)
+  const currentStep = STEPS[currentIndex]
+  // Position among the required steps: the optional ones are skippable.
+  const requiredDone = REQUIRED_STEPS.filter((key) => STEPS.findIndex((item) => item.key === key) < currentIndex).length
+  const requiredPosition = Math.min(requiredDone + 1, REQUIRED_STEPS.length)
   const data = business.data
 
   // The backend owns the definition of "complete", so the shortcut asks it
@@ -326,7 +334,26 @@ export function BusinessWizardPage() {
         <OfferSwitcher current="business" />
       ) : null}
 
-      <ol className="mb-8 flex flex-wrap gap-2" aria-label={t('wizard.stepsAria')}>
+      {/* Where they are among the steps that count (the owners' review,
+          10 Nov 2026): eight chips across three lines read as a long form.
+          The optional ones are named as such, not counted. */}
+      <div className="mb-3">
+        <p className="mb-2 text-sm font-semibold text-ink-700">
+          {currentStep && 'optional' in currentStep && currentStep.optional
+            ? t('wizard.progressOptional')
+            : t('wizard.progress', { current: requiredPosition, total: REQUIRED_STEPS.length })}
+        </p>
+        <div className="h-2 overflow-hidden rounded-full bg-sand-100">
+          <div
+            className="h-full rounded-full bg-olive-600 transition-all"
+            style={{ width: `${Math.round((requiredDone / REQUIRED_STEPS.length) * 100)}%` }}
+          />
+        </div>
+      </div>
+      <ol
+        className="mb-8 flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible"
+        aria-label={t('wizard.stepsAria')}
+      >
         {STEPS.map((item, index) => {
           const isDone = index < currentIndex
           const isCurrent = item.key === step
@@ -339,7 +366,7 @@ export function BusinessWizardPage() {
                 onClick={() => setStep(item.key)}
                 aria-current={isCurrent ? 'step' : undefined}
                 className={cn(
-                  'flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40',
+                  'flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40',
                   isCurrent
                     ? 'bg-brand-800 text-white'
                     : isDone
