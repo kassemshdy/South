@@ -17,6 +17,7 @@ from app.models.business import Business
 from app.models.talent import TalentSkill
 from app.models.taxonomy import Category, Location
 from app.models.workshop import Workshop
+from app.repositories.business import BusinessRepository
 from app.repositories.talent import TalentSkillRepository
 from app.repositories.taxonomy import CategoryRepository, LocationRepository
 from app.schemas.common import MessageResponse
@@ -171,7 +172,17 @@ def list_locations(
     db: DbSession, admin: AdminUser, include_inactive: Annotated[bool, Query()] = True
 ) -> list[LocationOut]:
     locations = LocationRepository(db).list_all(active_only=not include_inactive)
-    return [out for loc in locations if (out := location_out(loc)) is not None]
+    # Every shop, whatever its status, a district counting its towns too: the
+    # admin filter shows all of them (the owners' request, 11 Nov 2026).
+    counts: dict[uuid.UUID, int] = dict(BusinessRepository(db).counts_by_location())
+    for loc in locations:
+        if loc.parent_id is not None:
+            counts[loc.parent_id] = counts.get(loc.parent_id, 0) + counts.get(loc.id, 0)
+    return [
+        out
+        for loc in locations
+        if (out := location_out(loc, business_count=counts.get(loc.id, 0))) is not None
+    ]
 
 
 @router.post("/locations", response_model=LocationOut, status_code=status.HTTP_201_CREATED)

@@ -56,6 +56,9 @@ interface LocationComboboxProps {
    * except the one already chosen, so the picker never hides its own value.
    */
   countOf?: (node: LocationNode) => number
+  /** Keep places counted at zero: staff filters list every place (the
+   * owners' request, 11 Nov 2026). */
+  showEmpty?: boolean
 }
 
 /**
@@ -76,6 +79,7 @@ export function LocationCombobox({
   invalid,
   'aria-describedby': describedBy,
   countOf,
+  showEmpty = false,
 }: LocationComboboxProps) {
   const t = useT()
   const listId = useId()
@@ -87,7 +91,8 @@ export function LocationCombobox({
   const options = useMemo<Option[]>(() => {
     // Fullest first when counting; otherwise the order the API gives.
     const byCount = (a: LocationNode, b: LocationNode) => (countOf ? countOf(b) - countOf(a) : 0)
-    const shown = (node: LocationNode) => !countOf || countOf(node) > 0 || node[by] === value
+    const shown = (node: LocationNode) =>
+      showEmpty || !countOf || countOf(node) > 0 || node[by] === value
     const ordered = countOf
       ? [...groups]
           .map((group) => ({ ...group, towns: group.towns.filter(shown).sort(byCount) }))
@@ -114,7 +119,7 @@ export function LocationCombobox({
         })),
       ]),
     ]
-  }, [groups, by, emptyLabel, countOf, value])
+  }, [groups, by, emptyLabel, countOf, value, showEmpty])
 
   const selected = options.find((option) => option.id === value)
 
