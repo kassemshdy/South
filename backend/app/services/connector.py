@@ -22,6 +22,7 @@ import time
 import uuid
 from datetime import UTC, datetime
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 from sqlalchemy import select
@@ -87,11 +88,16 @@ class ConnectorClient:
     def tenant(self) -> dict[str, Any]:
         return self._call("GET", "/v1/tenant")
 
-    def connect(self, store_ref: str, shop: str, return_url: str) -> str:
+    def connect(self, store_ref: str, shop: str, return_url: str, page_url: str) -> str:
         body = self._call(
-            "POST", f"/v1/stores/{store_ref}/connect", {"shop": shop, "return_url": return_url}
+            "POST",
+            f"/v1/stores/{store_ref}/connect",
+            {"shop": shop, "return_url": return_url, "page_url": page_url},
         )
         return str(body["authorize_url"])
+
+    def put_page(self, store_ref: str, page_url: str) -> None:
+        self._call("PUT", f"/v1/stores/{store_ref}/page", {"page_url": page_url})
 
     def store(self, store_ref: str) -> dict[str, Any] | None:
         try:
@@ -220,6 +226,11 @@ def admin_page_url(settings: Settings, business_id: uuid.UUID) -> str:
     return settings.public_base_url.rstrip("/") + f"/admin/shopify?business={business_id}"
 
 
+def shop_page_url(settings: Settings, business: Business) -> str:
+    """The shop's public page, which the app page in Shopify links to."""
+    return settings.public_base_url.rstrip("/") + f"/business/{quote(business.slug)}"
+
+
 class StoreConnectionService:
     def __init__(self, db: Session, settings: Settings, http: httpx.Client) -> None:
         self._db = db
@@ -230,7 +241,10 @@ class StoreConnectionService:
         if business.status is not BusinessStatus.APPROVED:
             raise ValidationError("shopify.not_approved", code="shopify_not_approved")
         return self._client.connect(
-            str(business.id), shop, admin_page_url(self._settings, business.id)
+            str(business.id),
+            shop,
+            admin_page_url(self._settings, business.id),
+            shop_page_url(self._settings, business),
         )
 
     def status(self, business: Business) -> tuple[dict[str, Any], dict[str, Any] | None]:
@@ -263,6 +277,12 @@ class StoreConnectionService:
             raise NotFoundError("shopify.not_connected")
         count = outbox.enqueue_full_sync(self._db, business)
         self._db.commit()
+        # Also refresh the shop's page linked from the app in Shopify: stores
+        # connected before it was sent get it here. Never worth failing a sync.
+        try:
+            self._client.put_page(str(business.id), shop_page_url(self._settings, business))
+        except (AppError, ConnectorUnavailable):
+            logger.warning("Shop page not sent", extra={"business_id": str(business.id)})
         return count
 
     def _forget_item_links(self, business: Business) -> None:
