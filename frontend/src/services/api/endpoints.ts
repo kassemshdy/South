@@ -7,6 +7,7 @@
 
 import { apiDownload, apiRequest } from '@/services/api/client'
 import type {
+  AdminItem,
   JobApplication,
   EducationLevel,
   EmployerRequest,
@@ -987,6 +988,8 @@ export const adminApi = {
     with_products?: boolean
     contacted?: boolean
     sort?: AdminBusinessSort
+    category?: string
+    location?: string
     page?: number
     page_size?: number
   }) =>
@@ -1026,6 +1029,29 @@ export const adminApi = {
     apiRequest<{ message: string }>(`/api/admin/businesses/${businessId}/items/${itemId}`, {
       method: 'DELETE',
     }),
+  /** Every product, any state, with its shop (the admin products page). */
+  items: (params: {
+    q?: string
+    shop?: string
+    category?: string
+    available?: boolean
+    no_photo?: boolean
+    page?: number
+    page_size?: number
+  }) => apiRequest<Paginated<AdminItem>>('/api/admin/items', { query: { ...params } }),
+  updateItem: (businessId: string, itemId: string, body: Partial<ItemPayload>) =>
+    apiRequest<AdminItem>(`/api/admin/businesses/${businessId}/items/${itemId}`, {
+      method: 'PUT',
+      body,
+    }),
+  replaceItemImage: (businessId: string, itemId: string, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return apiRequest<AdminItem>(`/api/admin/businesses/${businessId}/items/${itemId}/image`, {
+      method: 'POST',
+      formData: form,
+    })
+  },
   moveItems: (businessId: string, targetBusinessId: string) =>
     apiRequest<AdminBusiness>(`/api/admin/businesses/${businessId}/items/move`, {
       method: 'POST',

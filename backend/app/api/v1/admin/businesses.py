@@ -82,11 +82,17 @@ def list_businesses(
     sort: Annotated[
         AdminSort, Query(description="newest, or most Instagram/Facebook followers")
     ] = "newest",
+    category: Annotated[str | None, Query(description="Category slug")] = None,
+    location: Annotated[
+        str | None, Query(description="Location slug; a district includes its towns")
+    ] = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> PaginatedResponse[AdminBusinessOut]:
     results = BusinessRepository(db).list_for_admin(
         sort=sort,
+        category_slug=category,
+        location_slug=location,
         status=status,
         q=q,
         without_products=without_products,

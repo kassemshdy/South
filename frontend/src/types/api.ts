@@ -956,6 +956,13 @@ export interface ProductQuery extends Omit<BusinessQuery, 'sort'> {
   shop?: string
 }
 
+/** A product as the admin products page lists it, with its shop. */
+export interface AdminItem {
+  item: BusinessItem
+  shop: { id: string; name: string; slug: string; status: BusinessStatus }
+  created_at: string
+}
+
 /** A shop in the products page's shop filter, with its visible products. */
 export interface ProductShop {
   slug: string
