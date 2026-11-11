@@ -70,6 +70,20 @@ const productsDoor: Door = {
  * Services and job applications: one door, «services and jobs», until the
  * owners split the talent directory in two. Each is now its own page.
  */
+/**
+ * The shops themselves, back on the strip at the owners' request (11 Nov
+ * 2026): a visitor chooses between a shop and a product, so the products
+ * page offers both. `/businesses` is the shops directory.
+ */
+const businessesDoor: Door = {
+  key: 'businesses',
+  icon: Store,
+  titleKey: 'browse.businessesTitle',
+  descriptionKey: 'browse.businessesDescription',
+  shortKey: 'browse.businessesShort',
+  href: '/businesses',
+}
+
 const servicesDoor: Door = {
   key: 'services',
   icon: Users,
@@ -89,13 +103,11 @@ const jobsDoor: Door = {
 }
 
 /**
- * The switcher strip above each directory: goods and products, and services
- * and skills. The businesses tab was removed at the CEO's request -- the site
- * speaks only of those two -- so a shop is reached through its products.
- * `/businesses` still answers links already shared, but is linked from
- * nowhere.
+ * The switcher strip above each directory: products, shops, services and
+ * jobs. Shops were removed from it once at the CEO's request and restored
+ * at the owners' request of 11 Nov 2026.
  */
-export const BROWSE_DOORS: Door[] = [productsDoor, servicesDoor, jobsDoor]
+export const BROWSE_DOORS: Door[] = [productsDoor, businessesDoor, servicesDoor, jobsDoor]
 
 /**
  * Where someone looking for something goes: goods and products, or services.

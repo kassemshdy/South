@@ -219,11 +219,10 @@ test.describe('Audience chooser', () => {
     await page.getByRole('link', { name: t('onboarding.seekGoodsTitle') }).click()
     await expect(page).toHaveURL(/\/products/)
 
-    // The strip above the directory offers the other half, services and
-    // skills, and no businesses tab: at the CEO's request the site speaks
-    // only of goods and products and of services and skills.
+    // The strip above the directory offers the shops and the other half,
+    // services and skills.
     const strip = page.getByRole('navigation', { name: t('browse.switcherLabel') })
-    await expect(strip.getByRole('link', { name: t('browse.businessesShort') })).toHaveCount(0)
+    await expect(strip.getByRole('link', { name: t('browse.businessesShort') })).toHaveCount(1)
     await strip.getByRole('link', { name: t('browse.servicesShort') }).click()
     await expect(page).toHaveURL(/\/services/)
   })

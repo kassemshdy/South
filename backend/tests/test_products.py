@@ -545,3 +545,30 @@ def test_a_category_counts_only_the_products_a_visitor_can_see(
     listed = client.get("/api/items", params={"category": category.slug}).json()
     counted = {c["slug"]: c["item_count"] for c in client.get("/api/categories").json()}
     assert counted[category.slug] == listed["meta"]["total"] == 1
+
+
+def test_the_shop_filter_lists_shops_with_visible_products_and_their_counts(
+    client: TestClient,
+    db: Session,
+    approved_business_with_items: str,
+    draft_business_with_item: str,
+) -> None:
+    """The products page's shop filter (the owners' request, 11 Nov 2026):
+    each shop with how many products a visitor can see, none with zero."""
+    shop = db.get(Business, approved_business_with_items)
+    assert shop is not None
+
+    shops = client.get("/api/items/shops")
+    assert shops.status_code == 200, shops.text
+    # The unavailable product is not counted, and the unapproved shop's
+    # product makes it no entry.
+    assert shops.json() == [{"slug": shop.slug, "name": shop.name, "count": 1}]
+
+    assert _titles(client, shop=shop.slug) == {ar("item.zaatar_local")}
+    assert _titles(client, shop="no-such-shop") == set()
+
+
+def test_the_shop_list_follows_the_other_filters(
+    client: TestClient, approved_business_with_items: str
+) -> None:
+    assert client.get("/api/items/shops", params={"origin": "IMPORTED"}).json() == []
