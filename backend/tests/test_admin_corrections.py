@@ -7,7 +7,9 @@ and giving a logo to a listing that went live without one.
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
+from app.models.business import Business
 from app.models.taxonomy import Category, Location
 from app.models.user import User
 from tests.conftest import admin_headers, post_item, sign_in
@@ -166,3 +168,41 @@ def test_an_owner_cannot_change_category_or_place(
             f"/api/admin/businesses/{business_id}/{action}", headers=owner, json=body
         )
         assert response.status_code == 403, action
+
+
+def test_merging_a_category_moves_its_shops_and_removes_it(
+    client: TestClient,
+    db: Session,
+    admin: User,
+    category: Category,
+    category_other: Category,
+    location: Location,
+) -> None:
+    """The owners' request (11 Nov 2026): fold one category into another.
+    A category with shops cannot be deleted, so merging is how it goes."""
+    business_id, _ = _listing(client, category, location)
+    headers = admin_headers(client)
+    source_id = category.id
+
+    merged = client.post(
+        f"/api/admin/categories/{source_id}/merge",
+        headers=headers,
+        json={"into_id": str(category_other.id)},
+    )
+    assert merged.status_code == 200, merged.text
+
+    db.expire_all()
+    assert db.get(Category, source_id) is None
+    shop = db.get(Business, business_id)
+    assert shop is not None and shop.category_id == category_other.id
+
+
+def test_a_category_cannot_be_merged_into_itself(
+    client: TestClient, admin: User, category: Category
+) -> None:
+    refused = client.post(
+        f"/api/admin/categories/{category.id}/merge",
+        headers=admin_headers(client),
+        json={"into_id": str(category.id)},
+    )
+    assert refused.status_code == 422

@@ -6,19 +6,24 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Query, status
+from sqlalchemy import func, select, update
 
 from app.api.serializers import category_out, location_out, talent_skill_out
 from app.core.dependencies import AdminUser, DbSession
 from app.core.errors import ConflictError, NotFoundError, ValidationError
 from app.core.i18n import translate
+from app.models.article import Article
+from app.models.business import Business
 from app.models.talent import TalentSkill
 from app.models.taxonomy import Category, Location
+from app.models.workshop import Workshop
 from app.repositories.talent import TalentSkillRepository
 from app.repositories.taxonomy import CategoryRepository, LocationRepository
 from app.schemas.common import MessageResponse
 from app.schemas.talent import TalentSkillIn, TalentSkillOut, TalentSkillUpdateIn
 from app.schemas.taxonomy import (
     CategoryIn,
+    CategoryMergeIn,
     CategoryOut,
     CategoryUpdateIn,
     LocationIn,
@@ -40,7 +45,18 @@ def list_categories(
     include_inactive: Annotated[bool, Query()] = True,
 ) -> list[CategoryOut]:
     categories = CategoryRepository(db).list_all(active_only=not include_inactive)
-    return [out for c in categories if (out := category_out(c)) is not None]
+    # Every shop in it, whatever its status: what a merge would move.
+    counts: dict[uuid.UUID | None, int] = {
+        category_id: int(count)
+        for category_id, count in db.execute(
+            select(Business.category_id, func.count(Business.id)).group_by(Business.category_id)
+        ).all()
+    }
+    return [
+        out
+        for c in categories
+        if (out := category_out(c, business_count=counts.get(c.id, 0))) is not None
+    ]
 
 
 @router.post("/categories", response_model=CategoryOut, status_code=status.HTTP_201_CREATED)
@@ -108,6 +124,43 @@ def delete_category(category_id: uuid.UUID, db: DbSession, admin: AdminUser) -> 
     repo.delete(category)
     db.commit()
     return MessageResponse(message=translate("taxonomy.category.deleted"))
+
+
+@router.post("/categories/{category_id}/merge", response_model=MessageResponse)
+def merge_category(
+    category_id: uuid.UUID, payload: CategoryMergeIn, db: DbSession, admin: AdminUser
+) -> MessageResponse:
+    """Move everything in this category into another, then delete it.
+
+    The owners' request (11 Nov 2026), to fold categories together: a
+    category with shops cannot be deleted, and moving shops one at a time
+    was the only other way. Shops, articles and workshops all move, in one
+    transaction, so nothing is left without a category halfway.
+    """
+    repo = CategoryRepository(db)
+    category = repo.get(category_id)
+    target = repo.get(payload.into_id)
+    if category is None or target is None:
+        raise NotFoundError("taxonomy.category.not_found")
+    if target.id == category.id:
+        raise ValidationError("taxonomy.category.merge_into_itself", code="merge_into_itself")
+
+    moved = 0
+    for model in (Business, Article, Workshop):
+        result = db.execute(
+            update(model)
+            .where(model.category_id == category.id)
+            .values(category_id=target.id)
+            .execution_options(synchronize_session=False)
+        )
+        if model is Business:
+            moved = result.rowcount or 0
+    db.expire_all()
+    repo.delete(category)
+    db.commit()
+    return MessageResponse(
+        message=translate("taxonomy.category.merged", count=moved, name=target.name_ar)
+    )
 
 
 # --- Locations -------------------------------------------------------------

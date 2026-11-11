@@ -1179,6 +1179,12 @@ export const adminApi = {
     apiRequest<Category>(`/api/admin/categories/${id}`, { method: 'PUT', body }),
   deleteCategory: (id: string) =>
     apiRequest<{ message: string }>(`/api/admin/categories/${id}`, { method: 'DELETE' }),
+  /** Move a category's shops, articles and workshops into another; delete it. */
+  mergeCategory: (id: string, intoId: string) =>
+    apiRequest<{ message: string }>(`/api/admin/categories/${id}/merge`, {
+      method: 'POST',
+      body: { into_id: intoId },
+    }),
 
   talent: (params: { status?: BusinessStatus; q?: string; page?: number; page_size?: number }) =>
     apiRequest<Paginated<AdminTalent>>('/api/admin/talent', { query: { ...params } }),

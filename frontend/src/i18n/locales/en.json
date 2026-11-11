@@ -2506,5 +2506,11 @@
   "dashboard.addStep2": "Add the product's photo, name and price, plus more photos if you like.",
   "dashboard.addStep3": "Save, and it joins your product list.",
   "products.shopFilter": "Shop",
-  "products.allShops": "All shops"
+  "products.allShops": "All shops",
+  "admin.categoryMerge": "Merge into…",
+  "admin.categoryMergeInto": "Move everything in “{name}” to:",
+  "admin.categoryMergePick": "Choose a category",
+  "admin.categoryMergeConfirm": "Move {count} businesses and delete the category",
+  "admin.categoryMergeFailed": "Could not merge",
+  "admin.categoryShopCount": "{count} businesses"
 }

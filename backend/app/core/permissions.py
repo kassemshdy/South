@@ -208,6 +208,8 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     },
     # The manager's alone, listed so the decision is visible rather than a
     # fall-through: permanent deletes, site settings, staff.
+    # Merging a category moves every shop in it at once.
+    ("POST", "/api/admin/categories/{category_id}/merge"): frozenset({M}),
     ("DELETE", "/api/admin/businesses/{business_id}"): frozenset({M}),
     ("DELETE", "/api/admin/talent/{profile_id}"): frozenset({M}),
     ("DELETE", "/api/admin/users/{user_id}"): frozenset({M}),
