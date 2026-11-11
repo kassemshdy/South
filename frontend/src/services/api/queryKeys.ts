@@ -22,6 +22,7 @@ export const queryKeys = {
   publicStats: ['businesses', 'stats'] as const,
   business: (slug: string) => ['business', slug] as const,
   products: (query: ProductQuery) => ['products', query] as const,
+  productShops: (query: Partial<ProductQuery>) => ['products', 'shops', query] as const,
   product: (slug: string) => ['product', slug] as const,
   talents: (query: TalentQuery) => ['talents', query] as const,
   latestTalents: (limit: number) => ['talents', 'latest', limit] as const,

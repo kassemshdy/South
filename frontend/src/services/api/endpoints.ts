@@ -118,6 +118,7 @@ import type {
   PlatformStats,
   ProductDetail,
   ProductQuery,
+  ProductShop,
   ProductSummary,
   PublicStats,
   FeedbackAttachmentKind,
@@ -432,6 +433,9 @@ export const publicBusinessApi = {
 export const publicItemApi = {
   search: (query: ProductQuery) =>
     apiRequest<Paginated<ProductSummary>>('/api/items', { query: { ...query } }),
+  /** Shops with products under these filters, and how many each has. */
+  shops: (query: Pick<ProductQuery, 'category' | 'location' | 'origin' | 'displaced'>) =>
+    apiRequest<ProductShop[]>('/api/items/shops', { query: { ...query } }),
   bySlug: (slug: string) =>
     apiRequest<ProductDetail>(`/api/items/${encodeURIComponent(slug)}`),
   topRated: () => apiRequest<ProductSummary[]>('/api/items/top-rated'),

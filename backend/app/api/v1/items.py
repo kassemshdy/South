@@ -8,6 +8,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, File, Form, Path, Query, UploadFile, status
+from pydantic import BaseModel
 from sqlalchemy import func, select
 
 from app.api.serializers import item_out, paginate, product_detail, product_summary
@@ -64,6 +65,7 @@ def search_products(
     one_per_shop: Annotated[
         bool, Query(description="Each shop's newest product only, for the home rows")
     ] = False,
+    shop: Annotated[str | None, Query(max_length=200, description="One shop's slug")] = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
 ) -> PaginatedResponse[ProductSummaryOut]:
@@ -91,10 +93,35 @@ def search_products(
         sort=sort,
         near=point_or_none(near_lat, near_lng),
         one_per_shop=one_per_shop,
+        shop_slug=shop,
         page=page,
         page_size=page_size,
     )
     return paginate(results, product_summary)
+
+
+class ProductShopOut(BaseModel):
+    """A shop in the products page's shop filter."""
+
+    slug: str
+    name: str
+    count: int
+
+
+@public_router.get("/items/shops", response_model=list[ProductShopOut])
+def product_shops(
+    db: DbSession,
+    category: Annotated[str | None, Query(description="Category slug")] = None,
+    location: Annotated[str | None, Query(description="Location slug")] = None,
+    origin: Annotated[GoodsOrigin | None, Query()] = None,
+    displaced: Annotated[bool, Query()] = False,
+) -> list[ProductShopOut]:
+    """Shops with products under these filters, and how many each has.
+    A shop with none is left out."""
+    rows = ItemRepository(db).shops_with_counts(
+        category_slug=category, location_slug=location, origin=origin, displaced=displaced
+    )
+    return [ProductShopOut(slug=slug, name=name, count=count) for slug, name, count in rows]
 
 
 #: How far back "most viewed" looks, and how many products a home row holds.

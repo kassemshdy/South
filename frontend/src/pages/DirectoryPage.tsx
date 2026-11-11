@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { BusinessCardSkeleton } from '@/components/ui/Skeleton'
 import { ErrorState, NoSearchResults } from '@/components/ui/States'
 import { BusinessCard } from '@/features/businesses/BusinessCard'
+import { ShopsSection } from '@/features/home/HomeSections'
 import { Pagination } from '@/features/businesses/Pagination'
 import { PageBanner } from '@/components/layout/PageBanner'
 import { BrowseSwitcher } from '@/features/onboarding/BrowseSwitcher'
@@ -119,11 +120,17 @@ export function DirectoryPage() {
             : t('directory.introFallback')
         }
       />
-      <div className="container-page py-10">
-        {/* The other two directories, one tap away. Without this each
+      <div className="container-page pt-6">
+        {/* The other directories, one tap away. Without this each
             directory was an island: a search that came up empty here left
             the browser's back button as the only way across. */}
         <BrowseSwitcher current="businesses" />
+      </div>
+      {/* The shops that joined lately, on the shops tab (the owners' request,
+          11 Nov 2026; it was on the products page from 10 Nov) -- only while
+          nothing is filtered, so the row never contradicts the list under it. */}
+      {hasFilters ? null : <ShopsSection showMore={false} />}
+      <div className="container-page py-10">
 
         {/* The home page's box, suggesting as someone types; a plain search
             narrows this directory rather than leaving it. */}

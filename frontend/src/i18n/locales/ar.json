@@ -2504,5 +2504,7 @@
   "dashboard.howToAdd": "كيف أضيف منتجاً؟",
   "dashboard.addStep1": "اضغط «أضف منتجاً».",
   "dashboard.addStep2": "أضف صورة المنتج واسمه وسعره، وصوراً إضافية إن أردت.",
-  "dashboard.addStep3": "احفظ، ويظهر المنتج في قائمة منتجاتك."
+  "dashboard.addStep3": "احفظ، ويظهر المنتج في قائمة منتجاتك.",
+  "products.shopFilter": "المحل",
+  "products.allShops": "كل المحلات"
 }
