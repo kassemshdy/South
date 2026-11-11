@@ -5,7 +5,6 @@ import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { DisplacedBadge } from '@/components/ui/DisplacedBadge'
 import { AvailabilityBadge } from '@/features/talent/candidate/AvailabilityBadge'
-import { CandidateAvatar } from '@/features/talent/candidate/CandidateAvatar'
 import { EDUCATION_KEYS } from '@/features/talent/candidate/labels'
 import { useT } from '@/i18n'
 import type { TalentSummary } from '@/types/api'
@@ -41,15 +40,10 @@ export function CandidateCard({ talent }: { talent: TalentSummary }) {
 
   return (
     <article className="group flex flex-col rounded-2xl border border-ink-100 bg-white p-5 shadow-card transition-shadow hover:shadow-lift">
+      {/* No photo or initials on the card (the owners' request, 11 Nov
+          2026): the name, the job wanted and the facts are what an
+          employer scans. The profile page keeps the photo. */}
       <div className="flex items-start gap-4">
-        <Link to={profileUrl} tabIndex={-1} aria-hidden="true">
-          <CandidateAvatar
-            name={talent.display_name}
-            photoUrl={talent.photo_url}
-            thumbUrl={talent.photo_thumb_url}
-            className="h-16 w-16"
-          />
-        </Link>
         <div className="min-w-0 flex-1">
           <h3 className="flex items-center gap-1.5 text-lg font-bold text-ink-900">
             <Link to={profileUrl} className="truncate transition-colors hover:text-brand-700">
