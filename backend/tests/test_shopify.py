@@ -24,6 +24,7 @@ import re
 import time
 import uuid
 from collections.abc import Iterator
+from urllib.parse import quote
 
 import httpx
 import pytest
@@ -72,6 +73,7 @@ class FakeConnector:
         self.stores: dict[str, dict[str, object]] = {}
         self.down = False
         self.reconnect = False
+        self.page_down = False
 
     def calls(self, method: str, pattern: str) -> list[httpx.Request]:
         return [
@@ -105,6 +107,10 @@ class FakeConnector:
             store.update(subdomain=body["subdomain"],
                          subdomain_hostname=f"{body['subdomain']}.janoubona.net")
             return httpx.Response(200, json={"store_ref": ref, **store})
+        if rest == "/page":
+            if self.page_down:
+                return httpx.Response(500, json={"error": {"code": "boom", "message": "x"}})
+            return httpx.Response(200, json={"store_ref": ref, **self.stores.get(ref, {})})
         if rest == "/profile":
             if self.reconnect:
                 return httpx.Response(409, json={
@@ -280,6 +286,28 @@ def test_an_admin_connects_a_shop_and_returns_to_the_admin_page(
     assert r.json()["authorize_url"].startswith("https://souk/admin/oauth/authorize")
     sent = json.loads(fake.calls("POST", r"/connect$")[0].content)
     assert sent["return_url"] == f"https://janoubona.test/admin/shopify?business={business.id}"
+    # The app page in Shopify links to the shop's own page, not the home page.
+    assert sent["page_url"] == f"https://janoubona.test/business/{quote(business.slug)}"
+
+
+def test_sync_now_also_sends_the_shops_page_and_survives_it_failing(
+    shop_client: TestClient,
+    db: Session,
+    admin: User,
+    fake: FakeConnector,
+    category: Category,
+    location: Location,
+) -> None:
+    headers = sign_in(shop_client, OWNER_PHONE)
+    business = approved_business(shop_client, db, headers, category, location)
+    assert webhook(shop_client, "store.connected", connected(business)).status_code == 200
+    url = f"/api/admin/businesses/{business.id}/shopify/sync"
+    assert shop_client.post(url, headers=admin_headers(shop_client)).status_code == 200
+    sent = json.loads(fake.calls("PUT", r"/page$")[0].content)
+    assert sent == {"page_url": f"https://janoubona.test/business/{quote(business.slug)}"}
+
+    fake.page_down = True
+    assert shop_client.post(url, headers=admin_headers(shop_client)).status_code == 200
 
 
 def test_install_refuses_a_listing_that_is_not_approved(
