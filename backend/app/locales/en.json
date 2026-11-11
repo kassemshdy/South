@@ -361,6 +361,7 @@
   "open_request.not_found": "Request not found.",
   "open_request.deleted": "Request deleted.",
   "shopify.profile_queued": "The store profile was sent to Shopify and will appear in the store within minutes.",
+  "shopify.setup_queued": "Store setup requested. The store will show the delivery rate in a minute.",
   "shopify.reconnect_required": "Connect the store again to let the app update the store's theme.",
   "telegram.kind.outreach": "Shop with no products contacted",
   "telegram.label.staff": "Staff",

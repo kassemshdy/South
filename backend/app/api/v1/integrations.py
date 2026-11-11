@@ -34,6 +34,8 @@ from app.schemas.common import MessageResponse
 from app.schemas.integration import (
     ShopifyInstallIn,
     ShopifyInstallOut,
+    ShopifySetupIn,
+    ShopifySetupOut,
     ShopifyShopOut,
     ShopifyStatusOut,
     SubdomainIn,
@@ -114,6 +116,7 @@ def _status(
             "synced_products": synced or 0,
             # Ours still to send, plus the connector's still to push.
             "pending_pushes": (pending or 0) + int(store.get("jobs_pending") or 0),
+            "setup": ShopifySetupOut.from_report(store.get("setup")),
         }
     )
 
@@ -217,6 +220,24 @@ def shopify_profile(
     except ConnectorUnavailable as exc:
         raise _unavailable() from exc
     return MessageResponse(message=translate("shopify.profile_queued"))
+
+
+@admin_router.post("/businesses/{business_id}/shopify/setup", response_model=MessageResponse)
+def shopify_setup(
+    business_id: uuid.UUID,
+    payload: ShopifySetupIn,
+    admin: AdminUser,
+    db: DbSession,
+    settings: ConnectorSettings,
+    http: HttpClient,
+) -> MessageResponse:
+    """Put Lebanon in an active USD market in the shop's store, with this delivery rate."""
+    business = _business(db, business_id)
+    try:
+        StoreConnectionService(db, settings, http).setup(business, payload)
+    except ConnectorUnavailable as exc:
+        raise _unavailable() from exc
+    return MessageResponse(message=translate("shopify.setup_queued"))
 
 
 @admin_router.delete("/businesses/{business_id}/shopify", response_model=MessageResponse)
