@@ -206,3 +206,29 @@ def test_a_category_cannot_be_merged_into_itself(
         json={"into_id": str(category.id)},
     )
     assert refused.status_code == 422
+
+
+def test_the_admin_list_filters_by_category_and_place(
+    client: TestClient,
+    admin: User,
+    category: Category,
+    category_other: Category,
+    location: Location,
+) -> None:
+    """The owners' request (11 Nov 2026): the admin businesses list by
+    category and by place, any status."""
+    business_id, _ = _listing(client, category, location)
+    headers = admin_headers(client)
+
+    def ids(**params: str) -> list[str]:
+        response = client.get("/api/admin/businesses", headers=headers, params=params)
+        assert response.status_code == 200, response.text
+        return [row["id"] for row in response.json()["items"]]
+
+    assert ids(category=category.slug) == [business_id]
+    assert ids(category=category_other.slug) == []
+    assert ids(location=location.slug, category=category.slug) == [business_id]
+
+    # The admin category list counts it though it is a draft.
+    listed = client.get("/api/admin/categories", headers=headers).json()
+    assert next(c for c in listed if c["id"] == str(category.id))["business_count"] == 1

@@ -29,6 +29,7 @@ const ROUTES: [RegExp, string][] = [
   [/^\/admin\/talent\/?$/, 'AdminTalentsPage'],
   [/^\/admin\/talent\/[^/]+\/?$/, 'AdminTalentReviewPage'],
   [/^\/admin\/categories\/?$/, 'AdminCategoriesPage'],
+  [/^\/admin\/products\/?$/, 'AdminProductsPage'],
   [/^\/admin\/talent-skills\/?$/, 'AdminTalentSkillsPage'],
   [/^\/admin\/locations\/?$/, 'AdminLocationsPage'],
   [/^\/admin\/users\/?$/, 'AdminUsersPage'],

@@ -423,9 +423,8 @@ for something that hands out sessions.
   the `users` rows are written by the app's own `COPY` with `password_hash`
   emptied and `token_version` reset, so the file restores a whole site
   without anyone's password -- `tests/test_telegram_db_backup.py` pins it.
-  Right after it go the admin exports as CSV files, in one album (the
-  owners' request, 9 Nov 2026), built by the same `dataset_csv` as the
-  manager's download, so they carry what that download carries.
+  Only the `.sql` file goes: the CSV album added on 9 Nov was removed at
+  the owners' request on 10 Nov 2026.
   A new column that signs someone in belongs in `REDACTED_USER_COLUMNS`.
 - **No Shopify or Cloudflare credential lives in this application.** They
   are the Shopify Connector's, encrypted there. Janoubona's own secrets for

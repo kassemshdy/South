@@ -5,18 +5,23 @@ from __future__ import annotations
 import logging
 import uuid
 
+from fastapi import UploadFile
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.arabic import build_search_text
-from app.core.errors import NotFoundError, ValidationError
+from app.core.config import Settings
+from app.core.errors import NotFoundError, PayloadTooLargeError, ValidationError
+from app.core.uploads import read_at_most
 from app.core.urls import normalize_url
 from app.models.business import Business, BusinessItem
-from app.models.enums import ViewSubject
+from app.models.enums import ImageKind, ViewSubject
 from app.repositories.item import ItemRepository
 from app.schemas.item import BusinessItemIn, BusinessItemUpdateIn
 from app.services.analytics import ViewCounterService
+from app.services.images import ImageService
 from app.services.slug import unique_slug
+from app.storage.factory import get_storage
 
 logger = logging.getLogger(__name__)
 
@@ -144,3 +149,27 @@ class BusinessItemService:
             items[item_id].sort_order = position
         self._db.commit()
         return self.list_for_business(business.id)
+
+
+def replace_main_image(
+    db: Session, settings: Settings, business: Business, item: BusinessItem, file: UploadFile
+) -> BusinessItem:
+    """Store ``file`` as the product's card photo and drop the old one.
+
+    Shared by the owner's route and the administrators' products page, so
+    the size limit, processing and clean-up are one rule.
+    """
+    data = read_at_most(file.file, settings.max_upload_bytes)
+    if len(data) > settings.max_upload_bytes:
+        raise PayloadTooLargeError()
+    images = ImageService(get_storage(), settings)
+    stored = images.process_and_store(
+        data=data,
+        content_type=file.content_type,
+        owner_id=business.id,
+        kind=ImageKind.ITEM,
+    )
+    images.delete(item.image_storage_key)
+    item.image_url, item.image_storage_key = stored.url, stored.key
+    db.commit()
+    return item

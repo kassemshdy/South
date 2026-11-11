@@ -228,11 +228,19 @@ class BusinessRepository(BaseRepository[Business]):
         without_products: bool = False,
         with_products: bool = False,
         contacted: bool | None = None,
+        category_slug: str | None = None,
+        location_slug: str | None = None,
         sort: AdminSort = "newest",
         page: int = 1,
         page_size: int = 20,
     ) -> Page[Business]:
         stmt = select(Business)
+        if category_slug or location_slug:
+            # The same rule as the public directory: a district takes in the
+            # towns beneath it (the owners' request, 11 Nov 2026).
+            stmt = self._apply_filters(
+                stmt, q=None, category_slug=category_slug, location_slug=location_slug
+            )
         if status is not None:
             stmt = stmt.where(Business.status == status)
         if without_products:
@@ -362,6 +370,13 @@ class BusinessRepository(BaseRepository[Business]):
             select(Business.category_id, func.count())
             .where(Business.status == BusinessStatus.APPROVED)
             .group_by(Business.category_id)
+        ).all()
+        return {row[0]: row[1] for row in rows if row[0] is not None}
+
+    def counts_by_location(self) -> dict[uuid.UUID, int]:
+        """Shops per location whatever their status, for the admin filter."""
+        rows = self.db.execute(
+            select(Business.location_id, func.count()).group_by(Business.location_id)
         ).all()
         return {row[0]: row[1] for row in rows if row[0] is not None}
 

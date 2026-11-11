@@ -83,6 +83,9 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
         )
     },
     ("DELETE", "/api/admin/businesses/{business_id}/items/{item_id}"): _MODERATE,
+    # The products page: editing a product or its photo (11 Nov 2026).
+    ("PUT", "/api/admin/businesses/{business_id}/items/{item_id}"): _MODERATE,
+    ("POST", "/api/admin/businesses/{business_id}/items/{item_id}/image"): _MODERATE,
     ("POST", "/api/admin/businesses/drafts/send-to-review"): _MODERATE,
     # Moving map locations to their suggestions: whoever may fix a place.
     ("POST", "/api/admin/stats/stray-pins/apply"): _MODERATE,

@@ -34,7 +34,7 @@ from app.schemas.product import ProductDetailOut, ProductSummaryOut
 from app.services.analytics import ViewCounterService
 from app.services.business import BusinessService
 from app.services.images import ImageService
-from app.services.items import BusinessItemService
+from app.services.items import BusinessItemService, replace_main_image
 from app.storage.factory import get_storage
 
 router = APIRouter(tags=["business-items"])
@@ -258,21 +258,7 @@ def upload_item_image(
     service = BusinessItemService(db)
     item = service.get_owned(business, item_id)
 
-    data = read_at_most(file.file, settings.max_upload_bytes)
-    if len(data) > settings.max_upload_bytes:
-        raise PayloadTooLargeError()
-
-    images = ImageService(get_storage(), settings)
-    stored = images.process_and_store(
-        data=data,
-        content_type=file.content_type,
-        owner_id=business.id,
-        kind=ImageKind.ITEM,
-    )
-
-    images.delete(item.image_storage_key)
-    item.image_url, item.image_storage_key = stored.url, stored.key
-    db.commit()
+    replace_main_image(db, settings, business, item, file)
     return item_out(item)
 
 

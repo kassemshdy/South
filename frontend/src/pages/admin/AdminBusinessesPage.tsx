@@ -1,10 +1,12 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Search } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
+import { LocationCombobox } from '@/components/ui/LocationCombobox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
@@ -34,6 +36,8 @@ export function AdminBusinessesPage() {
   const status = (statusParam as BusinessStatus | null) ?? 'PENDING_REVIEW'
   const page = Number(searchParams.get('page') ?? '1')
   const q = searchParams.get('q') ?? ''
+  const category = searchParams.get('category') ?? ''
+  const location = searchParams.get('location') ?? ''
   const { t, locale } = useI18n()
   const sortParam = searchParams.get('sort')
   const sort: AdminBusinessSort =
@@ -99,17 +103,32 @@ export function AdminBusinessesPage() {
     queryKey: [
       ...queryKeys.adminBusinesses(statusParam === 'ALL' ? undefined : status, page, q),
       sort,
+      category,
+      location,
     ],
     queryFn: () =>
       adminApi.businesses({
         ...(statusParam === 'ALL' ? {} : { status }),
         ...(q ? { q } : {}),
         ...(sort === 'newest' ? {} : { sort }),
+        ...(category ? { category } : {}),
+        ...(location ? { location } : {}),
         page,
         page_size: 20,
       }),
     placeholderData: keepPreviousData,
   })
+
+  // Category and place, every one listed with its shops of any status, empty
+  // ones too (the owners' request, 11 Nov 2026).
+  const categories = useQuery({ queryKey: queryKeys.adminCategories, queryFn: adminApi.categories })
+  const locations = useQuery({ queryKey: queryKeys.adminLocations, queryFn: adminApi.locations })
+  const locationGroups = useMemo(() => {
+    const all = locations.data ?? []
+    return all
+      .filter((node) => node.type === 'DISTRICT')
+      .map((district) => ({ district, towns: all.filter((node) => node.parent_id === district.id) }))
+  }, [locations.data])
 
   const update = (changes: Record<string, string>) => {
     const next = new URLSearchParams(searchParams)
@@ -160,6 +179,46 @@ export function AdminBusinessesPage() {
             {t('admin.sendAllDrafts')}
           </Button>
         ) : null}
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:max-w-2xl">
+        <div>
+          <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="admin-filter-category">
+            {t('directory.category')}
+          </label>
+          <Select
+            value={category || '__all__'}
+            onValueChange={(value) => update({ category: value === '__all__' ? '' : value })}
+          >
+            <SelectTrigger aria-labelledby="admin-filter-category">
+              <SelectValue placeholder={t('directory.allCategories')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">{t('directory.allCategories')}</SelectItem>
+              {(categories.data ?? []).map((item) => (
+                <SelectItem key={item.id} value={item.slug}>
+                  {t('directory.categoryWithCount', { name: item.name_ar, count: item.business_count })}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-semibold text-ink-700" htmlFor="admin-filter-location">
+            {t('directory.location')}
+          </label>
+          <LocationCombobox
+            id="admin-filter-location"
+            by="slug"
+            emptyLabel={t('directory.allLocations')}
+            placeholder={t('directory.allLocations')}
+            value={location}
+            onChange={(value) => update({ location: value })}
+            groups={locationGroups}
+            countOf={(node) => node.business_count}
+            showEmpty
+          />
+        </div>
       </div>
 
       {/* Sort by followers (the owners' request, 9 Nov 2026); the counts are
