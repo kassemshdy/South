@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { Check, Combine, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
@@ -21,6 +22,9 @@ export function AdminCategoriesPage() {
   const [newName, setNewName] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
+  // The category being merged, and the one it goes into.
+  const [mergingId, setMergingId] = useState<string | null>(null)
+  const [mergeInto, setMergeInto] = useState('')
   const t = useT()
 
   const categories = useQuery({ queryKey: queryKeys.adminCategories, queryFn: adminApi.categories })
@@ -60,6 +64,19 @@ export function AdminCategoriesPage() {
       invalidate()
     },
     onError: (error) => handleError(error, t('admin.categoryDeleteFailed')),
+  })
+
+  // Folding one category into another (the owners' request, 11 Nov 2026):
+  // a category with shops cannot be deleted, so this is how one goes.
+  const merge = useMutation({
+    mutationFn: ({ id, into }: { id: string; into: string }) => adminApi.mergeCategory(id, into),
+    onSuccess: (result) => {
+      setMergingId(null)
+      setMergeInto('')
+      toast.success(result.message)
+      invalidate()
+    },
+    onError: (error) => handleError(error, t('admin.categoryMergeFailed')),
   })
 
   return (
@@ -126,6 +143,9 @@ export function AdminCategoriesPage() {
                       <div className="flex items-center gap-3">
                         <span className="font-semibold">{category.name_ar}</span>
                         <span className="ltr-nums text-xs text-ink-300">{category.slug}</span>
+                        <span className="text-xs text-ink-500">
+                          {t('admin.categoryShopCount', { count: category.business_count })}
+                        </span>
                         {!category.is_active ? (
                           <Badge className="bg-ink-100 text-ink-700">
                             {t('common.inactive')}
@@ -155,6 +175,18 @@ export function AdminCategoriesPage() {
                           <Pencil className="h-4 w-4" aria-hidden="true" />
                         </Button>
                         <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setMergingId(mergingId === category.id ? null : category.id)
+                            setMergeInto('')
+                          }}
+                          aria-expanded={mergingId === category.id}
+                        >
+                          <Combine className="h-4 w-4" aria-hidden="true" />
+                          {t('admin.categoryMerge')}
+                        </Button>
+                        <Button
                           size="icon"
                           variant="ghost"
                           className="text-clay-600"
@@ -164,6 +196,40 @@ export function AdminCategoriesPage() {
                           <Trash2 className="h-4 w-4" aria-hidden="true" />
                         </Button>
                       </div>
+                      {mergingId === category.id ? (
+                        <div className="flex w-full flex-wrap items-end gap-2 rounded-xl bg-sand-50 p-3">
+                          <div className="min-w-56 flex-1">
+                            <label className="mb-1 block text-sm font-semibold text-ink-700" id={`merge-${category.id}`}>
+                              {t('admin.categoryMergeInto', { name: category.name_ar })}
+                            </label>
+                            <Select value={mergeInto} onValueChange={setMergeInto}>
+                              <SelectTrigger aria-labelledby={`merge-${category.id}`}>
+                                <SelectValue placeholder={t('admin.categoryMergePick')} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {(categories.data ?? [])
+                                  .filter((other) => other.id !== category.id)
+                                  .map((other) => (
+                                    <SelectItem key={other.id} value={other.id}>
+                                      {other.name_ar}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <Button
+                            size="sm"
+                            disabled={!mergeInto}
+                            loading={merge.isPending}
+                            onClick={() => merge.mutate({ id: category.id, into: mergeInto })}
+                          >
+                            {t('admin.categoryMergeConfirm', { count: category.business_count })}
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setMergingId(null)}>
+                            {t('common.cancel')}
+                          </Button>
+                        </div>
+                      ) : null}
                     </>
                   )}
                 </CardBody>
