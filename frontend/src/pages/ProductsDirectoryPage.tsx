@@ -195,12 +195,14 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
       {/* The shops that joined lately, above the filters, as on the home
           page (the owners' request, 10 Nov 2026) -- only while nothing is
           filtered, so the row never contradicts the list under it. */}
+      {/* The directories, one tap away, first thing under the banner: a
+          visitor chooses a product or a shop here (the owners' request,
+          11 Nov 2026). Without this each directory was an island. */}
+      <div className="container-page pt-6">
+        <BrowseSwitcher current="products" />
+      </div>
       {hasFilters ? null : <ShopsSection />}
       <div className="container-page py-10">
-        {/* The other two directories, one tap away. Without this each
-            directory was an island: a search that came up empty here left
-            the browser's back button as the only way across. */}
-        <BrowseSwitcher current="products" />
 
         {/* The home page's box, suggesting as someone types; a plain search
             narrows this directory rather than leaving it. */}
