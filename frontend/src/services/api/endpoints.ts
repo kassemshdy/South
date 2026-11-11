@@ -1039,6 +1039,9 @@ export const adminApi = {
     page?: number
     page_size?: number
   }) => apiRequest<Paginated<AdminItem>>('/api/admin/items', { query: { ...params } }),
+  /** Shops with products, any state, with how many: the products filter. */
+  itemShops: () =>
+    apiRequest<{ id: string; name: string; count: number }[]>('/api/admin/items/shops'),
   updateItem: (businessId: string, itemId: string, body: Partial<ItemPayload>) =>
     apiRequest<AdminItem>(`/api/admin/businesses/${businessId}/items/${itemId}`, {
       method: 'PUT',

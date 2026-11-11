@@ -116,6 +116,26 @@ def list_items(
     )
 
 
+class AdminItemShopCount(BaseModel):
+    id: uuid.UUID
+    name: str
+    count: int
+
+
+@router.get("/items/shops", response_model=list[AdminItemShopCount])
+def item_shops(db: DbSession, admin: AdminUser) -> list[AdminItemShopCount]:
+    """Every shop with at least one product, whatever either's state, and how
+    many: the products page's shop filter. Most products first."""
+    count = func.count(BusinessItem.id)
+    rows = db.execute(
+        select(Business.id, Business.name, count)
+        .join(BusinessItem, BusinessItem.business_id == Business.id)
+        .group_by(Business.id, Business.name)
+        .order_by(count.desc(), Business.name.asc())
+    ).all()
+    return [AdminItemShopCount(id=shop_id, name=name, count=int(n)) for shop_id, name, n in rows]
+
+
 @router.put("/businesses/{business_id}/items/{item_id}", response_model=AdminItemOut)
 def update_item(
     business_id: uuid.UUID,

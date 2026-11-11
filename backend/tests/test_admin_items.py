@@ -57,6 +57,11 @@ def test_staff_see_every_product_with_its_shop_even_a_hidden_one(
         "/api/admin/items", headers=headers, params={"shop": business_id}
     ).json()["meta"]["total"] == 1
 
+    # The shop filter lists it with its count, hidden product included.
+    shops = client.get("/api/admin/items/shops", headers=headers)
+    assert shops.status_code == 200, shops.text
+    assert [(s["id"], s["count"]) for s in shops.json()] == [(business_id, 1)]
+
 
 def test_staff_edit_a_product_and_replace_its_photo(
     client: TestClient, admin: User, category: Category, location: Location

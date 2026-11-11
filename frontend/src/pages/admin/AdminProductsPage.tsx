@@ -64,6 +64,7 @@ export function AdminProductsPage() {
   }, [searchInput, q])
 
   const categories = useQuery({ queryKey: queryKeys.adminCategories, queryFn: adminApi.categories })
+  const shops = useQuery({ queryKey: [...LIST_KEY, 'shops'], queryFn: adminApi.itemShops })
   const results = useQuery({
     queryKey: [...LIST_KEY, { q, category, availability, noPhoto, shop, page }],
     queryFn: () =>
@@ -87,7 +88,7 @@ export function AdminProductsPage() {
       </header>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="relative sm:col-span-2">
+        <div className="relative">
           <label htmlFor="admin-products-search" className="mb-1.5 block text-sm font-semibold text-ink-700">
             {t('adminProducts.search')}
           </label>
@@ -99,6 +100,24 @@ export function AdminProductsPage() {
             onChange={(event) => setSearchInput(event.target.value)}
             placeholder={t('adminProducts.searchPlaceholder')}
           />
+        </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="admin-products-shop">
+            {t('products.shopFilter')}
+          </label>
+          <Select value={shop || ALL} onValueChange={(value) => update({ shop: value === ALL ? '' : value })}>
+            <SelectTrigger aria-labelledby="admin-products-shop">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>{t('products.allShops')}</SelectItem>
+              {(shops.data ?? []).map((item) => (
+                <SelectItem key={item.id} value={item.id}>
+                  {t('directory.categoryWithCount', { name: item.name, count: item.count })}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="admin-products-category">
@@ -147,11 +166,6 @@ export function AdminProductsPage() {
         >
           {t('adminProducts.noPhoto')}
         </Button>
-        {shop ? (
-          <Button size="sm" variant="ghost" onClick={() => update({ shop: '' })}>
-            {t('adminProducts.allShops')}
-          </Button>
-        ) : null}
         {results.data ? (
           <span className="text-sm text-ink-500">
             {t('adminProducts.count', { count: results.data.meta.total })}
