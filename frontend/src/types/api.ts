@@ -952,6 +952,15 @@ export interface ProductQuery extends Omit<BusinessQuery, 'sort'> {
   sort?: ProductSortOption
   /** Each shop's newest product only, while enough shops have one: home rows. */
   one_per_shop?: boolean
+  /** One shop's products, by its slug. */
+  shop?: string
+}
+
+/** A shop in the products page's shop filter, with its visible products. */
+export interface ProductShop {
+  slug: string
+  name: string
+  count: number
 }
 
 export interface TalentQuery {

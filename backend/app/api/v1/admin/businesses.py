@@ -13,6 +13,7 @@ from typing import Annotated
 
 import httpx
 from fastapi import APIRouter, BackgroundTasks, File, Form, Query, Response, UploadFile
+from pydantic import BaseModel
 from sqlalchemy import func, select, update
 
 from app.api.serializers import admin_business, paginate
@@ -95,6 +96,20 @@ def list_businesses(
         page_size=page_size,
     )
     return paginate(results, admin_business)
+
+
+class OutreachCountsOut(BaseModel):
+    """Tab sizes for the staff follow-up page (approved shops only)."""
+
+    not_contacted: int
+    contacted: int
+    uploaded: int
+
+
+@router.get("/businesses/outreach-counts", response_model=OutreachCountsOut)
+def outreach_counts(db: DbSession, admin: AdminUser) -> OutreachCountsOut:
+    not_contacted, contacted, uploaded = BusinessRepository(db).outreach_counts()
+    return OutreachCountsOut(not_contacted=not_contacted, contacted=contacted, uploaded=uploaded)
 
 
 @router.get("/businesses/pending", response_model=PaginatedResponse[AdminBusinessOut])

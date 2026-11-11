@@ -85,6 +85,37 @@ class ItemRepository(BaseRepository[BusinessItem]):
         ).group_by(Business.category_id)
         return {row[0]: row[1] for row in self.db.execute(visible).all() if row[0] is not None}
 
+    def shops_with_counts(
+        self,
+        *,
+        category_slug: str | None = None,
+        location_slug: str | None = None,
+        origin: GoodsOrigin | None = None,
+        displaced: bool = False,
+    ) -> list[tuple[str, str, int]]:
+        """Shops with at least one product a visitor can see under the same
+        filters, and how many: the products page's shop filter (the owners'
+        request, 11 Nov 2026). Most products first, then by name.
+
+        The search text is left out on purpose, so the list does not shrink
+        to the one shop a visitor typed and leave nothing to switch to.
+        """
+        filtered = self._apply_filters(
+            self.public_query(),
+            q=None,
+            category_slug=category_slug,
+            location_slug=location_slug,
+            origin=origin,
+            displaced=displaced,
+        )
+        count = func.count(BusinessItem.id)
+        rows = self.db.execute(
+            filtered.with_only_columns(Business.slug, Business.name, count)
+            .group_by(Business.id, Business.slug, Business.name)
+            .order_by(count.desc(), Business.name.asc())
+        ).all()
+        return [(slug, name, int(n)) for slug, name, n in rows]
+
     def top_rated(self, limit: int) -> list[BusinessItem]:
         """Products of the best-rated shops: a product is rated as its shop
         is (the owners' decision, 29 Oct 2026), so only rated shops count,
@@ -237,7 +268,12 @@ class ItemRepository(BaseRepository[BusinessItem]):
         location_slug: str | None,
         origin: GoodsOrigin | None = None,
         displaced: bool = False,
+        shop_slug: str | None = None,
     ) -> Select[tuple[BusinessItem]]:
+        if shop_slug:
+            # One shop's products (the owners' request, 11 Nov 2026).
+            stmt = stmt.where(Business.slug == shop_slug)
+
         if displaced:
             # Only holders who chose to show it: the filter must not reveal
             # by omission what the badge would not show.
@@ -369,6 +405,7 @@ class ItemRepository(BaseRepository[BusinessItem]):
         sort: SortOption = "newest",
         near: Point | None = None,
         one_per_shop: bool = False,
+        shop_slug: str | None = None,
         page: int = 1,
         page_size: int = 12,
     ) -> Page[BusinessItem]:
@@ -380,6 +417,7 @@ class ItemRepository(BaseRepository[BusinessItem]):
             location_slug=location_slug,
             origin=origin,
             displaced=displaced,
+            shop_slug=shop_slug,
         )
         if one_per_shop and sort == "newest" and not q:
             shops = self.db.execute(

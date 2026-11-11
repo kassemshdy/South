@@ -24,7 +24,7 @@ import { trackDirectoryView } from '@/services/analytics'
 import { adminApi, publicBusinessApi, publicItemApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { GoodsOrigin, ProductSortOption } from '@/types/api'
-import { ShopsSection, TestimonialsSection } from '@/features/home/HomeSections'
+import { TestimonialsSection } from '@/features/home/HomeSections'
 
 const ALL = '__all__'
 /**
@@ -72,6 +72,7 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
   const q = searchParams.get('q') ?? ''
   const category = searchParams.get('category') ?? ''
   const location = searchParams.get('location') ?? ''
+  const shop = searchParams.get('shop') ?? ''
   const displaced = searchParams.get('displaced') === '1'
   // Fixed by the page on the two origin pages; otherwise an optional filter.
   const origin = fixedOrigin ?? originFromParams(searchParams)
@@ -126,7 +127,7 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
   const { isAdmin } = useAuth()
   const adminStats = useQuery({ queryKey: queryKeys.adminStats, queryFn: adminApi.stats, enabled: isAdmin })
   const results = useQuery({
-    queryKey: queryKeys.products({ q, category, location, origin, displaced, sort, lat: near?.lat, lng: near?.lng, page }),
+    queryKey: queryKeys.products({ q, category, location, origin, displaced, shop, sort, lat: near?.lat, lng: near?.lng, page }),
     queryFn: () =>
       publicItemApi.search({
         q: q || undefined,
@@ -134,12 +135,27 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
         location: location || undefined,
         origin,
         displaced: displaced || undefined,
+        shop: shop || undefined,
         sort,
         lat: near?.lat,
         lng: near?.lng,
         page,
         page_size: 24,
       }),
+    placeholderData: keepPreviousData,
+  })
+
+  // The shop filter's choices: shops with products under the other filters,
+  // each with how many (the owners' request, 11 Nov 2026).
+  const shopFilters = {
+    category: category || undefined,
+    location: location || undefined,
+    origin,
+    displaced: displaced || undefined,
+  }
+  const shops = useQuery({
+    queryKey: queryKeys.productShops(shopFilters),
+    queryFn: () => publicItemApi.shops(shopFilters),
     placeholderData: keepPreviousData,
   })
 
@@ -160,7 +176,7 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
 
   // The page's own origin is not a filter anyone set, so it cannot be cleared.
   const hasFilters =
-    Boolean(q || category || location || displaced || (origin && !fixedOrigin)) || chosenSort !== null
+    Boolean(q || category || location || shop || displaced || (origin && !fixedOrigin)) || chosenSort !== null
   const resetFilters = () => setSearchParams(new URLSearchParams())
 
   return (
@@ -192,14 +208,10 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
             : t('products.introFallback')
         }
       />
-      {/* The shops that joined lately, above the filters, as on the home
-          page (the owners' request, 10 Nov 2026) -- only while nothing is
-          filtered, so the row never contradicts the list under it. */}
-      {hasFilters ? null : <ShopsSection />}
       <div className="container-page py-10">
-        {/* The other two directories, one tap away. Without this each
-            directory was an island: a search that came up empty here left
-            the browser's back button as the only way across. */}
+        {/* The directories, one tap away, first thing under the banner: a
+            visitor chooses a product or a shop here (the owners' request,
+            11 Nov 2026). Without this each directory was an island. */}
         <BrowseSwitcher current="products" />
 
         {/* The home page's box, suggesting as someone types; a plain search
@@ -225,7 +237,7 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
           </SearchBox>
         </div>
 
-        <div className={`mb-6 grid gap-3 ${fixedOrigin ? 'sm:grid-cols-3' : 'sm:grid-cols-2 lg:grid-cols-4'} ${filtersOpen ? 'grid' : 'hidden sm:grid'}`}>
+        <div className={`mb-6 grid gap-3 ${fixedOrigin ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-2 lg:grid-cols-3'} ${filtersOpen ? 'grid' : 'hidden sm:grid'}`}>
           <div>
             <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="filter-category">
               {t('directory.category')}
@@ -268,6 +280,29 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
               placeholder={t('directory.allLocations')}
               countOf={(node) => node.item_count}
             />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-semibold text-ink-700" id="filter-shop">
+              {t('products.shopFilter')}
+            </label>
+            <Select
+              value={shop || ALL}
+              onValueChange={(value) => updateParams({ shop: value === ALL ? '' : value })}
+            >
+              <SelectTrigger aria-labelledby="filter-shop">
+                <SelectValue placeholder={t('products.allShops')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>{t('products.allShops')}</SelectItem>
+                {/* Only shops with something to show, fullest first. */}
+                {(shops.data ?? []).map((item) => (
+                  <SelectItem key={item.slug} value={item.slug}>
+                    {t('directory.categoryWithCount', { name: item.name, count: item.count })}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Not on the origin pages, where the page itself is the choice. */}

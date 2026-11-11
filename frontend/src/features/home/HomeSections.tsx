@@ -561,7 +561,8 @@ function CategoryRow({ category, more }: { category: Category; more: string }) {
 /** Shops on the home page: the newest with a logo, as small logo cards. */
 const SHOPS_SHOWN = 8
 
-export function ShopsSection() {
+/** `showMore` off where the row already sits on the shops directory itself. */
+export function ShopsSection({ showMore = true }: { showMore?: boolean } = {}) {
   const t = useT()
   // The API's own cap; enough that eight with a logo are usually among them.
   const shops = useQuery({
@@ -572,7 +573,11 @@ export function ShopsSection() {
   if (list.length === 0) return null
   return (
     <Band tone="sand">
-      <SectionHeading title={t('home.shopsTitle')} to="/businesses" more={t('home.viewAll')} />
+      <SectionHeading
+        title={t('home.shopsTitle')}
+        to={showMore ? '/businesses' : undefined}
+        more={t('home.viewAll')}
+      />
       <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {list.map((business) => {
           const category =

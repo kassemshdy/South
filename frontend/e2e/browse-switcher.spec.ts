@@ -48,7 +48,11 @@ test.describe('Browse switcher', () => {
       'aria-current',
       'page',
     )
-    await expect(strip.getByRole('link', { name: t('browse.businessesShort') })).toHaveCount(0)
+    // The shops are a tab of their own (the owners' request, 11 Nov 2026).
+    await expect(strip.getByRole('link', { name: t('browse.businessesShort') })).toHaveAttribute(
+      'href',
+      /^\/businesses/,
+    )
 
     await strip.getByRole('link', { name: t('browse.servicesShort') }).click()
 

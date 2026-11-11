@@ -25,7 +25,6 @@ from __future__ import annotations
 
 import asyncio
 import gzip
-import json
 import logging
 import os
 import subprocess
@@ -34,10 +33,8 @@ from datetime import UTC, datetime, timedelta
 
 import httpx
 from psycopg import sql
-from sqlalchemy import Engine, create_engine, text
-from sqlalchemy.orm import Session
+from sqlalchemy import create_engine, text
 
-from app.api.v1.admin.export import DATASETS, dataset_csv
 from app.core.i18n import translate
 from app.services import db_backup
 
@@ -152,43 +149,6 @@ def send_document(
     return True
 
 
-def csv_files(engine: Engine, now: datetime) -> list[tuple[str, bytes]]:
-    """Every admin export as a CSV, named as the download names it (the
-    owners' request, 9 Nov 2026: the spreadsheets beside the .sql copy, so
-    the group holds something that opens in Excel)."""
-    stamp = now.strftime("%Y%m%dT%H%MZ")
-    with Session(engine) as session:
-        return [(f"{name}-{stamp}.csv", dataset_csv(session, name)) for name in DATASETS]
-
-
-def send_csvs(
-    client: httpx.Client,
-    *,
-    token: str,
-    chat_id: str,
-    files: list[tuple[str, bytes]],
-    caption: str,
-) -> bool:
-    """The CSVs as one album of documents, so they arrive together under
-    the database file rather than as six separate messages."""
-    media = [
-        {"type": "document", "media": f"attach://f{index}"} for index in range(len(files))
-    ]
-    media[-1]["caption"] = caption
-    response = client.post(
-        f"https://api.telegram.org/bot{token}/sendMediaGroup",
-        data={"chat_id": chat_id, "media": json.dumps(media, ensure_ascii=False)},
-        files={
-            f"f{index}": (name, data, "text/csv")
-            for index, (name, data) in enumerate(files)
-        },
-    )
-    if response.status_code >= 400:
-        logger.warning("telegram CSV backup failed: %s", response.status_code)
-        return False
-    return True
-
-
 def send_if_due(
     database_url: str,
     *,
@@ -233,19 +193,6 @@ def send_if_due(
                 )
                 connection.commit()
                 logger.info("Database sent to Telegram: %s, %d bytes", name, len(data))
-                # The spreadsheets follow the .sql file. A failure here is
-                # logged and waits for the next interval: the database copy,
-                # which restores everything, has already gone.
-                try:
-                    send_csvs(
-                        client,
-                        token=token,
-                        chat_id=chat_id,
-                        files=csv_files(engine, moment),
-                        caption=translate("telegram.csv_backup", locale="ar"),
-                    )
-                except Exception:
-                    logger.exception("Building or sending the CSV backup failed")
                 return True
             finally:
                 connection.execute(text("select pg_advisory_unlock(:key)"), {"key": _LOCK_KEY})

@@ -416,7 +416,7 @@
   "article.relatedShops": "Related shops",
   "blog.title": "Career guidance blog",
   "browse.businessesDescription": "Restaurants, shops, workshops and farms with a place you can visit.",
-  "browse.businessesShort": "Businesses",
+  "browse.businessesShort": "Shops",
   "browse.businessesTitle": "A shop or a business",
   "browse.jobsShort": "Looking for an employee",
   "browse.productsShort": "Products",
@@ -2504,5 +2504,7 @@
   "dashboard.howToAdd": "How do I add a product?",
   "dashboard.addStep1": "Tap “Add a product”.",
   "dashboard.addStep2": "Add the product's photo, name and price, plus more photos if you like.",
-  "dashboard.addStep3": "Save, and it joins your product list."
+  "dashboard.addStep3": "Save, and it joins your product list.",
+  "products.shopFilter": "Shop",
+  "products.allShops": "All shops"
 }

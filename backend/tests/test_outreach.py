@@ -247,3 +247,41 @@ def test_products_move_to_another_shop_of_the_same_owner(
         ).status_code
         == 422
     )
+
+
+def test_outreach_counts_follow_the_tabs(
+    client: TestClient, db: Session, admin: User, category: Category, location: Location
+) -> None:
+    """The page's tab labels come from one call; it agrees with the lists."""
+    headers = admin_headers(client)
+    business_id = _approved_without_products(client, db, category, location)
+
+    def counts() -> dict[str, int]:
+        response = client.get("/api/admin/businesses/outreach-counts", headers=headers)
+        assert response.status_code == 200, response.text
+        return response.json()
+
+    assert counts() == {"not_contacted": 1, "contacted": 0, "uploaded": 0}
+
+    client.put(
+        f"/api/admin/businesses/{business_id}/outreach",
+        headers=headers,
+        json={"contacted": True, "note": ""},
+    )
+    assert counts() == {"not_contacted": 0, "contacted": 1, "uploaded": 0}
+
+    db.add(
+        BusinessItem(
+            business_id=business_id,
+            title=ar("item.generic"),
+            slug="counted-item",
+            image_url="/media/x.jpg",
+            is_available=True,
+        )
+    )
+    db.commit()
+    assert counts() == {"not_contacted": 0, "contacted": 0, "uploaded": 1}
+
+
+def test_outreach_counts_are_staff_only(client: TestClient) -> None:
+    assert client.get("/api/admin/businesses/outreach-counts").status_code == 401
