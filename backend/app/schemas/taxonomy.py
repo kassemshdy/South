@@ -36,6 +36,12 @@ class CategoryUpdateIn(BaseModel):
     is_active: bool | None = None
 
 
+class CategoryMergeIn(BaseModel):
+    """The category whose shops, articles and workshops are taken over."""
+
+    into_id: uuid.UUID
+
+
 class LocationOut(ORMModel):
     id: uuid.UUID
     name_ar: str

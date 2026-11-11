@@ -389,5 +389,7 @@
   "business.field.identity": "the front of your ID card (on your account page)",
   "talent.field.identity": "the front of your ID card (on your account page)",
   "admin.drafts_sent": "{count} drafts sent to review.",
-  "telegram.kind.id_document": "New ID document"
+  "telegram.kind.id_document": "New ID document",
+  "taxonomy.category.merged": "Moved {count} businesses into “{name}” and deleted the category.",
+  "taxonomy.category.merge_into_itself": "Choose a different category to merge into."
 }

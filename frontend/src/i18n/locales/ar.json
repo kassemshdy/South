@@ -2506,5 +2506,11 @@
   "dashboard.addStep2": "أضف صورة المنتج واسمه وسعره، وصوراً إضافية إن أردت.",
   "dashboard.addStep3": "احفظ، ويظهر المنتج في قائمة منتجاتك.",
   "products.shopFilter": "المحل",
-  "products.allShops": "كل المحلات"
+  "products.allShops": "كل المحلات",
+  "admin.categoryMerge": "دمج في…",
+  "admin.categoryMergeInto": "انقل كل ما في «{name}» إلى:",
+  "admin.categoryMergePick": "اختر التصنيف",
+  "admin.categoryMergeConfirm": "انقل {count} نشاط واحذف التصنيف",
+  "admin.categoryMergeFailed": "تعذّر الدمج",
+  "admin.categoryShopCount": "{count} نشاط"
 }
