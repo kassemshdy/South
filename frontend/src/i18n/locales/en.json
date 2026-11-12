@@ -2555,5 +2555,8 @@
   "adminProducts.fieldTitle": "Name",
   "adminProducts.fieldDescription": "Description",
   "adminProducts.fieldPrice": "Price ({currency})",
-  "adminProducts.save": "Save"
+  "adminProducts.save": "Save",
+  "wizard.servicesOwnerTitle": "You have a services profile",
+  "wizard.servicesOwnerBody": "This form opens a shop that sells goods and products. To add a service or edit your profile, go back to your services profile.",
+  "wizard.servicesOwnerBack": "Back to my services profile"
 }
