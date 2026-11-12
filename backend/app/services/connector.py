@@ -33,6 +33,7 @@ from app.core.errors import AppError, ConflictError, NotFoundError, ValidationEr
 from app.models.business import Business, BusinessItem
 from app.models.enums import BusinessStatus, SocialPlatform
 from app.models.integration import IntegrationOutbox, ItemLink, StoreLink
+from app.schemas.integration import ShopifySetupIn
 from app.services import outbox
 
 logger = logging.getLogger(__name__)
@@ -95,6 +96,9 @@ class ConnectorClient:
             {"shop": shop, "return_url": return_url, "page_url": page_url},
         )
         return str(body["authorize_url"])
+
+    def put_setup(self, store_ref: str, setup: dict[str, Any]) -> None:
+        self._call("PUT", f"/v1/stores/{store_ref}/setup", setup)
 
     def put_page(self, store_ref: str, page_url: str) -> None:
         self._call("PUT", f"/v1/stores/{store_ref}/page", {"page_url": page_url})
@@ -270,6 +274,21 @@ class StoreConnectionService:
         if link is None or not link.is_live:
             raise NotFoundError("shopify.not_connected")
         self._client.put_profile(str(business.id), store_profile(business, self._settings))
+
+    def setup(self, business: Business, rate: ShopifySetupIn) -> None:
+        """Ask the connector to give Lebanon an active USD market and this delivery rate."""
+        link = business.store_link
+        if link is None or not link.is_live:
+            raise NotFoundError("shopify.not_connected")
+        self._client.put_setup(str(business.id), {
+            "country": "LB",
+            "currency": "USD",
+            "rate": {
+                "name": rate.rate_name,
+                "price": str(rate.price),
+                "description": rate.description or None,
+            },
+        })
 
     def sync_now(self, business: Business) -> int:
         link = business.store_link

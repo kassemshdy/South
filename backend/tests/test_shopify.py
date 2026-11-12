@@ -107,6 +107,8 @@ class FakeConnector:
             store.update(subdomain=body["subdomain"],
                          subdomain_hostname=f"{body['subdomain']}.janoubona.net")
             return httpx.Response(200, json={"store_ref": ref, **store})
+        if rest == "/setup":
+            return httpx.Response(202, json={"queued": 1})
         if rest == "/page":
             if self.page_down:
                 return httpx.Response(500, json={"error": {"code": "boom", "message": "x"}})
@@ -392,6 +394,7 @@ def test_a_reviewer_sees_the_page_but_only_a_manager_connects(
         ("POST", f"/api/admin/businesses/{business.id}/shopify/sync"),
         ("POST", f"/api/admin/businesses/{business.id}/shopify/subdomain"),
         ("POST", f"/api/admin/businesses/{business.id}/shopify/profile"),
+        ("POST", f"/api/admin/businesses/{business.id}/shopify/setup"),
         ("DELETE", f"/api/admin/businesses/{business.id}/shopify"),
     ):
         assert shop_client.request(
@@ -726,3 +729,37 @@ def test_the_profile_needs_a_connected_store_and_says_when_to_reconnect(
     fake.reconnect = True
     r = shop_client.post(url, headers=boss)
     assert r.status_code == 409 and r.json()["error"]["code"] == "reconnect_required"
+
+
+def test_store_setup_sends_the_delivery_rate_and_the_card_shows_its_report(
+    shop_client: TestClient,
+    db: Session,
+    admin: User,
+    fake: FakeConnector,
+    category: Category,
+    location: Location,
+) -> None:
+    business = approved_business(
+        shop_client, db, sign_in(shop_client, OWNER_PHONE), category, location
+    )
+    url = f"/api/admin/businesses/{business.id}/shopify/setup"
+    body = {"rate_name": "Standard Delivery", "price": "4", "description": "2-3 business days"}
+    # Not connected yet: nothing is sent.
+    assert shop_client.post(url, headers=admin_headers(shop_client), json=body).status_code == 404
+    webhook(shop_client, "store.connected", connected(business))
+    r = shop_client.post(url, headers=admin_headers(shop_client), json=body)
+    assert r.status_code == 200, r.text
+    sent = json.loads(fake.calls("PUT", r"/setup$")[0].content)
+    assert sent == {"country": "LB", "currency": "USD", "rate": {
+        "name": "Standard Delivery", "price": "4", "description": "2-3 business days"}}
+    bad = shop_client.post(url, headers=admin_headers(shop_client), json={"price": "-1"})
+    assert bad.status_code == 422
+
+    fake.stores[str(business.id)] = {"status": "CONNECTED", "setup": {
+        "at": "2026-11-11T19:00:00+00:00", "ok": False, "store_currency": "USD",
+        "currency_ok": True, "missing_scopes": ["write_shipping"]}}
+    status = shop_client.get(
+        f"/api/admin/businesses/{business.id}/shopify", headers=admin_headers(shop_client)
+    ).json()
+    assert status["setup"]["missing_scopes"] == ["write_shipping"]
+    assert status["setup"]["ok"] is False and status["setup"]["currency_ok"] is True

@@ -13,6 +13,8 @@ import { ApiError } from "@/services/api/client";
 import { adminApi } from "@/services/api/endpoints";
 import { queryKeys } from "@/services/api/queryKeys";
 
+import { ShopifySetupPanel } from "./ShopifySetup";
+
 /**
  * A shop's own Shopify store, as an administrator manages it on the shop's
  * behalf (owners never see this, the owners' decision of 4 Nov 2026): connect
@@ -246,6 +248,13 @@ export function ShopifyCard({
                   </Button>
                 </form>
               </div>
+            ) : null}
+            {data.connected ? (
+              <ShopifySetupPanel
+                businessId={businessId}
+                setup={data.setup}
+                canManage={canManage}
+              />
             ) : null}
           </div>
         ) : !canManage ? (
