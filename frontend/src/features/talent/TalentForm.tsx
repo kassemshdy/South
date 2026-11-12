@@ -60,6 +60,8 @@ interface TalentFormProps {
   /** The parent's last save failure, so a 422 lands on the right input. */
   serverError?: unknown
   footer?: React.ReactNode
+  /** Extra fields shown above the submit button (the sign-up photo). */
+  beforeSubmit?: React.ReactNode
   /**
    * Called when a submit fails this form's own validation. The registration
    * pages use it to mark their own fields too and scroll to the topmost error,
@@ -118,6 +120,7 @@ export function TalentForm({
   onSubmit,
   serverError,
   footer,
+  beforeSubmit,
   onInvalid,
   identityElsewhere = true,
 }: TalentFormProps) {
@@ -893,6 +896,8 @@ export function TalentForm({
           {t('talentForm.identityMovedNote')}
         </p>
       ) : null}
+
+      {beforeSubmit}
 
       {/* Above the button, not below it and not in `footer`: the whole point
           is that it is read *before* the profile is sent. A warning a person
