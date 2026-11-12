@@ -10,6 +10,9 @@ from __future__ import annotations
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Path, Query, Response, status
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.api.serializers import owner_talent, paginate, talent_detail, talent_summary
 from app.core.cache import cached
@@ -28,6 +31,7 @@ from app.core.errors import NotFoundError
 from app.core.i18n import translate
 from app.core.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from app.models.enums import (
+    BusinessStatus,
     EducationLevel,
     TalentKind,
     TalentWorkType,
@@ -35,6 +39,7 @@ from app.models.enums import (
     ViewSubject,
     WorkMode,
 )
+from app.models.talent import TalentProfile, TalentServiceOffer
 from app.repositories.geo import point_or_none
 from app.repositories.talent import ExperienceBand, TalentRepository
 from app.schemas.common import MessageResponse, PaginatedResponse
@@ -43,11 +48,13 @@ from app.schemas.talent import (
     OwnerTalentOut,
     TalentCreateIn,
     TalentDetailOut,
+    TalentServiceOfferOut,
     TalentSummaryOut,
     TalentUpdateIn,
 )
 from app.services.analytics import ViewCounterService
 from app.services.employer_request import EmployerRequestService
+from app.services.images import ImageService
 from app.services.talent import TalentService
 from app.services.talent_moderation import TalentModerationService
 from app.services.testimonial import TestimonialService
@@ -123,6 +130,45 @@ def latest_talent(
     return [
         talent_summary(profile)
         for profile in TalentRepository(db).recently_approved(limit)
+    ]
+
+
+class ServiceOfferCardOut(BaseModel):
+    """A priced service with its photo and its provider, for the services
+    page's row (the owners' review, 12 Nov 2026)."""
+
+    offer: TalentServiceOfferOut
+    provider_name: str
+    provider_slug: str
+    location_name: str | None = None
+
+
+@public_router.get("/talent/offers", response_model=list[ServiceOfferCardOut])
+def latest_service_offers(
+    db: DbSession, limit: Annotated[int, Query(ge=1, le=24)] = 8
+) -> list[ServiceOfferCardOut]:
+    """Newest priced services that have a photo, from approved services
+    providers only: what the services page shows like products."""
+    rows = db.execute(
+        select(TalentServiceOffer)
+        .join(TalentProfile, TalentServiceOffer.profile_id == TalentProfile.id)
+        .where(
+            TalentProfile.status == BusinessStatus.APPROVED,
+            TalentProfile.kind == TalentKind.SERVICE,
+            TalentServiceOffer.image_url.is_not(None),
+        )
+        .options(selectinload(TalentServiceOffer.profile).selectinload(TalentProfile.location))
+        .order_by(TalentProfile.approved_at.desc().nulls_last(), TalentServiceOffer.sort_order)
+        .limit(limit)
+    ).scalars()
+    return [
+        ServiceOfferCardOut(
+            offer=TalentServiceOfferOut.model_validate(offer),
+            provider_name=offer.profile.display_name,
+            provider_slug=offer.profile.slug,
+            location_name=offer.profile.location.name_ar if offer.profile.location else None,
+        )
+        for offer in rows
     ]
 
 
@@ -224,9 +270,13 @@ def create_talent(
 
 @owner_router.put("/my/talent", response_model=OwnerTalentOut)
 def update_talent(
-    payload: TalentUpdateIn, profile: OwnTalentProfile, db: DbSession
+    payload: TalentUpdateIn, profile: OwnTalentProfile, db: DbSession, settings: AppSettings
 ) -> OwnerTalentOut:
-    updated = TalentService(db).update(profile, payload)
+    service = TalentService(db)
+    updated = service.update(profile, payload)
+    images = ImageService(get_storage(), settings)
+    for key in service.removed_image_keys:
+        images.delete(key)
     return owner_talent(updated)
 
 

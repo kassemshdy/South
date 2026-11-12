@@ -60,6 +60,9 @@ class TalentService:
         self._repo = TalentRepository(db)
         self._skills = TalentSkillRepository(db)
         self._locations = LocationRepository(db)
+        # Photos of offers an update removed; the route deletes the files,
+        # as it holds the storage backend.
+        self.removed_image_keys: list[str] = []
 
     # --- Creation and updates ---------------------------------------------
 
@@ -312,19 +315,29 @@ class TalentService:
             if payload.years_experience is None and profile.experiences:
                 profile.years_experience = _years_from(payload.experiences or [])
         if "service_offers" in data:
-            profile.service_offers.clear()
+            # Matched by id rather than replaced, so an offer's photo
+            # survives an edit of the profile (12 Nov 2026). An offer left
+            # out is removed, and its photo with it.
+            existing = {offer.id: offer for offer in profile.service_offers}
+            kept: list[TalentServiceOffer] = []
             for index, offer in enumerate(payload.service_offers or []):
-                profile.service_offers.append(
-                    TalentServiceOffer(
-                        title=offer.title,
-                        description=offer.description,
-                        price_from=offer.price_from,
-                        price_to=offer.price_to,
-                        currency=offer.currency,
-                        price_unit=offer.price_unit,
-                        sort_order=index,
-                    )
-                )
+                saved = existing.pop(offer.id, None) if offer.id is not None else None
+                if saved is None:
+                    saved = TalentServiceOffer()
+                saved.title = offer.title
+                saved.description = offer.description
+                saved.price_from = offer.price_from
+                saved.price_to = offer.price_to
+                saved.currency = offer.currency
+                saved.price_unit = offer.price_unit
+                saved.sort_order = index
+                kept.append(saved)
+            self.removed_image_keys.extend(
+                offer.image_storage_key
+                for offer in existing.values()
+                if offer.image_storage_key
+            )
+            profile.service_offers[:] = kept
         if "faqs" in data:
             profile.faqs.clear()
             for index, faq in enumerate(payload.faqs or []):

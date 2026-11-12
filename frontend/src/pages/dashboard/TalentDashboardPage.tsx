@@ -14,6 +14,7 @@ import { ViewsPanel } from '@/features/insights/ViewsPanel'
 import { kindFromQuery } from '@/features/talent/kind'
 import { OwnerServiceRequests } from '@/features/talent/OwnerServiceRequests'
 import { TalentForm } from '@/features/talent/TalentForm'
+import { OfferPhotos } from '@/features/talent/OfferPhotos'
 import { TalentImageManager } from '@/features/talent/TalentImageManager'
 import { StoryManager } from '@/features/stories/StoryManager'
 import { OfferSwitcher } from '@/features/onboarding/OfferSwitcher'
@@ -248,6 +249,9 @@ export function TalentDashboardPage() {
           >
             <TabTrigger value="details">{t('talentDashboard.tabDetails')}</TabTrigger>
             <TabTrigger value="images">{t('talentDashboard.tabImages')}</TabTrigger>
+            {data.kind === 'SERVICE' ? (
+              <TabTrigger value="offers">{t('offerPhotos.tab')}</TabTrigger>
+            ) : null}
             <TabTrigger value="stories">{t('stories.tab')}</TabTrigger>
             <TabTrigger value="requests">{t('serviceRequests.ownerTab')}</TabTrigger>
             {data.kind === 'SERVICE' ? (
@@ -282,6 +286,12 @@ export function TalentDashboardPage() {
             <Tabs.Content value="images">
               <TalentImageManager profile={data} />
             </Tabs.Content>
+
+            {data.kind === 'SERVICE' ? (
+              <Tabs.Content value="offers">
+                <OfferPhotos profile={data} />
+              </Tabs.Content>
+            ) : null}
 
             <Tabs.Content value="stories">
               <StoryManager

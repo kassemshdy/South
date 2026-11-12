@@ -147,6 +147,7 @@ class AccountDeletionService:
             profile.photo_storage_key,
             profile.cover_storage_key,
             *(image.storage_key for image in profile.images),
+            *(offer.image_storage_key for offer in profile.service_offers),
             *stories,
         ]
 

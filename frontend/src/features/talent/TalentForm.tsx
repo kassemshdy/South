@@ -211,6 +211,8 @@ export function TalentForm({
         })) ?? [],
       service_offers:
         profile?.service_offers?.map((offer) => ({
+          // Not `id`: useFieldArray keeps its own key under that name.
+          offer_id: offer.id,
           title: offer.title,
           description: offer.description ?? '',
           price_from: plainPrice(offer.price_from),
@@ -294,6 +296,8 @@ export function TalentForm({
         ? {}
         : {
             service_offers: values.service_offers.map((offer) => ({
+              // Sent back so a saved offer keeps its photo (12 Nov 2026).
+              ...(offer.offer_id ? { id: offer.offer_id } : {}),
               title: offer.title,
               description: offer.description || null,
               price_from: offer.price_from || null,
