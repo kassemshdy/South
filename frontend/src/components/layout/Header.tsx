@@ -96,7 +96,6 @@ function useRowFits() {
   const barRef = useRef<HTMLDivElement>(null)
   const logoRef = useRef<HTMLAnchorElement>(null)
   const navRef = useRef<HTMLElement>(null)
-  const controlsRef = useRef<HTMLDivElement>(null)
   const [fits, setFits] = useState(true)
 
   useLayoutEffect(() => {
@@ -111,9 +110,7 @@ function useRowFits() {
       const available =
         bar.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
       const gap = parseFloat(style.columnGap) || 0
-      // The menu button is beside the row at every width, so it counts too.
-      const controls = controlsRef.current?.offsetWidth ?? 0
-      setFits(nav.scrollWidth + logo.offsetWidth + controls + 2 * gap <= available)
+      setFits(nav.scrollWidth + logo.offsetWidth + gap <= available)
     }
     measure()
     const observer = new ResizeObserver(measure)
@@ -122,7 +119,7 @@ function useRowFits() {
     return () => observer.disconnect()
   }, [])
 
-  return { barRef, logoRef, navRef, controlsRef, fits }
+  return { barRef, logoRef, navRef, fits }
 }
 
 function CartLink() {
@@ -192,7 +189,7 @@ export function Header() {
   const t = useT()
   const sections = useSiteSections()
 
-  const { barRef, logoRef, navRef, controlsRef, fits } = useRowFits()
+  const { barRef, logoRef, navRef, fits } = useRowFits()
 
   const handleSignOut = () => {
     signOut()
@@ -370,44 +367,39 @@ export function Header() {
           )}
         </nav>
 
-        {/* The menu button shows at every width (the owners' request, 12 Nov
-            2026); on a wide screen where the headings fit, only the cart,
-            favourites and account controls here step aside for the row's own. */}
-        <div ref={controlsRef} className="flex shrink-0 items-center gap-1">
-          <div className={cn('contents', fits && 'xl:hidden')}>
-            <CartLink />
-            <FavouritesLink />
-            {/* The way in, or the way to one's own area, stays in the bar beside
-                search and the menu button: once the headings stopped fitting
-                beside the logo, the account controls above went with them (the
-                owners' request, 4 Nov 2026). A labelled button, not a bare
-                person icon -- visitors did not read the icon as a way in, and
-                a signed-in owner had no way to their area but the menu (5 Nov
-                2026). On phones the icon inside it goes and the button is smaller,
-                and search is in the menu rather than here (12 Nov 2026), so
-                the menu button always fits. */}
-            <Button
-              asChild
-              size="sm"
-              className="me-1 shrink-0 whitespace-nowrap max-sm:min-h-8 max-sm:px-2.5 max-sm:text-xs"
-            >
-              {isAuthenticated ? (
-                <Link to={isAdmin ? '/admin' : '/dashboard'}>
-                  {isAdmin ? (
-                    <Shield className="h-4 w-4 max-[419px]:hidden" aria-hidden="true" />
-                  ) : (
-                    <LayoutDashboard className="h-4 w-4 max-[419px]:hidden" aria-hidden="true" />
-                  )}
-                  {isAdmin ? t('nav.adminPanel') : t('nav.myBusinesses')}
-                </Link>
-              ) : (
-                <Link to="/login">
-                  <User className="h-4 w-4 max-[419px]:hidden" aria-hidden="true" />
-                  {t('nav.login')}
-                </Link>
-              )}
-            </Button>
-          </div>
+        <div className={cn('flex shrink-0 items-center gap-1', fits && 'xl:hidden')}>
+          <CartLink />
+          <FavouritesLink />
+          {/* The way in, or the way to one's own area, stays in the bar beside
+              search and the menu button: once the headings stopped fitting
+              beside the logo, the account controls above went with them (the
+              owners' request, 4 Nov 2026). A labelled button, not a bare
+              person icon -- visitors did not read the icon as a way in, and
+              a signed-in owner had no way to their area but the menu (5 Nov
+              2026). On phones the icon inside it goes and the button is smaller,
+              and search is in the menu rather than here (12 Nov 2026), so
+              the menu button always fits. */}
+          <Button
+            asChild
+            size="sm"
+            className="me-1 shrink-0 whitespace-nowrap max-sm:min-h-8 max-sm:px-2.5 max-sm:text-xs"
+          >
+            {isAuthenticated ? (
+              <Link to={isAdmin ? '/admin' : '/dashboard'}>
+                {isAdmin ? (
+                  <Shield className="h-4 w-4 max-[419px]:hidden" aria-hidden="true" />
+                ) : (
+                  <LayoutDashboard className="h-4 w-4 max-[419px]:hidden" aria-hidden="true" />
+                )}
+                {isAdmin ? t('nav.adminPanel') : t('nav.myBusinesses')}
+              </Link>
+            ) : (
+              <Link to="/login">
+                <User className="h-4 w-4 max-[419px]:hidden" aria-hidden="true" />
+                {t('nav.login')}
+              </Link>
+            )}
+          </Button>
           <Button
             variant="ghost"
             size="icon"
@@ -448,6 +440,7 @@ export function Header() {
         id="mobile-menu"
         className={cn(
           'border-t border-ink-100 bg-white',
+          fits && 'xl:hidden',
           menuOpen ? 'block' : 'hidden',
         )}
       >
