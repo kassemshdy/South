@@ -25,6 +25,7 @@ from app.models.enums import (
     WorkMode,
 )
 from app.models.talent import (
+    TalentModerationAction,
     TalentProfile,
     TalentServiceOffer,
     TalentSkill,
@@ -406,7 +407,10 @@ class TalentRepository(BaseRepository[TalentProfile]):
             select(TalentProfile).where(TalentProfile.id == profile_id)
         ).options(
             joinedload(TalentProfile.owner).selectinload(User.documents),
-            selectinload(TalentProfile.moderation_actions),
+            selectinload(TalentProfile.moderation_actions).selectinload(
+                TalentModerationAction.actor
+            ),
+            selectinload(TalentProfile.approver),
         )
         return self.db.execute(stmt).unique().scalar_one_or_none()
 

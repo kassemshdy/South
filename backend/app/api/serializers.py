@@ -16,10 +16,10 @@ from app.core.pagination import Page
 from app.core.pins import public_pin
 from app.core.work_videos import WorkVideo
 from app.models.article import Article
-from app.models.business import Business, BusinessItem
+from app.models.business import Business, BusinessItem, ModerationAction
 from app.models.enums import BusinessStatus, Currency, ImageKind, TalentKind
 from app.models.feedback import FeedbackAttachment, FeedbackComment, FeedbackTicket
-from app.models.talent import TalentProfile, TalentSkill
+from app.models.talent import TalentModerationAction, TalentProfile, TalentSkill
 from app.models.taxonomy import Category, Location
 from app.models.testimonial import Testimonial
 from app.models.user import User
@@ -224,6 +224,21 @@ def owner_business(business: Business) -> OwnerBusinessOut:
     )
 
 
+def staff_name(user: User | None) -> str | None:
+    """How a staff member is named on an admin screen: their display name,
+    else their email. Only ever for an administrator's account, so an
+    owner's name never lands in a "decided by" field."""
+    if user is None or not user.is_admin:
+        return None
+    return user.display_name or user.email
+
+
+def _moderation_action(action: ModerationAction | TalentModerationAction) -> ModerationActionOut:
+    return ModerationActionOut.model_validate(action).model_copy(
+        update={"actor_name": staff_name(action.actor)}
+    )
+
+
 def admin_business(business: Business) -> AdminBusinessOut:
     """Review payload — administrators may see the owner's account details."""
     return AdminBusinessOut(
@@ -243,10 +258,12 @@ def admin_business(business: Business) -> AdminBusinessOut:
         ),
         owner_display_name=business.owner.display_name if business.owner else None,
         moderation_actions=[
-            ModerationActionOut.model_validate(action)
+            _moderation_action(action)
             for action in sorted(business.moderation_actions, key=lambda a: a.created_at)
         ],
+        approved_by_name=staff_name(business.approver),
         outreach_contacted_at=business.outreach_contacted_at,
+        outreach_contacted_by_name=staff_name(business.outreach_contacter),
         outreach_note=business.outreach_note,
         instagram_followers=business.instagram_followers,
         facebook_followers=business.facebook_followers,
@@ -538,9 +555,10 @@ def admin_talent(profile: TalentProfile) -> AdminTalentOut:
         ),
         owner_display_name=profile.owner.display_name if profile.owner else None,
         moderation_actions=[
-            ModerationActionOut.model_validate(action)
+            _moderation_action(action)
             for action in sorted(profile.moderation_actions, key=lambda a: a.created_at)
         ],
+        approved_by_name=staff_name(profile.approver),
     )
 
 

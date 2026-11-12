@@ -2577,5 +2577,7 @@
   "workVideos.tooMany": "6 روابط على الأكثر.",
   "workVideos.heading": "فيديوهات من أعمالي",
   "workVideos.open": "مشاهدة على المنصة",
-  "staff.canCategories": "إضافة الفئات وتعديلها"
+  "staff.canCategories": "إضافة الفئات وتعديلها",
+  "admin.byStaff": "بواسطة {name}",
+  "admin.approvedByStaff": "وافق عليه: {name}"
 }

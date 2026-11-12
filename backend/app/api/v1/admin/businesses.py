@@ -145,11 +145,11 @@ def set_outreach(
         note = (body.note or "").strip() or None
         if business.outreach_contacted_at is None:
             business.outreach_contacted_at = datetime.now(UTC)
-        business.outreach_contacted_by = admin.id
+        business.outreach_contacter = admin
         business.outreach_note = note
     else:
         business.outreach_contacted_at = None
-        business.outreach_contacted_by = None
+        business.outreach_contacter = None
         business.outreach_note = None
     db.commit()
     if body.contacted:
