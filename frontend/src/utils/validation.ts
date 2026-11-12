@@ -336,13 +336,14 @@ export const talentSchema = (t: Translate, otherSkillId?: string) =>
         .min(2, t('validation.nameRequired'))
         .max(160, t('validation.nameTooLong')),
       bio: z.string().trim().max(5000, t('validation.descriptionTooLong')).optional().or(z.literal('')),
-      // Required since the owners made it so: the directory sorts by it.
+      // Required for a job application, where the directory sorts by it;
+      // optional for a service (the owners' review, 12 Nov 2026). Checked
+      // per kind in superRefine below.
       years_experience: z
         .string()
         .trim()
-        .min(1, t('validation.yearsRequired'))
         .refine(
-          (value) => /^\d{1,2}$/.test(value) && Number(value) <= 70,
+          (value) => value === '' || (/^\d{1,2}$/.test(value) && Number(value) <= 70),
           t('validation.yearsInvalid'),
         ),
       skill_id: z.string().min(1, t('validation.skillRequired')),
@@ -443,6 +444,7 @@ export const talentSchema = (t: Translate, otherSkillId?: string) =>
         .array(
           z
             .object({
+              offer_id: z.string().optional(),
               title: z.string().trim().min(1, t('serviceOffers.titleRequired')).max(120),
               description: z.string().trim().max(500),
               price_from: optionalPrice(t),
@@ -457,6 +459,14 @@ export const talentSchema = (t: Translate, otherSkillId?: string) =>
             }),
         )
         .max(20),
+      // One link per line; the server reads each (12 Nov 2026).
+      work_videos: z
+        .string()
+        .max(3000)
+        .refine(
+          (value) => value.split('\n').filter((line) => line.trim()).length <= 6,
+          t('workVideos.tooMany'),
+        ),
       faqs: z
         .array(
           z.object({
@@ -486,6 +496,9 @@ export const talentSchema = (t: Translate, otherSkillId?: string) =>
         .max(30),
     })
     .superRefine((values, ctx) => {
+      if (values.kind === 'JOB_SEEKER' && values.years_experience === '') {
+        ctx.addIssue({ code: 'custom', path: ['years_experience'], message: t('validation.yearsRequired') })
+      }
       if (values.kind === 'JOB_SEEKER') {
         if (!isPersonName(values.display_name)) {
           ctx.addIssue({ code: 'custom', path: ['display_name'], message: t('candidateForm.realName') })

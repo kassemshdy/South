@@ -349,6 +349,12 @@ export function AdminBusinessesPage() {
                               : t('admin.createdAgo', {
                                   date: formatRelativeDate(business.created_at, locale, t),
                                 })}
+                            {business.approved_by_name ? (
+                              <span dir="auto">
+                                {' · '}
+                                {t('admin.approvedByStaff', { name: business.approved_by_name })}
+                              </span>
+                            ) : null}
                           </p>
                         </div>
                       </div>

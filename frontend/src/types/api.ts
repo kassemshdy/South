@@ -344,6 +344,8 @@ export interface ModerationAction {
   to_status: BusinessStatus
   reason: string | null
   created_at: string
+  /** The staff member who took it; null for the owner's own submission. */
+  actor_name: string | null
 }
 
 /** Adds account details that only administrators may see. */
@@ -358,8 +360,10 @@ export interface AdminBusiness extends OwnerBusiness {
   owner_has_cv_document: boolean
   owner_display_name: string | null
   moderation_actions: ModerationAction[]
-  /** Staff follow-up of a shop with nothing on sale: when it was contacted, and the note. */
+  approved_by_name?: string | null
+  /** Staff follow-up of a shop with nothing on sale: when it was contacted, by whom, and the note. */
   outreach_contacted_at?: string | null
+  outreach_contacted_by_name?: string | null
   outreach_note?: string | null
   /** Follower counts of the shop's own pages, read daily through Apify. */
   instagram_followers?: number | null
@@ -514,6 +518,23 @@ export interface TalentServiceOffer {
   currency: Currency
   /** The provider's own words: "per hour", "per session". */
   price_unit: string | null
+  /** A photo of the service, shown like a product card (12 Nov 2026). */
+  image_url?: string | null
+  image_thumb_url?: string | null
+}
+
+export interface TalentVideo {
+  platform: 'YOUTUBE' | 'INSTAGRAM' | 'TIKTOK' | 'FACEBOOK'
+  url: string
+  embed_url: string
+}
+
+/** A priced service with its provider, for the services page's row. */
+export interface ServiceOfferCard {
+  offer: TalentServiceOffer
+  provider_name: string
+  provider_slug: string
+  location_name: string | null
 }
 
 export type TalentAvailability = 'NOW' | 'WITHIN_MONTH' | 'EMPLOYED_OPEN'
@@ -631,6 +652,8 @@ export interface TalentDetail extends TalentSummary {
   service_offers?: TalentServiceOffer[]
   /** Questions a visitor would ask, answered by the provider. */
   faqs?: TalentFaq[]
+  /** Videos of the work, rebuilt by the server on each platform's host. */
+  work_videos?: TalentVideo[]
   education?: TalentEducationEntry[]
   courses?: TalentCourse[]
 }
@@ -662,6 +685,7 @@ export interface AdminTalent extends OwnerTalent {
   owner_has_cv_document: boolean
   owner_display_name: string | null
   moderation_actions: ModerationAction[]
+  approved_by_name?: string | null
 }
 
 /** Running totals per UTC day, oldest first (`/api/admin/stats/growth`). */

@@ -27,14 +27,22 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import ValidationError
 from app.models.business import Business, BusinessImage, BusinessSocialLink
-from app.models.enums import ImageKind
+from app.models.enums import ImageKind, TalentKind
 from app.models.service_request import ServiceRequest
-from app.models.talent import TalentProfile
+from app.models.story import StoryImage
+from app.models.talent import (
+    TalentImage,
+    TalentProfile,
+    TalentServiceOffer,
+    TalentSocialLink,
+)
 from app.models.testimonial import Testimonial
 from app.repositories.business import BusinessRepository
+from app.repositories.talent import TalentRepository, TalentSkillRepository
 from app.repositories.taxonomy import CategoryRepository
 from app.services.business import BusinessService
 from app.services.slug import unique_slug
+from app.services.talent import TalentService
 
 logger = logging.getLogger(__name__)
 
@@ -127,3 +135,145 @@ class TalentConversionService:
             extra={"profile_id": str(profile.id), "business_id": str(business.id)},
         )
         return business
+
+
+#: The longest offer title and description a TalentServiceOffer takes.
+OFFER_TITLE = 120
+OFFER_DESCRIPTION = 500
+
+
+class BusinessConversionService:
+    """The other direction: a shop that really offers a service, moved into
+    a services profile by an administrator (the owners' review, 12 Nov 2026).
+
+    It keeps what a services profile has room for: the name, description,
+    contacts, town and pin, logo (as the photo), gallery, social pages,
+    video, reviews, stories and status. Each product becomes a priced
+    service with its photo. Files are moved, not copied.
+
+    Refused rather than half-done when the owner already has a services
+    profile (an account holds one), or when the shop has orders, a
+    connected online store or official papers: a profile has nowhere to
+    keep any of those.
+    """
+
+    def __init__(self, db: Session) -> None:
+        self._db = db
+
+    def to_talent(self, business: Business, skill_id: uuid.UUID) -> TalentProfile:
+        if TalentSkillRepository(self._db).get(skill_id) is None:
+            raise ValidationError("talent.unknown_skill", code="unknown_skill")
+        owner_has_profile = self._db.execute(
+            select(TalentProfile.id).where(TalentProfile.owner_id == business.owner_id)
+        ).first()
+        if owner_has_profile is not None:
+            raise ValidationError(
+                "business.convert_owner_has_profile", code="owner_has_profile"
+            )
+        if business.orders:
+            raise ValidationError("business.convert_has_orders", code="has_orders")
+        if business.store_link is not None:
+            raise ValidationError("business.convert_has_store", code="has_store")
+        if business.documents:
+            raise ValidationError("business.convert_has_documents", code="has_documents")
+
+        bio = (business.description or business.short_description or "").strip() or None
+        profile = TalentProfile(
+            owner_id=business.owner_id,
+            kind=TalentKind.SERVICE,
+            skill_id=skill_id,
+            location_id=business.location_id,
+            latitude=business.latitude,
+            longitude=business.longitude,
+            display_name=business.name,
+            slug=unique_slug(business.name, TalentRepository(self._db).slug_exists),
+            bio=bio,
+            years_experience=business.years_of_experience,
+            phone=business.phone,
+            whatsapp=business.whatsapp,
+            phone_public=business.phone_public,
+            email=business.email,
+            website=business.website,
+            youtube_video_id=business.youtube_video_id,
+            photo_url=business.logo_url,
+            photo_storage_key=business.logo_storage_key,
+            status=business.status,
+            rejection_reason=business.rejection_reason,
+            submitted_at=business.submitted_at,
+            approved_at=business.approved_at,
+            approved_by=business.approved_by,
+            rating_average=business.rating_average,
+            rating_count=business.rating_count,
+        )
+        self._db.add(profile)
+        self._db.flush()
+
+        for image in business.images:
+            self._db.add(
+                TalentImage(
+                    profile_id=profile.id,
+                    url=image.url,
+                    storage_key=image.storage_key,
+                    # The wide cover is gone (10 Nov 2026); it joins the gallery.
+                    kind=ImageKind.GALLERY if image.kind is ImageKind.COVER else image.kind,
+                    caption=image.caption,
+                    sort_order=image.sort_order,
+                    width=image.width,
+                    height=image.height,
+                )
+            )
+        for index, item in enumerate(sorted(business.items, key=lambda row: row.sort_order)):
+            description = (item.description or "").strip() or None
+            self._db.add(
+                TalentServiceOffer(
+                    profile_id=profile.id,
+                    title=item.title[:OFFER_TITLE],
+                    description=description[:OFFER_DESCRIPTION] if description else None,
+                    price_from=item.price,
+                    currency=item.currency,
+                    sort_order=index,
+                    image_url=item.image_url,
+                    image_storage_key=item.image_storage_key,
+                )
+            )
+            # A product's extra photos have no place on a service; they
+            # join the profile's gallery rather than being lost.
+            for extra in item.images:
+                self._db.add(
+                    TalentImage(
+                        profile_id=profile.id,
+                        url=extra.url,
+                        storage_key=extra.storage_key,
+                        kind=ImageKind.GALLERY,
+                        caption=extra.caption,
+                        sort_order=1000 + index,
+                    )
+                )
+        for link in business.social_links:
+            self._db.add(
+                TalentSocialLink(profile_id=profile.id, platform=link.platform, url=link.url)
+            )
+        for testimonial in self._db.execute(
+            select(Testimonial).where(Testimonial.business_id == business.id)
+        ).scalars():
+            testimonial.business_id = None
+            testimonial.talent_profile_id = profile.id
+        for story in self._db.execute(
+            select(StoryImage).where(StoryImage.business_id == business.id)
+        ).scalars():
+            story.business_id = None
+            story.talent_profile_id = profile.id
+
+        # The shop's rows go; its files do not -- they are the profile's now.
+        self._db.flush()
+        self._db.delete(business)
+        self._db.flush()
+
+        self._db.refresh(profile)
+        profile.search_text = TalentService(self._db)._build_search_text(profile)
+        self._db.commit()
+        logger.info(
+            "Shop moved into a service profile",
+            extra={"business_id": str(business.id), "profile_id": str(profile.id)},
+        )
+        return profile

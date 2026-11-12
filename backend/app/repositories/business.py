@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.core.arabic import normalize_arabic
 from app.core.pagination import Page
-from app.models.business import Business, BusinessItem, BusinessSlugAlias
+from app.models.business import Business, BusinessItem, BusinessSlugAlias, ModerationAction
 from app.models.enums import BusinessStatus, GoodsOrigin
 from app.models.taxonomy import Category, Location
 from app.models.user import User
@@ -292,6 +292,8 @@ class BusinessRepository(BaseRepository[Business]):
                 .options(
                     joinedload(Business.owner).selectinload(User.documents),
                     selectinload(Business.documents),
+                    selectinload(Business.approver),
+                    selectinload(Business.outreach_contacter),
                 )
                 .order_by(order)
                 .limit(page_size)
@@ -328,7 +330,9 @@ class BusinessRepository(BaseRepository[Business]):
             .options(
                 joinedload(Business.owner).selectinload(User.documents),
                 selectinload(Business.documents),
-                selectinload(Business.moderation_actions),
+                selectinload(Business.moderation_actions).selectinload(ModerationAction.actor),
+                selectinload(Business.approver),
+                selectinload(Business.outreach_contacter),
             )
         )
         return self.db.execute(stmt).unique().scalar_one_or_none()

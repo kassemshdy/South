@@ -16,7 +16,7 @@ from app.core.errors import NotFoundError, PayloadTooLargeError, ValidationError
 from app.core.i18n import translate
 from app.core.uploads import read_at_most
 from app.models.enums import ImageKind
-from app.models.talent import TalentImage, TalentProfile
+from app.models.talent import TalentImage, TalentProfile, TalentServiceOffer
 from app.schemas.business import ImageReorderIn
 from app.schemas.common import MessageResponse
 from app.schemas.talent import OwnerTalentOut
@@ -227,3 +227,49 @@ def clear_talent_gallery(
             db.delete(image)
     db.commit()
     return MessageResponse(message=translate("image.gallery_cleared"))
+
+
+def _own_offer(db: DbSession, profile: TalentProfile, offer_id: uuid.UUID) -> TalentServiceOffer:
+    offer = db.get(TalentServiceOffer, offer_id)
+    # Scoped to the caller's profile: an offer id of somebody else's reaches
+    # nothing.
+    if offer is None or offer.profile_id != profile.id:
+        raise NotFoundError("talent.offer_not_found")
+    return offer
+
+
+@router.post("/my/talent/offers/{offer_id}/image", response_model=OwnerTalentOut)
+def upload_offer_image(
+    offer_id: uuid.UUID,
+    profile: OwnTalentProfile,
+    db: DbSession,
+    settings: AppSettings,
+    file: Annotated[UploadFile, File(description="Image file")],
+) -> OwnerTalentOut:
+    """A photo for one priced service, shown like a product card (the
+    owners' review, 12 Nov 2026). Replaces the one it had."""
+    offer = _own_offer(db, profile, offer_id)
+    data = read_at_most(file.file, settings.max_upload_bytes)
+    if len(data) > settings.max_upload_bytes:
+        raise PayloadTooLargeError()
+    images = ImageService(get_storage(), settings)
+    stored = images.process_and_store(
+        data=data, content_type=file.content_type, owner_id=profile.id, kind=ImageKind.ITEM
+    )
+    images.delete(offer.image_storage_key)
+    offer.image_url, offer.image_storage_key = stored.url, stored.key
+    db.commit()
+    db.refresh(profile)
+    return owner_talent(profile)
+
+
+@router.delete("/my/talent/offers/{offer_id}/image", response_model=OwnerTalentOut)
+def delete_offer_image(
+    offer_id: uuid.UUID, profile: OwnTalentProfile, db: DbSession, settings: AppSettings
+) -> OwnerTalentOut:
+    offer = _own_offer(db, profile, offer_id)
+    ImageService(get_storage(), settings).delete(offer.image_storage_key)
+    offer.image_url = offer.image_storage_key = None
+    db.commit()
+    db.refresh(profile)
+    return owner_talent(profile)

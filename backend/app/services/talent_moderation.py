@@ -59,13 +59,13 @@ class TalentModerationService:
             profile.rejection_reason = None
         elif action is A.APPROVE:
             profile.approved_at = now
-            profile.approved_by = actor.id
+            profile.approver = actor
             profile.rejection_reason = None
         elif action is A.REJECT:
             profile.rejection_reason = reason
         elif action is A.REACTIVATE and profile.approved_at is None:
             profile.approved_at = now
-            profile.approved_by = actor.id
+            profile.approver = actor
 
         self._db.add(
             TalentModerationAction(

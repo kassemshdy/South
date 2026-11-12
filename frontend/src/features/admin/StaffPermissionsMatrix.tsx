@@ -29,6 +29,7 @@ const ROWS: { label: TranslationKey; hint?: TranslationKey; action: StaffAction 
   { label: 'staff.canCredentials', action: 'credentials' },
   { label: 'staff.canSupport', action: 'support' },
   { label: 'staff.canContent', action: 'content' },
+  { label: 'staff.canCategories', action: 'categories' },
   { label: 'staff.canActivities', action: 'activities' },
   { label: 'staff.canReels', action: 'reels' },
   { label: 'staff.canStories', action: 'stories' },

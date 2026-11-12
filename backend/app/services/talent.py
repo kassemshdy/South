@@ -13,6 +13,7 @@ from app.core.candidate_text import contains_contact_details, is_person_name
 from app.core.errors import ConflictError, NotFoundError, ValidationError
 from app.core.i18n import LazyJoin
 from app.core.urls import normalize_social_url, normalize_url, youtube_video_id
+from app.core.work_videos import parse_work_video
 from app.models.enums import BusinessStatus, TalentKind, ViewSubject, WorkMode
 from app.models.talent import (
     TalentCourse,
@@ -23,6 +24,7 @@ from app.models.talent import (
     TalentProfile,
     TalentServiceOffer,
     TalentSocialLink,
+    TalentVideo,
     TalentWorkArea,
     TalentWorkTypeRow,
 )
@@ -60,6 +62,9 @@ class TalentService:
         self._repo = TalentRepository(db)
         self._skills = TalentSkillRepository(db)
         self._locations = LocationRepository(db)
+        # Photos of offers an update removed; the route deletes the files,
+        # as it holds the storage backend.
+        self.removed_image_keys: list[str] = []
 
     # --- Creation and updates ---------------------------------------------
 
@@ -170,6 +175,7 @@ class TalentService:
                 "experiences",
                 "service_offers",
                 "faqs",
+                "work_videos",
                 "education",
                 "courses",
             )
@@ -233,7 +239,8 @@ class TalentService:
         ]
         # Checked against None rather than for truth: 0 is an answer -- someone
         # just starting out -- and the owners made the question compulsory.
-        if profile.years_experience is None:
+        # A job application only; optional for a service (12 Nov 2026).
+        if profile.kind == TalentKind.JOB_SEEKER and profile.years_experience is None:
             missing.append("talent.field.years_experience")
         # The owners made a pin compulsory for every seller; the town is
         # enough. Checked against None: 0.0 is a coordinate.
@@ -311,18 +318,39 @@ class TalentService:
             if payload.years_experience is None and profile.experiences:
                 profile.years_experience = _years_from(payload.experiences or [])
         if "service_offers" in data:
-            profile.service_offers.clear()
+            # Matched by id rather than replaced, so an offer's photo
+            # survives an edit of the profile (12 Nov 2026). An offer left
+            # out is removed, and its photo with it.
+            existing = {offer.id: offer for offer in profile.service_offers}
+            kept: list[TalentServiceOffer] = []
             for index, offer in enumerate(payload.service_offers or []):
-                profile.service_offers.append(
-                    TalentServiceOffer(
-                        title=offer.title,
-                        description=offer.description,
-                        price_from=offer.price_from,
-                        price_to=offer.price_to,
-                        currency=offer.currency,
-                        price_unit=offer.price_unit,
-                        sort_order=index,
-                    )
+                saved = existing.pop(offer.id, None) if offer.id is not None else None
+                if saved is None:
+                    saved = TalentServiceOffer()
+                saved.title = offer.title
+                saved.description = offer.description
+                saved.price_from = offer.price_from
+                saved.price_to = offer.price_to
+                saved.currency = offer.currency
+                saved.price_unit = offer.price_unit
+                saved.sort_order = index
+                kept.append(saved)
+            self.removed_image_keys.extend(
+                offer.image_storage_key
+                for offer in existing.values()
+                if offer.image_storage_key
+            )
+            profile.service_offers[:] = kept
+        if "work_videos" in data:
+            # Every link checked before any is kept: one bad link refuses
+            # the save rather than dropping silently.
+            videos = [
+                parse_work_video(raw) for raw in payload.work_videos or [] if raw.strip()
+            ]
+            profile.work_videos.clear()
+            for index, video in enumerate(videos):
+                profile.work_videos.append(
+                    TalentVideo(platform=video.platform, key=video.key, sort_order=index)
                 )
         if "faqs" in data:
             profile.faqs.clear()

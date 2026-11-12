@@ -22,6 +22,7 @@ import { ImagePreviewDialog } from '@/features/admin/ImagePreviewDialog'
 import { openPrivateFile, type PreviewImage } from '@/features/admin/openPrivateFile'
 import { IssueCredentialsCard } from '@/features/admin/IssueCredentialsCard'
 import { MoveItemsCard } from '@/features/admin/MoveItemsCard'
+import { ConvertToServicesCard } from '@/features/admin/ConvertToServicesCard'
 import { ViewAsButton } from '@/features/admin/ViewAsButton'
 import { OwnerIdentityCard } from '@/features/admin/OwnerIdentityCard'
 import { OwnerWhatsappButton } from '@/features/admin/OwnerWhatsappButton'
@@ -327,6 +328,7 @@ export function AdminReviewPage() {
           ) : null}
 
           {canModerate ? <MoveItemsCard business={data} /> : null}
+          {canModerate ? <ConvertToServicesCard businessId={data.id} /> : null}
 
           {data.items.length > 0 ? (
             <Card>
@@ -548,6 +550,11 @@ export function AdminReviewPage() {
                         <span className="text-xs text-ink-300">
                           {formatDate(action.created_at, locale)}
                         </span>
+                        {action.actor_name ? (
+                          <span className="text-xs font-semibold text-ink-500" dir="auto">
+                            {t('admin.byStaff', { name: action.actor_name })}
+                          </span>
+                        ) : null}
                       </div>
                       {action.reason ? <p className="mt-1 text-sm text-ink-500">{action.reason}</p> : null}
                     </li>

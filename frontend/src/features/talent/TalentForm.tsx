@@ -60,6 +60,8 @@ interface TalentFormProps {
   /** The parent's last save failure, so a 422 lands on the right input. */
   serverError?: unknown
   footer?: React.ReactNode
+  /** Extra fields shown above the submit button (the sign-up photo). */
+  beforeSubmit?: React.ReactNode
   /**
    * Called when a submit fails this form's own validation. The registration
    * pages use it to mark their own fields too and scroll to the topmost error,
@@ -118,6 +120,7 @@ export function TalentForm({
   onSubmit,
   serverError,
   footer,
+  beforeSubmit,
   onInvalid,
   identityElsewhere = true,
 }: TalentFormProps) {
@@ -211,6 +214,8 @@ export function TalentForm({
         })) ?? [],
       service_offers:
         profile?.service_offers?.map((offer) => ({
+          // Not `id`: useFieldArray keeps its own key under that name.
+          offer_id: offer.id,
           title: offer.title,
           description: offer.description ?? '',
           price_from: plainPrice(offer.price_from),
@@ -219,6 +224,7 @@ export function TalentForm({
           price_unit: offer.price_unit ?? '',
         })) ?? [],
       faqs: profile?.faqs?.map((faq) => ({ question: faq.question, answer: faq.answer })) ?? [],
+      work_videos: (profile?.work_videos ?? []).map((video) => video.url).join('\n'),
       education:
         profile?.education?.map((entry) => ({
           degree: entry.degree ?? '',
@@ -294,6 +300,8 @@ export function TalentForm({
         ? {}
         : {
             service_offers: values.service_offers.map((offer) => ({
+              // Sent back so a saved offer keeps its photo (12 Nov 2026).
+              ...(offer.offer_id ? { id: offer.offer_id } : {}),
               title: offer.title,
               description: offer.description || null,
               price_from: offer.price_from || null,
@@ -302,6 +310,10 @@ export function TalentForm({
               price_unit: offer.price_unit || null,
             })),
             faqs: values.faqs.map((faq) => ({ question: faq.question, answer: faq.answer })),
+            work_videos: values.work_videos
+              .split('\n')
+              .map((line) => line.trim())
+              .filter(Boolean),
           }),
       hobbies: values.hobbies || null,
       employment_type: (values.employment_type || null) as TalentPayload['employment_type'],
@@ -484,7 +496,7 @@ export function TalentForm({
 
         <Field
           label={t('talentForm.yearsExperience')}
-          required
+          required={isCandidate}
           error={errors.years_experience?.message}
         >
           {(props) => (
@@ -684,6 +696,28 @@ export function TalentForm({
           )}
         </Field>
 
+        {/* Videos of the work, from any of four platforms (the owners'
+            review, 12 Nov 2026). Services only. */}
+        {!isCandidate ? (
+          <div className="sm:col-span-2">
+            <Field
+              label={t('workVideos.label')}
+              hint={t('workVideos.hint')}
+              error={errors.work_videos?.message}
+            >
+              {(props) => (
+                <Textarea
+                  {...props}
+                  {...register('work_videos')}
+                  rows={3}
+                  dir="ltr"
+                  placeholder="https://www.tiktok.com/@.../video/..."
+                />
+              )}
+            </Field>
+          </div>
+        ) : null}
+
         {/* Spans both columns: the hint explaining what the video is for
             needs the width, and a half-width field beside a phone number
             reads as another contact detail rather than a page section. */}
@@ -719,71 +753,10 @@ export function TalentForm({
           <p className="mt-1 text-sm text-ink-500">{t('talentForm.professionalHint')}</p>
         </div>
 
-        {/* A job seeker gives these as dated entries in the sections below;
-            the free-text fields stay for a service. */}
-        {!isCandidate ? (
-          <>
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field label={t('talentForm.highestDegree')} error={errors.highest_degree?.message}>
-            {(props) => <Input {...props} {...register('highest_degree')} />}
-          </Field>
-          <Field label={t('talentForm.specialization')} error={errors.specialization?.message}>
-            {(props) => <Input {...props} {...register('specialization')} />}
-          </Field>
-        </div>
-
-        <Field label={t('talentForm.university')} error={errors.university?.message}>
-          {(props) => <Input {...props} {...register('university')} />}
-        </Field>
-
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field label={t('talentForm.educationYears')} error={errors.education_years?.message}>
-            {(props) => (
-              <Input
-                {...props}
-                {...register('education_years')}
-                inputMode="numeric"
-                dir="ltr"
-                className="ltr-nums"
-                invalid={Boolean(errors.education_years)}
-              />
-            )}
-          </Field>
-          <Field label={t('talentForm.graduationDate')} error={errors.graduation_date?.message}>
-            {(props) => (
-              <Input
-                {...props}
-                {...register('graduation_date')}
-                type="date"
-                dir="ltr"
-                className="ltr-nums"
-                invalid={Boolean(errors.graduation_date)}
-              />
-            )}
-          </Field>
-        </div>
-
-        <Field
-          label={t('talentForm.studyFocus')}
-          hint={t('talentForm.studyFocusHint')}
-          error={errors.study_focus?.message}
-        >
-          {(props) => <Textarea {...props} {...register('study_focus')} rows={2} />}
-        </Field>
-
-        <Field label={t('talentForm.experience')} error={errors.experience?.message}>
-          {(props) => <Textarea {...props} {...register('experience')} rows={4} />}
-        </Field>
-
-        <Field
-          label={t('talentForm.professionalTraining')}
-          hint={t('talentForm.professionalTrainingHint')}
-          error={errors.professional_training?.message}
-        >
-          {(props) => <Textarea {...props} {...register('professional_training')} rows={2} />}
-        </Field>
-          </>
-        ) : null}
+        {/* No degree, university, training or experience fields for a
+            service (the owners' review, 12 Nov 2026): a services provider
+            is judged by what they offer, not a CV. A job seeker gives
+            these as dated entries in the sections below. */}
 
         <Field
           label={t('talentForm.skillsText')}
@@ -807,46 +780,18 @@ export function TalentForm({
           </Field>
         ) : null}
 
-        <Field
-          label={t('talentForm.hobbies')}
-          hint={t('talentForm.hobbiesHint')}
-          error={errors.hobbies?.message}
-        >
-          {(props) => <Textarea {...props} {...register('hobbies')} rows={2} />}
-        </Field>
-
-        {!isCandidate ? (
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field label={t('talentForm.employmentType')} error={errors.employment_type?.message}>
-            {(props) => (
-              <Controller
-                control={control}
-                name="employment_type"
-                render={({ field }) => (
-                  <Select value={field.value ?? ''} onValueChange={field.onChange}>
-                    <SelectTrigger id={props.id}>
-                      <SelectValue placeholder={t('talentForm.employmentTypePlaceholder')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="FULL_TIME">{t('talentForm.employmentTypeFullTime')}</SelectItem>
-                      <SelectItem value="PART_TIME">{t('talentForm.employmentTypePartTime')}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            )}
+        {isCandidate ? (
+          <Field
+            label={t('talentForm.hobbies')}
+            hint={t('talentForm.hobbiesHint')}
+            error={errors.hobbies?.message}
+          >
+            {(props) => <Textarea {...props} {...register('hobbies')} rows={2} />}
           </Field>
-
-          {/* A service answers the remote / in-person question above instead. */}
-          {kind !== 'SERVICE' ? (
-            <label className="flex items-center gap-3 self-end rounded-xl border-2 border-ink-100 p-3.5">
-              <input type="checkbox" {...register('remote_capable')} className="h-5 w-5 accent-brand-600" />
-              <span className="font-medium">{t('talentForm.remoteCapable')}</span>
-            </label>
-          ) : null}
-        </div>
         ) : null}
 
+        {/* Languages: a job seeker's CV, not a service's (12 Nov 2026). */}
+        {isCandidate ? (
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <span className="text-sm font-semibold text-ink-700">
@@ -922,6 +867,7 @@ export function TalentForm({
             </ul>
           )}
         </div>
+        ) : null}
       </section>
 
       {isCandidate ? (
@@ -950,6 +896,8 @@ export function TalentForm({
           {t('talentForm.identityMovedNote')}
         </p>
       ) : null}
+
+      {beforeSubmit}
 
       {/* Above the button, not below it and not in `footer`: the whole point
           is that it is read *before* the profile is sent. A warning a person

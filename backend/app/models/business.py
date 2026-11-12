@@ -181,6 +181,7 @@ class Business(Base, TimestampMixin):
 
     owner: Mapped[User] = relationship(back_populates="businesses", foreign_keys=[owner_id])
     approver: Mapped[User | None] = relationship(foreign_keys=[approved_by])
+    outreach_contacter: Mapped[User | None] = relationship(foreign_keys=[outreach_contacted_by])
     category: Mapped[Category | None] = relationship(back_populates="businesses")
     location: Mapped[Location | None] = relationship(back_populates="businesses")
 
@@ -440,6 +441,7 @@ class ModerationAction(Base):
     )
 
     business: Mapped[Business] = relationship(back_populates="moderation_actions")
+    actor: Mapped[User | None] = relationship(foreign_keys=[actor_id])
 
 
 class BusinessSlugAlias(Base):

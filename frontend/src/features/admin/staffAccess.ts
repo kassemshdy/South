@@ -14,6 +14,7 @@ export type StaffAction =
   | 'credentials' // issue an owner's password
   | 'support' // tickets, partner requests, set-aside applications
   | 'content' // pages, articles, covers, team, categories and places
+  | 'categories' // add and edit categories (reviewers too)
   | 'manage' // staff, export, permanent deletes, site settings
   | 'employerRequests' // read employers' requests for candidates and mark them
   | 'activities' // the activities and the carousel
@@ -26,6 +27,7 @@ const ALLOWED: Record<StaffAction, StaffRole[]> = {
   credentials: ['MANAGER', 'REVIEWER', 'SUPPORT'],
   support: ['MANAGER', 'SUPPORT'],
   content: ['MANAGER', 'EDITOR'],
+  categories: ['MANAGER', 'EDITOR', 'REVIEWER'],
   manage: ['MANAGER'],
   employerRequests: ['MANAGER', 'REVIEWER', 'SUPPORT'],
   activities: ['MANAGER', 'EDITOR', 'ACTIVITIES'],

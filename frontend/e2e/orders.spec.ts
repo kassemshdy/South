@@ -52,7 +52,10 @@ test.describe('Cart and order', () => {
     await page.getByRole('button', { name: t('cart.add') }).click()
 
     // Survives a page change: the cart is not state belonging to that page.
+    // On a phone the cart is in the menu (the owners' request, 12 Nov 2026).
     await page.goto('/products')
+    const menuButton = page.getByRole('button', { name: t('nav.openMenu') })
+    if (await menuButton.isVisible()) await menuButton.click()
     await page.getByRole('link', { name: t('cart.link') }).first().click()
     await expect(page).toHaveURL(/\/cart/)
     await expect(page.getByText(title, { exact: false }).first()).toBeVisible()

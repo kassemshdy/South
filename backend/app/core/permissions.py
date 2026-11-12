@@ -60,6 +60,9 @@ _MODERATE = frozenset({M, R})
 _SUPPORT = frozenset({M, S})
 _CREDENTIALS = frozenset({M, R, S})
 _CONTENT = frozenset({M, E})
+# Reviewers add and rename categories while reviewing shops (the owners'
+# request, 12 Nov 2026); deleting and merging stay with the roles above.
+_CATEGORIES = frozenset({M, E, R})
 # The two single-area roles (the owners' ticket, 5 Nov 2026): each reads the
 # whole admin area like every role, and writes only its own area.
 _ACTIVITIES = frozenset({M, E, A})
@@ -83,6 +86,8 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
         )
     },
     ("DELETE", "/api/admin/businesses/{business_id}/items/{item_id}"): _MODERATE,
+    # The other direction of the talent conversion, for the same roles.
+    ("POST", "/api/admin/businesses/{business_id}/convert-to-talent"): _MODERATE,
     # The products page: editing a product or its photo (11 Nov 2026).
     ("PUT", "/api/admin/businesses/{business_id}/items/{item_id}"): _MODERATE,
     ("POST", "/api/admin/businesses/{business_id}/items/{item_id}/image"): _MODERATE,
@@ -196,10 +201,12 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     ("DELETE", "/api/admin/reels/{reel_id}"): _REELS,
     ("POST", "/api/admin/reels/{reel_id}/cover"): _REELS,
     ("DELETE", "/api/admin/reels/{reel_id}/cover"): _REELS,
+    ("POST", "/api/admin/categories"): _CATEGORIES,
+    ("PUT", "/api/admin/categories/{category_id}"): _CATEGORIES,
+    ("DELETE", "/api/admin/categories/{category_id}"): _CONTENT,
     **{
         (method, path): _CONTENT
         for kind, key in (
-            ("categories", "category_id"),
             ("locations", "location_id"),
             ("talent-skills", "skill_id"),
         )

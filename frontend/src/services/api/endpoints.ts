@@ -7,6 +7,7 @@
 
 import { apiDownload, apiRequest } from '@/services/api/client'
 import type {
+  ServiceOfferCard,
   AdminItem,
   JobApplication,
   EducationLevel,
@@ -236,7 +237,9 @@ export interface TalentPayload {
   team_message?: string | null
   experiences?: Omit<TalentExperience, 'id'>[]
   /** Services: replaces the stored list; omitted keeps it. */
-  service_offers?: Omit<TalentServiceOffer, 'id'>[]
+  work_videos?: string[]
+  /** A saved offer carries its id, so its photo survives the edit. */
+  service_offers?: (Omit<TalentServiceOffer, 'id' | 'image_url' | 'image_thumb_url'> & { id?: string })[]
   faqs?: Omit<TalentFaq, 'id'>[]
   education?: Omit<TalentEducationEntry, 'id'>[]
   courses?: Omit<TalentCourse, 'id'>[]
@@ -601,6 +604,9 @@ export const publicTalentApi = {
   search: (query: TalentQuery) =>
     apiRequest<Paginated<TalentSummary>>('/api/talent', { query: { ...query } }),
   latest: (limit = 8) => apiRequest<TalentSummary[]>('/api/talent/latest', { query: { limit } }),
+  /** Newest priced services with a photo, for the services page's row. */
+  offers: (limit = 8) =>
+    apiRequest<ServiceOfferCard[]>('/api/talent/offers', { query: { limit } }),
   bySlug: (slug: string) => apiRequest<TalentDetail>(`/api/talent/${encodeURIComponent(slug)}`),
   /** A job seeker's CV, when `has_cv`: a plain link the browser downloads. */
   cvUrl: (slug: string) => `/api/talent/${encodeURIComponent(slug)}/cv`,
@@ -628,6 +634,17 @@ export const ownerTalentApi = {
   deleteStory: (id: string) =>
     apiRequest<Story[]>(`/api/my/talent/stories/${id}`, { method: 'DELETE' }),
   get: () => apiRequest<OwnerTalent>('/api/my/talent'),
+  /** A photo for one saved priced service; answers with the profile. */
+  uploadOfferImage: (offerId: string, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return apiRequest<OwnerTalent>(`/api/my/talent/offers/${offerId}/image`, {
+      method: 'POST',
+      formData: form,
+    })
+  },
+  deleteOfferImage: (offerId: string) =>
+    apiRequest<OwnerTalent>(`/api/my/talent/offers/${offerId}/image`, { method: 'DELETE' }),
   create: (payload: TalentPayload) =>
     apiRequest<OwnerTalent>('/api/talent', { method: 'POST', body: payload }),
   update: (payload: Partial<TalentPayload>) =>
@@ -1059,6 +1076,12 @@ export const adminApi = {
     apiRequest<AdminBusiness>(`/api/admin/businesses/${businessId}/items/move`, {
       method: 'POST',
       body: { target_business_id: targetBusinessId },
+    }),
+  /** Move a shop that offers a service into a services profile. */
+  convertBusinessToTalent: (businessId: string, skill_id: string) =>
+    apiRequest<{ profile_id: string }>(`/api/admin/businesses/${businessId}/convert-to-talent`, {
+      method: 'POST',
+      body: { skill_id },
     }),
   convertTalentToBusiness: (profileId: string, category_id: string) =>
     apiRequest<{ business_id: string }>(`/api/admin/talent/${profileId}/convert-to-business`, {
@@ -1556,17 +1579,26 @@ export const registrationApi = {
       formData: form,
     })
   },
-  talent: (applicant: Applicant, talent: TalentPayload, captcha_token: string | null) =>
-    apiRequest<RegistrationResult>('/api/register/talent', {
+  /** `logo` is optional for a services provider; review still asks for one. */
+  talent: (
+    applicant: Applicant,
+    talent: TalentPayload,
+    captcha_token: string | null,
+    logo?: File | null,
+  ) => {
+    const form = applicationForm(
+      {
+        login_phone: applicant.phone,
+        identity: applicant.identity,
+        talent,
+        captcha_token,
+      },
+      applicant.documents,
+    )
+    if (logo) form.append('logo', logo)
+    return apiRequest<RegistrationResult>('/api/register/talent', {
       method: 'POST',
-      formData: applicationForm(
-        {
-          login_phone: applicant.phone,
-          identity: applicant.identity,
-          talent,
-          captcha_token,
-        },
-        applicant.documents,
-      ),
-    }),
+      formData: form,
+    })
+  },
 }
