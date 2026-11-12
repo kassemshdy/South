@@ -1556,17 +1556,26 @@ export const registrationApi = {
       formData: form,
     })
   },
-  talent: (applicant: Applicant, talent: TalentPayload, captcha_token: string | null) =>
-    apiRequest<RegistrationResult>('/api/register/talent', {
+  /** `logo` is optional for a services provider; review still asks for one. */
+  talent: (
+    applicant: Applicant,
+    talent: TalentPayload,
+    captcha_token: string | null,
+    logo?: File | null,
+  ) => {
+    const form = applicationForm(
+      {
+        login_phone: applicant.phone,
+        identity: applicant.identity,
+        talent,
+        captcha_token,
+      },
+      applicant.documents,
+    )
+    if (logo) form.append('logo', logo)
+    return apiRequest<RegistrationResult>('/api/register/talent', {
       method: 'POST',
-      formData: applicationForm(
-        {
-          login_phone: applicant.phone,
-          identity: applicant.identity,
-          talent,
-          captcha_token,
-        },
-        applicant.documents,
-      ),
-    }),
+      formData: form,
+    })
+  },
 }

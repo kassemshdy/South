@@ -23,9 +23,19 @@ interface RegistrationLogoFieldProps {
   file: File | null
   error: string | undefined
   onPick: (file: File | null, error: string | null) => void
+  /** A shop's logo is required; a services provider's photo is optional
+   * on the form (the owners' review, 12 Nov 2026). */
+  required?: boolean
+  label?: string
 }
 
-export function RegistrationLogoField({ file, error, onPick }: RegistrationLogoFieldProps) {
+export function RegistrationLogoField({
+  file,
+  error,
+  onPick,
+  required = true,
+  label,
+}: RegistrationLogoFieldProps) {
   const t = useT()
   const [preview, setPreview] = useState<string | null>(null)
 
@@ -40,7 +50,12 @@ export function RegistrationLogoField({ file, error, onPick }: RegistrationLogoF
   }, [file])
 
   return (
-    <Field label={t('business.field.logo')} hint={t('images.logoHint')} required error={error}>
+    <Field
+      label={label ?? t('business.field.logo')}
+      hint={t('images.logoHint')}
+      required={required}
+      error={error}
+    >
       {(props) => (
         <div className="flex flex-wrap items-center gap-3 rounded-xl border-2 border-dashed border-sand-300 bg-sand-50 p-3">
           {preview ? (
