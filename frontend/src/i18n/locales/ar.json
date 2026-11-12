@@ -2555,5 +2555,6 @@
   "adminProducts.fieldTitle": "الاسم",
   "adminProducts.fieldDescription": "الوصف",
   "adminProducts.fieldPrice": "السعر ({currency})",
-  "adminProducts.save": "حفظ"
+  "adminProducts.save": "حفظ",
+  "register.talentPhoto": "صورتك أو شعارك"
 }

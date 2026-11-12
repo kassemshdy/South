@@ -2555,5 +2555,6 @@
   "adminProducts.fieldTitle": "Name",
   "adminProducts.fieldDescription": "Description",
   "adminProducts.fieldPrice": "Price ({currency})",
-  "adminProducts.save": "Save"
+  "adminProducts.save": "Save",
+  "register.talentPhoto": "Your photo or logo"
 }

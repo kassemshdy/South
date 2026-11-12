@@ -233,7 +233,8 @@ class TalentService:
         ]
         # Checked against None rather than for truth: 0 is an answer -- someone
         # just starting out -- and the owners made the question compulsory.
-        if profile.years_experience is None:
+        # A job application only; optional for a service (12 Nov 2026).
+        if profile.kind == TalentKind.JOB_SEEKER and profile.years_experience is None:
             missing.append("talent.field.years_experience")
         # The owners made a pin compulsory for every seller; the town is
         # enough. Checked against None: 0.0 is a coordinate.

@@ -9,12 +9,14 @@
  */
 
 import { useMutation } from '@tanstack/react-query'
+import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 
 import { useToast } from '@/components/ui/Toast'
 import { RegistrationShell, unwrapFieldErrors } from '@/features/onboarding/RegistrationShell'
 import { kindFromQuery } from '@/features/talent/kind'
 import { TalentForm } from '@/features/talent/TalentForm'
+import { RegistrationLogoField } from '@/features/onboarding/RegistrationLogoField'
 import { PhoneSignupGate } from '@/features/auth/PhoneSignup'
 import { useSeo } from '@/hooks/useSeo'
 import { useT } from '@/i18n'
@@ -30,6 +32,8 @@ export function RegisterTalentPage() {
   const toast = useToast()
   const [searchParams] = useSearchParams()
   const initialKind = kindFromQuery(searchParams.get('kind'))
+  const [logo, setLogo] = useState<File | null>(null)
+  const [logoError, setLogoError] = useState<string | undefined>(undefined)
 
   useSeo({ title: t('register.talentSeoTitle'), description: t('register.talentSubtitle') })
 
@@ -38,7 +42,7 @@ export function RegisterTalentPage() {
       applicant: Applicant
       payload: TalentPayload
       token: string | null
-    }) => registrationApi.talent(input.applicant, input.payload, input.token),
+    }) => registrationApi.talent(input.applicant, input.payload, input.token, logo),
     onError: (error) =>
       toast.error(
         t('register.failed'),
@@ -74,6 +78,16 @@ export function RegisterTalentPage() {
           onInvalid={reportInvalid}
           footer={
             <>
+              <RegistrationLogoField
+                file={logo}
+                error={logoError}
+                required={false}
+                label={t('register.talentPhoto')}
+                onPick={(file, error) => {
+                  setLogo(file)
+                  setLogoError(error ?? undefined)
+                }}
+              />
               {captcha}
               <Link
                 to="/register/business"

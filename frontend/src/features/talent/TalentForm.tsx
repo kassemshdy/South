@@ -484,7 +484,7 @@ export function TalentForm({
 
         <Field
           label={t('talentForm.yearsExperience')}
-          required
+          required={isCandidate}
           error={errors.years_experience?.message}
         >
           {(props) => (
@@ -719,71 +719,10 @@ export function TalentForm({
           <p className="mt-1 text-sm text-ink-500">{t('talentForm.professionalHint')}</p>
         </div>
 
-        {/* A job seeker gives these as dated entries in the sections below;
-            the free-text fields stay for a service. */}
-        {!isCandidate ? (
-          <>
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field label={t('talentForm.highestDegree')} error={errors.highest_degree?.message}>
-            {(props) => <Input {...props} {...register('highest_degree')} />}
-          </Field>
-          <Field label={t('talentForm.specialization')} error={errors.specialization?.message}>
-            {(props) => <Input {...props} {...register('specialization')} />}
-          </Field>
-        </div>
-
-        <Field label={t('talentForm.university')} error={errors.university?.message}>
-          {(props) => <Input {...props} {...register('university')} />}
-        </Field>
-
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field label={t('talentForm.educationYears')} error={errors.education_years?.message}>
-            {(props) => (
-              <Input
-                {...props}
-                {...register('education_years')}
-                inputMode="numeric"
-                dir="ltr"
-                className="ltr-nums"
-                invalid={Boolean(errors.education_years)}
-              />
-            )}
-          </Field>
-          <Field label={t('talentForm.graduationDate')} error={errors.graduation_date?.message}>
-            {(props) => (
-              <Input
-                {...props}
-                {...register('graduation_date')}
-                type="date"
-                dir="ltr"
-                className="ltr-nums"
-                invalid={Boolean(errors.graduation_date)}
-              />
-            )}
-          </Field>
-        </div>
-
-        <Field
-          label={t('talentForm.studyFocus')}
-          hint={t('talentForm.studyFocusHint')}
-          error={errors.study_focus?.message}
-        >
-          {(props) => <Textarea {...props} {...register('study_focus')} rows={2} />}
-        </Field>
-
-        <Field label={t('talentForm.experience')} error={errors.experience?.message}>
-          {(props) => <Textarea {...props} {...register('experience')} rows={4} />}
-        </Field>
-
-        <Field
-          label={t('talentForm.professionalTraining')}
-          hint={t('talentForm.professionalTrainingHint')}
-          error={errors.professional_training?.message}
-        >
-          {(props) => <Textarea {...props} {...register('professional_training')} rows={2} />}
-        </Field>
-          </>
-        ) : null}
+        {/* No degree, university, training or experience fields for a
+            service (the owners' review, 12 Nov 2026): a services provider
+            is judged by what they offer, not a CV. A job seeker gives
+            these as dated entries in the sections below. */}
 
         <Field
           label={t('talentForm.skillsText')}
@@ -807,46 +746,18 @@ export function TalentForm({
           </Field>
         ) : null}
 
-        <Field
-          label={t('talentForm.hobbies')}
-          hint={t('talentForm.hobbiesHint')}
-          error={errors.hobbies?.message}
-        >
-          {(props) => <Textarea {...props} {...register('hobbies')} rows={2} />}
-        </Field>
-
-        {!isCandidate ? (
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field label={t('talentForm.employmentType')} error={errors.employment_type?.message}>
-            {(props) => (
-              <Controller
-                control={control}
-                name="employment_type"
-                render={({ field }) => (
-                  <Select value={field.value ?? ''} onValueChange={field.onChange}>
-                    <SelectTrigger id={props.id}>
-                      <SelectValue placeholder={t('talentForm.employmentTypePlaceholder')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="FULL_TIME">{t('talentForm.employmentTypeFullTime')}</SelectItem>
-                      <SelectItem value="PART_TIME">{t('talentForm.employmentTypePartTime')}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            )}
+        {isCandidate ? (
+          <Field
+            label={t('talentForm.hobbies')}
+            hint={t('talentForm.hobbiesHint')}
+            error={errors.hobbies?.message}
+          >
+            {(props) => <Textarea {...props} {...register('hobbies')} rows={2} />}
           </Field>
-
-          {/* A service answers the remote / in-person question above instead. */}
-          {kind !== 'SERVICE' ? (
-            <label className="flex items-center gap-3 self-end rounded-xl border-2 border-ink-100 p-3.5">
-              <input type="checkbox" {...register('remote_capable')} className="h-5 w-5 accent-brand-600" />
-              <span className="font-medium">{t('talentForm.remoteCapable')}</span>
-            </label>
-          ) : null}
-        </div>
         ) : null}
 
+        {/* Languages: a job seeker's CV, not a service's (12 Nov 2026). */}
+        {isCandidate ? (
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <span className="text-sm font-semibold text-ink-700">
@@ -922,6 +833,7 @@ export function TalentForm({
             </ul>
           )}
         </div>
+        ) : null}
       </section>
 
       {isCandidate ? (

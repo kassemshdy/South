@@ -121,7 +121,9 @@ class TalentRegistrationIn(RegistrationBase):
         # Optional on a dashboard draft, which can be saved half-done, but an
         # application goes straight to review -- and the owners made the
         # number compulsory, since the directory can be sorted by it.
-        if self.talent.years_experience is None:
+        # Compulsory for a job application only: a service is judged by what
+        # it offers (the owners' review, 12 Nov 2026).
+        if self.talent.kind == TalentKind.JOB_SEEKER and self.talent.years_experience is None:
             raise ValueError(translate("registration.years_experience_required"))
         # Services or a job application: the applicant's own choice, and
         # which directory the profile is listed in once approved.

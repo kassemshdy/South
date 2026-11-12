@@ -113,7 +113,7 @@ def _register(
         files["document"] = document
     if document_back is not None:
         files["document_back"] = document_back
-    if kind == "business" and logo is not None:
+    if logo is not None and (kind == "business" or logo is not LOGO_FILE):
         files["logo"] = logo
     return client.post(
         f"/api/register/{kind}",
@@ -977,7 +977,7 @@ def test_a_talent_application_without_years_of_experience_is_refused(
     skill: TalentSkill,
     location: Location,
 ) -> None:
-    """The owners made the number compulsory; 0 is an answer, absent is not."""
+    """Compulsory for a job application; 0 is an answer, absent is not."""
     response = _register(
         client,
         "talent",
@@ -991,6 +991,7 @@ def test_a_talent_application_without_years_of_experience_is_refused(
                 "latitude": 33.27,
                 "longitude": 35.2,
                 "whatsapp": APPLICANT_PHONE,
+                "kind": "JOB_SEEKER",
             },
         },
     )
@@ -1215,3 +1216,37 @@ def test_a_password_pasted_on_a_phone_still_signs_in(
         json={"identifier": owner.phone_number, "password": f"\u200e{password}x"},
     )
     assert wrong.status_code == 401
+
+
+def test_a_service_application_needs_no_years_and_may_bring_its_photo(
+    client: TestClient,
+    db: Session,
+    skill: TalentSkill,
+    location: Location,
+) -> None:
+    """The owners' review (12 Nov 2026): years of experience is a job
+    application's question, and a services provider may send a logo or
+    photo with the form rather than only after signing in."""
+    response = _register(
+        client,
+        "talent",
+        {
+            "login_phone": APPLICANT_PHONE,
+            "identity": dict(IDENTITY),
+            "talent": {
+                "display_name": ar("talent.applicant"),
+                "skill_id": str(skill.id),
+                "location_id": str(location.id),
+                "latitude": 33.27,
+                "longitude": 35.2,
+                "whatsapp": APPLICANT_PHONE,
+                "kind": "SERVICE",
+                "work_mode": "BOTH",
+            },
+        },
+        logo=("photo.png", PNG_BYTES, "image/png"),
+    )
+    assert response.status_code == 202, response.text
+    profile = db.execute(select(TalentProfile)).scalar_one()
+    assert profile.years_experience is None
+    assert profile.photo_url

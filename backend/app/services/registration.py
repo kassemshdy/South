@@ -251,10 +251,19 @@ class RegistrationService:
         *,
         client_ip: str | None,
         documents: ApplicantDocuments | None = None,
+        logo: ApplicantLogo | None = None,
     ) -> None:
         self._guard(payload.captcha_token, client_ip)
         scans = documents or ApplicantDocuments()
         self._check_documents(scans)
+        # A logo or photo is offered on the form but not required there (the
+        # owners' review, 12 Nov 2026); review still asks for one. Checked
+        # before anything is created, as for a shop.
+        photo = logo if logo is not None and logo.data else None
+        if photo is not None:
+            ImageService(get_storage(), self._settings).validate(
+                data=photo.data, content_type=photo.content_type
+            )
 
         owner = self._claim_account(payload, ApplicationKind.TALENT)
         if owner is None:
@@ -263,6 +272,18 @@ class RegistrationService:
 
         profile = TalentService(self._db).create(owner, payload.talent)
         profile.status = BusinessStatus.PENDING_REVIEW
+        if photo is not None:
+            # Imported here: the image route module imports services itself.
+            from app.api.v1.talent_images import PHOTO_KIND, store_talent_image
+
+            store_talent_image(
+                self._db,
+                self._settings,
+                profile,
+                kind=PHOTO_KIND,
+                data=photo.data,
+                content_type=photo.content_type,
+            )
         self._attach_documents(owner, scans)
         self._db.commit()
         logger.info(

@@ -157,11 +157,13 @@ def register_talent(
     application: ApplicationField,
     document: DocumentField = None,
     document_back: DocumentBackField = None,
+    logo: LogoField = None,
 ) -> RegistrationOut:
-    """Apply to list a talent profile."""
+    """Apply to list a talent profile. The photo or logo is optional here."""
     RegistrationService(db, settings).register_talent(
         _parse(TalentRegistrationIn, application),
         client_ip=client_ip,
         documents=_documents(document, document_back, settings.max_verification_doc_bytes),
+        logo=_logo(logo, settings.max_upload_bytes),
     )
     return RegistrationOut(message=translate("registration.received"))
