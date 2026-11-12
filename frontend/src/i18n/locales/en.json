@@ -2571,5 +2571,10 @@
   "register.talentPhoto": "Your photo or logo",
   "wizard.servicesOwnerTitle": "You have a services profile",
   "wizard.servicesOwnerBody": "This form opens a shop that sells goods and products. To add a service or edit your profile, go back to your services profile.",
-  "wizard.servicesOwnerBack": "Back to my services profile"
+  "wizard.servicesOwnerBack": "Back to my services profile",
+  "workVideos.label": "Videos of your work",
+  "workVideos.hint": "Paste links to YouTube, Instagram, TikTok or Facebook videos, one per line, up to 6.",
+  "workVideos.tooMany": "At most 6 links.",
+  "workVideos.heading": "Videos of my work",
+  "workVideos.open": "Watch on the platform"
 }

@@ -14,6 +14,7 @@ from typing import Any, TypeVar
 
 from app.core.pagination import Page
 from app.core.pins import public_pin
+from app.core.work_videos import WorkVideo
 from app.models.article import Article
 from app.models.business import Business, BusinessItem
 from app.models.enums import BusinessStatus, Currency, ImageKind, TalentKind
@@ -62,6 +63,7 @@ from app.schemas.talent import (
     TalentServiceOfferOut,
     TalentSkillOut,
     TalentSummaryOut,
+    TalentVideoOut,
 )
 from app.schemas.taxonomy import CategoryOut, LocationOut
 from app.schemas.testimonial import AdminTestimonialOut, OwnerTestimonialOut, TestimonialOut
@@ -463,6 +465,11 @@ def talent_detail(
             TalentServiceOfferOut.model_validate(offer) for offer in profile.service_offers
         ],
         faqs=[TalentFaqOut.model_validate(faq) for faq in profile.faqs],
+        work_videos=[
+            TalentVideoOut(platform=video.platform, url=parsed.url, embed_url=parsed.embed_url)
+            for video in profile.work_videos
+            for parsed in (WorkVideo(video.platform, video.key),)
+        ],
         education=[TalentEducationOut.model_validate(entry) for entry in profile.education],
         courses=[TalentCourseOut.model_validate(entry) for entry in profile.courses],
     )

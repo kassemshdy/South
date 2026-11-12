@@ -459,6 +459,14 @@ export const talentSchema = (t: Translate, otherSkillId?: string) =>
             }),
         )
         .max(20),
+      // One link per line; the server reads each (12 Nov 2026).
+      work_videos: z
+        .string()
+        .max(3000)
+        .refine(
+          (value) => value.split('\n').filter((line) => line.trim()).length <= 6,
+          t('workVideos.tooMany'),
+        ),
       faqs: z
         .array(
           z.object({

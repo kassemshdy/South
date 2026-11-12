@@ -519,6 +519,12 @@ export interface TalentServiceOffer {
   image_thumb_url?: string | null
 }
 
+export interface TalentVideo {
+  platform: 'YOUTUBE' | 'INSTAGRAM' | 'TIKTOK' | 'FACEBOOK'
+  url: string
+  embed_url: string
+}
+
 /** A priced service with its provider, for the services page's row. */
 export interface ServiceOfferCard {
   offer: TalentServiceOffer
@@ -642,6 +648,8 @@ export interface TalentDetail extends TalentSummary {
   service_offers?: TalentServiceOffer[]
   /** Questions a visitor would ask, answered by the provider. */
   faqs?: TalentFaq[]
+  /** Videos of the work, rebuilt by the server on each platform's host. */
+  work_videos?: TalentVideo[]
   education?: TalentEducationEntry[]
   courses?: TalentCourse[]
 }

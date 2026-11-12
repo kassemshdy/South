@@ -294,6 +294,11 @@ class TalentProfile(Base, TimestampMixin):
         cascade="all, delete-orphan",
         order_by="TalentFaq.sort_order",
     )
+    work_videos: Mapped[list[TalentVideo]] = relationship(
+        back_populates="profile",
+        cascade="all, delete-orphan",
+        order_by="TalentVideo.sort_order",
+    )
     experiences: Mapped[list[TalentExperience]] = relationship(
         back_populates="profile",
         cascade="all, delete-orphan",
@@ -489,6 +494,26 @@ class TalentFaq(Base):
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     profile: Mapped[TalentProfile] = relationship(back_populates="faqs")
+
+
+class TalentVideo(Base):
+    """A link to a video of a services provider's work (12 Nov 2026).
+
+    Only the platform and a key of a pinned shape are stored; the link and
+    the embed address are rebuilt from them (``app.core.work_videos``).
+    """
+
+    __tablename__ = "talent_videos"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    profile_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("talent_profiles.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    platform: Mapped[str] = mapped_column(String(20), nullable=False)
+    key: Mapped[str] = mapped_column(String(120), nullable=False)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    profile: Mapped[TalentProfile] = relationship(back_populates="work_videos")
 
 
 class TalentCourse(Base):
