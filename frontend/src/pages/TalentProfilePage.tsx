@@ -19,6 +19,7 @@ import { BackLink } from '@/components/ui/BackLink'
 import { Button } from '@/components/ui/Button'
 import { DisplacedBadge } from '@/components/ui/DisplacedBadge'
 import { Card, CardBody } from '@/components/ui/Card'
+import { WorkVideos } from '@/features/talent/WorkVideos'
 import { YouTubePlayer } from '@/components/ui/YouTubePlayer'
 import { GalleryLightbox } from '@/components/ui/GalleryLightbox'
 import { ShareButton } from '@/components/ui/ShareButton'
@@ -615,6 +616,19 @@ export function TalentProfilePage() {
                   title={data.display_name}
                   playLabel={t('video.playAria')}
                 />
+              </section>
+            ) : null}
+
+            {(data.work_videos ?? []).length > 0 ? (
+              <section
+                id="work-videos"
+                aria-labelledby="work-videos-heading"
+                className="scroll-mt-48"
+              >
+                <h2 id="work-videos-heading" className="mb-3 text-xl">
+                  {t('workVideos.heading')}
+                </h2>
+                <WorkVideos videos={data.work_videos ?? []} />
               </section>
             ) : null}
 

@@ -22,8 +22,9 @@ Environment = Literal["development", "test", "staging", "production"]
 #     that host the tag loaded and recorded nothing. No 'unsafe-inline'.
 #   - connect-src: the API (self) and the beacons those tags talk to, plus the
 #     Sentry ingest host. A blocked beacon degrades analytics, never the site.
-#   - frame-src: Turnstile's challenge iframe, the YouTube/Maps embeds and
-#     Instagram's player for the home page's reels.
+#   - frame-src: Turnstile's challenge iframe, the YouTube/Maps embeds,
+#     Instagram's player for the home page's reels, and TikTok's and
+#     Facebook's players for a services provider's work videos (12 Nov 2026).
 #   - img-src: self and data: URIs, plus https: so remote thumbnails render,
 #     and blob: for the preview of a photo picked for upload, which is shown
 #     from the browser's own copy before it is sent. Without it every upload
@@ -56,7 +57,7 @@ DEFAULT_CONTENT_SECURITY_POLICY = "; ".join(
             "frame-src https://challenges.cloudflare.com "
             "https://www.youtube-nocookie.com https://www.youtube.com "
             "https://www.google.com https://maps.google.com "
-            "https://www.instagram.com"
+            "https://www.instagram.com https://www.tiktok.com https://www.facebook.com"
         ),
     )
 )

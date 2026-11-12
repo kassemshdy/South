@@ -172,6 +172,14 @@ class TalentServiceOfferOut(ORMModel):
         return thumbnail_url(self.image_url)
 
 
+class TalentVideoOut(BaseModel):
+    """A video of the provider's work, rebuilt from its platform and key."""
+
+    platform: str
+    url: str
+    embed_url: str
+
+
 class TalentFaqOut(ORMModel):
     id: uuid.UUID
     question: str
@@ -235,6 +243,7 @@ class TalentDetailOut(TalentSummaryOut):
     experiences: list[TalentExperienceOut] = Field(default_factory=list)
     service_offers: list[TalentServiceOfferOut] = Field(default_factory=list)
     faqs: list[TalentFaqOut] = Field(default_factory=list)
+    work_videos: list[TalentVideoOut] = Field(default_factory=list)
     education: list[TalentEducationOut] = Field(default_factory=list)
     courses: list[TalentCourseOut] = Field(default_factory=list)
 
@@ -395,6 +404,11 @@ class TalentProfileFieldsIn(BaseModel):
     # Services: replaces the stored list; omitted keeps it.
     service_offers: list[TalentServiceOfferIn] | None = Field(default=None, max_length=20)
     faqs: list[TalentFaqIn] | None = Field(default=None, max_length=15)
+    # Links to videos of the work: YouTube, Instagram, TikTok or Facebook
+    # (the owners' review, 12 Nov 2026). Checked in TalentService.
+    work_videos: list[Annotated[str, Field(max_length=500)]] | None = Field(
+        default=None, max_length=6
+    )
     education: list[TalentEducationIn] | None = Field(default=None, max_length=15)
     courses: list[TalentCourseIn] | None = Field(default=None, max_length=30)
 

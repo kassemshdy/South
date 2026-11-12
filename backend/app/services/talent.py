@@ -13,6 +13,7 @@ from app.core.candidate_text import contains_contact_details, is_person_name
 from app.core.errors import ConflictError, NotFoundError, ValidationError
 from app.core.i18n import LazyJoin
 from app.core.urls import normalize_social_url, normalize_url, youtube_video_id
+from app.core.work_videos import parse_work_video
 from app.models.enums import BusinessStatus, TalentKind, ViewSubject, WorkMode
 from app.models.talent import (
     TalentCourse,
@@ -23,6 +24,7 @@ from app.models.talent import (
     TalentProfile,
     TalentServiceOffer,
     TalentSocialLink,
+    TalentVideo,
     TalentWorkArea,
     TalentWorkTypeRow,
 )
@@ -173,6 +175,7 @@ class TalentService:
                 "experiences",
                 "service_offers",
                 "faqs",
+                "work_videos",
                 "education",
                 "courses",
             )
@@ -338,6 +341,17 @@ class TalentService:
                 if offer.image_storage_key
             )
             profile.service_offers[:] = kept
+        if "work_videos" in data:
+            # Every link checked before any is kept: one bad link refuses
+            # the save rather than dropping silently.
+            videos = [
+                parse_work_video(raw) for raw in payload.work_videos or [] if raw.strip()
+            ]
+            profile.work_videos.clear()
+            for index, video in enumerate(videos):
+                profile.work_videos.append(
+                    TalentVideo(platform=video.platform, key=video.key, sort_order=index)
+                )
         if "faqs" in data:
             profile.faqs.clear()
             for index, faq in enumerate(payload.faqs or []):

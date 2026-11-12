@@ -237,6 +237,7 @@ export interface TalentPayload {
   team_message?: string | null
   experiences?: Omit<TalentExperience, 'id'>[]
   /** Services: replaces the stored list; omitted keeps it. */
+  work_videos?: string[]
   /** A saved offer carries its id, so its photo survives the edit. */
   service_offers?: (Omit<TalentServiceOffer, 'id' | 'image_url' | 'image_thumb_url'> & { id?: string })[]
   faqs?: Omit<TalentFaq, 'id'>[]

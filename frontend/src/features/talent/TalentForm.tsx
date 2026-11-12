@@ -221,6 +221,7 @@ export function TalentForm({
           price_unit: offer.price_unit ?? '',
         })) ?? [],
       faqs: profile?.faqs?.map((faq) => ({ question: faq.question, answer: faq.answer })) ?? [],
+      work_videos: (profile?.work_videos ?? []).map((video) => video.url).join('\n'),
       education:
         profile?.education?.map((entry) => ({
           degree: entry.degree ?? '',
@@ -306,6 +307,10 @@ export function TalentForm({
               price_unit: offer.price_unit || null,
             })),
             faqs: values.faqs.map((faq) => ({ question: faq.question, answer: faq.answer })),
+            work_videos: values.work_videos
+              .split('\n')
+              .map((line) => line.trim())
+              .filter(Boolean),
           }),
       hobbies: values.hobbies || null,
       employment_type: (values.employment_type || null) as TalentPayload['employment_type'],
@@ -687,6 +692,28 @@ export function TalentForm({
             />
           )}
         </Field>
+
+        {/* Videos of the work, from any of four platforms (the owners'
+            review, 12 Nov 2026). Services only. */}
+        {!isCandidate ? (
+          <div className="sm:col-span-2">
+            <Field
+              label={t('workVideos.label')}
+              hint={t('workVideos.hint')}
+              error={errors.work_videos?.message}
+            >
+              {(props) => (
+                <Textarea
+                  {...props}
+                  {...register('work_videos')}
+                  rows={3}
+                  dir="ltr"
+                  placeholder="https://www.tiktok.com/@.../video/..."
+                />
+              )}
+            </Field>
+          </div>
+        ) : null}
 
         {/* Spans both columns: the hint explaining what the video is for
             needs the width, and a half-width field beside a phone number

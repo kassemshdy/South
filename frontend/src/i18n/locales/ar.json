@@ -2571,5 +2571,10 @@
   "register.talentPhoto": "صورتك أو شعارك",
   "wizard.servicesOwnerTitle": "لديك ملف خدمات",
   "wizard.servicesOwnerBody": "هذا النموذج لفتح محل يبيع سلعاً ومنتجات. لإضافة خدمة أو تعديل ملفك، عد إلى ملف الخدمات.",
-  "wizard.servicesOwnerBack": "العودة إلى ملف الخدمات"
+  "wizard.servicesOwnerBack": "العودة إلى ملف الخدمات",
+  "workVideos.label": "فيديوهات من أعمالك",
+  "workVideos.hint": "الصق روابط فيديوهات من يوتيوب أو إنستغرام أو تيك توك أو فيسبوك، رابطاً في كل سطر، حتى 6 روابط.",
+  "workVideos.tooMany": "6 روابط على الأكثر.",
+  "workVideos.heading": "فيديوهات من أعمالي",
+  "workVideos.open": "مشاهدة على المنصة"
 }

@@ -397,5 +397,8 @@
   "business.convert_owner_has_profile": "This owner already has a services profile; an account holds one.",
   "business.convert_has_orders": "This shop has customer orders, which a services profile has no place for.",
   "business.convert_has_store": "This shop is connected to an online store; disconnect it first.",
-  "business.convert_has_documents": "This shop has official papers uploaded, which a services profile has no place for."
+  "business.convert_has_documents": "This shop has official papers uploaded, which a services profile has no place for.",
+  "talent.video_link_invalid": "That video link is not supported. Paste a link to a YouTube, Instagram, TikTok or Facebook video.",
+  "talent.video_link_tiktok_short": "Open the video in TikTok and copy its full link (starting tiktok.com/@).",
+  "talent.video_link_facebook_short": "Open the video in Facebook and copy its full link (facebook.com)."
 }
