@@ -253,7 +253,7 @@ export function Header() {
                lockup carries the three pillars and a sub-line under the name,
                and at 48px in a 64px bar the sub-line was strokes rather than
                letters. 80px now, with the logo at 56-64px. */
-            className="h-14 w-auto max-[379px]:h-12 sm:h-16"
+            className="h-11 w-auto max-[379px]:h-10 sm:h-14 xl:h-16"
           />
         </Link>
 
@@ -367,7 +367,7 @@ export function Header() {
           )}
         </nav>
 
-        <div className={cn('flex items-center gap-1', fits && 'xl:hidden')}>
+        <div className={cn('flex shrink-0 items-center gap-1', fits && 'xl:hidden')}>
           <CartLink />
           <FavouritesLink />
           {/* The way in, or the way to one's own area, stays in the bar beside
@@ -376,10 +376,14 @@ export function Header() {
               owners' request, 4 Nov 2026). A labelled button, not a bare
               person icon -- visitors did not read the icon as a way in, and
               a signed-in owner had no way to their area but the menu (5 Nov
-              2026). On phones the icon inside it goes, and on the narrowest the
-              search button too (search is also in the menu), so the menu
-              button always fits. */}
-          <Button asChild size="sm" className="me-1 shrink-0 whitespace-nowrap">
+              2026). On phones the icon inside it goes and the button is smaller,
+              and search is in the menu rather than here (12 Nov 2026), so
+              the menu button always fits. */}
+          <Button
+            asChild
+            size="sm"
+            className="me-1 shrink-0 whitespace-nowrap max-sm:min-h-8 max-sm:px-2.5 max-sm:text-xs"
+          >
             {isAuthenticated ? (
               <Link to={isAdmin ? '/admin' : '/dashboard'}>
                 {isAdmin ? (
@@ -395,17 +399,6 @@ export function Header() {
                 {t('nav.login')}
               </Link>
             )}
-          </Button>
-          <Button
-            asChild
-            variant="ghost"
-            size="icon"
-            className="max-[359px]:hidden"
-            aria-label={t('nav.searchAria')}
-          >
-            <Link to="/products">
-              <Search className="h-5 w-5" aria-hidden="true" />
-            </Link>
           </Button>
           <Button
             variant="ghost"
@@ -452,6 +445,17 @@ export function Header() {
         )}
       >
         <nav className="container-page flex flex-col gap-1 py-3" aria-label={t('nav.mobileAria')}>
+          {/* Search lives in the menu rather than the bar (the owners'
+              request, 12 Nov 2026): on a phone the bar had no room left
+              for the menu button itself. */}
+          <Link
+            to="/products"
+            onClick={() => setMenuOpen(false)}
+            className="flex items-center gap-2.5 rounded-lg px-3 py-3 font-medium hover:bg-sand-100"
+          >
+            <Search className="h-5 w-5 text-ink-500" aria-hidden="true" />
+            {t('nav.searchAria')}
+          </Link>
           {sections.map((section) => (
             <Link
               key={section.href}
