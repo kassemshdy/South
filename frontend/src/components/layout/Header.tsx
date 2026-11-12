@@ -155,6 +155,36 @@ function CartLink() {
   )
 }
 
+/** A menu row for the cart or saved items, absent while empty like the icons. */
+function MenuCountLink({
+  to,
+  icon: Icon,
+  label,
+  count,
+  onClick,
+}: {
+  to: string
+  icon: typeof Heart
+  label: string
+  count: number
+  onClick: () => void
+}) {
+  if (count === 0) return null
+  return (
+    <Link
+      to={to}
+      onClick={onClick}
+      className="flex items-center gap-2.5 rounded-lg px-3 py-3 font-medium hover:bg-sand-100"
+    >
+      <Icon className="h-5 w-5 text-ink-500" aria-hidden="true" />
+      {label}
+      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-clay-500 px-1.5 text-xs font-bold text-white ltr-nums">
+        {count}
+      </span>
+    </Link>
+  )
+}
+
 function FavouritesLink() {
   const t = useT()
   const { count } = useFavourites()
@@ -185,6 +215,8 @@ function FavouritesLink() {
 export function Header() {
   const { isAuthenticated, isAdmin, user, signOut } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
+  const { count: cartCount } = useCart()
+  const { count: favouritesCount } = useFavourites()
   const navigate = useNavigate()
   const t = useT()
   const sections = useSiteSections()
@@ -368,8 +400,13 @@ export function Header() {
         </nav>
 
         <div className={cn('flex shrink-0 items-center gap-1', fits && 'xl:hidden')}>
-          <CartLink />
-          <FavouritesLink />
+          {/* On phones and tablets the cart and saved items are in the menu
+              (the owners' request, 12 Nov 2026), leaving the bar to the logo,
+              the account button and the menu button. */}
+          <div className="contents max-xl:hidden">
+            <CartLink />
+            <FavouritesLink />
+          </div>
           {/* The way in, or the way to one's own area, stays in the bar beside
               search and the menu button: once the headings stopped fitting
               beside the logo, the account controls above went with them (the
@@ -456,6 +493,20 @@ export function Header() {
             <Search className="h-5 w-5 text-ink-500" aria-hidden="true" />
             {t('nav.searchAria')}
           </Link>
+          <MenuCountLink
+            to="/favourites"
+            icon={Heart}
+            label={t('favourites.link')}
+            count={favouritesCount}
+            onClick={() => setMenuOpen(false)}
+          />
+          <MenuCountLink
+            to="/cart"
+            icon={ShoppingBag}
+            label={t('cart.link')}
+            count={cartCount}
+            onClick={() => setMenuOpen(false)}
+          />
           {sections.map((section) => (
             <Link
               key={section.href}
