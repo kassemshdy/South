@@ -209,3 +209,36 @@ def test_the_single_area_roles_read_everything_and_edit_only_their_area(
     for headers in (activities, reels):
         assert client.put("/api/admin/menu", headers=headers, json={}).status_code == 403
         assert client.get("/api/admin/staff", headers=headers).status_code == 403
+
+
+def test_reviewers_add_and_edit_categories_but_do_not_delete_or_merge(
+    client: TestClient, admin: User, category: Category
+) -> None:
+    manager = admin_headers(client)
+    reviewer = _invite(client, manager, "REVIEWER", "reviewer@example.com")
+    support = _invite(client, manager, "SUPPORT", "support@example.com")
+
+    created = client.post(
+        "/api/admin/categories", headers=reviewer, json={"name_ar": ar("category.sweets")}
+    )
+    assert created.status_code == 201, created.text
+    new_id = created.json()["id"]
+    renamed = client.put(
+        f"/api/admin/categories/{new_id}",
+        headers=reviewer,
+        json={"name_ar": ar("category.other")},
+    )
+    assert renamed.status_code == 200, renamed.text
+
+    assert client.delete(f"/api/admin/categories/{new_id}", headers=reviewer).status_code == 403
+    merge = f"/api/admin/categories/{new_id}/merge"
+    assert (
+        client.post(merge, headers=reviewer, json={"target_id": str(category.id)}).status_code
+        == 403
+    )
+    assert (
+        client.post(
+            "/api/admin/categories", headers=support, json={"name_ar": ar("category.restaurants")}
+        ).status_code
+        == 403
+    )
