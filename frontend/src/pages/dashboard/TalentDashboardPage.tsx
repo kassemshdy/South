@@ -22,7 +22,7 @@ import { OwnerTestimonials } from '@/features/testimonials/OwnerTestimonials'
 import { useSeo } from '@/hooks/useSeo'
 import { useT, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
-import { insightsApi, ownerTalentApi, type TalentPayload } from '@/services/api/endpoints'
+import { insightsApi, ownerApi, ownerTalentApi, type TalentPayload } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 
 /**
@@ -320,6 +320,10 @@ export function TalentDashboardPage() {
 
 function BackLink() {
   const t = useT()
+  // Only an owner who also has a shop has a dashboard to go back to; for a
+  // services provider alone this page is the dashboard.
+  const businesses = useQuery({ queryKey: queryKeys.myBusinesses, queryFn: ownerApi.list })
+  if (!businesses.data || businesses.data.length === 0) return null
   return (
     <Link
       to="/dashboard"

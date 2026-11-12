@@ -23,7 +23,7 @@ import { originFromParams } from '@/features/onboarding/destinations'
 import { useSeo } from '@/hooks/useSeo'
 import { useT, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
-import { authApi, ownerApi, type BusinessPayload } from '@/services/api/endpoints'
+import { authApi, ownerApi, ownerTalentApi, type BusinessPayload } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import { cn } from '@/utils/cn'
 import { normalizeForSearch } from '@/utils/search'
@@ -242,6 +242,11 @@ export function BusinessWizardPage() {
   // here is usually trying to add a product to it, not a second shop (the
   // owners' report, 6 Nov 2026: «Trendy Bee» was created twice).
   const existing = useQuery({ queryKey: queryKeys.myBusinesses, queryFn: ownerApi.list })
+  // A services provider who taps "add a shop" by mistake (the owners'
+  // review, 12 Nov 2026): say what this form is before they fill it in.
+  const talent = useQuery({ queryKey: queryKeys.myTalent, queryFn: ownerTalentApi.get })
+  const servicesOnly =
+    businessId === null && Boolean(talent.data) && existing.data?.length === 0
   const [sameName, setSameName] = useState<{ payload: BusinessPayload; shop: string } | null>(
     null,
   )
@@ -330,6 +335,16 @@ export function BusinessWizardPage() {
           listing behind rather than simply changing your mind. Before the
           first save there is nothing to lose, and this is where a
           craftsperson who tapped the wrong card finds out. */}
+      {servicesOnly ? (
+        <div className="mb-5 rounded-2xl border-2 border-sand-300 bg-sand-50 p-4">
+          <p className="font-semibold text-ink-900">{t('wizard.servicesOwnerTitle')}</p>
+          <p className="mt-1 text-sm text-ink-700">{t('wizard.servicesOwnerBody')}</p>
+          <Button asChild size="sm" className="mt-3">
+            <Link to="/dashboard/talent">{t('wizard.servicesOwnerBack')}</Link>
+          </Button>
+        </div>
+      ) : null}
+
       {businessId === null ? (
         <OfferSwitcher current="business" />
       ) : null}

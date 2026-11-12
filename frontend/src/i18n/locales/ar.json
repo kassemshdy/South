@@ -2567,5 +2567,9 @@
   "admin.convertToServicesHint": "لنشاط يقدّم خدمة لا سلعاً: يصبح ملف خدمات لنفس الحساب، وتصبح منتجاته خدمات بأسعارها وصورها. يبقى الاسم والوصف وأرقام التواصل والموقع والشعار والصور والتقييمات.",
   "admin.convertToServicesSkill": "المهارة",
   "admin.convertToServicesButton": "نقل إلى الخدمات",
-  "admin.convertToServicesConfirm": "نقل هذا النشاط إلى ملف خدمات؟ لا يمكن التراجع من هنا."
+  "admin.convertToServicesConfirm": "نقل هذا النشاط إلى ملف خدمات؟ لا يمكن التراجع من هنا.",
+  "register.talentPhoto": "صورتك أو شعارك",
+  "wizard.servicesOwnerTitle": "لديك ملف خدمات",
+  "wizard.servicesOwnerBody": "هذا النموذج لفتح محل يبيع سلعاً ومنتجات. لإضافة خدمة أو تعديل ملفك، عد إلى ملف الخدمات.",
+  "wizard.servicesOwnerBack": "العودة إلى ملف الخدمات"
 }

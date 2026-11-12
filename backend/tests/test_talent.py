@@ -289,9 +289,10 @@ def test_submission_lists_what_is_still_missing(
     )
 
     readiness = client.get("/api/my/talent/readiness", headers=headers).json()
+    # Years of experience is a job application's question, not a service's
+    # (the owners' review, 12 Nov 2026).
     assert set(readiness) == {
         "talent.field.bio",
-        "talent.field.years_experience",
         "talent.field.photo",
         "talent.field.contact",
         "talent.field.work_mode",
@@ -301,6 +302,26 @@ def test_submission_lists_what_is_still_missing(
     submitted = client.post("/api/my/talent/submit", headers=headers)
     assert submitted.status_code == 422
     assert submitted.json()["error"]["code"] == "incomplete_talent_profile"
+
+
+def test_a_job_application_still_needs_its_years_of_experience(
+    client: TestClient, skill: TalentSkill, location: Location
+) -> None:
+    headers = sign_in(client, "03950119")
+    client.post(
+        "/api/talent",
+        headers=headers,
+        json={
+            "display_name": ar("talent.designer"),
+            "skill_id": str(skill.id),
+            "location_id": str(location.id),
+            "latitude": 33.27,
+            "longitude": 35.2,
+        },
+    )
+    client.put("/api/my/talent", headers=headers, json={"kind": "JOB_SEEKER"})
+    readiness = client.get("/api/my/talent/readiness", headers=headers).json()
+    assert "talent.field.years_experience" in readiness
 
 
 def test_an_other_profile_must_name_its_own_skill(
