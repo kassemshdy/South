@@ -414,8 +414,9 @@ export function Header() {
               person icon -- visitors did not read the icon as a way in, and
               a signed-in owner had no way to their area but the menu (5 Nov
               2026). On phones the icon inside it goes and the button is smaller,
-              and search is in the menu rather than here (12 Nov 2026), so
-              the menu button always fits. */}
+              and there is no search button (the owners' request, 12 Nov
+              2026: «السلع والمنتجات» in the menu is the way in), so the
+              menu button always fits. */}
           <Button
             asChild
             size="sm"
@@ -482,16 +483,6 @@ export function Header() {
         )}
       >
         <nav className="container-page flex flex-col gap-1 py-3" aria-label={t('nav.mobileAria')}>
-          {/* Search lives in the menu rather than the bar (the owners'
-              request, 12 Nov 2026): on a phone the bar had no room left
-              for the menu button itself. */}
-          <Link
-            to="/products"
-            onClick={() => setMenuOpen(false)}
-            className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100"
-          >
-            {t('nav.searchAria')}
-          </Link>
           <MenuCountLink
             to="/favourites"
             icon={Heart}
