@@ -1646,6 +1646,22 @@ export interface ShopifyStatus {
   last_error: string | null
   synced_products: number
   pending_pushes: number
+  /** What the last store setup did; null until one has run. */
+  setup: ShopifySetup | null
+}
+
+/** The connector's report of a store setup (market and delivery rate). */
+export interface ShopifySetup {
+  at: string | null
+  ok: boolean
+  store_currency: string | null
+  currency_ok: boolean
+  missing_scopes: string[]
+  market_action: string | null
+  market_name: string | null
+  market_active: boolean
+  rate_action: string | null
+  rate_name: string | null
 }
 
 /** A company holding a key to the read-only partner feed. */

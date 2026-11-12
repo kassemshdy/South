@@ -1120,6 +1120,14 @@ export const adminApi = {
     apiRequest<{ message: string }>(`/api/admin/businesses/${id}/shopify/profile`, {
       method: 'POST',
     }),
+  shopifySetup: (
+    id: string,
+    body: { rate_name: string; price: string; description: string | null },
+  ) =>
+    apiRequest<{ message: string }>(`/api/admin/businesses/${id}/shopify/setup`, {
+      method: 'POST',
+      body,
+    }),
   shopifyDisconnect: (id: string) =>
     apiRequest<{ message: string }>(`/api/admin/businesses/${id}/shopify`, { method: 'DELETE' }),
   shopifySubdomain: (id: string, subdomain: string) =>

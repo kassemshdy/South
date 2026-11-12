@@ -361,6 +361,7 @@
   "open_request.not_found": "الطلب غير موجود.",
   "open_request.deleted": "تم حذف الطلب.",
   "shopify.profile_queued": "أُرسلت هوية المتجر إلى شوبيفاي، وتظهر في المتجر خلال دقائق.",
+  "shopify.setup_queued": "طُلب إعداد المتجر. سيظهر سعر التوصيل فيه خلال دقيقة.",
   "shopify.reconnect_required": "اربط المتجر مجددًا لمنح التطبيق صلاحية تعديل مظهر المتجر.",
   "telegram.kind.outreach": "تواصل مع متجر بلا منتجات",
   "telegram.label.staff": "الموظف",
