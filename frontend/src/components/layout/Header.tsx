@@ -488,9 +488,8 @@ export function Header() {
           <Link
             to="/products"
             onClick={() => setMenuOpen(false)}
-            className="flex items-center gap-2.5 rounded-lg px-3 py-3 font-medium hover:bg-sand-100"
+            className="rounded-lg px-3 py-3 font-medium hover:bg-sand-100"
           >
-            <Search className="h-5 w-5 text-ink-500" aria-hidden="true" />
             {t('nav.searchAria')}
           </Link>
           <MenuCountLink
