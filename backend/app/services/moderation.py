@@ -74,13 +74,13 @@ class ModerationService:
             business.rejection_reason = None
         elif action is A.APPROVE:
             business.approved_at = now
-            business.approved_by = actor.id
+            business.approver = actor
             business.rejection_reason = None
         elif action is A.REJECT:
             business.rejection_reason = reason
         elif action is A.REACTIVATE and business.approved_at is None:
             business.approved_at = now
-            business.approved_by = actor.id
+            business.approver = actor
 
         self._db.add(
             ModerationAction(

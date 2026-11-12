@@ -187,6 +187,9 @@ function ShopRow({
             {t('adminShops.approvedOn', {
               date: formatRelativeDate(shop.approved_at ?? shop.created_at, locale, t),
             })}
+            {shop.approved_by_name ? (
+              <span dir="auto"> {t('admin.byStaff', { name: shop.approved_by_name })}</span>
+            ) : null}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -232,6 +235,12 @@ function ShopRow({
             {t('adminShops.contactedOn', {
               date: formatRelativeDate(shop.outreach_contacted_at as string, locale, t),
             })}
+            {shop.outreach_contacted_by_name ? (
+              <span dir="auto">
+                {' '}
+                {t('admin.byStaff', { name: shop.outreach_contacted_by_name })}
+              </span>
+            ) : null}
           </p>
           {shop.outreach_note ? (
             <p className="mt-1 whitespace-pre-line text-ink-700" dir="auto">

@@ -542,6 +542,11 @@ export function AdminTalentReviewPage() {
                         <span className="text-xs text-ink-300">
                           {formatDate(action.created_at, locale)}
                         </span>
+                        {action.actor_name ? (
+                          <span className="text-xs font-semibold text-ink-500" dir="auto">
+                            {t('admin.byStaff', { name: action.actor_name })}
+                          </span>
+                        ) : null}
                       </div>
                       {action.reason ? (
                         <p className="mt-1 text-sm text-ink-500">{action.reason}</p>

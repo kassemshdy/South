@@ -21,6 +21,9 @@ class ModerationActionOut(ORMModel):
     to_status: BusinessStatus
     reason: str | None = None
     created_at: datetime
+    # The staff member who took the decision; None for the owner's own
+    # submission or an account since deleted. Admin payloads only.
+    actor_name: str | None = None
 
 
 class RejectIn(BaseModel):
@@ -64,8 +67,10 @@ class AdminBusinessOut(OwnerBusinessOut):
     owner_display_name: str | None = None
     owner_id: uuid.UUID
     moderation_actions: list[ModerationActionOut] = Field(default_factory=list)
+    approved_by_name: str | None = None
     # Staff follow-up of a shop with nothing on sale; never on a public schema.
     outreach_contacted_at: datetime | None = None
+    outreach_contacted_by_name: str | None = None
     outreach_note: str | None = None
     instagram_followers: int | None = None
     facebook_followers: int | None = None
@@ -91,6 +96,7 @@ class AdminTalentOut(OwnerTalentOut):
     owner_display_name: str | None = None
     owner_id: uuid.UUID
     moderation_actions: list[ModerationActionOut] = Field(default_factory=list)
+    approved_by_name: str | None = None
 
 
 class AdminUserDetailOut(AdminUserOut):

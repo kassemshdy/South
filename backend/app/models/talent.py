@@ -649,3 +649,4 @@ class TalentModerationAction(Base):
     )
 
     profile: Mapped[TalentProfile] = relationship(back_populates="moderation_actions")
+    actor: Mapped[User | None] = relationship(foreign_keys=[actor_id])

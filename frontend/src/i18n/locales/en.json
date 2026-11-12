@@ -2577,5 +2577,7 @@
   "workVideos.tooMany": "At most 6 links.",
   "workVideos.heading": "Videos of my work",
   "workVideos.open": "Watch on the platform",
-  "staff.canCategories": "Add and edit categories"
+  "staff.canCategories": "Add and edit categories",
+  "admin.byStaff": "by {name}",
+  "admin.approvedByStaff": "Approved by {name}"
 }

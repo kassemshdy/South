@@ -344,6 +344,8 @@ export interface ModerationAction {
   to_status: BusinessStatus
   reason: string | null
   created_at: string
+  /** The staff member who took it; null for the owner's own submission. */
+  actor_name: string | null
 }
 
 /** Adds account details that only administrators may see. */
@@ -358,8 +360,10 @@ export interface AdminBusiness extends OwnerBusiness {
   owner_has_cv_document: boolean
   owner_display_name: string | null
   moderation_actions: ModerationAction[]
-  /** Staff follow-up of a shop with nothing on sale: when it was contacted, and the note. */
+  approved_by_name?: string | null
+  /** Staff follow-up of a shop with nothing on sale: when it was contacted, by whom, and the note. */
   outreach_contacted_at?: string | null
+  outreach_contacted_by_name?: string | null
   outreach_note?: string | null
   /** Follower counts of the shop's own pages, read daily through Apify. */
   instagram_followers?: number | null
@@ -681,6 +685,7 @@ export interface AdminTalent extends OwnerTalent {
   owner_has_cv_document: boolean
   owner_display_name: string | null
   moderation_actions: ModerationAction[]
+  approved_by_name?: string | null
 }
 
 /** Running totals per UTC day, oldest first (`/api/admin/stats/growth`). */
