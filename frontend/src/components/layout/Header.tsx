@@ -415,7 +415,7 @@ export function Header() {
               a signed-in owner had no way to their area but the menu (5 Nov
               2026). On phones the icon inside it goes and the button is smaller,
               and there is no search button (the owners' request, 12 Nov
-              2026: «السلع والمنتجات» in the menu is the way in), so the
+              2026: the goods and products link in the menu is the way in), so the
               menu button always fits. */}
           <Button
             asChild
