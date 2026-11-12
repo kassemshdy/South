@@ -11,7 +11,7 @@ import {
   Store,
   UserRound,
 } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -27,7 +27,7 @@ import { ViewsPanel } from '@/features/insights/ViewsPanel'
 import { useSeo } from '@/hooks/useSeo'
 import { useI18n, useT, type TranslationKey } from '@/i18n'
 import { ApiError } from '@/services/api/client'
-import { insightsApi, ownerApi } from '@/services/api/endpoints'
+import { insightsApi, ownerApi, ownerTalentApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
 import type { ListingViews, OwnerBusiness } from '@/types/api'
 import { formatPrice, formatRelativeDate } from '@/utils/format'
@@ -87,6 +87,10 @@ export function DashboardPage() {
   useSeo({ title: t('dashboard.seoTitle'), noIndex: true })
 
   const businesses = useQuery({ queryKey: queryKeys.myBusinesses, queryFn: ownerApi.list })
+  // A services provider with no shop belongs on their own dashboard, not on
+  // a shop dashboard telling them they have no shop (the owners' review,
+  // 12 Nov 2026). A 404 here only means "no services profile".
+  const talent = useQuery({ queryKey: queryKeys.myTalent, queryFn: ownerTalentApi.get })
   // One request for every card, rather than one per card. It is allowed to
   // fail quietly: a dashboard without its numbers is still a dashboard, and
   // the panel renders its "no views yet" state.
@@ -94,6 +98,10 @@ export function DashboardPage() {
   const viewsById = new Map<string, ListingViews>(
     (views.data?.listings ?? []).map((entry) => [entry.subject_id, entry]),
   )
+
+  if (businesses.data && businesses.data.length === 0 && talent.data) {
+    return <Navigate to="/dashboard/talent" replace />
+  }
 
   return (
     <div className="container-page py-10">

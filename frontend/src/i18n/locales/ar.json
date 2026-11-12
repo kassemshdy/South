@@ -2555,5 +2555,8 @@
   "adminProducts.fieldTitle": "الاسم",
   "adminProducts.fieldDescription": "الوصف",
   "adminProducts.fieldPrice": "السعر ({currency})",
-  "adminProducts.save": "حفظ"
+  "adminProducts.save": "حفظ",
+  "wizard.servicesOwnerTitle": "لديك ملف خدمات",
+  "wizard.servicesOwnerBody": "هذا النموذج لفتح محل يبيع سلعاً ومنتجات. لإضافة خدمة أو تعديل ملفك، عد إلى ملف الخدمات.",
+  "wizard.servicesOwnerBack": "العودة إلى ملف الخدمات"
 }
