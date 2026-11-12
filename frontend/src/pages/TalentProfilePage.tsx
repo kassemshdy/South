@@ -502,8 +502,19 @@ export function TalentProfilePage() {
                       return (
                         <li
                           key={offer.id}
-                          className="flex flex-col rounded-xl border border-ink-100 bg-sand-50 p-4"
+                          className="flex flex-col overflow-hidden rounded-xl border border-ink-100 bg-sand-50"
                         >
+                          {/* A photo of the service, like a product card
+                              (the owners' review, 12 Nov 2026). */}
+                          {offer.image_url ? (
+                            <img
+                              src={offer.image_url}
+                              alt=""
+                              loading="lazy"
+                              className="aspect-[4/3] w-full object-cover"
+                            />
+                          ) : null}
+                          <div className="flex flex-1 flex-col p-4">
                           <div className="flex items-start justify-between gap-3">
                             <p className="font-semibold text-ink-800" dir="auto">
                               {offer.title}
@@ -529,6 +540,7 @@ export function TalentProfilePage() {
                                 {t('talent.requestThisService')}
                               </a>
                             </Button>
+                          </div>
                           </div>
                         </li>
                       )

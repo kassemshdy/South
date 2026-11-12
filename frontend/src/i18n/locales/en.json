@@ -2555,5 +2555,17 @@
   "adminProducts.fieldTitle": "Name",
   "adminProducts.fieldDescription": "Description",
   "adminProducts.fieldPrice": "Price ({currency})",
-  "adminProducts.save": "Save"
+  "adminProducts.save": "Save",
+  "offerPhotos.tab": "Service photos",
+  "offerPhotos.intro": "Add a photo for each service so it shows as a card with its price on your profile and on the services page.",
+  "offerPhotos.empty": "Add your services and their prices in the details tab first, then come back to add a photo for each.",
+  "offerPhotos.add": "Add photo",
+  "offerPhotos.replace": "Replace photo",
+  "offerPhotos.remove": "Remove photo",
+  "serviceOffersRow.title": "Services and their prices",
+  "admin.convertToServicesTitle": "Move to services",
+  "admin.convertToServicesHint": "For a shop that offers a service rather than goods: it becomes a services profile on the same account, and its products become priced services with their photos. Name, description, contacts, place, logo, photos and reviews are kept.",
+  "admin.convertToServicesSkill": "Skill",
+  "admin.convertToServicesButton": "Move to services",
+  "admin.convertToServicesConfirm": "Move this shop into a services profile? It cannot be undone from here."
 }

@@ -443,6 +443,7 @@ export const talentSchema = (t: Translate, otherSkillId?: string) =>
         .array(
           z
             .object({
+              offer_id: z.string().optional(),
               title: z.string().trim().min(1, t('serviceOffers.titleRequired')).max(120),
               description: z.string().trim().max(500),
               price_from: optionalPrice(t),

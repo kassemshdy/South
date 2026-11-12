@@ -468,6 +468,9 @@ class TalentServiceOffer(Base):
     )
     price_unit: Mapped[str | None] = mapped_column(String(40), nullable=True)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    # A photo of the service, shown like a product card (12 Nov 2026).
+    image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    image_storage_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     profile: Mapped[TalentProfile] = relationship(back_populates="service_offers")
 

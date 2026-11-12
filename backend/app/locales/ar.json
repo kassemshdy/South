@@ -392,5 +392,10 @@
   "admin.drafts_sent": "أُرسلت {count} مسودة إلى المراجعة.",
   "telegram.kind.id_document": "وثيقة هوية جديدة",
   "taxonomy.category.merged": "نُقل {count} نشاط إلى «{name}» وحُذف التصنيف.",
-  "taxonomy.category.merge_into_itself": "اختر تصنيفاً آخر للدمج فيه."
+  "taxonomy.category.merge_into_itself": "اختر تصنيفاً آخر للدمج فيه.",
+  "talent.offer_not_found": "الخدمة غير موجودة.",
+  "business.convert_owner_has_profile": "لدى صاحب هذا النشاط ملف خدمات بالفعل؛ لكل حساب ملف واحد.",
+  "business.convert_has_orders": "لهذا النشاط طلبات من زبائن، ولا مكان لها في ملف الخدمات.",
+  "business.convert_has_store": "هذا النشاط مرتبط بمتجر إلكتروني؛ افصله أولاً.",
+  "business.convert_has_documents": "لهذا النشاط أوراق رسمية مرفوعة، ولا مكان لها في ملف الخدمات."
 }

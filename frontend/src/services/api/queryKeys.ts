@@ -26,6 +26,7 @@ export const queryKeys = {
   product: (slug: string) => ['product', slug] as const,
   talents: (query: TalentQuery) => ['talents', query] as const,
   latestTalents: (limit: number) => ['talents', 'latest', limit] as const,
+  serviceOffers: (limit: number) => ['talents', 'offers', limit] as const,
   talent: (slug: string) => ['talent', slug] as const,
   myBusinesses: ['my-businesses'] as const,
   myBusiness: (id: string) => ['my-business', id] as const,

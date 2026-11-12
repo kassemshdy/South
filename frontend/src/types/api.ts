@@ -514,6 +514,17 @@ export interface TalentServiceOffer {
   currency: Currency
   /** The provider's own words: "per hour", "per session". */
   price_unit: string | null
+  /** A photo of the service, shown like a product card (12 Nov 2026). */
+  image_url?: string | null
+  image_thumb_url?: string | null
+}
+
+/** A priced service with its provider, for the services page's row. */
+export interface ServiceOfferCard {
+  offer: TalentServiceOffer
+  provider_name: string
+  provider_slug: string
+  location_name: string | null
 }
 
 export type TalentAvailability = 'NOW' | 'WITHIN_MONTH' | 'EMPLOYED_OPEN'

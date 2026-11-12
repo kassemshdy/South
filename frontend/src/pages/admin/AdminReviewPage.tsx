@@ -22,6 +22,7 @@ import { ImagePreviewDialog } from '@/features/admin/ImagePreviewDialog'
 import { openPrivateFile, type PreviewImage } from '@/features/admin/openPrivateFile'
 import { IssueCredentialsCard } from '@/features/admin/IssueCredentialsCard'
 import { MoveItemsCard } from '@/features/admin/MoveItemsCard'
+import { ConvertToServicesCard } from '@/features/admin/ConvertToServicesCard'
 import { ViewAsButton } from '@/features/admin/ViewAsButton'
 import { OwnerIdentityCard } from '@/features/admin/OwnerIdentityCard'
 import { OwnerWhatsappButton } from '@/features/admin/OwnerWhatsappButton'
@@ -327,6 +328,7 @@ export function AdminReviewPage() {
           ) : null}
 
           {canModerate ? <MoveItemsCard business={data} /> : null}
+          {canModerate ? <ConvertToServicesCard businessId={data.id} /> : null}
 
           {data.items.length > 0 ? (
             <Card>

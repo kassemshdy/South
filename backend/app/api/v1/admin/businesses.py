@@ -42,6 +42,7 @@ from app.schemas.moderation import (
     SmsStatusOut,
     SuspendIn,
 )
+from app.schemas.talent import ConvertedToTalentOut, ConvertToTalentIn
 from app.services import social_followers, staff_notices, telegram_archive
 from app.services.account import AccountDeletionService
 from app.services.business import BusinessService
@@ -50,6 +51,7 @@ from app.services.business_images import store_business_image
 from app.services.growth_report import GrowthReportService
 from app.services.moderation import ModerationService
 from app.services.sms import SmsError, SmsService
+from app.services.talent_conversion import BusinessConversionService
 from app.storage.factory import get_storage
 
 logger = logging.getLogger(__name__)
@@ -482,3 +484,13 @@ def upload_brand_image(
     db.commit()
     return admin_business(_load(db, business_id))
 
+
+
+@router.post("/businesses/{business_id}/convert-to-talent", response_model=ConvertedToTalentOut)
+def convert_to_talent(
+    business_id: uuid.UUID, payload: ConvertToTalentIn, db: DbSession, admin: AdminUser
+) -> ConvertedToTalentOut:
+    """Move a shop that really offers a service into a services profile --
+    see BusinessConversionService."""
+    profile = BusinessConversionService(db).to_talent(_load(db, business_id), payload.skill_id)
+    return ConvertedToTalentOut(profile_id=profile.id)
