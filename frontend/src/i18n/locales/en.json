@@ -2576,5 +2576,6 @@
   "workVideos.hint": "Paste links to YouTube, Instagram, TikTok or Facebook videos, one per line, up to 6.",
   "workVideos.tooMany": "At most 6 links.",
   "workVideos.heading": "Videos of my work",
-  "workVideos.open": "Watch on the platform"
+  "workVideos.open": "Watch on the platform",
+  "staff.canCategories": "Add and edit categories"
 }
