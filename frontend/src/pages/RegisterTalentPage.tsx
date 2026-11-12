@@ -76,18 +76,20 @@ export function RegisterTalentPage() {
             )
           }}
           onInvalid={reportInvalid}
+          beforeSubmit={
+            <RegistrationLogoField
+              file={logo}
+              error={logoError}
+              required={false}
+              label={t('register.talentPhoto')}
+              onPick={(file, error) => {
+                setLogo(file)
+                setLogoError(error ?? undefined)
+              }}
+            />
+          }
           footer={
             <>
-              <RegistrationLogoField
-                file={logo}
-                error={logoError}
-                required={false}
-                label={t('register.talentPhoto')}
-                onPick={(file, error) => {
-                  setLogo(file)
-                  setLogoError(error ?? undefined)
-                }}
-              />
               {captcha}
               <Link
                 to="/register/business"
