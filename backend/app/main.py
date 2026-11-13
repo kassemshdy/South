@@ -113,8 +113,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # The copy to the owners' Google Drive folder, when one is configured.
     drive_copy: asyncio.Task[None] | None = None
     if (
-        settings.gdrive_folder_id
-        and settings.gdrive_service_account_json
+        drive_replica.configured(settings)
         and settings.storage_backend == "s3"
         and settings.gdrive_interval_hours > 0
     ):

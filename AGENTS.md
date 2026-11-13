@@ -659,9 +659,17 @@ login.
   `app/services/drive_replica.py`): the same files, private documents and
   database dumps included, by the same only-adds rule
   (`media_replica.replicate`), keeping the bucket's folder layout, at boot
-  and every `GDRIVE_INTERVAL_HOURS` (6). Inert without both
-  `GDRIVE_FOLDER_ID` and `GDRIVE_SERVICE_ACCOUNT_JSON` (a service account's
-  JSON key, raw or base64, a Railway variable only). The owners can browse
+  and every `GDRIVE_INTERVAL_HOURS` (6). It signs in one of two ways: a
+  service account (`GDRIVE_FOLDER_ID` + `GDRIVE_SERVICE_ACCOUNT_JSON`, raw
+  or base64, Railway variables only), or -- the owners' choice -- a manager
+  pressing «Connect Google Drive» at `/admin/site-settings`
+  (`app/services/gdrive_oauth.py`; needs `GDRIVE_OAUTH_CLIENT_ID` and
+  `GDRIVE_OAUTH_CLIENT_SECRET`). That asks Google for `drive.file` only (the
+  folder it creates and nothing else), binds the round trip to the manager
+  with a signed 10-minute `state`, and stores the refresh token in
+  `site_settings` **encrypted** with a key derived from `SECRET_KEY`,
+  because that table travels to Telegram and into every backup --
+  `tests/test_gdrive_connect.py` pins all three. The owners can browse
   it with a Google login, which is the point and the risk: whoever the
   folder is shared with reads every ID scan, so it is never shared by link,
   and account deletion does not reach it.

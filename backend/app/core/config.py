@@ -246,6 +246,12 @@ class Settings(BaseSettings):
     gdrive_folder_id: str | None = None
     gdrive_service_account_json: str | None = None
     gdrive_interval_hours: int = 6
+    # Or, instead of a service account, the admin panel's «Connect Google
+    # Drive» button (app/services/gdrive_oauth.py): an OAuth client of type
+    # "Web application" whose redirect URI is
+    # <PUBLIC_BASE_URL>/api/integrations/gdrive/callback.
+    gdrive_oauth_client_id: str | None = None
+    gdrive_oauth_client_secret: str | None = None
 
     # Hours between the API's own database backups to the bucket (see
     # app/services/db_backup.py); 0 turns them off. Production only: a

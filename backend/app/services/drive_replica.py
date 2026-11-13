@@ -34,14 +34,17 @@ import binascii
 import json
 import logging
 import time
+from collections.abc import Callable
 from typing import Any
 
 import httpx
 import jwt
 from sqlalchemy import create_engine, text
+from sqlalchemy.orm import Session
 
 from app.core.config import Settings
-from app.services import media_replica
+from app.database.session import SessionLocal
+from app.services import gdrive_oauth, media_replica
 from app.storage.s3 import S3Storage
 
 logger = logging.getLogger("app.services.drive_replica")
@@ -79,9 +82,17 @@ class GoogleDrive:
     """The replica target: ``keys()`` and ``save()`` over one Drive folder."""
 
     def __init__(
-        self, *, service_account: dict[str, Any], folder_id: str, client: httpx.Client
+        self,
+        *,
+        folder_id: str,
+        client: httpx.Client,
+        service_account: dict[str, Any] | None = None,
+        token_source: Callable[[httpx.Client], dict[str, Any]] | None = None,
     ) -> None:
-        self._account = service_account
+        if (service_account is None) == (token_source is None):
+            raise ValueError("Give a service account or a token source, not both")
+        self._account = service_account or {}
+        self._token_source = token_source
         self._root = folder_id
         self._client = client
         self._token: str | None = None
@@ -92,30 +103,38 @@ class GoogleDrive:
 
     def _headers(self) -> dict[str, str]:
         if self._token is None or time.time() > self._token_expires - 60:
-            now = int(time.time())
-            assertion = jwt.encode(
-                {
-                    "iss": self._account["client_email"],
-                    "scope": SCOPE,
-                    "aud": self._account.get("token_uri") or TOKEN_URL,
-                    "iat": now,
-                    "exp": now + 3600,
-                },
-                self._account["private_key"],
-                algorithm="RS256",
+            body = (
+                self._token_source(self._client)
+                if self._token_source is not None
+                else self._service_account_token()
             )
-            response = self._client.post(
-                self._account.get("token_uri") or TOKEN_URL,
-                data={
-                    "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
-                    "assertion": assertion,
-                },
-            )
-            response.raise_for_status()
-            body = response.json()
             self._token = body["access_token"]
             self._token_expires = time.time() + int(body.get("expires_in", 3600))
         return {"Authorization": f"Bearer {self._token}"}
+
+    def _service_account_token(self) -> dict[str, Any]:
+        now = int(time.time())
+        assertion = jwt.encode(
+            {
+                "iss": self._account["client_email"],
+                "scope": SCOPE,
+                "aud": self._account.get("token_uri") or TOKEN_URL,
+                "iat": now,
+                "exp": now + 3600,
+            },
+            self._account["private_key"],
+            algorithm="RS256",
+        )
+        response = self._client.post(
+            self._account.get("token_uri") or TOKEN_URL,
+            data={
+                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "assertion": assertion,
+            },
+        )
+        response.raise_for_status()
+        result: dict[str, Any] = response.json()
+        return result
 
     # --- listing ----------------------------------------------------------
 
@@ -213,26 +232,53 @@ class GoogleDrive:
         return str(uploaded.json().get("id", ""))
 
 
-def drive_from_settings(settings: Settings, client: httpx.Client) -> GoogleDrive | None:
-    """The Drive target, or None when it is not configured."""
-    if not settings.gdrive_folder_id or not settings.gdrive_service_account_json:
+def configured(settings: Settings) -> bool:
+    """Whether a copy could run at all: a service account, or the connect button's client."""
+    return bool(
+        (settings.gdrive_folder_id and settings.gdrive_service_account_json)
+        or gdrive_oauth.available(settings)
+    )
+
+
+def drive_from_settings(
+    settings: Settings, client: httpx.Client, db: Session | None = None
+) -> GoogleDrive | None:
+    """The Drive target, or None when it is not configured or not connected.
+
+    A service account in the environment wins; otherwise the connection a
+    manager made with the admin panel's button, when there is one."""
+    if settings.gdrive_folder_id and settings.gdrive_service_account_json:
+        return GoogleDrive(
+            service_account=load_service_account(settings.gdrive_service_account_json),
+            folder_id=settings.gdrive_folder_id,
+            client=client,
+        )
+    if db is None or not gdrive_oauth.available(settings):
+        return None
+    connection = gdrive_oauth.load(db, settings)
+    if connection is None:
         return None
     return GoogleDrive(
-        service_account=load_service_account(settings.gdrive_service_account_json),
-        folder_id=settings.gdrive_folder_id,
+        token_source=gdrive_oauth.refresher(settings, connection.refresh_token),
+        folder_id=connection.folder_id,
         client=client,
     )
 
 
 def replicate_configured(settings: Settings, storage: object) -> tuple[int, int, int] | None:
     """Copy the site's bucket to the Drive folder; None when there is nothing to do."""
-    if not isinstance(storage, S3Storage):
+    if not isinstance(storage, S3Storage) or not configured(settings):
         return None
-    with httpx.Client(timeout=120) as client:
-        drive = drive_from_settings(settings, client)
+    with SessionLocal() as db, httpx.Client(timeout=120) as client:
+        drive = drive_from_settings(settings, client, db)
         if drive is None:
             return None
-        counts = media_replica.replicate(storage, drive)
+        try:
+            counts = media_replica.replicate(storage, drive)
+        except Exception as exc:  # recorded for the admin card, then raised
+            gdrive_oauth.record_run(db, None, type(exc).__name__)
+            raise
+        gdrive_oauth.record_run(db, counts, None)
     # In the message itself: the deploy log prints it, and it is how the copy
     # is checked -- every file copied or already there, none failed.
     logger.info("Google Drive copy: %d copied, %d already there, %d failed", *counts)
