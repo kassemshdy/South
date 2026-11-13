@@ -238,6 +238,15 @@ class Settings(BaseSettings):
     replica_s3_secret_access_key: str | None = None
     replica_interval_hours: int = 3
 
+    # A second copy of the bucket, private files and database dumps included,
+    # in a Google Drive folder shared with a service account (the owners'
+    # decision, 13 Nov 2026); only adds, never deletes. See
+    # app/services/drive_replica.py. Both unset: nothing is copied. The key
+    # is the service account's JSON, raw or base64; never commit it.
+    gdrive_folder_id: str | None = None
+    gdrive_service_account_json: str | None = None
+    gdrive_interval_hours: int = 6
+
     # Hours between the API's own database backups to the bucket (see
     # app/services/db_backup.py); 0 turns them off. Production only: a
     # development database is not worth a copy a day.

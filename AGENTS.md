@@ -655,6 +655,16 @@ login.
   lifecycle rule. That bucket holds ID scans and full database dumps, so
   it must have "Block all public access" on, and its key must be one that
   can only list, read and write that bucket.
+- **And to a Google Drive folder** (the owners' decision, 13 Nov 2026;
+  `app/services/drive_replica.py`): the same files, private documents and
+  database dumps included, by the same only-adds rule
+  (`media_replica.replicate`), keeping the bucket's folder layout, at boot
+  and every `GDRIVE_INTERVAL_HOURS` (6). Inert without both
+  `GDRIVE_FOLDER_ID` and `GDRIVE_SERVICE_ACCOUNT_JSON` (a service account's
+  JSON key, raw or base64, a Railway variable only). The owners can browse
+  it with a Google login, which is the point and the risk: whoever the
+  folder is shared with reads every ID scan, so it is never shared by link,
+  and account deletion does not reach it.
 - **Uploads can live in a private bucket instead of the volume.** With
   `STORAGE_BACKEND=s3` and no `S3_PUBLIC_BASE_URL`, files go to the bucket but
   are still served at `/media/<key>` by the API (`_mount_bucket_media`), so the
