@@ -7,6 +7,7 @@
 
 import { apiDownload, apiRequest } from '@/services/api/client'
 import type {
+  GdriveStatus,
   ServiceOfferCard,
   AdminItem,
   JobApplication,
@@ -976,6 +977,11 @@ export const adminApi = {
   updatePage: (key: PageKey, values: PageTextInput) =>
     apiRequest<PageText>(`/api/admin/pages/${key}`, { method: 'PUT', body: values }),
   siteSettings: () => apiRequest<SiteSettings>('/api/admin/site-settings'),
+  gdriveStatus: () => apiRequest<GdriveStatus>('/api/admin/gdrive'),
+  gdriveConnect: () => apiRequest<{ url: string }>('/api/admin/gdrive/connect', { method: 'POST' }),
+  gdriveDisconnect: () =>
+    apiRequest<GdriveStatus>('/api/admin/gdrive/disconnect', { method: 'POST' }),
+  gdriveRun: () => apiRequest<{ message: string }>('/api/admin/gdrive/run', { method: 'POST' }),
   credentialsMessage: () =>
     apiRequest<{ message: string | null }>('/api/admin/site-settings/credentials-message'),
   setCredentialsMessage: (message: string | null) =>

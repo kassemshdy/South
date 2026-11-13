@@ -218,6 +218,10 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     },
     # The manager's alone, listed so the decision is visible rather than a
     # fall-through: permanent deletes, site settings, staff.
+    # The Google Drive copy of every file, ID scans included: the manager's.
+    ("POST", "/api/admin/gdrive/connect"): frozenset({M}),
+    ("POST", "/api/admin/gdrive/disconnect"): frozenset({M}),
+    ("POST", "/api/admin/gdrive/run"): frozenset({M}),
     # Merging a category moves every shop in it at once.
     ("POST", "/api/admin/categories/{category_id}/merge"): frozenset({M}),
     ("DELETE", "/api/admin/businesses/{business_id}"): frozenset({M}),

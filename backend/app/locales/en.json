@@ -400,5 +400,8 @@
   "business.convert_has_documents": "This shop has official papers uploaded, which a services profile has no place for.",
   "talent.video_link_invalid": "That video link is not supported. Paste a link to a YouTube, Instagram, TikTok or Facebook video.",
   "talent.video_link_tiktok_short": "Open the video in TikTok and copy its full link (starting tiktok.com/@).",
-  "talent.video_link_facebook_short": "Open the video in Facebook and copy its full link (facebook.com)."
+  "talent.video_link_facebook_short": "Open the video in Facebook and copy its full link (facebook.com).",
+  "gdrive.not_configured": "Google Drive connection is not set up on the server yet.",
+  "gdrive.not_connected": "Google Drive is not connected.",
+  "gdrive.started": "Copying to Google Drive has started."
 }

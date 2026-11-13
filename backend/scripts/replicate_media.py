@@ -26,7 +26,7 @@ def main() -> int:
         except Exception:  # a wrong key or an unreachable bucket must not stop the site
             logger.exception("Replica copy failed")
     # The Google Drive copy, after the S3 one, by the same rule.
-    if settings.gdrive_folder_id and settings.gdrive_service_account_json:
+    if drive_replica.configured(settings):
         try:
             drive_replica.replicate_if_first(settings, get_storage())
         except Exception:  # a wrong key or an unshared folder must not stop the site

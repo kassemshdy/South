@@ -2579,5 +2579,19 @@
   "workVideos.open": "Watch on the platform",
   "staff.canCategories": "Add and edit categories",
   "admin.byStaff": "by {name}",
-  "admin.approvedByStaff": "Approved by {name}"
+  "admin.approvedByStaff": "Approved by {name}",
+  "gdrive.title": "Google Drive backup",
+  "gdrive.body": "Every file is copied to a Google Drive folder every 6 hours: photos, ID scans, CVs and database backups. Nothing is ever deleted from the folder. Do not share the folder by link.",
+  "gdrive.connect": "Connect Google Drive",
+  "gdrive.disconnect": "Disconnect",
+  "gdrive.runNow": "Copy now",
+  "gdrive.connectedAs": "Connected as {email}",
+  "gdrive.openFolder": "Open the folder",
+  "gdrive.notConnected": "Not connected yet.",
+  "gdrive.notConfigured": "Google sign-in is not set up on the server yet. GDRIVE_OAUTH_CLIENT_ID and GDRIVE_OAUTH_CLIENT_SECRET are needed.",
+  "gdrive.serviceAccount": "Copying runs with a service account set on the server.",
+  "gdrive.lastRun": "Last copy {date}: {copied} new, {already} already there, {failed} failed.",
+  "gdrive.lastRunFailed": "The last copy failed {date}.",
+  "gdrive.connectedNotice": "Google Drive is connected. Copying starts within a few hours, or press Copy now.",
+  "gdrive.failedNotice": "Connecting Google Drive did not finish. Try again."
 }

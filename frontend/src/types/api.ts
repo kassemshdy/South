@@ -1796,3 +1796,20 @@ export interface StrayPin {
   suggested_longitude: number | null
   suggested_from: 'town' | 'district' | null
 }
+
+/** The Google Drive copy's card at /admin/site-settings. */
+export interface GdriveStatus {
+  available: boolean
+  service_account: boolean
+  connected: boolean
+  email: string | null
+  folder_url: string | null
+  connected_at: string | null
+  last_run: {
+    at: string
+    copied: number | null
+    already: number | null
+    failed: number | null
+    error: string | null
+  } | null
+}
