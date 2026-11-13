@@ -59,6 +59,7 @@ from app.services import (
     business_documents,
     connector,
     db_backup,
+    drive_replica,
     feedback_attachments,
     job_applications,
     media_replica,
@@ -109,6 +110,21 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 interval_hours=settings.replica_interval_hours,
             )
         )
+    # The copy to the owners' Google Drive folder, when one is configured.
+    drive_copy: asyncio.Task[None] | None = None
+    if (
+        settings.gdrive_folder_id
+        and settings.gdrive_service_account_json
+        and settings.storage_backend == "s3"
+        and settings.gdrive_interval_hours > 0
+    ):
+        drive_copy = asyncio.create_task(
+            drive_replica.run_periodic(
+                settings,
+                storage_factory.get_storage(),
+                interval_hours=settings.gdrive_interval_hours,
+            )
+        )
     # The copy for the Telegram group every few hours, the owners' decision.
     telegram_copies: asyncio.Task[None] | None = None
     if (
@@ -154,6 +170,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         backups.cancel()
     if replica is not None:
         replica.cancel()
+    if drive_copy is not None:
+        drive_copy.cancel()
     if telegram_copies is not None:
         telegram_copies.cancel()
     if followers is not None:
