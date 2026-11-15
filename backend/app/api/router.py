@@ -44,6 +44,7 @@ from app.api.v1.admin import articles as admin_articles
 from app.api.v1.admin import businesses as admin_businesses
 from app.api.v1.admin import export as admin_export
 from app.api.v1.admin import feedback as admin_feedback
+from app.api.v1.admin import gdrive as admin_gdrive
 from app.api.v1.admin import items as admin_items
 from app.api.v1.admin import staff as admin_staff
 from app.api.v1.admin import stats as admin_stats
@@ -61,6 +62,8 @@ api_router.include_router(taxonomy.router)
 api_router.include_router(admin_applications.router)
 api_router.include_router(admin_articles.router)
 api_router.include_router(admin_businesses.router)
+api_router.include_router(admin_gdrive.admin_router)
+api_router.include_router(admin_gdrive.public_router)
 api_router.include_router(admin_export.router)
 api_router.include_router(admin_feedback.router)
 api_router.include_router(admin_items.router)

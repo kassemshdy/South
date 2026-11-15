@@ -400,5 +400,8 @@
   "business.convert_has_documents": "لهذا النشاط أوراق رسمية مرفوعة، ولا مكان لها في ملف الخدمات.",
   "talent.video_link_invalid": "رابط الفيديو غير مدعوم. الصق رابط فيديو من يوتيوب أو إنستغرام أو تيك توك أو فيسبوك.",
   "talent.video_link_tiktok_short": "افتح الفيديو في تيك توك وانسخ الرابط الكامل (يبدأ بـ tiktok.com/@).",
-  "talent.video_link_facebook_short": "افتح الفيديو في فيسبوك وانسخ الرابط الكامل (facebook.com)."
+  "talent.video_link_facebook_short": "افتح الفيديو في فيسبوك وانسخ الرابط الكامل (facebook.com).",
+  "gdrive.not_configured": "لم يُضبط ربط Google Drive على الخادم بعد.",
+  "gdrive.not_connected": "Google Drive غير مربوط.",
+  "gdrive.started": "بدأ النسخ إلى Google Drive."
 }

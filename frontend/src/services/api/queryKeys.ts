@@ -109,6 +109,7 @@ export const queryKeys = {
   offerPopup: ['site-settings', 'offer-popup'] as const,
   jobLinks: ['site-settings', 'job-links'] as const,
   adminSiteSettings: ['admin', 'site-settings'] as const,
+  adminGdrive: ['admin', 'gdrive'] as const,
   adminCredentialsMessage: ['admin', 'credentials-message'] as const,
   adminDiscardedApplications: (includeDismissed: boolean) =>
     ['admin', 'discarded-applications', includeDismissed] as const,

@@ -2579,5 +2579,19 @@
   "workVideos.open": "مشاهدة على المنصة",
   "staff.canCategories": "إضافة الفئات وتعديلها",
   "admin.byStaff": "بواسطة {name}",
-  "admin.approvedByStaff": "وافق عليه: {name}"
+  "admin.approvedByStaff": "وافق عليه: {name}",
+  "gdrive.title": "نسخة احتياطية على Google Drive",
+  "gdrive.body": "تُنسخ كل الملفات إلى مجلد في Google Drive كل 6 ساعات: الصور وصور الهوية والسير الذاتية ونسخ قاعدة البيانات. لا يُحذف شيء من المجلد. لا تشارك المجلد برابط.",
+  "gdrive.connect": "ربط Google Drive",
+  "gdrive.disconnect": "إلغاء الربط",
+  "gdrive.runNow": "انسخ الآن",
+  "gdrive.connectedAs": "مربوط بحساب {email}",
+  "gdrive.openFolder": "فتح المجلد",
+  "gdrive.notConnected": "غير مربوط بعد.",
+  "gdrive.notConfigured": "لم يُضبط ربط Google على الخادم بعد. يلزم إعداد GDRIVE_OAUTH_CLIENT_ID وGDRIVE_OAUTH_CLIENT_SECRET.",
+  "gdrive.serviceAccount": "النسخ يعمل بحساب خدمة مضبوط على الخادم.",
+  "gdrive.lastRun": "آخر نسخ {date}: {copied} جديد، {already} موجود مسبقاً، {failed} فشل.",
+  "gdrive.lastRunFailed": "فشل آخر نسخ {date}.",
+  "gdrive.connectedNotice": "تم ربط Google Drive. يبدأ النسخ خلال ساعات أو اضغط «انسخ الآن».",
+  "gdrive.failedNotice": "لم يكتمل ربط Google Drive. حاول مرة أخرى."
 }

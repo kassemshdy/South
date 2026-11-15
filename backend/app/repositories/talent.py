@@ -140,6 +140,10 @@ class TalentRepository(BaseRepository[TalentProfile]):
         # collection still attached and the edit reads back stale — the same
         # trap FeedbackTicketRepository documents.
 
+    def with_relations(self, stmt: Select[tuple[TalentProfile]]) -> Select[tuple[TalentProfile]]:
+        """What a public profile reads, loaded up front (the partner feed)."""
+        return self._with_relations(stmt)
+
     def get_with_relations(self, profile_id: uuid.UUID) -> TalentProfile | None:
         return self.db.execute(
             self._with_relations(select(TalentProfile).where(TalentProfile.id == profile_id))

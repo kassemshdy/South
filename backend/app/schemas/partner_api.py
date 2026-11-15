@@ -12,10 +12,11 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Generic, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.models.enums import Currency, GoodsOrigin
-from app.schemas.business import BusinessSummaryOut
+from app.schemas.business import BusinessSummaryOut, SocialLinkOut
+from app.schemas.talent import TalentServiceOfferOut, TalentSummaryOut, TalentVideoOut
 
 
 class PartnerStoreOut(BusinessSummaryOut):
@@ -44,6 +45,19 @@ class PartnerProductOut(BaseModel):
     page_url: str
     buy_url: str | None = None
     updated_at: datetime
+
+
+class PartnerTalentOut(TalentSummaryOut):
+    """A freelancer (a services profile), as its public page shows them."""
+
+    page_url: str
+    bio: str | None = None
+    website: str | None = None
+    social_links: list[SocialLinkOut] = Field(default_factory=list)
+    # What they offer, with a price and a photo when they gave one.
+    service_offers: list[TalentServiceOfferOut] = Field(default_factory=list)
+    # Links to videos of their work (YouTube, Instagram, TikTok, Facebook).
+    work_videos: list[TalentVideoOut] = Field(default_factory=list)
 
 
 T = TypeVar("T")
