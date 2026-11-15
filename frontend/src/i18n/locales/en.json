@@ -2593,5 +2593,11 @@
   "gdrive.lastRun": "Last copy {date}: {copied} new, {already} already there, {failed} failed.",
   "gdrive.lastRunFailed": "The last copy failed {date}.",
   "gdrive.connectedNotice": "Google Drive is connected. Copying starts within a few hours, or press Copy now.",
-  "gdrive.failedNotice": "Connecting Google Drive did not finish. Try again."
+  "gdrive.failedNotice": "Connecting Google Drive did not finish. Try again.",
+  "activityRegistration.backgroundLabel": "Regarding your academic and professional background, what is your current situation?",
+  "activityRegistration.background.student": "University student",
+  "activityRegistration.background.new_graduate": "Recent graduate",
+  "activityRegistration.background.job_seeker": "Job seeker",
+  "activityRegistration.background.employed": "Currently employed",
+  "activityRegistration.background.other": "Other backgrounds"
 }

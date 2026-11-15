@@ -32,7 +32,7 @@ import { useI18n } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { activityApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
-import type { Activity } from '@/types/api'
+import { ACTIVITY_BACKGROUNDS, type Activity, type ActivityBackground } from '@/types/api'
 import { formatDateTime } from '@/utils/format'
 
 /**
@@ -168,12 +168,14 @@ function SignUpForm({ activity }: { activity: Activity }) {
   const toast = useToast()
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
+  const [background, setBackground] = useState<ActivityBackground | null>(null)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const register = useMutation({
     mutationFn: () =>
       activityApi.register(
         activity.slug,
-        { full_name: fullName, phone_number: phone },
+        // The form's radios are required, so it is set by the time this runs.
+        { full_name: fullName, phone_number: phone, background: background ?? 'other' },
         captchaToken,
       ),
     onError: (error) =>
@@ -225,6 +227,33 @@ function SignUpForm({ activity }: { activity: Activity }) {
                 />
               )}
             </Field>
+            <fieldset className="space-y-2">
+              <legend className="mb-2 text-sm font-semibold text-ink-700">
+                {t('activityRegistration.backgroundLabel')}
+                <span className="ms-1 text-clay-500" aria-hidden="true">
+                  *
+                </span>
+              </legend>
+              {ACTIVITY_BACKGROUNDS.map((option) => (
+                <label
+                  key={option}
+                  className="flex cursor-pointer items-center gap-3 rounded-xl border border-ink-100 px-3 py-2.5 has-[:checked]:border-olive-600 has-[:checked]:bg-olive-50"
+                >
+                  <input
+                    type="radio"
+                    name="background"
+                    value={option}
+                    required
+                    checked={background === option}
+                    onChange={() => setBackground(option)}
+                    className="h-4 w-4 accent-olive-700"
+                  />
+                  <span className="text-sm text-ink-900">
+                    {t(`activityRegistration.background.${option}`)}
+                  </span>
+                </label>
+              ))}
+            </fieldset>
             <Turnstile onToken={setCaptchaToken} />
             <Button type="submit" block loading={register.isPending}>
               <Send className="h-5 w-5" aria-hidden="true" />

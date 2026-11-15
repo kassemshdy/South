@@ -92,6 +92,10 @@ class ActivityRegistration(Base, TimestampMixin):
     )
     full_name: Mapped[str] = mapped_column(String(80), nullable=False)
     phone_number: Mapped[str] = mapped_column(String(20), nullable=False)
+    # "Your academic and professional background right now?" (the owners'
+    # ticket, 15 Nov 2026): one of ``REGISTRATION_BACKGROUNDS``. Null on the
+    # sign-ups taken before the question was asked.
+    background: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
     activity: Mapped[Activity] = relationship()
 
