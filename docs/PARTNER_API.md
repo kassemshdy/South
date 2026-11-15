@@ -394,6 +394,45 @@ for product in walk("products", updated_since="2026-11-05T00:00:00Z"):
     print(product["title"], product["price"], product["currency"], product["buy_url"])
 ```
 
+### Python: freelancers
+
+```python
+import requests
+
+BASE = "https://www.janoubona.net/api/partner/v1"
+API_KEY = "jnb_YOUR_KEY"  # keep it on your server, e.g. in an environment variable
+
+session = requests.Session()
+session.headers["Authorization"] = f"Bearer {API_KEY}"
+
+
+def all_freelancers(updated_since=None):
+    """Yield every approved freelancer, following the pages."""
+    params = {"limit": 200}
+    if updated_since:
+        params["updated_since"] = updated_since  # e.g. "2026-11-01T00:00:00Z"
+    while True:
+        response = session.get(f"{BASE}/talent", params=params, timeout=30)
+        response.raise_for_status()
+        page = response.json()
+        yield from page["items"]
+        if not page["next_cursor"]:
+            break
+        params["cursor"] = page["next_cursor"]
+
+
+for person in all_freelancers():
+    print(person["display_name"], person["whatsapp"], person["page_url"])
+    for offer in person["service_offers"]:
+        print("  -", offer["title"], offer["price_from"], offer["currency"])
+
+# One freelancer; 404 means it is no longer published: hide it.
+one = session.get(f"{BASE}/talent/some-slug", timeout=30)
+```
+
+Image paths (`photo_url`, `image_url`) are relative: prefix them with
+`https://www.janoubona.net`.
+
 ### Node.js (18+)
 
 ```js
