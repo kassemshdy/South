@@ -127,9 +127,15 @@ class AdminActivityOut(ActivityOut):
     registration_count: int = 0
 
 
+#: The answers to the sign-up form's background question (the owners'
+#: ticket, 15 Nov 2026), in the order the form shows them.
+RegistrationBackground = Literal["student", "new_graduate", "job_seeker", "employed", "other"]
+
+
 class ActivityRegistrationIn(BaseModel):
     full_name: str = Field(min_length=2, max_length=80)
     phone_number: str = Field(min_length=6, max_length=20)
+    background: RegistrationBackground | None = None
     captcha_token: str | None = Field(default=None, max_length=4096)
 
     @field_validator("full_name")
@@ -149,6 +155,7 @@ class ActivityRegistrationOut(ORMModel):
     id: uuid.UUID
     full_name: str
     phone_number: str
+    background: str | None = None
     created_at: datetime
 
 

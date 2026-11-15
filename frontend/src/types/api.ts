@@ -1532,11 +1532,23 @@ export interface WorkshopInput {
   location_id: string | null
 }
 
+/** The sign-up form's background question (the owners' ticket, 15 Nov 2026), in form order. */
+export const ACTIVITY_BACKGROUNDS = [
+  'student',
+  'new_graduate',
+  'job_seeker',
+  'employed',
+  'other',
+] as const
+export type ActivityBackground = (typeof ACTIVITY_BACKGROUNDS)[number]
+
 /** A sign-up taken on an activity's page; staff only. */
 export interface ActivityRegistration {
   id: string
   full_name: string
   phone_number: string
+  /** One of ACTIVITY_BACKGROUNDS; null on sign-ups from before the question. */
+  background: ActivityBackground | null
   created_at: string
 }
 

@@ -182,6 +182,7 @@ def register_for_activity(
             activity_id=activity.id,
             full_name=payload.full_name,
             phone_number=payload.phone_number,
+            background=payload.background,
         )
     )
     db.commit()
