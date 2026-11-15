@@ -1,8 +1,8 @@
 # Janoubona Partner API (v1)
 
-A read-only REST API over Janoubona's **approved stores** and their
-**available products**, with each store's Shopify storefront and each
-product's buy link. It exposes only data that is already public on
+A read-only REST API over Janoubona's **approved stores**, their
+**available products** and its **freelancers** (services profiles), with
+each store's Shopify storefront and each product's buy link. It exposes only data that is already public on
 janoubona.net. It is built for partners who list or promote Janoubona's
 catalogue, such as Yalla Pay and AdsTalk.
 
