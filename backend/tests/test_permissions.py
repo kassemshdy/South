@@ -106,15 +106,19 @@ def test_each_role_can_do_its_work_and_nothing_else(
     assert client.post(credentials, headers=viewer).status_code == 403
     assert client.post(credentials, headers=support).status_code == 200
 
-    # The manager's alone: export, staff, site settings, permanent deletes.
+    # The manager's alone: export, staff, site settings, deleting an account.
     for headers in (viewer, reviewer, support, editor):
         assert client.get("/api/admin/export/users.csv", headers=headers).status_code == 403
         assert client.get("/api/admin/staff", headers=headers).status_code == 403
         assert client.put("/api/admin/site-settings", headers=headers, json={}).status_code == 403
+        assert client.delete(f"/api/admin/users/{owner_id}", headers=headers).status_code == 403
+    # A shop or a services profile, reviewers too (the owners' ask, 15 Nov 2026).
+    for headers in (viewer, support, editor):
         assert (
             client.delete(f"/api/admin/businesses/{business_id}", headers=headers).status_code
             == 403
         )
+    assert client.delete(f"/api/admin/businesses/{business_id}", headers=reviewer).status_code == 200
     assert client.get("/api/admin/export/users.csv", headers=manager).status_code == 200
 
 

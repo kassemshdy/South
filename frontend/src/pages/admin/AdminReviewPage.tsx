@@ -220,6 +220,7 @@ export function AdminReviewPage() {
             <DeleteForeverButton
               description={t('admin.deleteBusinessBody', { name: data.name })}
               onDelete={() => adminApi.deleteBusiness(data.id)}
+              needs="deleteListing"
               onDeleted={() => navigate('/admin/businesses')}
             />
           </div>
