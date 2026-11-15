@@ -97,6 +97,7 @@ import type {
   FeaturedTestimonial,
   Activity,
   ActivityInput,
+  ActivityBackground,
   ActivityRegistration,
   AdminActivity,
   AdminCarousel,
@@ -542,7 +543,7 @@ export const activityApi = {
   /** Sign up on the site; who signed up reaches staff only. */
   register: (
     slug: string,
-    payload: { full_name: string; phone_number: string },
+    payload: { full_name: string; phone_number: string; background: ActivityBackground },
     captchaToken: string | null,
   ) =>
     apiRequest<{ message: string }>(`/api/activities/${encodeURIComponent(slug)}/register`, {

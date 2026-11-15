@@ -2593,5 +2593,11 @@
   "gdrive.lastRun": "آخر نسخ {date}: {copied} جديد، {already} موجود مسبقاً، {failed} فشل.",
   "gdrive.lastRunFailed": "فشل آخر نسخ {date}.",
   "gdrive.connectedNotice": "تم ربط Google Drive. يبدأ النسخ خلال ساعات أو اضغط «انسخ الآن».",
-  "gdrive.failedNotice": "لم يكتمل ربط Google Drive. حاول مرة أخرى."
+  "gdrive.failedNotice": "لم يكتمل ربط Google Drive. حاول مرة أخرى.",
+  "activityRegistration.backgroundLabel": "بالنسبة للخلفية الأكاديمية والمهنية، ما هو وضعك الحالي؟",
+  "activityRegistration.background.student": "طالب جامعي",
+  "activityRegistration.background.new_graduate": "خريج جديد",
+  "activityRegistration.background.job_seeker": "باحث عن عمل",
+  "activityRegistration.background.employed": "موظف حاليًا",
+  "activityRegistration.background.other": "خلفيّات أخرى"
 }

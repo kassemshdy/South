@@ -748,6 +748,11 @@ function Registrations({ activity }: { activity: AdminActivity }) {
               <span className="ltr-nums ms-2 text-sm text-ink-500" dir="ltr">
                 {row.phone_number}
               </span>
+              {row.background ? (
+                <span className="ms-2 rounded-full bg-olive-50 px-2 py-0.5 text-xs font-semibold text-olive-800">
+                  {t(`activityRegistration.background.${row.background}`)}
+                </span>
+              ) : null}
               <span className="ms-2 text-xs text-ink-500">{formatDateTime(row.created_at, locale)}</span>
             </span>
             {href ? (

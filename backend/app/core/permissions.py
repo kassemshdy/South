@@ -224,8 +224,10 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     ("POST", "/api/admin/gdrive/run"): frozenset({M}),
     # Merging a category moves every shop in it at once.
     ("POST", "/api/admin/categories/{category_id}/merge"): frozenset({M}),
-    ("DELETE", "/api/admin/businesses/{business_id}"): frozenset({M}),
-    ("DELETE", "/api/admin/talent/{profile_id}"): frozenset({M}),
+    # A shop or a services profile, but never the account: reviewers clear
+    # out the one an owner should not have (the owners' ask, 15 Nov 2026).
+    ("DELETE", "/api/admin/businesses/{business_id}"): _MODERATE,
+    ("DELETE", "/api/admin/talent/{profile_id}"): _MODERATE,
     ("DELETE", "/api/admin/users/{user_id}"): frozenset({M}),
     ("PUT", "/api/admin/site-settings"): frozenset({M}),
     ("PUT", "/api/admin/site-settings/credentials-message"): frozenset({M}),

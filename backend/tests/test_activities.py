@@ -309,6 +309,26 @@ def test_people_sign_up_on_the_site_by_default_and_only_staff_see_who(
     assert client.get(f"/api/admin/activities/{activity['id']}/registrations").status_code == 401
 
 
+def test_the_sign_up_asks_for_a_background_and_staff_see_the_answer(
+    client: TestClient, admin: User
+) -> None:
+    """The owners' ticket, 15 Nov 2026: student, graduate, job seeker..."""
+    headers = admin_headers(client)
+    activity = _create(client, headers, slug="background")
+    url = "/api/activities/background/register"
+    person = {"full_name": ar("order.customer"), "phone_number": "70 111 555"}
+
+    assert client.post(url, json={**person, "background": "astronaut"}).status_code == 422
+    assert client.post(url, json={**person, "background": "job_seeker"}).status_code == 201
+    # Optional for the API, so a page loaded before the release still signs up.
+    assert client.post(url, json={**person, "phone_number": "70 111 666"}).status_code == 201
+
+    listed = client.get(
+        f"/api/admin/activities/{activity['id']}/registrations", headers=headers
+    ).json()
+    assert sorted(str(row["background"]) for row in listed) == ["None", "job_seeker"]
+
+
 def test_an_external_link_or_no_sign_up_closes_the_form(client: TestClient, admin: User) -> None:
     headers = admin_headers(client)
     _create(

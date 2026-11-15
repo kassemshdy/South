@@ -25,6 +25,8 @@ import { Textarea } from '@/components/ui/Input'
 import { ErrorState, InlineSpinner } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
 import { DeleteForeverButton } from '@/features/admin/DeleteForeverButton'
+import { ImagePreviewDialog } from '@/features/admin/ImagePreviewDialog'
+import { openPrivateFile, type PreviewImage } from '@/features/admin/openPrivateFile'
 import { useStaffCan } from '@/features/admin/staffAccess'
 import { IssueCredentialsCard } from '@/features/admin/IssueCredentialsCard'
 import { OwnerIdentityCard } from '@/features/admin/OwnerIdentityCard'
@@ -106,14 +108,11 @@ export function AdminTalentReviewPage() {
     void queryClient.invalidateQueries({ queryKey: ['admin'] })
   }
 
-  const saveBlob = ({ blob, filename }: { blob: Blob; filename: string | null }) => {
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = filename ?? 'document'
-    link.click()
-    URL.revokeObjectURL(url)
-  }
+  // The same as the shop page: an image opens in a popup with a download
+  // button, a PDF in a new tab (the owners' request, 14 Nov 2026).
+  const [preview, setPreview] = useState<PreviewImage | null>(null)
+  const saveBlob = (file: { blob: Blob; filename: string | null }) =>
+    openPrivateFile(file, setPreview, file.filename ?? talent.data?.display_name ?? '')
 
   const onDownloadError = (error: unknown) =>
     toast.error(
@@ -295,6 +294,7 @@ export function AdminTalentReviewPage() {
             <DeleteForeverButton
               description={t('admin.deleteTalentBody', { name: data.display_name })}
               onDelete={() => adminApi.deleteTalent(data.id)}
+              needs="deleteListing"
               onDeleted={() => navigate('/admin/talent')}
             />
           </div>
@@ -630,6 +630,8 @@ export function AdminTalentReviewPage() {
           </DialogContent>
         ) : null}
       </Dialog>
+
+      <ImagePreviewDialog image={preview} onClose={() => setPreview(null)} />
     </div>
   )
 }
