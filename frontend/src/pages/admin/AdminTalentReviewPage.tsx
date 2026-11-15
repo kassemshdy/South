@@ -294,6 +294,7 @@ export function AdminTalentReviewPage() {
             <DeleteForeverButton
               description={t('admin.deleteTalentBody', { name: data.display_name })}
               onDelete={() => adminApi.deleteTalent(data.id)}
+              needs="deleteListing"
               onDeleted={() => navigate('/admin/talent')}
             />
           </div>

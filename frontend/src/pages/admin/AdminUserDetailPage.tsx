@@ -58,6 +58,12 @@ function BusinessRow({ business }: { business: AdminBusiness }) {
       >
         {business.status === 'PENDING_REVIEW' ? t('admin.review') : t('admin.details')}
       </Link>
+      <DeleteForeverButton
+        size="sm"
+        needs="deleteListing"
+        description={t('admin.deleteBusinessBody', { name: business.name })}
+        onDelete={() => adminApi.deleteBusiness(business.id)}
+      />
     </li>
   )
 }
@@ -85,6 +91,12 @@ function TalentRow({ talent }: { talent: AdminTalent }) {
       >
         {talent.status === 'PENDING_REVIEW' ? t('admin.review') : t('admin.details')}
       </Link>
+      <DeleteForeverButton
+        size="sm"
+        needs="deleteListing"
+        description={t('admin.deleteTalentBody', { name: talent.display_name })}
+        onDelete={() => adminApi.deleteTalent(talent.id)}
+      />
     </li>
   )
 }
@@ -184,19 +196,6 @@ export function AdminUserDetailPage() {
           <p className="text-sm text-ink-500">{t('admin.userNoBusinesses')}</p>
         )}
       </section>
-
-      <section className="max-w-md">
-        <IssueCredentialsCard
-          userId={data.id}
-          phoneNumber={data.phone_number}
-          isAdmin={data.role === 'ADMIN'}
-        />
-      </section>
-
-      <section className="max-w-md">
-        <OwnerIdentityCard identity={data.identity} />
-      </section>
-
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">{t('admin.userTalentHeading')}</h2>
         {data.talent_profile ? (
@@ -211,6 +210,19 @@ export function AdminUserDetailPage() {
           <p className="text-sm text-ink-500">{t('admin.userNoTalent')}</p>
         )}
       </section>
+
+      <section className="max-w-md">
+        <IssueCredentialsCard
+          userId={data.id}
+          phoneNumber={data.phone_number}
+          isAdmin={data.role === 'ADMIN'}
+        />
+      </section>
+
+      <section className="max-w-md">
+        <OwnerIdentityCard identity={data.identity} />
+      </section>
+
     </div>
   )
 }
