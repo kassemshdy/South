@@ -110,7 +110,9 @@ class SyncQueuedOut(BaseModel):
 
 class ApiPartnerIn(BaseModel):
     name: str = Field(min_length=2, max_length=120)
-    scopes: list[str] = Field(default_factory=lambda: ["stores:read", "products:read"])
+    scopes: list[str] = Field(
+        default_factory=lambda: ["stores:read", "products:read", "talent:read"]
+    )
 
 
 class ApiPartnerOut(BaseModel):

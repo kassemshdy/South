@@ -95,6 +95,10 @@ Authorization: Bearer jnb_YOUR_KEY
 |---|---|
 | `stores:read` | `GET /stores`, `GET /stores/{slug}` |
 | `products:read` | `GET /products` |
+| `talent:read` | `GET /talent`, `GET /talent/{slug}` (freelancers) |
+
+Keys issued before 15 Nov 2026 carry `stores:read products:read` only;
+ask Janoubona for a new key to read freelancers.
 
 ## 4. Pagination
 
@@ -248,6 +252,30 @@ curl -H "Authorization: Bearer jnb_YOUR_KEY" \
 }
 ```
 
+### `GET /talent` (scope `talent:read`)
+
+Approved freelancers (services profiles), oldest change first. Job seekers
+are not in this feed.
+
+| Query parameter | Type | Description |
+|---|---|---|
+| `skill` | string | Only this skill's freelancers (its slug). |
+| `updated_since` | date-time | Only profiles changed at or after this time. |
+| `cursor` | string | `next_cursor` from the previous page. |
+| `limit` | integer 1–200, default 50 | Page size. |
+
+Responses: `200` `TalentPage`, `401`, `403`, `422`, `429`.
+
+```bash
+curl -H "Authorization: Bearer jnb_YOUR_KEY" \
+  "https://www.janoubona.net/api/partner/v1/talent?limit=200"
+```
+
+### `GET /talent/{slug}` (scope `talent:read`)
+
+One freelancer. `404` when the profile is not approved (or is a job
+seeker): hide it on your side.
+
 ## 9. Object reference
 
 Fields marked **\*** are always present and never `null`.
@@ -295,6 +323,36 @@ Fields marked **\*** are always present and never `null`.
 | `page_url`* | string | The product's page on janoubona.net. |
 | `buy_url` | string, null | The product on the shop's Shopify store, where payment happens. `null` when the shop has no connected store, or the product is not there yet. |
 | `updated_at`* | date-time | Last changed (UTC). |
+
+### Freelancer
+
+The same fields as the freelancer's public page on janoubona.net.
+
+| Field | Type | Description |
+|---|---|---|
+| `id`*, `slug`* | uuid, string | Stable identifier, and URL name used by `/talent/{slug}`. |
+| `display_name`* | string | The name they publish under. |
+| `kind`* | enum | Always `SERVICE` in this feed. |
+| `photo_url`, `cover_url` | string, null | Image paths, relative to the site. |
+| `phone`, `whatsapp` | string, null | Public numbers, E.164; `null` when not published. |
+| `skill` | object, null | Their trade: `id`, `name_ar`, `slug`. |
+| `custom_skill_text`, `skill_specialty` | string, null | Their own wording of the trade, and what exactly they do. |
+| `work_mode` | enum, null | `REMOTE`, `ON_SITE` or `BOTH`. |
+| `years_experience` | integer, null | Years in the trade. |
+| `location` | Location, null | Town or district. |
+| `rating_average`, `rating_count`* | number, integer | As for stores. |
+| `starting_price`, `starting_price_currency` | decimal string, enum, null | The lowest price among their services. |
+| `id_verified`* | boolean | Janoubona has checked their identity document. |
+| `bio` | string, null | About them, plain text. |
+| `website`, `social_links` | string, list | Their own site and social accounts (`platform`, `url`). |
+| `service_offers`* | list | Each: `title`, `description`, `price_from`, `price_to`, `currency`, `price_unit`, `image_url`. It may be empty. |
+| `work_videos`* | list | Videos of their work: `platform`, `url`, `embed_url`. |
+| `page_url`* | string | Their page on janoubona.net. |
+| `created_at`*, `updated_at` | date-time | Created, and last changed (UTC). |
+
+A few further fields shared with job-seeker profiles (`availability`,
+`desired_title`, `education_level`, `has_cv`, `skill_tags`, `work_types`,
+`displaced_from`) may also appear; they are usually empty for freelancers.
 
 ### Category and Location
 
