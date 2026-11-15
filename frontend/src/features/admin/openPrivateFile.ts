@@ -1,5 +1,5 @@
 /** An image to show in `ImagePreviewDialog`; `revoke` frees a blob URL on close. */
-export type PreviewImage = { title: string; url: string; revoke?: boolean }
+export type PreviewImage = { title: string; url: string; revoke?: boolean; filename?: string }
 
 /**
  * Opens a downloaded private file the way the owners asked (3 Nov 2026):
@@ -12,7 +12,7 @@ export function openPrivateFile(
 ): void {
   const url = URL.createObjectURL(blob)
   if (blob.type.startsWith('image/')) {
-    showImage({ title, url, revoke: true })
+    showImage({ title, url, revoke: true, filename: filename ?? title })
     return
   }
   if (blob.type === 'application/pdf' && window.open(url, '_blank')) {
