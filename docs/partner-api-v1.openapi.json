@@ -3,7 +3,7 @@
   "info": {
     "title": "Janoubona Partner API",
     "version": "1.0.0",
-    "description": "Read-only feed of Janoubona's approved stores and available products, with each store's Shopify storefront and buy links. It carries only what a visitor to janoubona.net can already read. Reference: docs/PARTNER_API.md."
+    "description": "Read-only feed of Janoubona's approved stores, available products and freelancers, with each store's Shopify storefront and buy links. It carries only what a visitor to janoubona.net can already read. Reference: docs/PARTNER_API.md."
   },
   "servers": [
     {
@@ -456,6 +456,284 @@
           }
         ]
       }
+    },
+    "/api/partner/v1/talent": {
+      "get": {
+        "tags": [
+          "Partner API v1"
+        ],
+        "summary": "List freelancers",
+        "operationId": "list_talent",
+        "parameters": [
+          {
+            "name": "skill",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "A skill's slug",
+              "title": "Skill"
+            },
+            "description": "A skill's slug"
+          },
+          {
+            "name": "updated_since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Updated Since"
+            },
+            "description": "ISO 8601 timestamp. Only rows changed at or after this time."
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            },
+            "description": "Opaque. Pass back next_cursor from the previous page."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Page size, 1 to 200."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TalentPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, wrong or revoked API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "bad_api_key",
+                    "message": "..."
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key does not have the scope this route needs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "scope_missing",
+                    "message": "..."
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "rate_limited",
+                    "message": "..."
+                  }
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                },
+                "description": "Seconds until the key may call again."
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid parameter or cursor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "bad_cursor",
+                    "message": "..."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Approved freelancers (services profiles; job seekers are not included), ordered by (updated_at, id), paged by cursor. Requires scope `talent:read`.",
+        "security": [
+          {
+            "PartnerKey": []
+          }
+        ]
+      }
+    },
+    "/api/partner/v1/talent/{slug}": {
+      "get": {
+        "tags": [
+          "Partner API v1"
+        ],
+        "summary": "Get a freelancer",
+        "operationId": "get_talent",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Freelancer"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, wrong or revoked API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "bad_api_key",
+                    "message": "..."
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key does not have the scope this route needs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "scope_missing",
+                    "message": "..."
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "rate_limited",
+                    "message": "..."
+                  }
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                },
+                "description": "Seconds until the key may call again."
+              }
+            }
+          },
+          "404": {
+            "description": "No approved store with this slug.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "code": "not_found",
+                    "message": "..."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "One approved freelancer by slug (percent-encoded). Requires scope `talent:read`.",
+        "security": [
+          {
+            "PartnerKey": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -522,6 +800,16 @@
           "LBP"
         ],
         "title": "Currency"
+      },
+      "EducationLevel": {
+        "type": "string",
+        "enum": [
+          "SECONDARY_VOCATIONAL",
+          "UNIVERSITY",
+          "POSTGRADUATE"
+        ],
+        "title": "EducationLevel",
+        "description": "The highest level a job seeker reached; the directory filters on it."
       },
       "GoodsOrigin": {
         "type": "string",
@@ -664,6 +952,33 @@
           "items"
         ],
         "title": "PartnerPage[Store]"
+      },
+      "TalentPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Freelancer"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "PartnerPage[Freelancer]"
       },
       "Product": {
         "properties": {
@@ -1016,6 +1331,562 @@
           "cover_thumb_url"
         ],
         "title": "Store"
+      },
+      "Freelancer": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/TalentKind",
+            "default": "SERVICE"
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
+          },
+          "cover_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cover Url"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "whatsapp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Whatsapp"
+          },
+          "years_experience": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Years Experience"
+          },
+          "skill": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TalentSkillOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "custom_skill_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Skill Text"
+          },
+          "skill_specialty": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skill Specialty"
+          },
+          "work_mode": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkMode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rating_average": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating Average"
+          },
+          "rating_count": {
+            "type": "integer",
+            "title": "Rating Count",
+            "default": 0
+          },
+          "location": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Location"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "displaced_from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Displaced From"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "desired_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Desired Title"
+          },
+          "availability": {
+            "$ref": "#/components/schemas/TalentAvailability",
+            "default": "NOW"
+          },
+          "education_level": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EducationLevel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "has_cv": {
+            "type": "boolean",
+            "title": "Has Cv",
+            "default": false
+          },
+          "id_verified": {
+            "type": "boolean",
+            "title": "Id Verified",
+            "default": false
+          },
+          "skill_tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Skill Tags"
+          },
+          "work_types": {
+            "items": {
+              "$ref": "#/components/schemas/TalentWorkType"
+            },
+            "type": "array",
+            "title": "Work Types"
+          },
+          "starting_price": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starting Price"
+          },
+          "starting_price_currency": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Currency"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "page_url": {
+            "type": "string",
+            "title": "Page Url"
+          },
+          "bio": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bio"
+          },
+          "website": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Website"
+          },
+          "social_links": {
+            "items": {
+              "$ref": "#/components/schemas/SocialLinkOut"
+            },
+            "type": "array",
+            "title": "Social Links"
+          },
+          "service_offers": {
+            "items": {
+              "$ref": "#/components/schemas/TalentServiceOfferOut"
+            },
+            "type": "array",
+            "title": "Service Offers"
+          },
+          "work_videos": {
+            "items": {
+              "$ref": "#/components/schemas/TalentVideoOut"
+            },
+            "type": "array",
+            "title": "Work Videos"
+          },
+          "photo_thumb_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Thumb Url",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "display_name",
+          "slug",
+          "created_at",
+          "page_url",
+          "photo_thumb_url"
+        ],
+        "title": "Freelancer",
+        "description": "A freelancer (a services profile), as its public page shows them."
+      },
+      "SocialLinkOut": {
+        "properties": {
+          "platform": {
+            "$ref": "#/components/schemas/SocialPlatform"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "platform",
+          "url"
+        ],
+        "title": "SocialLinkOut"
+      },
+      "SocialPlatform": {
+        "type": "string",
+        "enum": [
+          "INSTAGRAM",
+          "FACEBOOK",
+          "TIKTOK",
+          "YOUTUBE",
+          "WHATSAPP",
+          "WEBSITE"
+        ],
+        "title": "SocialPlatform"
+      },
+      "TalentAvailability": {
+        "type": "string",
+        "enum": [
+          "NOW",
+          "WITHIN_MONTH",
+          "EMPLOYED_OPEN"
+        ],
+        "title": "TalentAvailability",
+        "description": "When a job seeker can start. Public: shown as a badge on the card."
+      },
+      "TalentKind": {
+        "type": "string",
+        "enum": [
+          "SERVICE",
+          "JOB_SEEKER"
+        ],
+        "title": "TalentKind",
+        "description": "Which of the two directories a talent profile belongs to.\n\nThe owners split «services and skills» in two: people who offer a\nservice (a mechanic, a travel office, a teacher, a plumber) and people\nlooking for a job. The owner of the profile chooses. Public, because it\nis which page the profile is listed on."
+      },
+      "TalentServiceOfferOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "price_from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price From"
+          },
+          "price_to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price To"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency",
+            "default": "USD"
+          },
+          "price_unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Unit"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
+          "image_thumb_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Thumb Url",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "image_thumb_url"
+        ],
+        "title": "TalentServiceOfferOut"
+      },
+      "TalentSkillOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name_ar": {
+            "type": "string",
+            "title": "Name Ar"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon"
+          },
+          "sort_order": {
+            "type": "integer",
+            "title": "Sort Order"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "talent_count": {
+            "type": "integer",
+            "title": "Talent Count",
+            "default": 0
+          },
+          "service_count": {
+            "type": "integer",
+            "title": "Service Count",
+            "default": 0
+          },
+          "job_count": {
+            "type": "integer",
+            "title": "Job Count",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name_ar",
+          "slug",
+          "sort_order",
+          "is_active"
+        ],
+        "title": "TalentSkillOut"
+      },
+      "TalentVideoOut": {
+        "properties": {
+          "platform": {
+            "type": "string",
+            "title": "Platform"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "embed_url": {
+            "type": "string",
+            "title": "Embed Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "platform",
+          "url",
+          "embed_url"
+        ],
+        "title": "TalentVideoOut",
+        "description": "A video of the provider's work, rebuilt from its platform and key."
+      },
+      "TalentWorkType": {
+        "type": "string",
+        "enum": [
+          "FULL_TIME",
+          "PART_TIME",
+          "REMOTE",
+          "TRAINING"
+        ],
+        "title": "TalentWorkType",
+        "description": "The kinds of work a job seeker will take; a person may take several."
+      },
+      "WorkMode": {
+        "type": "string",
+        "enum": [
+          "REMOTE",
+          "ON_SITE",
+          "BOTH"
+        ],
+        "title": "WorkMode",
+        "description": "How a service is delivered. Public: visitors filter on it.\n\nAsked of everyone offering a service at the owners' request. ``BOTH``\nmatches either filter, so a visitor looking for remote help still finds\nsomeone who also works in person."
       },
       "Error": {
         "type": "object",

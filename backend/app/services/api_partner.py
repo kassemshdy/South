@@ -20,7 +20,7 @@ from app.core.errors import NotFoundError, ValidationError
 from app.models.integration import ApiPartner
 
 KEY_PREFIX = "jnb_"
-SCOPES = frozenset({"stores:read", "products:read"})
+SCOPES = frozenset({"stores:read", "products:read", "talent:read"})
 #: How stale ``last_used_at`` may get before a request writes it again.
 TOUCH_EVERY = timedelta(minutes=5)
 

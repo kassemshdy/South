@@ -21,7 +21,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import Select, and_, or_, select
 from sqlalchemy.orm import selectinload
 
-from app.api.serializers import business_summary
+from app.api.serializers import business_summary, talent_detail
 from app.core.config import Settings
 from app.core.dependencies import AdminUser, AppSettings, DbSession
 from app.core.errors import (
@@ -33,14 +33,21 @@ from app.core.errors import (
 )
 from app.core.rate_limit import DatabaseRateLimiter, RateLimitRule
 from app.models.business import Business, BusinessItem
-from app.models.enums import BusinessStatus
+from app.models.enums import BusinessStatus, TalentKind
 from app.models.integration import CONNECTED, ApiPartner, StoreLink
+from app.models.talent import TalentProfile
+from app.repositories.talent import TalentRepository
 from app.schemas.integration import ApiPartnerIn, ApiPartnerIssuedOut, ApiPartnerOut
-from app.schemas.partner_api import PartnerPage, PartnerProductOut, PartnerStoreOut
+from app.schemas.partner_api import (
+    PartnerPage,
+    PartnerProductOut,
+    PartnerStoreOut,
+    PartnerTalentOut,
+)
 from app.services.api_partner import ApiPartnerService
 from app.services.storefront import buy_url, online_store_url
 
-_Row = TypeVar("_Row", Business, BusinessItem)
+_Row = TypeVar("_Row", Business, BusinessItem, TalentProfile)
 
 router = APIRouter(prefix="/partner/v1", tags=["partner-api"])
 admin_router = APIRouter(prefix="/admin", tags=["admin-api-partners"])
@@ -92,7 +99,7 @@ def _decode_cursor(cursor: str) -> tuple[datetime, uuid.UUID]:
 
 def _page(
     stmt: Select[tuple[_Row]],
-    model: type[Business] | type[BusinessItem],
+    model: type[Business] | type[BusinessItem] | type[TalentProfile],
     cursor: str | None,
     since: datetime | None,
     limit: int,
@@ -225,6 +232,60 @@ def list_products(
         items=[_product(i, settings) for i in rows],
         next_cursor=_encode_cursor(rows[-1].updated_at, rows[-1].id) if more else None,
     )
+
+
+def _talent(profile: TalentProfile, settings: Settings) -> PartnerTalentOut:
+    # From the public profile itself, so the feed can never carry a field the
+    # profile page does not (testimonials are left to the page).
+    detail = talent_detail(profile)
+    return PartnerTalentOut(
+        **detail.model_dump(
+            include=set(PartnerTalentOut.model_fields) - {"page_url"},
+        ),
+        page_url=f"{_site(settings)}/talent/{profile.slug}",
+    )
+
+
+def _public_freelancers(db: DbSession) -> Select[tuple[TalentProfile]]:
+    """Approved services profiles: the freelancers. Job seekers are not in it."""
+    repo = TalentRepository(db)
+    return repo.with_relations(
+        repo.public_query().where(TalentProfile.kind == TalentKind.SERVICE)
+    ).options(selectinload(TalentProfile.work_videos))
+
+
+@router.get("/talent", response_model=PartnerPage[PartnerTalentOut])
+def list_talent(
+    partner: Partner,
+    db: DbSession,
+    settings: AppSettings,
+    skill: Annotated[str | None, Query(description="A skill's slug")] = None,
+    updated_since: Annotated[datetime | None, Query()] = None,
+    cursor: Annotated[str | None, Query(max_length=200)] = None,
+    limit: Annotated[int, Query(ge=1, le=MAX_LIMIT)] = 50,
+) -> PartnerPage[PartnerTalentOut]:
+    _require(partner, "talent:read")
+    stmt = _public_freelancers(db)
+    if skill:
+        stmt = stmt.where(TalentProfile.skill.has(slug=skill))
+    rows = list(db.scalars(_page(stmt, TalentProfile, cursor, updated_since, limit)).unique())
+    more = len(rows) > limit
+    rows = rows[:limit]
+    return PartnerPage[PartnerTalentOut](
+        items=[_talent(p, settings) for p in rows],
+        next_cursor=_encode_cursor(rows[-1].updated_at, rows[-1].id) if more else None,
+    )
+
+
+@router.get("/talent/{slug}", response_model=PartnerTalentOut)
+def get_talent(
+    partner: Partner, slug: str, db: DbSession, settings: AppSettings
+) -> PartnerTalentOut:
+    _require(partner, "talent:read")
+    profile = db.scalars(_public_freelancers(db).where(TalentProfile.slug == slug)).first()
+    if profile is None:
+        raise NotFoundError("talent.not_found")
+    return _talent(profile, settings)
 
 
 # --- Keys, for the manager ------------------------------------------------------

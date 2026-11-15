@@ -15,12 +15,15 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.business import Business
-from app.models.enums import BusinessStatus, StaffRole
+from app.models.enums import BusinessStatus, StaffRole, TalentKind
 from app.models.integration import ApiPartner
+from app.models.talent import TalentProfile, TalentServiceOffer, TalentSkill
 from app.models.taxonomy import Category, Location
 from app.models.user import User
 from app.services.api_partner import hash_key
 from tests.conftest import admin_headers, sign_in
+from tests.samples import ar
+from tests.test_service_requests import _approved_profile
 from tests.test_shopify import add_item, approved_business
 
 OWNER_PHONE = "03770001"
@@ -162,3 +165,55 @@ def test_paging_by_cursor_returns_every_row_once(
         ).status_code
         == 422
     )
+
+
+def test_the_feed_lists_approved_freelancers_and_no_identity(
+    client: TestClient,
+    db: Session,
+    admin: User,
+    location: Location,
+) -> None:
+    skill = TalentSkill(name_ar=ar("talent.designer"), slug="partner-feed-skill")
+    db.add(skill)
+    db.commit()
+    shown = _approved_profile(
+        client, db, admin, sign_in(client, OWNER_PHONE), skill, location,
+        display_name=ar("talent.designer"),
+    )
+    db.add(TalentServiceOffer(profile_id=shown.id, title=ar("talent.designer"), sort_order=0))
+    hidden = _approved_profile(
+        client, db, admin, sign_in(client, OTHER_PHONE), skill, location,
+        display_name=ar("talent.applicant"),
+    )
+    hidden.status = BusinessStatus.SUSPENDED
+    db.commit()
+
+    headers = admin_headers(client)
+    # A key without the scope reads no freelancers.
+    narrow = issue_key(client, headers, scopes=["stores:read"])
+    assert client.get("/api/partner/v1/talent", headers=bearer(narrow)).status_code == 403
+
+    key = issue_key(client, headers)
+    page = client.get("/api/partner/v1/talent", headers=bearer(key))
+    assert page.status_code == 200, page.text
+    items = page.json()["items"]
+    assert [item["slug"] for item in items] == [shown.slug]
+    item = items[0]
+    assert item["kind"] == TalentKind.SERVICE.value
+    assert item["page_url"].endswith(f"/talent/{shown.slug}")
+    assert len(item["service_offers"]) == 1
+    for field in IDENTITY_KEYS:
+        assert field not in json.dumps(page.json())
+
+    one = client.get(f"/api/partner/v1/talent/{shown.slug}", headers=bearer(key))
+    assert one.status_code == 200 and one.json()["id"] == str(shown.id)
+    assert (
+        client.get(f"/api/partner/v1/talent/{hidden.slug}", headers=bearer(key)).status_code
+        == 404
+    )
+    # Job seekers are not freelancers: never in this feed.
+    seeker = db.get(TalentProfile, shown.id)
+    assert seeker is not None
+    seeker.kind = TalentKind.JOB_SEEKER
+    db.commit()
+    assert client.get("/api/partner/v1/talent", headers=bearer(key)).json()["items"] == []

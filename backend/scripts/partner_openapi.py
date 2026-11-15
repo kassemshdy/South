@@ -33,6 +33,8 @@ RENAMES = {
     "PartnerPage_PartnerProductOut_": "ProductPage",
     "PartnerStoreOut": "Store",
     "PartnerProductOut": "Product",
+    "PartnerPage_PartnerTalentOut_": "TalentPage",
+    "PartnerTalentOut": "Freelancer",
     "CategoryOut": "Category",
     "LocationOut": "Location",
 }
@@ -55,6 +57,19 @@ ROUTES = {
         "list_products",
         "Available products of approved stores, ordered by (updated_at, id), paged by cursor.",
         "products:read",
+    ),
+    "/api/partner/v1/talent": (
+        "List freelancers",
+        "list_talent",
+        "Approved freelancers (services profiles; job seekers are not included), "
+        "ordered by (updated_at, id), paged by cursor.",
+        "talent:read",
+    ),
+    "/api/partner/v1/talent/{slug}": (
+        "Get a freelancer",
+        "get_talent",
+        "One approved freelancer by slug (percent-encoded).",
+        "talent:read",
     ),
 }
 
@@ -178,8 +193,9 @@ def build() -> dict[str, Any]:
         "info": {
             "title": "Janoubona Partner API",
             "version": "1.0.0",
-            "description": "Read-only feed of Janoubona's approved stores and available "
-            "products, with each store's Shopify storefront and buy links. It carries only "
+            "description": "Read-only feed of Janoubona's approved stores, available "
+            "products and freelancers, with each store's Shopify storefront and buy links. "
+            "It carries only "
             "what a visitor to janoubona.net can already read. Reference: "
             "docs/PARTNER_API.md.",
         },
