@@ -2609,5 +2609,7 @@
   "adminActivity.registrationOverride.CLOSED": "Closed",
   "adminActivity.registrationClosedBadge": "Registration closed",
   "items.categoryHint": "Starts as your shop's category; choose another if this product belongs elsewhere.",
-  "items.staffCategoryLabel": "Product category (staff)"
+  "items.staffCategoryLabel": "Product category (staff)",
+  "register.documentAlternative": "If you don't have an ID card, you can use any other official identity document.",
+  "vacancies.staffEdit": "Edit (staff)"
 }

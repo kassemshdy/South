@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Briefcase, Download, ImageOff, ImagePlus, MousePointerClick, Pencil, Plus, Trash2 } from 'lucide-react'
-import { useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useSearchParams } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -102,6 +103,16 @@ export function AdminJobOpeningsPage() {
   const coverCrop = useCropStep('gallery')
 
   const jobs = useQuery({ queryKey: queryKeys.adminJobOpenings, queryFn: adminApi.jobOpenings })
+  // `?edit=<id>`: opened from a vacancy's own page, straight to its editor.
+  const [params, setParams] = useSearchParams()
+  const editId = params.get('edit')
+  useEffect(() => {
+    if (!editId || !jobs.data || !canEdit) return
+    const match = jobs.data.find((job) => job.id === editId)
+    if (match) setEditing(match)
+    params.delete('edit')
+    setParams(params, { replace: true })
+  }, [editId, jobs.data, canEdit, params, setParams])
   const refresh = () => void queryClient.invalidateQueries({ queryKey: queryKeys.adminJobOpenings })
   const fail = (error: unknown) =>
     toast.error(t('admin.jobFailed'), error instanceof ApiError ? error.message : undefined)
