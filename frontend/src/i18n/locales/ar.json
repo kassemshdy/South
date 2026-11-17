@@ -2609,5 +2609,7 @@
   "adminActivity.registrationOverride.CLOSED": "مغلق",
   "adminActivity.registrationClosedBadge": "التسجيل مغلق",
   "items.categoryHint": "يبدأ بتصنيف نشاطك، ويمكنك اختيار تصنيف آخر إن كان هذا المنتج ينتمي إليه.",
-  "items.staffCategoryLabel": "تصنيف المنتج (للفريق)"
+  "items.staffCategoryLabel": "تصنيف المنتج (للفريق)",
+  "register.documentAlternative": "إن لم توجد الهويّة، يمكن استخدام أيّ ورقة ثبوتيّة أخرى.",
+  "vacancies.staffEdit": "تعديل (للفريق)"
 }
