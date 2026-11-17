@@ -10,7 +10,7 @@ import { Field } from '@/components/ui/Field'
 import { Input, Textarea } from '@/components/ui/Input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 import { useToast } from '@/components/ui/Toast'
-import { useAuth } from '@/features/auth/AuthContext'
+import { useStaffCan } from '@/features/admin/staffAccess'
 import { useT } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { feedbackApi } from '@/services/api/endpoints'
@@ -47,7 +47,11 @@ function kindFor(file: File): FeedbackAttachmentKind {
  * failed with a permission error after the form was filled in.
  */
 export function FeedbackWidget() {
-  const { isAdmin } = useAuth()
+  // Only staff who triage the board (manager, support) raise a ticket on the
+  // admin route with a priority. Every other staff role reports like an
+  // owner: the admin route is closed to them, so they used to fill in the
+  // form and get a permission error (the owners' ticket, 16 Nov 2026).
+  const isAdmin = useStaffCan('support')
   const t = useT()
   const toast = useToast()
   const queryClient = useQueryClient()

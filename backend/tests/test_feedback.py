@@ -638,3 +638,29 @@ def test_an_administrator_sees_who_sent_a_report_and_their_phone(
         "name": ar("identity.full_name"),
         "phone": user.phone_number,
     }
+
+
+def test_every_staff_role_can_report_a_problem(client: TestClient, admin: User) -> None:
+    """The owners' ticket, 16 Nov 2026: a reviewer, an editor or a viewer is
+    refused the admin board's route, so the button sends theirs here."""
+    from tests.test_permissions import _invite
+
+    manager = admin_headers(client)
+    for role, email in (
+        ("REVIEWER", "reviewer@example.com"),
+        ("EDITOR", "editor@example.com"),
+        ("VIEWER", "viewer@example.com"),
+    ):
+        staff = _invite(client, manager, role, email)
+        assert (
+            client.post(
+                "/api/admin/feedback/tickets",
+                headers=staff,
+                json={"title": ar("feedback.bug_title")},
+            ).status_code
+            == 403
+        )
+        sent = client.post("/api/feedback", headers=staff, json={"title": ar("feedback.bug_title")})
+        assert sent.status_code == 201, sent.text
+    board = client.get("/api/admin/feedback/tickets", headers=manager).json()
+    assert len(board) == 3
