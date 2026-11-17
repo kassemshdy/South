@@ -79,6 +79,29 @@ class Activity(Base, TimestampMixin):
     show_calendar: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default="true"
     )
+    # The on-site form closes by itself at this many sign-ups (the owners'
+    # ticket, 16 Nov 2026); null means no limit.
+    registration_limit: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # The administrator's hand on the form: "OPEN" keeps it open past the
+    # limit, "CLOSED" shuts it whatever the count; null lets the limit and
+    # the dates decide. See ``registration_open``.
+    registration_override: Mapped[str | None] = mapped_column(String(10), nullable=True)
+
+
+def registration_open(activity: Activity, count: int, ended: bool) -> bool:
+    """Whether the form on the activity's page takes a sign-up right now.
+
+    Only for the on-site form, and never after the activity has ended. An
+    administrator's "CLOSED" shuts it; their "OPEN" keeps it open however
+    many have signed up; otherwise it closes at ``registration_limit``.
+    """
+    if activity.registration_mode is not ActivityRegistrationMode.ON_SITE or ended:
+        return False
+    if activity.registration_override == "CLOSED":
+        return False
+    if activity.registration_override == "OPEN":
+        return True
+    return activity.registration_limit is None or count < activity.registration_limit
 
 
 class ActivityRegistration(Base, TimestampMixin):

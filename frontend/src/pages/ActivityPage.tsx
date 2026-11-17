@@ -83,6 +83,8 @@ export function ActivityPage() {
   const register =
     !ended && data.registration_mode === 'EXTERNAL' ? data.register_url : null
   const signUpHere = !ended && data.registration_mode === 'ON_SITE'
+  // Full, or closed by an administrator (the owners' ticket, 16 Nov 2026).
+  const signUpClosed = signUpHere && !data.registration_open
 
   return (
     <article className="container-page py-10">
@@ -155,7 +157,15 @@ export function ActivityPage() {
               ) : null}
             </CardBody>
           </Card>
-          {signUpHere ? <SignUpForm activity={data} /> : null}
+          {signUpClosed ? (
+            <Card className="mt-4">
+              <CardBody className="p-5 text-center font-semibold text-ink-700">
+                {t('activitiesPage.registrationClosed')}
+              </CardBody>
+            </Card>
+          ) : signUpHere ? (
+            <SignUpForm activity={data} />
+          ) : null}
         </aside>
       </div>
     </article>

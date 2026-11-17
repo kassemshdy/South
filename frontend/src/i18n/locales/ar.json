@@ -2599,5 +2599,13 @@
   "activityRegistration.background.new_graduate": "خريج جديد",
   "activityRegistration.background.job_seeker": "باحث عن عمل",
   "activityRegistration.background.employed": "موظف حاليًا",
-  "activityRegistration.background.other": "خلفيّات أخرى"
+  "activityRegistration.background.other": "خلفيّات أخرى",
+  "activitiesPage.registrationClosed": "التسجيل في هذا النشاط مغلق.",
+  "adminActivity.registrationLimitLabel": "الحد الأقصى للمسجّلين",
+  "adminActivity.registrationLimitHint": "يُغلق التسجيل تلقائيًا عند بلوغ هذا العدد. اتركه فارغًا إن لم يكن هناك حد.",
+  "adminActivity.registrationOverrideLabel": "حالة التسجيل",
+  "adminActivity.registrationOverride.AUTO": "تلقائي (حسب الحد والتاريخ)",
+  "adminActivity.registrationOverride.OPEN": "مفتوح (حتى بعد بلوغ الحد)",
+  "adminActivity.registrationOverride.CLOSED": "مغلق",
+  "adminActivity.registrationClosedBadge": "التسجيل مغلق"
 }
