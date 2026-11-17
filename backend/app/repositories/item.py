@@ -12,7 +12,7 @@ from collections.abc import Sequence
 from datetime import date
 from typing import Literal
 
-from sqlalchemy import Select, case, func, nullslast, or_, select
+from sqlalchemy import ColumnElement, Select, case, func, nullslast, or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.arabic import normalize_arabic
@@ -34,6 +34,12 @@ SortOption = Literal[
 #: The home rows show one product per shop only while more shops than this
 #: have a product to show; below it they list every product.
 ONE_PER_SHOP_MIN = 6
+
+
+def item_category_id() -> ColumnElement[uuid.UUID]:
+    """A product's category as a visitor sees it: its own, else its shop's
+    (the owners' ticket, 16 Nov 2026). Needs Business joined."""
+    return func.coalesce(BusinessItem.category_id, Business.category_id)
 
 
 class ItemRepository(BaseRepository[BusinessItem]):
@@ -80,9 +86,12 @@ class ItemRepository(BaseRepository[BusinessItem]):
         """Products a visitor can see, per category of their shop -- the same
         rule as the catalogue, so a category's count is what opening it
         shows."""
-        visible = self.public_query().with_only_columns(
-            Business.category_id, func.count(BusinessItem.id)
-        ).group_by(Business.category_id)
+        category = item_category_id()
+        visible = (
+            self.public_query()
+            .with_only_columns(category, func.count(BusinessItem.id))
+            .group_by(category)
+        )
         return {row[0]: row[1] for row in self.db.execute(visible).all() if row[0] is not None}
 
     def shops_with_counts(
@@ -164,7 +173,7 @@ class ItemRepository(BaseRepository[BusinessItem]):
             self.public_query()
             .where(
                 BusinessItem.id != item.id,
-                or_(same_shop, Business.category_id == item.business.category_id),
+                or_(same_shop, item_category_id() == _category_id(item)),
             )
             .order_by(
                 case((same_shop, 0), else_=1),
@@ -287,7 +296,7 @@ class ItemRepository(BaseRepository[BusinessItem]):
             stmt = stmt.where(BusinessItem.goods_origin == origin)
 
         if category_slug:
-            stmt = stmt.join(Category, Business.category_id == Category.id).where(
+            stmt = stmt.join(Category, item_category_id() == Category.id).where(
                 Category.slug == category_slug
             )
 
@@ -442,3 +451,8 @@ class ItemRepository(BaseRepository[BusinessItem]):
 
 def make_repository(db: Session) -> ItemRepository:
     return ItemRepository(db)
+
+
+def _category_id(item: BusinessItem) -> uuid.UUID | None:
+    category = item.effective_category
+    return category.id if category is not None else None

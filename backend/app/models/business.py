@@ -369,7 +369,17 @@ class BusinessItem(Base, TimestampMixin):
         server_default=GoodsOrigin.LOCAL.value,
     )
 
+    # The product's own category (the owners' ticket, 16 Nov 2026), for a
+    # shop that sells in more than one. Null means it follows its shop's,
+    # which is every product saved before and the common case: change the
+    # shop's category and those follow, while one set here stays.
+    category_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("categories.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+
     business: Mapped[Business] = relationship(back_populates="items")
+    # joined: every card shows it, and a shop page lists up to 200.
+    category: Mapped[Category | None] = relationship(lazy="joined")
     images: Mapped[list[BusinessItemImage]] = relationship(
         back_populates="item",
         order_by="BusinessItemImage.sort_order",
@@ -379,6 +389,11 @@ class BusinessItem(Base, TimestampMixin):
     item_link: Mapped[ItemLink | None] = relationship(
         back_populates="item", cascade="all, delete-orphan", uselist=False, lazy="selectin"
     )
+
+    @property
+    def effective_category(self) -> Category | None:
+        """What a visitor sees: its own category, else its shop's."""
+        return self.category or self.business.category
 
 
 class BusinessItemImage(Base):

@@ -13,7 +13,7 @@ from app.core.dependencies import AdminUser, DbSession
 from app.core.errors import ConflictError, NotFoundError, ValidationError
 from app.core.i18n import translate
 from app.models.article import Article
-from app.models.business import Business
+from app.models.business import Business, BusinessItem
 from app.models.talent import TalentSkill
 from app.models.taxonomy import Category, Location
 from app.models.workshop import Workshop
@@ -156,6 +156,13 @@ def merge_category(
         )
         if model is Business:
             moved = result.rowcount or 0
+    # Products filed under it on their own go with it.
+    db.execute(
+        update(BusinessItem)
+        .where(BusinessItem.category_id == category.id)
+        .values(category_id=target.id)
+        .execution_options(synchronize_session=False)
+    )
     db.expire_all()
     repo.delete(category)
     db.commit()

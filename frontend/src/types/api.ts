@@ -257,6 +257,10 @@ export interface BusinessItem {
   images: ItemImage[]
   /** The product on the shop's own Shopify store, when it has one. */
   buy_url?: string | null
+  /** Its own category; null means it follows its shop's. */
+  category_id?: string | null
+  /** What a visitor sees: its own category, else its shop's. */
+  category?: Category | null
 }
 
 export interface BusinessSummary {
@@ -1020,6 +1024,7 @@ export interface TalentQuery {
 
 /** Just enough of the parent business for a product card/page to link back. */
 export interface ProductBusinessRef {
+  id: string
   name: string
   slug: string
   phone: string | null
@@ -1044,6 +1049,8 @@ export interface ProductSummary {
   image_thumb_url?: string | null
   goods_origin: GoodsOrigin
   business: ProductBusinessRef
+  /** Its own category, else its shop's. */
+  category?: Category | null
 }
 
 export interface ProductDetail extends ProductSummary {

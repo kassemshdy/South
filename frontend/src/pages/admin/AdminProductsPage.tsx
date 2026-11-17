@@ -14,6 +14,7 @@ import { useToast } from '@/components/ui/Toast'
 import { useStaffCan } from '@/features/admin/staffAccess'
 import { Pagination } from '@/features/businesses/Pagination'
 import { StatusBadge } from '@/features/businesses/StatusBadge'
+import { ProductCategorySelect } from '@/features/items/ProductCategorySelect'
 import { useI18n } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { adminApi } from '@/services/api/endpoints'
@@ -277,6 +278,9 @@ function ProductRow({
                 {shop.name}
               </Link>
               <StatusBadge status={shop.status} />
+              {item.category ? (
+                <Badge className="bg-olive-50 text-olive-800">{item.category.name_ar}</Badge>
+              ) : null}
               <button type="button" className="text-xs underline" onClick={() => onShop(shop.id)}>
                 {t('adminProducts.onlyThisShop')}
               </button>
@@ -360,6 +364,7 @@ function EditForm({
   const [description, setDescription] = useState(item.description ?? '')
   const [price, setPrice] = useState(item.price ?? '')
   const [origin, setOrigin] = useState<GoodsOrigin>(item.goods_origin)
+  const [categoryId, setCategoryId] = useState(item.category?.id ?? '')
   const id = item.id
 
   return (
@@ -372,6 +377,7 @@ function EditForm({
           description: description.trim() || null,
           price: price.trim() || null,
           goods_origin: origin,
+          ...(categoryId ? { category_id: categoryId } : {}),
         })
       }}
     >
@@ -417,6 +423,16 @@ function EditForm({
             <SelectItem value="IMPORTED">{t('onboarding.importedTitle')}</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+      <div>
+        <label className="mb-1 block text-sm font-semibold text-ink-700" id={`category-${id}`}>
+          {t('directory.category')}
+        </label>
+        <ProductCategorySelect
+          labelledBy={`category-${id}`}
+          value={categoryId}
+          onChange={setCategoryId}
+        />
       </div>
       <div className="flex gap-2 sm:col-span-2">
         <Button type="submit" size="sm" loading={pending} disabled={!title.trim()}>

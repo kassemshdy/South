@@ -20,6 +20,7 @@ import { useApplyServerFieldErrors } from '@/utils/serverFieldErrors'
 import { ApiError } from '@/services/api/client'
 import { ownerApi } from '@/services/api/endpoints'
 import { queryKeys } from '@/services/api/queryKeys'
+import { ProductCategorySelect } from '@/features/items/ProductCategorySelect'
 import type { BusinessItem, GoodsOrigin } from '@/types/api'
 import { formatPrice, whatsappShareHref } from '@/utils/format'
 import { itemSchema, type ItemValues } from '@/utils/validation'
@@ -137,6 +138,7 @@ export function ItemManager({ businessId }: { businessId: string }) {
       <ItemForm
         businessId={businessId}
         shopOrigin={business.data?.goods_origin ?? 'LOCAL'}
+        shopCategoryId={business.data?.category?.id ?? ''}
         item={editing}
         onCancel={() => setOpen(null)}
         onDone={() => {
@@ -318,12 +320,14 @@ function ItemForm({
   businessId,
   item,
   shopOrigin,
+  shopCategoryId,
   onCancel,
   onDone,
 }: {
   businessId: string
   item: BusinessItem | null
   shopOrigin: GoodsOrigin
+  shopCategoryId: string
   onCancel: () => void
   onDone: () => void
 }) {
@@ -365,6 +369,9 @@ function ItemForm({
   })
 
   const goodsOrigin = useWatch({ control, name: 'goods_origin' })
+  // Its own category, starting from the shop's (the owners' ticket, 16 Nov
+  // 2026): a shop selling in two categories files each product under its own.
+  const [categoryId, setCategoryId] = useState(item?.category?.id ?? shopCategoryId)
 
   // A new item's gallery, held until the item exists and has an id to
   // attach the files to; uploaded right after the main photo.
@@ -400,6 +407,7 @@ function ItemForm({
         net_weight: values.net_weight || null,
         external_link: values.external_link || null,
         goods_origin: values.goods_origin,
+        ...(categoryId ? { category_id: categoryId } : {}),
       }
       const saved = isEdit
         ? await ownerApi.updateItem(businessId, item.id, payload)
@@ -546,6 +554,16 @@ function ItemForm({
                   </SelectContent>
                 </Select>
               )}
+            />
+          )}
+        </Field>
+
+        <Field label={t('directory.category')} hint={t('items.categoryHint')}>
+          {(props) => (
+            <ProductCategorySelect
+              id={props.id}
+              value={categoryId}
+              onChange={setCategoryId}
             />
           )}
         </Field>
