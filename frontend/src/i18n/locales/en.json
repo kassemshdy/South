@@ -2599,5 +2599,13 @@
   "activityRegistration.background.new_graduate": "Recent graduate",
   "activityRegistration.background.job_seeker": "Job seeker",
   "activityRegistration.background.employed": "Currently employed",
-  "activityRegistration.background.other": "Other backgrounds"
+  "activityRegistration.background.other": "Other backgrounds",
+  "activitiesPage.registrationClosed": "Registration for this activity is closed.",
+  "adminActivity.registrationLimitLabel": "Sign-up limit",
+  "adminActivity.registrationLimitHint": "Registration closes by itself at this number. Leave it empty for no limit.",
+  "adminActivity.registrationOverrideLabel": "Registration status",
+  "adminActivity.registrationOverride.AUTO": "Automatic (by the limit and the dates)",
+  "adminActivity.registrationOverride.OPEN": "Open (even past the limit)",
+  "adminActivity.registrationOverride.CLOSED": "Closed",
+  "adminActivity.registrationClosedBadge": "Registration closed"
 }

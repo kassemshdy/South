@@ -420,3 +420,38 @@ def test_only_content_staff_set_a_card_image(client: TestClient, admin: User) ->
     assert client.delete(
         f"/api/admin/activities/{activity['id']}/card-image", headers=viewer
     ).status_code == 403
+
+
+def test_the_form_closes_at_its_limit_and_staff_can_force_it_either_way(
+    client: TestClient, admin: User
+) -> None:
+    """The owners' ticket, 16 Nov 2026."""
+    headers = admin_headers(client)
+    activity = _create(client, headers, slug="limited", registration_limit=1)
+    edit = f"/api/admin/activities/{activity['id']}"
+    assert client.get("/api/activities/limited").json()["registration_open"] is True
+
+    assert _sign_up(client, "limited", "70 111 001").status_code == 201
+    # Full: the page says so and the form refuses, without publishing the count.
+    public = client.get("/api/activities/limited").json()
+    assert public["registration_open"] is False and "registration_count" not in public
+    assert _sign_up(client, "limited", "70 111 003").status_code == 422
+
+    # Forced open: past the limit.
+    client.put(edit, headers=headers, json={"registration_override": "OPEN"})
+    assert _sign_up(client, "limited", "70 111 003").status_code == 201
+
+    # Forced closed: whatever the count, even with the limit cleared.
+    client.put(
+        edit,
+        headers=headers,
+        json={"registration_override": "CLOSED", "registration_limit": None},
+    )
+    assert client.get("/api/activities/limited").json()["registration_open"] is False
+    assert _sign_up(client, "limited", "70 111 004").status_code == 422
+
+    # Back to the limit deciding: none now, so open.
+    back = client.put(edit, headers=headers, json={"registration_override": None}).json()
+    assert back["registration_override"] is None and back["registration_limit"] is None
+    assert back["registration_count"] == 2
+    assert _sign_up(client, "limited", "70 111 004").status_code == 201

@@ -31,6 +31,11 @@ def _blank_none(value: str | None) -> str | None:
     return value.strip() or None
 
 
+#: An administrator's hand on the sign-up form (the owners' ticket, 16 Nov
+#: 2026): keep it open past the limit, or close it now.
+RegistrationOverride = Literal["OPEN", "CLOSED"]
+
+
 class ActivityIn(BaseModel):
     title: str = Field(min_length=3, max_length=200)
     body: str = Field(min_length=10)
@@ -45,6 +50,8 @@ class ActivityIn(BaseModel):
     register_url: str | None = Field(default=None, max_length=500)
     register_label: str | None = Field(default=None, max_length=60)
     show_calendar: bool = True
+    registration_limit: int | None = Field(default=None, ge=1, le=100_000)
+    registration_override: RegistrationOverride | None = None
 
     _register_url = field_validator("register_url")(classmethod(lambda cls, v: _http_url(v)))
     _register_label = field_validator("register_label")(classmethod(lambda cls, v: _blank_none(v)))
@@ -78,6 +85,9 @@ class ActivityUpdateIn(BaseModel):
     register_url: str | None = Field(default=None, max_length=500)
     register_label: str | None = Field(default=None, max_length=60)
     show_calendar: bool | None = None
+    # Null clears either: no limit, and the limit decides again.
+    registration_limit: int | None = Field(default=None, ge=1, le=100_000)
+    registration_override: RegistrationOverride | None = None
     # The form's "show in carousel" box: true puts it first, false takes it
     # out. Needs the photograph.
     in_carousel: bool | None = None
@@ -105,6 +115,9 @@ class ActivityOut(ORMModel):
     register_url: str | None = None
     register_label: str | None = None
     show_calendar: bool = True
+    # Whether the on-site form takes a sign-up now (the limit, the
+    # administrator's override and the dates together); never the count.
+    registration_open: bool = False
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -125,6 +138,8 @@ class AdminActivityOut(ActivityOut):
     updated_at: datetime
     in_carousel: bool = False
     registration_count: int = 0
+    registration_limit: int | None = None
+    registration_override: str | None = None
 
 
 #: The answers to the sign-up form's background question (the owners'

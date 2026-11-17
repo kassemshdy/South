@@ -34,6 +34,7 @@ import type {
   ActivityKind,
   ActivityRegistrationMode,
   AdminActivity,
+  RegistrationOverride,
 } from '@/types/api'
 import { formatDateTime, whatsappHref } from '@/utils/format'
 
@@ -52,6 +53,8 @@ interface FormState {
   register_label: string
   show_calendar: boolean
   in_carousel: boolean
+  registration_limit: string
+  registration_override: RegistrationOverride | 'AUTO'
 }
 
 const EMPTY: FormState = {
@@ -70,11 +73,15 @@ const EMPTY: FormState = {
   register_label: '',
   show_calendar: true,
   in_carousel: false,
+  registration_limit: '',
+  registration_override: 'AUTO',
 }
 
 export const ACTIVITY_KINDS: ActivityKind[] = ['ACTIVITY', 'CONSULTATION', 'WORKSHOP', 'TRAINING']
 
 const REGISTRATION_MODES: ActivityRegistrationMode[] = ['ON_SITE', 'EXTERNAL', 'NONE']
+
+const REGISTRATION_OVERRIDES: (RegistrationOverride | 'AUTO')[] = ['AUTO', 'OPEN', 'CLOSED']
 
 const SELECT_CLASS =
   'w-full rounded-xl border border-ink-100 bg-white px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none'
@@ -108,6 +115,9 @@ function toPayload(form: FormState): ActivityInput {
     register_url: blank(form.register_url),
     register_label: blank(form.register_label),
     show_calendar: form.show_calendar,
+    registration_limit: Number.parseInt(form.registration_limit, 10) || null,
+    registration_override:
+      form.registration_override === 'AUTO' ? null : form.registration_override,
   }
 }
 
@@ -305,7 +315,13 @@ export function AdminActivitiesPage() {
                       >
                         <Users className="h-4 w-4" aria-hidden="true" />
                         {t('admin.workshopRegistrations', { count: activity.registration_count })}
+                        {activity.registration_limit ? ` / ${activity.registration_limit}` : null}
                       </Button>
+                    ) : null}
+                    {activity.registration_mode === 'ON_SITE' && !activity.registration_open ? (
+                      <span className="rounded-full bg-clay-50 px-2.5 py-1 text-xs font-semibold text-clay-700">
+                        {t('adminActivity.registrationClosedBadge')}
+                      </span>
                     ) : null}
                     {canEdit ? (
                       <>
@@ -413,6 +429,9 @@ function ActivityForm({
           register_label: activity.register_label ?? '',
           show_calendar: activity.show_calendar ?? true,
           in_carousel: activity.in_carousel ?? false,
+          registration_limit:
+            activity.registration_limit == null ? '' : String(activity.registration_limit),
+          registration_override: activity.registration_override ?? 'AUTO',
         }
       : EMPTY,
   )
@@ -584,6 +603,48 @@ function ActivityForm({
                   />
                 )}
               </Field>
+            ) : null}
+            {form.registration_mode === 'ON_SITE' ? (
+              <>
+                <Field
+                  label={t('adminActivity.registrationLimitLabel')}
+                  hint={t('adminActivity.registrationLimitHint')}
+                >
+                  {(props) => (
+                    <Input
+                      {...props}
+                      type="number"
+                      inputMode="numeric"
+                      dir="ltr"
+                      min={1}
+                      max={100000}
+                      value={form.registration_limit}
+                      onChange={(event) => set('registration_limit', event.target.value)}
+                    />
+                  )}
+                </Field>
+                <Field label={t('adminActivity.registrationOverrideLabel')}>
+                  {(props) => (
+                    <select
+                      {...props}
+                      className={SELECT_CLASS}
+                      value={form.registration_override}
+                      onChange={(event) =>
+                        set(
+                          'registration_override',
+                          event.target.value as RegistrationOverride | 'AUTO',
+                        )
+                      }
+                    >
+                      {REGISTRATION_OVERRIDES.map((option) => (
+                        <option key={option} value={option}>
+                          {t(`adminActivity.registrationOverride.${option}`)}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </Field>
+              </>
             ) : null}
             <Field label={t('adminActivity.registerLabelLabel')}>
               {(props) => (
