@@ -10,6 +10,8 @@ import { BusinessCardSkeleton } from '@/components/ui/Skeleton'
 import { ErrorState, NoSearchResults } from '@/components/ui/States'
 import { Pagination } from '@/features/businesses/Pagination'
 import { ProductCard } from '@/features/items/ProductCard'
+import { StaffProductCategory } from '@/features/items/StaffProductCategory'
+import { useStaffCan } from '@/features/admin/staffAccess'
 import { PageBanner } from '@/components/layout/PageBanner'
 import { BrowseSwitcher } from '@/features/onboarding/BrowseSwitcher'
 import { originFromParams } from '@/features/onboarding/destinations'
@@ -68,6 +70,9 @@ const ORIGIN_PAGES: Record<GoodsOrigin, { titleKey: TranslationKey; path: string
 export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrigin } = {}) {
   const [searchParams, setSearchParams] = useSearchParams()
   const originPage = fixedOrigin ? ORIGIN_PAGES[fixedOrigin] : undefined
+  // Staff file a product under another category from here (the owners'
+  // ticket, 16 Nov 2026).
+  const canEditProducts = useStaffCan('moderate')
 
   const q = searchParams.get('q') ?? ''
   const category = searchParams.get('category') ?? ''
@@ -384,7 +389,9 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
             <>
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {results.data.items.map((product) => (
-                  <ProductCard key={product.id} product={product} />
+                  <ProductCard key={product.id} product={product}>
+                    {canEditProducts ? <StaffProductCategory product={product} /> : null}
+                  </ProductCard>
                 ))}
               </div>
               <Pagination

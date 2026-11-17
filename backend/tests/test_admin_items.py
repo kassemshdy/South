@@ -4,8 +4,13 @@ through the same rules as the owner's own routes."""
 
 from __future__ import annotations
 
-from fastapi.testclient import TestClient
+import uuid
 
+from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
+
+from app.models.business import Business, BusinessItem
+from app.models.enums import BusinessStatus
 from app.models.taxonomy import Category, Location
 from app.models.user import User
 from tests.conftest import admin_headers, post_item
@@ -106,3 +111,50 @@ def test_a_product_is_reached_only_through_its_own_shop(
 
 def test_the_products_page_is_staff_only(client: TestClient) -> None:
     assert client.get("/api/admin/items").status_code == 401
+
+
+def test_a_product_has_its_own_category_and_its_shop_is_found_under_both(
+    client: TestClient,
+    db: Session,
+    admin: User,
+    category: Category,
+    category_other: Category,
+    location: Location,
+) -> None:
+    """The owners' ticket (16 Nov 2026) and decision (17 Nov 2026)."""
+    business_id, item_id = _product(client, category, location)
+    headers = admin_headers(client)
+    path = f"/api/admin/businesses/{business_id}/items/{item_id}"
+
+    # A new product follows its shop.
+    first = client.get("/api/admin/items", headers=headers).json()["items"][0]["item"]
+    assert first["category_id"] is None and first["category"]["slug"] == category.slug
+
+    moved = client.put(path, headers=headers, json={"category_id": str(category_other.id)})
+    assert moved.status_code == 200, moved.text
+    assert moved.json()["item"]["category"]["slug"] == category_other.slug
+    by = lambda slug: [  # noqa: E731
+        r["item"]["id"]
+        for r in client.get("/api/admin/items", headers=headers, params={"category": slug})
+        .json()["items"]
+    ]
+    assert by(category_other.slug) == [item_id] and by(category.slug) == []
+
+    # Public: approved with a photo, the product is under its own category
+    # and its shop under both.
+    business = db.get(Business, uuid.UUID(business_id))
+    assert business is not None
+    business.status = BusinessStatus.APPROVED
+    db.get(BusinessItem, uuid.UUID(item_id)).image_url = "/media/x.jpg"  # type: ignore[union-attr]
+    db.commit()
+    products = client.get("/api/items", params={"category": category_other.slug}).json()
+    assert [p["id"] for p in products["items"]] == [item_id]
+    assert products["items"][0]["category"]["slug"] == category_other.slug
+    for slug in (category.slug, category_other.slug):
+        shops = client.get("/api/businesses", params={"category": slug}).json()["items"]
+        assert [s["id"] for s in shops] == [business_id], slug
+
+    # The shop's own category picked again means "follow the shop".
+    back = client.put(path, headers=headers, json={"category_id": str(category.id)})
+    assert back.json()["item"]["category_id"] is None
+    assert client.put(path, headers=headers, json={"category_id": str(uuid.uuid4())}).status_code == 422

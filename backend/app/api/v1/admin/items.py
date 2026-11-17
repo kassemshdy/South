@@ -26,6 +26,7 @@ from app.core.pagination import MAX_PAGE_SIZE, Page
 from app.models.business import Business, BusinessItem
 from app.models.enums import BusinessStatus
 from app.models.taxonomy import Category
+from app.repositories.item import item_category_id
 from app.schemas.common import PaginatedResponse
 from app.schemas.item import BusinessItemOut, BusinessItemUpdateIn
 from app.services.business import BusinessService
@@ -84,7 +85,7 @@ def list_items(
     if shop is not None:
         stmt = stmt.where(BusinessItem.business_id == shop)
     if category:
-        stmt = stmt.join(Category, Business.category_id == Category.id).where(
+        stmt = stmt.join(Category, item_category_id() == Category.id).where(
             Category.slug == category
         )
     if available is not None:

@@ -16,6 +16,7 @@ from app.core.uploads import read_at_most
 from app.core.urls import normalize_url
 from app.models.business import Business, BusinessItem
 from app.models.enums import ImageKind, ViewSubject
+from app.models.taxonomy import Category
 from app.repositories.item import ItemRepository
 from app.schemas.item import BusinessItemIn, BusinessItemUpdateIn
 from app.services.analytics import ViewCounterService
@@ -104,6 +105,7 @@ class BusinessItemService:
             net_weight=payload.net_weight,
             external_link=_external_link(payload.external_link),
             goods_origin=payload.goods_origin or business.goods_origin,
+            category_id=self._own_category(business, payload.category_id),
             search_text=build_search_text(payload.title, payload.description),
         )
         self._db.add(item)
@@ -116,6 +118,8 @@ class BusinessItemService:
 
     def update(self, item: BusinessItem, payload: BusinessItemUpdateIn) -> BusinessItem:
         data = payload.model_dump(exclude_unset=True)
+        if "category_id" in data:
+            data["category_id"] = self._own_category(item.business, data["category_id"])
         if "external_link" in data:
             data["external_link"] = _external_link(data["external_link"])
         for field, value in data.items():
@@ -124,7 +128,22 @@ class BusinessItemService:
         # once at creation — same reasoning as Business.slug.
         item.search_text = build_search_text(item.title, item.description)
         self._db.commit()
+        if "category_id" in data:
+            # Loaded with the item; read it again for the new id.
+            self._db.expire(item, ["category"])
         return item
+
+    def _own_category(
+        self, business: Business, category_id: uuid.UUID | None
+    ) -> uuid.UUID | None:
+        """What to store: None when it is the shop's own, so the product
+        follows the shop if the shop's category changes later."""
+        if category_id is None or category_id == business.category_id:
+            return None
+        category = self._db.get(Category, category_id)
+        if category is None or not category.is_active:
+            raise ValidationError("business.unknown_category", code="unknown_category")
+        return category_id
 
     def delete(self, item: BusinessItem) -> list[str]:
         """Remove the item, returning every storage key so the caller can clean up.

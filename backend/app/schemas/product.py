@@ -22,6 +22,9 @@ from app.services.images import thumbnail_url
 class ProductBusinessRef(ORMModel):
     """Just enough of the parent business for a product card/page to link back."""
 
+    # Public already (every shop card carries it); staff need it to edit the
+    # product from the catalogue.
+    id: uuid.UUID
     name: str
     slug: str
     phone: str | None = None
@@ -43,6 +46,8 @@ class ProductSummaryOut(ORMModel):
     image_url: str | None = None
     goods_origin: GoodsOrigin = GoodsOrigin.LOCAL
     business: ProductBusinessRef
+    # Its own category, else its shop's (the owners' ticket, 16 Nov 2026).
+    category: CategoryOut | None = None
 
     @computed_field  # type: ignore[prop-decorator]
     @property
