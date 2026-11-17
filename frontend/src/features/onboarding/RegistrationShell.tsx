@@ -571,6 +571,8 @@ export function RegistrationShell({
             ))}
           </div>
           <p className="text-sm text-ink-500">{t('register.documentHint')}</p>
+          {/* The owners' note (17 Nov 2026), in their words. */}
+          <p className="text-sm font-semibold text-ink-700">{t('register.documentAlternative')}</p>
         </CardBody>
       </Card>
 

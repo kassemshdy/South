@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Banknote, Briefcase, Building2, CalendarClock, Copy, MapPin, MessageCircle, Phone } from 'lucide-react'
+import { Banknote, Briefcase, Building2, CalendarClock, Copy, MapPin, MessageCircle, Pencil, Phone } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
@@ -16,6 +16,7 @@ import {
   WorkModeIcon,
   usePostedLabel,
 } from '@/features/jobs/JobCard'
+import { useStaffCan } from '@/features/admin/staffAccess'
 import { useSeo } from '@/hooks/useSeo'
 import { useI18n } from '@/i18n'
 import { jobApi } from '@/services/api/endpoints'
@@ -33,6 +34,9 @@ export function VacancyPage() {
   const { slug = '' } = useParams()
   const { t, locale } = useI18n()
   const posted = usePostedLabel()
+  // Staff reach the vacancy's editor from the vacancy itself, to change the
+  // number to contact (the owners' ticket, 17 Nov 2026).
+  const canEdit = useStaffCan('content')
 
   const job = useQuery({
     queryKey: queryKeys.jobOpening(slug),
@@ -67,9 +71,19 @@ export function VacancyPage() {
 
   return (
     <article className={`container-page py-10 ${open ? 'pb-28 lg:pb-10' : ''}`}>
-      <Link to="/vacancies" className="text-sm font-semibold text-brand-700 hover:underline">
-        {t('vacancies.back')}
-      </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link to="/vacancies" className="text-sm font-semibold text-brand-700 hover:underline">
+          {t('vacancies.back')}
+        </Link>
+        {canEdit ? (
+          <Button asChild size="sm" variant="outline">
+            <Link to={`/admin/job-openings?edit=${encodeURIComponent(data.id)}`}>
+              <Pencil className="h-4 w-4" aria-hidden="true" />
+              {t('vacancies.staffEdit')}
+            </Link>
+          </Button>
+        ) : null}
+      </div>
       <div className="mt-4 grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
           {data.cover_url ? (
