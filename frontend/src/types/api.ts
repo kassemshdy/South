@@ -1431,6 +1431,8 @@ export interface Activity {
   register_label: string | null
   /** Offer "add to calendar" (only meaningful with a start). */
   show_calendar: boolean
+  /** Whether the on-site form takes a sign-up now (limit, override and dates). */
+  registration_open: boolean
 }
 
 export type ActivityKind = 'ACTIVITY' | 'CONSULTATION' | 'WORKSHOP' | 'TRAINING'
@@ -1471,7 +1473,14 @@ export interface AdminActivity extends Activity {
   in_carousel: boolean
   /** Sign-ups taken on the site. */
   registration_count: number
+  /** The form closes by itself at this many sign-ups; null is no limit. */
+  registration_limit: number | null
+  /** The administrator's hand on the form; null lets the limit decide. */
+  registration_override: RegistrationOverride | null
 }
+
+export type RegistrationOverride = 'OPEN' | 'CLOSED'
+
 
 export interface ActivityInput {
   title: string
@@ -1486,6 +1495,8 @@ export interface ActivityInput {
   register_url?: string | null
   register_label?: string | null
   show_calendar?: boolean
+  registration_limit?: number | null
+  registration_override?: RegistrationOverride | null
   /** The form's "show in carousel" box (update only). */
   in_carousel?: boolean
 }

@@ -22,7 +22,12 @@ from app.core.errors import ConflictError, NotFoundError, RateLimitedError, Vali
 from app.core.i18n import translate
 from app.core.rate_limit import DatabaseRateLimiter, RateLimitRule
 from app.core.uploads import read_at_most
-from app.models.activity import Activity, ActivityRegistration, CarouselSlide
+from app.models.activity import (
+    Activity,
+    ActivityRegistration,
+    CarouselSlide,
+    registration_open,
+)
 from app.models.enums import ActivityRegistrationMode, ImageKind
 from app.schemas.activity import (
     ActivityIn,
@@ -93,7 +98,15 @@ def list_activities(
         .limit(limit)
         .offset(offset)
     )
-    return [ActivityOut.model_validate(row) for row in db.execute(stmt).scalars()]
+    rows = list(db.execute(stmt).scalars())
+    counts = _registration_counts(db)
+    return [_public_out(row, counts.get(row.id, 0), now) for row in rows]
+
+
+def _public_out(activity: Activity, count: int, now: datetime | None = None) -> ActivityOut:
+    out = ActivityOut.model_validate(activity)
+    out.registration_open = registration_open(activity, count, has_ended(activity, now))
+    return out
 
 
 @public_router.get("/carousel", response_model=list[CarouselSlideOut])
@@ -126,7 +139,7 @@ def get_activity(slug: Annotated[str, Path(max_length=180)], db: DbSession) -> A
     activity = db.execute(_public().where(Activity.slug == slug)).scalar_one_or_none()
     if activity is None:
         raise NotFoundError("activity.not_found")
-    return ActivityOut.model_validate(activity)
+    return _public_out(activity, _registration_count(db, activity.id))
 
 
 @public_router.post(
@@ -150,7 +163,7 @@ def register_for_activity(
     activity = db.execute(_public().where(Activity.slug == slug)).scalar_one_or_none()
     if activity is None:
         raise NotFoundError("activity.not_found")
-    if activity.registration_mode is not ActivityRegistrationMode.ON_SITE or has_ended(activity):
+    if not registration_open(activity, _registration_count(db, activity.id), has_ended(activity)):
         raise ValidationError("activity.registration_closed", code="registration_closed")
 
     limiter = DatabaseRateLimiter(db)
@@ -201,6 +214,16 @@ def _registration_counts(db: DbSession) -> dict[uuid.UUID, int]:
     return {row[0]: int(row[1]) for row in rows}
 
 
+def _registration_count(db: DbSession, activity_id: uuid.UUID) -> int:
+    return int(
+        db.execute(
+            select(func.count())
+            .select_from(ActivityRegistration)
+            .where(ActivityRegistration.activity_id == activity_id)
+        ).scalar_one()
+    )
+
+
 def _get_or_404(db: DbSession, activity_id: uuid.UUID) -> Activity:
     activity = db.get(Activity, activity_id)
     if activity is None:
@@ -211,7 +234,10 @@ def _get_or_404(db: DbSession, activity_id: uuid.UUID) -> Activity:
 def _admin_out(db: DbSession, activity: Activity) -> AdminActivityOut:
     out = AdminActivityOut.model_validate(activity)
     out.in_carousel = CarouselService(db).slide_for(activity.id) is not None
-    out.registration_count = _registration_counts(db).get(activity.id, 0)
+    out.registration_count = _registration_count(db, activity.id)
+    out.registration_open = registration_open(
+        activity, out.registration_count, has_ended(activity)
+    )
     return out
 
 
@@ -225,10 +251,16 @@ def admin_list_activities(db: DbSession, admin: AdminUser) -> list[AdminActivity
         ).scalars()
     )
     counts = _registration_counts(db)
-    outs = [AdminActivityOut.model_validate(row) for row in rows]
-    for out in outs:
+    now = datetime.now(UTC)
+    outs = []
+    for row in rows:
+        out = AdminActivityOut.model_validate(row)
         out.in_carousel = out.id in in_carousel
         out.registration_count = counts.get(out.id, 0)
+        out.registration_open = registration_open(
+            row, out.registration_count, has_ended(row, now)
+        )
+        outs.append(out)
     return outs
 
 
