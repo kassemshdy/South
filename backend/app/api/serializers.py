@@ -102,7 +102,9 @@ def location_out(
 
 
 def item_out(item: BusinessItem) -> BusinessItemOut:
-    return BusinessItemOut.model_validate(item).model_copy(update={"buy_url": buy_url(item)})
+    return BusinessItemOut.model_validate(item).model_copy(
+        update={"buy_url": buy_url(item), "category": category_out(item.effective_category)}
+    )
 
 
 def _gallery(business: Business) -> list[BusinessImageOut]:
@@ -274,6 +276,7 @@ def admin_business(business: Business) -> AdminBusinessOut:
 def _product_business_ref(business: Business) -> ProductBusinessRef:
     phone, whatsapp = _public_numbers(business)
     return ProductBusinessRef(
+        id=business.id,
         name=business.name,
         slug=business.slug,
         phone=phone,
@@ -294,6 +297,7 @@ def product_summary(item: BusinessItem) -> ProductSummaryOut:
         image_url=item.image_url,
         goods_origin=item.goods_origin,
         business=_product_business_ref(item.business),
+        category=category_out(item.effective_category),
     )
 
 

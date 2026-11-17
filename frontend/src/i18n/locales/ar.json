@@ -2607,5 +2607,7 @@
   "adminActivity.registrationOverride.AUTO": "تلقائي (حسب الحد والتاريخ)",
   "adminActivity.registrationOverride.OPEN": "مفتوح (حتى بعد بلوغ الحد)",
   "adminActivity.registrationOverride.CLOSED": "مغلق",
-  "adminActivity.registrationClosedBadge": "التسجيل مغلق"
+  "adminActivity.registrationClosedBadge": "التسجيل مغلق",
+  "items.categoryHint": "يبدأ بتصنيف نشاطك، ويمكنك اختيار تصنيف آخر إن كان هذا المنتج ينتمي إليه.",
+  "items.staffCategoryLabel": "تصنيف المنتج (للفريق)"
 }

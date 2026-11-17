@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field, computed_field, field_validator
 from app.core.i18n import translate
 from app.models.enums import Currency, GoodsOrigin
 from app.schemas.common import ORMModel
+from app.schemas.taxonomy import CategoryOut
 from app.services.images import thumbnail_url
 
 
@@ -45,6 +46,10 @@ class BusinessItemOut(ORMModel):
     # The product on the shop's own Shopify store, when it has one and the
     # product was pushed there (app/services/storefront.py).
     buy_url: str | None = None
+    # The product's own category; null means it follows its shop's. The
+    # category a visitor sees either way is ``category``.
+    category_id: uuid.UUID | None = None
+    category: CategoryOut | None = None
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -72,6 +77,8 @@ class BusinessItemIn(BaseModel):
     # Omitted means the shop's own mark: the common case is a shop whose
     # goods are all one or the other, and it should not have to say so twice.
     goods_origin: GoodsOrigin | None = None
+    # Omitted or the shop's own means it follows the shop's category.
+    category_id: uuid.UUID | None = None
 
     @field_validator("title")
     @classmethod
@@ -98,6 +105,8 @@ class BusinessItemUpdateIn(BaseModel):
     external_link: str | None = Field(default=None, max_length=500)
     # Omitted means unchanged; an explicit null is refused, as on the shop.
     goods_origin: GoodsOrigin | None = None
+    # Omitted means unchanged; null (or the shop's own) follows the shop's.
+    category_id: uuid.UUID | None = None
 
     @field_validator("goods_origin", mode="before")
     @classmethod

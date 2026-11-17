@@ -2607,5 +2607,7 @@
   "adminActivity.registrationOverride.AUTO": "Automatic (by the limit and the dates)",
   "adminActivity.registrationOverride.OPEN": "Open (even past the limit)",
   "adminActivity.registrationOverride.CLOSED": "Closed",
-  "adminActivity.registrationClosedBadge": "Registration closed"
+  "adminActivity.registrationClosedBadge": "Registration closed",
+  "items.categoryHint": "Starts as your shop's category; choose another if this product belongs elsewhere.",
+  "items.staffCategoryLabel": "Product category (staff)"
 }

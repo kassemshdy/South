@@ -1,4 +1,5 @@
 import { MapPin, Package } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/Badge'
@@ -9,7 +10,14 @@ import type { ProductSummary } from '@/types/api'
 import { formatPrice } from '@/utils/format'
 import { CardImage } from '@/components/ui/CardImage'
 
-export function ProductCard({ product }: { product: ProductSummary }) {
+export function ProductCard({
+  product,
+  children,
+}: {
+  product: ProductSummary
+  /** Below the card's own content: the staff controls on the catalogue. */
+  children?: ReactNode
+}) {
   const t = useT()
   const profileUrl = `/product/${encodeURIComponent(product.slug)}`
   const businessUrl = `/business/${encodeURIComponent(product.business.slug)}`
@@ -41,8 +49,8 @@ export function ProductCard({ product }: { product: ProductSummary }) {
           of the UI language. */}
       <div className="flex flex-1 flex-col p-5" dir="auto">
         <div className="mb-2 flex flex-wrap items-center gap-2">
-          {product.business.category ? (
-            <Badge className="bg-sand-100 text-brand-700">{product.business.category.name_ar}</Badge>
+          {(product.category ?? product.business.category) ? (
+            <Badge className="bg-sand-100 text-brand-700">{(product.category ?? product.business.category)?.name_ar}</Badge>
           ) : null}
           {price ? (
             <span className="ltr-nums text-sm font-bold text-brand-800">{price}</span>
@@ -72,6 +80,7 @@ export function ProductCard({ product }: { product: ProductSummary }) {
           <Button asChild size="sm" variant="outline" block>
             <Link to={businessUrl}>{t('products.visitBusiness')}</Link>
           </Button>
+          {children}
         </div>
       </div>
     </article>

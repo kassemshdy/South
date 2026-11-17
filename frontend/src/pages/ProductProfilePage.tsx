@@ -47,7 +47,7 @@ export function ProductProfilePage() {
     trackListingView({
       listing_type: 'product',
       listing: data.slug,
-      category: data.business.category?.slug,
+      category: (data.category ?? data.business.category)?.slug,
       location: data.business.location?.slug,
       shop: data.business.slug,
     })
@@ -232,7 +232,7 @@ export function ProductProfilePage() {
 
       <RelatedProducts slug={data.slug} />
       <RelatedWorkshops
-        category={data.business.category?.slug}
+        category={(data.category ?? data.business.category)?.slug}
         location={data.business.location?.slug}
       />
     </article>

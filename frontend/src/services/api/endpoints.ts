@@ -187,6 +187,8 @@ export interface ItemPayload {
   net_weight?: string | null
   external_link?: string | null
   goods_origin?: GoodsOrigin
+  /** Null, or the shop's own, means it follows the shop's category. */
+  category_id?: string | null
 }
 
 export interface TalentPayload {

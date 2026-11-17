@@ -10,7 +10,17 @@ from __future__ import annotations
 import uuid
 from typing import Any, Literal
 
-from sqlalchemy import ColumnElement, Select, UnaryExpression, exists, func, nullslast, or_, select
+from sqlalchemy import (
+    ColumnElement,
+    Select,
+    UnaryExpression,
+    exists,
+    func,
+    nullslast,
+    or_,
+    select,
+    union,
+)
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.core.arabic import normalize_arabic
@@ -133,8 +143,21 @@ class BusinessRepository(BaseRepository[Business]):
             )
 
         if category_slug:
-            stmt = stmt.join(Category, Business.category_id == Category.id).where(
-                Category.slug == category_slug
+            # Its own category, or one any of its products is filed under
+            # (the owners' decision, 17 Nov 2026): a shop selling in two
+            # categories is found from both.
+            category_id = (
+                select(Category.id).where(Category.slug == category_slug).scalar_subquery()
+            )
+            stmt = stmt.where(
+                or_(
+                    Business.category_id == category_id,
+                    exists().where(
+                        BusinessItem.business_id == Business.id,
+                        BusinessItem.category_id == category_id,
+                        BusinessItem.is_available.is_(True),
+                    ),
+                )
             )
 
         if location_slug:
@@ -370,10 +393,26 @@ class BusinessRepository(BaseRepository[Business]):
         return list(self.db.execute(stmt.limit(limit)).unique().scalars().all())
 
     def public_counts_by_category(self) -> dict[uuid.UUID, int]:
+        """Shops a visitor finds under each category: by their own, or by a
+        product filed under another -- the same rule as the filter."""
+        own = select(
+            Business.id.label("business_id"), Business.category_id.label("category_id")
+        ).where(Business.status == BusinessStatus.APPROVED, Business.category_id.is_not(None))
+        by_product = (
+            select(
+                BusinessItem.business_id.label("business_id"),
+                BusinessItem.category_id.label("category_id"),
+            )
+            .join(Business, BusinessItem.business_id == Business.id)
+            .where(
+                Business.status == BusinessStatus.APPROVED,
+                BusinessItem.category_id.is_not(None),
+                BusinessItem.is_available.is_(True),
+            )
+        )
+        pairs = union(own, by_product).subquery()
         rows = self.db.execute(
-            select(Business.category_id, func.count())
-            .where(Business.status == BusinessStatus.APPROVED)
-            .group_by(Business.category_id)
+            select(pairs.c.category_id, func.count()).group_by(pairs.c.category_id)
         ).all()
         return {row[0]: row[1] for row in rows if row[0] is not None}
 
