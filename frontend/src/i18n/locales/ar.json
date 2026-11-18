@@ -2639,5 +2639,6 @@
   "growthProgramme.open": "فتح برنامج النمو",
   "growthProgramme.notIn": "هذا المتجر ليس في برنامج النمو. عند إضافته تُحفظ أرقامه اليوم للمقارنة لاحقًا.",
   "growthProgramme.add": "إضافة إلى برنامج النمو",
-  "growthProgramme.added": "أُضيف إلى برنامج النمو."
+  "growthProgramme.added": "أُضيف إلى برنامج النمو.",
+  "admin.categoryIconLabel": "أيقونة «{name}»"
 }
