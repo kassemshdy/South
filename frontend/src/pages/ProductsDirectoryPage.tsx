@@ -376,9 +376,12 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
           ) : null}
         </div>
 
+        {/* The results, and what customers say about shops in a column on
+            the left (the owners' ticket, 17 Nov 2026; the end side in RTL). */}
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div aria-live="polite" aria-busy={results.isFetching}>
           {results.isLoading ? (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
               {Array.from({ length: 6 }).map((_, index) => (
                 <BusinessCardSkeleton key={index} />
               ))}
@@ -387,7 +390,7 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
             <ErrorState error={results.error} onRetry={() => void results.refetch()} />
           ) : results.data && results.data.items.length > 0 ? (
             <>
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 {results.data.items.map((product) => (
                   <ProductCard key={product.id} product={product}>
                     {canEditProducts ? <StaffProductCategory product={product} /> : null}
@@ -403,9 +406,9 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
             <NoSearchResults onReset={hasFilters ? resetFilters : undefined} />
           )}
         </div>
+        <TestimonialsSection kind="business" layout="sidebar" />
+        </div>
       </div>
-      {/* What customers say about shops, at the end of the list. */}
-      <TestimonialsSection kind="business" />
     </>
   )
 }
