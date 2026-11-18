@@ -31,6 +31,7 @@ from app.models.enums import (
     ViewSubject,
 )
 from app.models.feedback import FeedbackAttachment, FeedbackComment, FeedbackTicket
+from app.models.growth_programme import GrowthEnrollment
 from app.models.integration import (
     ApiPartner,
     IntegrationOutbox,
@@ -93,6 +94,7 @@ __all__ = [
     "FeedbackPriority",
     "FeedbackStatus",
     "FeedbackTicket",
+    "GrowthEnrollment",
     "ImageKind",
     "IntegrationOutbox",
     "ItemLink",

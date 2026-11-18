@@ -97,7 +97,10 @@ def test_signing_up_is_kept_for_staff_only(client: TestClient, admin: User) -> N
     assert signed.status_code == 201, signed.text
 
     public = client.get(f"/api/workshops/{workshop['slug']}").text
-    assert "111" not in public and ar("order.customer") not in public
+    # The whole number, not a fragment of it: "111" alone turns up by chance
+    # in a random id or file name (CI, 18 Nov 2026), as in test_activities.
+    assert "70111444" not in public and "70 111 444" not in public
+    assert ar("order.customer") not in public
 
     listed = client.get(
         f"/api/admin/workshops/{workshop['id']}/registrations", headers=headers

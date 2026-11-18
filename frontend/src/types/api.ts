@@ -1843,3 +1843,36 @@ export interface GdriveStatus {
     error: string | null
   } | null
 }
+
+/** The growth programme (the owners' decision, 18 Nov 2026): its steps, in order. */
+export const GROWTH_STAGES = ['CONTACTED', 'CONTENT', 'LISTING', 'SHOPIFY', 'ADS'] as const
+export type GrowthStage = (typeof GROWTH_STAGES)[number]
+
+export interface GrowthNumbers {
+  instagram: number | null
+  facebook: number | null
+  views_30d: number
+  clicks_30d: number
+}
+
+/** A shop in the growth programme, with its numbers then (`before`) and now. */
+export interface GrowthRow {
+  shop: {
+    id: string
+    name: string
+    slug: string
+    status: BusinessStatus
+    category: string | null
+    location: string | null
+    logo_thumb_url: string | null
+    products: number
+    shopify_connected: boolean
+  }
+  stage: GrowthStage
+  stage_changed_at: string
+  note: string | null
+  enrolled_at: string
+  enrolled_by_name: string | null
+  before: GrowthNumbers
+  now: GrowthNumbers
+}

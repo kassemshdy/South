@@ -8,6 +8,8 @@
 import { apiDownload, apiRequest } from '@/services/api/client'
 import type {
   GdriveStatus,
+  GrowthRow,
+  GrowthStage,
   ServiceOfferCard,
   AdminItem,
   JobApplication,
@@ -981,6 +983,15 @@ export const adminApi = {
     apiRequest<PageText>(`/api/admin/pages/${key}`, { method: 'PUT', body: values }),
   siteSettings: () => apiRequest<SiteSettings>('/api/admin/site-settings'),
   gdriveStatus: () => apiRequest<GdriveStatus>('/api/admin/gdrive'),
+  growthProgramme: () => apiRequest<GrowthRow[]>('/api/admin/growth-programme'),
+  growthProgrammeOf: (businessId: string) =>
+    apiRequest<GrowthRow>(`/api/admin/growth-programme/${businessId}`),
+  growthProgrammeEnroll: (businessId: string) =>
+    apiRequest<GrowthRow>('/api/admin/growth-programme', { method: 'POST', body: { business_id: businessId } }),
+  growthProgrammeUpdate: (businessId: string, body: { stage?: GrowthStage; note?: string | null }) =>
+    apiRequest<GrowthRow>(`/api/admin/growth-programme/${businessId}`, { method: 'PUT', body }),
+  growthProgrammeLeave: (businessId: string) =>
+    apiRequest<{ message: string }>(`/api/admin/growth-programme/${businessId}`, { method: 'DELETE' }),
   gdriveConnect: () => apiRequest<{ url: string }>('/api/admin/gdrive/connect', { method: 'POST' }),
   gdriveDisconnect: () =>
     apiRequest<GdriveStatus>('/api/admin/gdrive/disconnect', { method: 'POST' }),
