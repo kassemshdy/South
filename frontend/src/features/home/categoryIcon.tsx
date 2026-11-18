@@ -1,4 +1,23 @@
 import {
+  Armchair,
+  Axe,
+  Baby,
+  BookOpen,
+  BrickWall,
+  Cherry,
+  CookingPot,
+  Flame,
+  Frame,
+  Gem,
+  Hexagon,
+  Moon,
+  Palette,
+  Scissors,
+  Smartphone,
+  SprayCan,
+  Sun,
+  Truck,
+  Wifi,
   Cake,
   Camera,
   Car,
@@ -39,7 +58,29 @@ const ICONS: Record<string, LucideIcon> = {
   sprout: Sprout,
   utensils: Utensils,
   wrench: Wrench,
+  'armchair': Armchair,
+  'axe': Axe,
+  'baby': Baby,
+  'book-open': BookOpen,
+  'brick-wall': BrickWall,
+  'cherry': Cherry,
+  'cooking-pot': CookingPot,
+  'flame': Flame,
+  'frame': Frame,
+  'gem': Gem,
+  'hexagon': Hexagon,
+  'moon': Moon,
+  'palette': Palette,
+  'scissors': Scissors,
+  'smartphone': Smartphone,
+  'spray-can': SprayCan,
+  'sun': Sun,
+  'truck': Truck,
+  'wifi': Wifi,
 }
+
+/** Every icon an administrator may pick, in the order the picker lists them. */
+export const CATEGORY_ICON_NAMES = Object.keys(ICONS).sort()
 
 export function CategoryIcon({ name, className }: { name: string | null | undefined; className?: string }) {
   const Icon = (name && ICONS[name]) || Tag
