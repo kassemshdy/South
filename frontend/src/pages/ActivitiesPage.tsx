@@ -122,7 +122,7 @@ export function ActivitiesPage() {
                           alt=""
                           loading="lazy"
                           decoding="async"
-                          className="aspect-[4/3] w-full object-cover transition-transform group-hover:scale-105"
+                          className="aspect-[4/3] w-full bg-sand-100 object-contain"
                         />
                       ) : null}
                       <p
@@ -163,7 +163,7 @@ function ActivityRow({ activity }: { activity: Activity }) {
             alt=""
             loading="lazy"
             decoding="async"
-            className="aspect-[9/5] w-full object-cover transition-transform group-hover:scale-105"
+            className="aspect-[9/5] w-full bg-sand-100 object-contain"
           />
           {ended ? (
             <span className="absolute start-2 top-2 rounded-full bg-ink-900/80 px-2.5 py-1 text-xs font-semibold text-white">
