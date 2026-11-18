@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { BusinessCardSkeleton } from '@/components/ui/Skeleton'
 import { ErrorState, NoSearchResults } from '@/components/ui/States'
 import { Pagination } from '@/features/businesses/Pagination'
+import { CategoryIconFilter } from '@/features/items/CategoryIconFilter'
 import { ProductCard } from '@/features/items/ProductCard'
 import { StaffProductCategory } from '@/features/items/StaffProductCategory'
 import { useStaffCan } from '@/features/admin/staffAccess'
@@ -241,6 +242,12 @@ export function ProductsDirectoryPage({ fixedOrigin }: { fixedOrigin?: GoodsOrig
             </Button>
           </SearchBox>
         </div>
+
+        <CategoryIconFilter
+          categories={categories.data ?? []}
+          value={category}
+          onChange={(slug) => updateParams({ category: slug })}
+        />
 
         <div className={`mb-6 grid gap-3 ${fixedOrigin ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-2 lg:grid-cols-3'} ${filtersOpen ? 'grid' : 'hidden sm:grid'}`}>
           <div>
