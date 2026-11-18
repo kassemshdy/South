@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody, CardHeader } from '@/components/ui/Card'
 import { AdminCorrectionsCard } from '@/features/admin/AdminCorrectionsCard'
+import { GrowthCard } from '@/features/growthProgramme/GrowthCard'
 import { AdminPlaceCard } from '@/features/admin/AdminPlaceCard'
 import { DeleteForeverButton } from '@/features/admin/DeleteForeverButton'
 import { useStaffCan } from '@/features/admin/staffAccess'
@@ -234,6 +235,8 @@ export function AdminReviewPage() {
           ) : null}
         </CardBody>
       </Card>
+
+      <GrowthCard businessId={data.id} />
 
       {canModerate ? (
         <div className="grid gap-6 lg:grid-cols-2">

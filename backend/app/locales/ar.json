@@ -403,5 +403,8 @@
   "talent.video_link_facebook_short": "افتح الفيديو في فيسبوك وانسخ الرابط الكامل (facebook.com).",
   "gdrive.not_configured": "لم يُضبط ربط Google Drive على الخادم بعد.",
   "gdrive.not_connected": "Google Drive غير مربوط.",
-  "gdrive.started": "بدأ النسخ إلى Google Drive."
+  "gdrive.started": "بدأ النسخ إلى Google Drive.",
+  "growthProgramme.already_enrolled": "هذا المتجر مسجّل في برنامج النمو بالفعل.",
+  "growthProgramme.not_enrolled": "هذا المتجر ليس في برنامج النمو.",
+  "growthProgramme.removed": "أُزيل المتجر من برنامج النمو."
 }

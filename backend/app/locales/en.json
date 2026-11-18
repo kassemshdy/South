@@ -403,5 +403,8 @@
   "talent.video_link_facebook_short": "Open the video in Facebook and copy its full link (facebook.com).",
   "gdrive.not_configured": "Google Drive connection is not set up on the server yet.",
   "gdrive.not_connected": "Google Drive is not connected.",
-  "gdrive.started": "Copying to Google Drive has started."
+  "gdrive.started": "Copying to Google Drive has started.",
+  "growthProgramme.already_enrolled": "This shop is already in the growth programme.",
+  "growthProgramme.not_enrolled": "This shop is not in the growth programme.",
+  "growthProgramme.removed": "Removed from the growth programme."
 }

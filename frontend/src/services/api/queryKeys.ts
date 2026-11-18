@@ -110,6 +110,8 @@ export const queryKeys = {
   jobLinks: ['site-settings', 'job-links'] as const,
   adminSiteSettings: ['admin', 'site-settings'] as const,
   adminGdrive: ['admin', 'gdrive'] as const,
+  adminGrowthProgramme: ['admin', 'growth-programme'] as const,
+  adminGrowthProgrammeOf: (businessId: string) => ['admin', 'growth-programme', businessId] as const,
   adminCredentialsMessage: ['admin', 'credentials-message'] as const,
   adminDiscardedApplications: (includeDismissed: boolean) =>
     ['admin', 'discarded-applications', includeDismissed] as const,
