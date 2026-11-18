@@ -145,6 +145,11 @@ const AdminContactedShopsPage = lazy(() =>
 const AdminProductsPage = lazy(() =>
   import('@/pages/admin/AdminProductsPage').then((m) => ({ default: m.AdminProductsPage })),
 )
+const AdminGrowthProgrammePage = lazy(() =>
+  import('@/pages/admin/AdminGrowthProgrammePage').then((m) => ({
+    default: m.AdminGrowthProgrammePage,
+  })),
+)
 const AdminShopsWithoutProductsPage = lazy(() =>
   import('@/pages/admin/AdminShopsWithoutProductsPage').then((m) => ({
     default: m.AdminShopsWithoutProductsPage,
@@ -405,6 +410,7 @@ export function App() {
             <Route path="testimonials" element={<AdminTestimonialsPage />} />
             <Route path="articles" element={<AdminArticlesPage />} />
             <Route path="products" element={<AdminProductsPage />} />
+            <Route path="growth-programme" element={<AdminGrowthProgrammePage />} />
             <Route path="shops-without-products" element={<AdminShopsWithoutProductsPage />} />
             <Route path="contacted-shops" element={<AdminContactedShopsPage />} />
             <Route path="map-locations" element={<AdminMapLocationsPage />} />
