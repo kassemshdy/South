@@ -410,7 +410,10 @@ export function MostOrderedProductsSection() {
  * service it praises. What a stranger trusts before a first order: other
  * customers, in their own words. Nothing at all until one is published.
  */
-export function TestimonialsSection({ kind }: { kind?: 'business' | 'talent' } = {}) {
+export function TestimonialsSection({
+  kind,
+  layout = 'band',
+}: { kind?: 'business' | 'talent'; layout?: 'band' | 'sidebar' } = {}) {
   const t = useT()
   // ``kind`` narrows the row to shops or to services, for the directory pages.
   const testimonials = useQuery({
@@ -419,6 +422,37 @@ export function TestimonialsSection({ kind }: { kind?: 'business' | 'talent' } =
   })
   const items = testimonials.data ?? []
   if (items.length === 0) return null
+  if (layout === 'sidebar') {
+    // A column beside a directory's results (the owners' ticket, 17 Nov
+    // 2026): on the left of /products, below the results on a phone.
+    return (
+      <aside className="lg:sticky lg:top-24">
+        <h2 className="mb-3 font-display text-xl font-bold text-ink-900">
+          {t('home.testimonialsTitle')}
+        </h2>
+        <ul className="space-y-3">
+          {items.map((entry) => (
+            <li key={entry.id} className="rounded-2xl bg-white p-4 shadow-card">
+              {entry.rating ? <Stars value={entry.rating} /> : null}
+              <p className="mt-2 line-clamp-5 text-sm leading-relaxed text-ink-700" dir="auto">
+                {entry.body}
+              </p>
+              <p className="mt-3 text-sm font-semibold text-ink-900" dir="auto">
+                {entry.author_name}
+              </p>
+              <Link
+                to={`/${entry.subject_kind === 'business' ? 'business' : 'talent'}/${encodeURIComponent(entry.subject_slug)}`}
+                className="text-sm font-semibold text-brand-700 hover:underline"
+                dir="auto"
+              >
+                {entry.subject_name}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </aside>
+    )
+  }
   return (
     <Band tone="sand">
       <SectionHeading title={t('home.testimonialsTitle')} />
