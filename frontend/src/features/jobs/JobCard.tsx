@@ -66,7 +66,7 @@ export function JobThumbnail({
   className?: string
 }) {
   return job.cover_url ? (
-    <img src={job.cover_url} alt="" loading="lazy" className={`h-full w-full object-cover ${className}`} />
+    <img src={job.cover_url} alt="" loading="lazy" className={`h-full w-full bg-sand-100 object-contain ${className}`} />
   ) : (
     <div className={`flex h-full w-full items-center justify-center bg-brand-700 text-white/70 ${className}`}>
       <Briefcase className="h-12 w-12" aria-hidden="true" />

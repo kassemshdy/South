@@ -25,7 +25,7 @@ export function WorkshopCard({ workshop }: { workshop: Workshop }) {
       className="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-card ring-1 ring-ink-100 transition hover:shadow-lift"
     >
       {workshop.cover_url ? (
-        <img src={workshop.cover_url} alt="" loading="lazy" className="aspect-[16/9] w-full object-cover" />
+        <img src={workshop.cover_url} alt="" loading="lazy" className="aspect-[16/9] w-full bg-sand-100 object-contain" />
       ) : (
         <span className="flex aspect-[16/9] w-full items-center justify-center bg-brand-50 text-brand-700">
           <GraduationCap className="h-10 w-10" aria-hidden="true" />
