@@ -724,7 +724,7 @@ function ArticlesSection({ section }: { section: ArticleSection }) {
               src={lead.cover_url}
               alt=""
               loading="lazy"
-              className="aspect-video w-full rounded-2xl object-cover shadow-card"
+              className="aspect-video w-full rounded-2xl bg-sand-100 object-contain shadow-card"
             />
           ) : null}
           <h3 className="mt-4 font-display text-2xl font-bold leading-snug text-ink-900 group-hover:text-brand-700">
@@ -744,7 +744,7 @@ function ArticlesSection({ section }: { section: ArticleSection }) {
                     src={article.cover_url}
                     alt=""
                     loading="lazy"
-                    className="h-16 w-24 shrink-0 rounded-xl object-cover"
+                    className="h-16 w-24 shrink-0 rounded-xl bg-sand-100 object-contain"
                   />
                 ) : null}
                 <span>
