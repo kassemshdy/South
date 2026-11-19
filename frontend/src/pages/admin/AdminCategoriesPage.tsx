@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/States'
 import { useToast } from '@/components/ui/Toast'
+import { CATEGORY_ICON_NAMES, CategoryIcon } from '@/features/home/categoryIcon'
 import { useT } from '@/i18n'
 import { ApiError } from '@/services/api/client'
 import { adminApi } from '@/services/api/endpoints'
@@ -141,6 +142,31 @@ export function AdminCategoriesPage() {
                   ) : (
                     <>
                       <div className="flex items-center gap-3">
+                        {/* The icon on the products page and the home page
+                            (the owners' request, 18 Nov 2026). */}
+                        <Select
+                          value={category.icon ?? ''}
+                          onValueChange={(icon) => update.mutate({ id: category.id, body: { icon } })}
+                        >
+                          <SelectTrigger
+                            className="h-10 w-16 px-2"
+                            aria-label={t('admin.categoryIconLabel', { name: category.name_ar })}
+                          >
+                            <span className="flex h-6 w-6 items-center justify-center text-brand-700">
+                              <CategoryIcon name={category.icon} className="h-5 w-5" />
+                            </span>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CATEGORY_ICON_NAMES.map((icon) => (
+                              <SelectItem key={icon} value={icon}>
+                                <span className="flex items-center gap-2">
+                                  <CategoryIcon name={icon} className="h-5 w-5 text-brand-700" />
+                                  <span dir="ltr" className="text-xs text-ink-500">{icon}</span>
+                                </span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <span className="font-semibold">{category.name_ar}</span>
                         <span className="ltr-nums text-xs text-ink-300">{category.slug}</span>
                         <span className="text-xs text-ink-500">

@@ -2639,5 +2639,6 @@
   "growthProgramme.open": "Open the growth programme",
   "growthProgramme.notIn": "This shop is not in the growth programme. Adding it saves today's numbers to compare later.",
   "growthProgramme.add": "Add to growth programme",
-  "growthProgramme.added": "Added to the growth programme."
+  "growthProgramme.added": "Added to the growth programme.",
+  "admin.categoryIconLabel": "Icon for “{name}”"
 }
