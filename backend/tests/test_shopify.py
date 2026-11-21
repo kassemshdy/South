@@ -24,6 +24,7 @@ import re
 import time
 import uuid
 from collections.abc import Iterator
+from decimal import Decimal
 from urllib.parse import quote
 
 import httpx
@@ -37,7 +38,7 @@ from app.core.config import Settings, get_settings
 from app.database.session import SessionLocal
 from app.main import create_app
 from app.models.business import Business, BusinessItem, BusinessSocialLink
-from app.models.enums import BusinessStatus, SocialPlatform, StaffRole
+from app.models.enums import BusinessStatus, Currency, SocialPlatform, StaffRole
 from app.models.integration import IntegrationOutbox, ItemLink, StoreLink
 from app.models.taxonomy import Category, Location
 from app.models.user import User
@@ -848,3 +849,53 @@ def test_switches_need_a_linked_store(
     r = shop_client.put(f"/api/admin/businesses/{business.id}/shopify/controls",
                         headers=admin_headers(shop_client), json={"hidden": True})
     assert r.status_code == 404
+
+
+def test_a_products_type_and_details_go_to_its_store_under_the_pages_own_labels(
+    settings: Settings,
+) -> None:
+    from datetime import date
+
+    from app.core.i18n import translate
+    from app.services.connector import product_payload
+
+    business = Business(name="Souk", slug="souk", status=BusinessStatus.APPROVED)
+    item = BusinessItem(
+        title="Rose water", slug="rose-water", price=Decimal("4.00"), currency=Currency.USD,
+        is_available=True, good_type=" Distillates ", brand_name="Ghaith organic",
+        net_weight="500 ml", manufactured_at=date(2026, 11, 15),
+        expiry_date=date(2028, 11, 1), ingredients="Distilled", business=business,
+    )
+    payload = product_payload(item, settings)
+    assert payload["product_type"] == "Distillates" and payload["tags"] == ["Distillates"]
+    details = payload["details"]
+    assert details["heading"] == translate("shopify.details.heading", "ar")
+    labels = [row["label"] for row in details["rows"]]
+    assert labels == [translate(f"shopify.details.{k}", "ar") for k in (
+        "good_type", "brand", "net_weight", "manufactured_at", "expiry_date", "ingredients")]
+    made = details["rows"][3]["value"]
+    assert made == translate("shopify.date", "ar", day=15,
+                             month=translate("shopify.month.11", "ar"), year=2026)
+
+    bare = BusinessItem(title="Plain", slug="plain", price=Decimal("1.00"),
+                        currency=Currency.USD, is_available=True, business=business)
+    plain = product_payload(bare, settings)
+    assert plain["details"] is None and plain["tags"] == [] and plain["product_type"] is None
+
+
+def test_the_store_labels_are_the_product_pages_own() -> None:
+    """The backend copies of the labels must say what the product page says."""
+    import json
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+    for locale in ("ar", "en"):
+        front = json.loads((root / f"frontend/src/i18n/locales/{locale}.json").read_text())
+        back = json.loads((root / f"backend/app/locales/{locale}.json").read_text())
+        assert back["shopify.details.heading"] == front["products.detailHeading"]
+        for key, page in (("good_type", "goodTypeLabel"), ("brand", "brandNameLabel"),
+                          ("net_weight", "netWeightLabel"),
+                          ("manufactured_at", "manufacturedAtLabel"),
+                          ("expiry_date", "expiryDateLabel"),
+                          ("ingredients", "ingredientsLabel")):
+            assert back[f"shopify.details.{key}"] == front[f"products.{page}"], key
