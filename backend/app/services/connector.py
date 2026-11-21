@@ -20,7 +20,7 @@ import hmac
 import logging
 import time
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 from urllib.parse import quote
 
@@ -30,6 +30,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import Settings
 from app.core.errors import AppError, ConflictError, NotFoundError, ValidationError
+from app.core.i18n import DEFAULT_LOCALE, translate
 from app.models.business import Business, BusinessItem
 from app.models.enums import BusinessStatus, SocialPlatform
 from app.models.integration import IntegrationOutbox, ItemLink, StoreLink
@@ -165,6 +166,38 @@ def _absolute(url: str, settings: Settings) -> str:
     return settings.public_base_url.rstrip("/") + "/" + url.lstrip("/")
 
 
+# The store faces the site's own visitors, so its product text is in the
+# site's language whoever happened to save the product.
+STORE_LOCALE = DEFAULT_LOCALE
+
+
+def _store_date(value: date) -> str:
+    return translate(
+        "shopify.date", STORE_LOCALE, day=value.day,
+        month=translate(f"shopify.month.{value.month}", STORE_LOCALE), year=value.year,
+    )
+
+
+def product_details(item: BusinessItem) -> dict[str, Any] | None:
+    """The product page's own facts, under the same labels, for the store."""
+    facts: list[tuple[str, str | None]] = [
+        ("good_type", item.good_type),
+        ("brand", item.brand_name),
+        ("net_weight", item.net_weight),
+        ("manufactured_at", _store_date(item.manufactured_at) if item.manufactured_at else None),
+        ("expiry_date", _store_date(item.expiry_date) if item.expiry_date else None),
+        ("ingredients", item.ingredients),
+    ]
+    rows = [
+        {"label": translate(f"shopify.details.{key}", STORE_LOCALE), "value": value.strip()}
+        for key, value in facts
+        if value and value.strip()
+    ]
+    if not rows:
+        return None
+    return {"heading": translate("shopify.details.heading", STORE_LOCALE), "rows": rows}
+
+
 def product_payload(item: BusinessItem, settings: Settings) -> dict[str, Any]:
     images = [item.image_url] if item.image_url else []
     images += [image.url for image in item.images]
@@ -178,6 +211,9 @@ def product_payload(item: BusinessItem, settings: Settings) -> dict[str, Any]:
         "images": [u for u in urls if u.startswith("https://")],
         "available": item.is_available and item.business.status is BusinessStatus.APPROVED,
         "vendor": item.brand_name,
+        "product_type": (item.good_type or "").strip() or None,
+        "tags": [item.good_type.strip()] if item.good_type and item.good_type.strip() else [],
+        "details": product_details(item),
     }
 
 
