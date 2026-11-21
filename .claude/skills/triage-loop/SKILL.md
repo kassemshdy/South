@@ -137,7 +137,7 @@ actually verified.
 
 ## 7. Put it on the develop site
 
-Wait for the pull request's four CI jobs on its **current head** (the
+Wait for the pull request's five CI jobs on its **current head** (the
 `steward` skill says how to read them). Then:
 
 - **Green:** merge it into `develop-claude` — never anything into

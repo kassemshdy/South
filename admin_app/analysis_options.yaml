@@ -1,9 +1,12 @@
+include: package:flutter_lints/flutter.yaml
+
 analyzer:
+  # Written by `flutter gen-l10n`; its deprecation notices are the SDK's to fix.
   exclude:
+    - lib/l10n/app_localizations*.dart
     - build/**
     - android/**
     - ios/**
-include: package:flutter_lints/flutter.yaml
 
 linter:
   rules:
