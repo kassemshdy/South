@@ -33,6 +33,8 @@ LOCALES_DIR = BACKEND_ROOT / "app" / "locales"
 FRONTEND_SRC = REPO_ROOT / "frontend" / "src"
 FRONTEND_E2E = REPO_ROOT / "frontend" / "e2e"
 FRONTEND_LOCALES = FRONTEND_SRC / "i18n" / "locales"
+ADMIN_APP = REPO_ROOT / "admin_app"
+ADMIN_APP_L10N = ADMIN_APP / "lib" / "l10n"
 
 # Arabic, Arabic Supplement and the Arabic presentation-form blocks.
 ARABIC = re.compile("[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]")
@@ -220,7 +222,7 @@ def test_every_mapped_validation_type_has_a_sentence_in_every_locale() -> None:
 
 def _arabic_offenders(root: Path, suffixes: set[str], exempt: set[Path]) -> list[str]:
     offenders: list[str] = []
-    skip_parts = {".venv", "__pycache__", "alembic", "node_modules", "dist"}
+    skip_parts = {".venv", "__pycache__", "alembic", "node_modules", "dist", ".dart_tool", "build"}
 
     for path in root.rglob("*"):
         if path.suffix not in suffixes or not path.is_file():
@@ -267,6 +269,36 @@ def test_e2e_suite_contains_no_arabic_text() -> None:
     than letting it assert against stale copy."""
     offenders = _arabic_offenders(FRONTEND_E2E, {".ts"}, {FRONTEND_E2E / "fixtures"})
     assert not offenders, "Arabic text found outside resource files: " + ", ".join(offenders)
+
+
+@pytest.mark.skipif(not ADMIN_APP.exists(), reason="admin app not present")
+def test_admin_app_source_contains_no_arabic_text() -> None:
+    """The Flutter staff app follows the same rule: its catalogs (and the
+    Dart that ``flutter gen-l10n`` writes beside them) are the only place
+    Arabic may appear."""
+    offenders = _arabic_offenders(ADMIN_APP, {".dart"}, {ADMIN_APP_L10N})
+    assert not offenders, "Arabic text found outside resource files: " + ", ".join(offenders)
+
+
+@pytest.mark.skipif(not ADMIN_APP.exists(), reason="admin app not present")
+def test_admin_app_strings_are_the_web_catalogs_wording() -> None:
+    """The app writes no copy of its own: every string is the web admin's,
+    copied by ``admin_app/tool/sync_strings.py``. A change to the wording on
+    the web without re-running it would leave the app saying the old thing."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "sync_strings", ADMIN_APP / "tool" / "sync_strings.py"
+    )
+    assert spec is not None and spec.loader is not None
+    sync = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(sync)
+    for locale, arb in sync.expected().items():
+        written = json.loads((ADMIN_APP_L10N / f"app_{locale}.arb").read_text(encoding="utf-8"))
+        assert written == arb, (
+            f"admin_app/lib/l10n/app_{locale}.arb is out of step with the web "
+            "catalog: run python3 admin_app/tool/sync_strings.py"
+        )
 
 
 @pytest.mark.skipif(not FRONTEND_LOCALES.exists(), reason="frontend catalogs not present")

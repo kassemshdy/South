@@ -11,6 +11,11 @@ two sets of three services — `postgres`/`api`/`web` and their `-develop`
 counterparts — under the `southwork` project — see
 `docs/RAILWAY.md` for the live topology and `docs/DEPLOYMENT.md` for environments.
 
+`admin_app/` is a Flutter staff app (Android/iOS) on the same admin API: the
+review queue, the listings and the ticket board. Its strings are copied from
+the web catalogs by `admin_app/tool/sync_strings.py` and never written
+separately -- see `admin_app/README.md`.
+
 ## Command Execution Guide
 
 ### Backend
