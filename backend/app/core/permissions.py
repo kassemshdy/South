@@ -249,6 +249,7 @@ WRITES: dict[tuple[str, str], frozenset[StaffRole]] = {
     ("POST", "/api/admin/businesses/{business_id}/shopify/profile"): frozenset({M}),
     ("POST", "/api/admin/businesses/{business_id}/shopify/setup"): frozenset({M}),
     ("DELETE", "/api/admin/businesses/{business_id}/shopify"): frozenset({M}),
+    ("PUT", "/api/admin/businesses/{business_id}/shopify/controls"): frozenset({M}),
     ("POST", "/api/admin/api-partners"): frozenset({M}),
     ("POST", "/api/admin/api-partners/{partner_id}/rotate"): frozenset({M}),
     ("POST", "/api/admin/api-partners/{partner_id}/revoke"): frozenset({M}),

@@ -30,6 +30,7 @@ export function AdminShopifyPage() {
   const canManage = useStaffCan("manage");
   const [params, setParams] = useSearchParams();
   const [query, setQuery] = useState("");
+  const [onlyLinked, setOnlyLinked] = useState(false);
   const selected = params.get("business");
 
   const shops = useQuery({
@@ -38,13 +39,19 @@ export function AdminShopifyPage() {
     retry: false,
   });
 
+  // A store counts as linked while the mirror knows of it, whatever its state:
+  // a paused, hidden or uninstalled one still needs looking after.
+  const linked = useMemo(
+    () => (shops.data ?? []).filter((shop) => shop.status !== null),
+    [shops.data],
+  );
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    const list = shops.data ?? [];
+    const list = onlyLinked ? linked : (shops.data ?? []);
     return needle
       ? list.filter((shop) => shop.name.toLowerCase().includes(needle))
       : list;
-  }, [shops.data, query]);
+  }, [shops.data, linked, onlyLinked, query]);
 
   const selectedShop = (shops.data ?? []).find((shop) => shop.id === selected);
   const choose = (id: string) => {
@@ -86,6 +93,32 @@ export function AdminShopifyPage() {
                   className="ps-9"
                 />
               </label>
+              <div className="flex flex-wrap gap-2" role="group">
+                {[
+                  { on: false, label: t("admin.shopifyFilterAll") },
+                  {
+                    on: true,
+                    label: t("admin.shopifyFilterConnected", {
+                      count: linked.length,
+                    }),
+                  },
+                ].map((filter) => (
+                  <button
+                    key={String(filter.on)}
+                    type="button"
+                    aria-pressed={onlyLinked === filter.on}
+                    onClick={() => setOnlyLinked(filter.on)}
+                    className={cn(
+                      "rounded-full border px-3 py-1 text-sm",
+                      onlyLinked === filter.on
+                        ? "border-brand-700 bg-brand-700 text-white"
+                        : "border-ink-200 text-ink-700 hover:bg-sand-50",
+                    )}
+                  >
+                    {filter.label}
+                  </button>
+                ))}
+              </div>
               {shops.isLoading ? (
                 <div className="space-y-2">
                   {Array.from({ length: 6 }).map((_, index) => (
@@ -111,12 +144,34 @@ export function AdminShopifyPage() {
                             : "hover:bg-sand-50",
                         )}
                       >
-                        <span className="truncate">{shop.name}</span>
-                        {shop.status === "CONNECTED" ? (
-                          <span className="shrink-0 rounded-full bg-brand-100 px-2 py-0.5 text-xs text-brand-800">
-                            {t("admin.shopifyConnectedBadge")}
-                          </span>
-                        ) : null}
+                        <span className="min-w-0">
+                          <span className="block truncate">{shop.name}</span>
+                          {onlyLinked && shop.shop_domain ? (
+                            <span
+                              className="block truncate text-xs font-normal text-ink-500"
+                              dir="ltr"
+                            >
+                              {shop.shop_domain}
+                            </span>
+                          ) : null}
+                        </span>
+                        <span className="flex shrink-0 flex-wrap justify-end gap-1">
+                          {shop.status === "CONNECTED" ? (
+                            <span className="rounded-full bg-brand-100 px-2 py-0.5 text-xs text-brand-800">
+                              {t("admin.shopifyConnectedBadge")}
+                            </span>
+                          ) : null}
+                          {shop.sync_paused ? (
+                            <span className="rounded-full bg-sand-100 px-2 py-0.5 text-xs text-ink-700">
+                              {t("admin.shopifyPausedBadge")}
+                            </span>
+                          ) : null}
+                          {shop.hidden ? (
+                            <span className="rounded-full bg-clay-50 px-2 py-0.5 text-xs text-clay-700">
+                              {t("admin.shopifyHiddenBadge")}
+                            </span>
+                          ) : null}
+                        </span>
                       </button>
                     </li>
                   ))}
