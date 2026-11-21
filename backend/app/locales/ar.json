@@ -406,5 +406,6 @@
   "gdrive.started": "بدأ النسخ إلى Google Drive.",
   "growthProgramme.already_enrolled": "هذا المتجر مسجّل في برنامج النمو بالفعل.",
   "growthProgramme.not_enrolled": "هذا المتجر ليس في برنامج النمو.",
-  "growthProgramme.removed": "أُزيل المتجر من برنامج النمو."
+  "growthProgramme.removed": "أُزيل المتجر من برنامج النمو.",
+  "shopify.sync_paused": "مزامنة المنتجات متوقفة لهذا المتجر. استأنِفها أولًا."
 }

@@ -406,5 +406,6 @@
   "gdrive.started": "Copying to Google Drive has started.",
   "growthProgramme.already_enrolled": "This shop is already in the growth programme.",
   "growthProgramme.not_enrolled": "This shop is not in the growth programme.",
-  "growthProgramme.removed": "Removed from the growth programme."
+  "growthProgramme.removed": "Removed from the growth programme.",
+  "shopify.sync_paused": "Product sync is paused for this store. Resume it first."
 }

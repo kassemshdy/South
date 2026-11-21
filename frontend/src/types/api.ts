@@ -1678,6 +1678,10 @@ export interface ShopifyShop {
   owner_id: string
   status: 'PENDING' | 'CONNECTED' | 'UNINSTALLED' | null
   shop_domain: string | null
+  /** Staff switch: product changes are not sent to the store. */
+  sync_paused: boolean
+  /** Staff switch: no buy button or store link on the site; still linked. */
+  hidden: boolean
 }
 
 /** A shop's Shopify store connection, as the admin page shows it. Never the token. */
@@ -1702,6 +1706,8 @@ export interface ShopifyStatus {
   pending_pushes: number
   /** What the last store setup did; null until one has run. */
   setup: ShopifySetup | null
+  sync_paused: boolean
+  hidden: boolean
 }
 
 /** The connector's report of a store setup (market and delivery rate). */

@@ -32,6 +32,7 @@ from app.models.enums import BusinessStatus
 from app.models.integration import IntegrationOutbox, ItemLink, StoreLink
 from app.schemas.common import MessageResponse
 from app.schemas.integration import (
+    ShopifyControlsIn,
     ShopifyInstallIn,
     ShopifyInstallOut,
     ShopifySetupIn,
@@ -41,6 +42,7 @@ from app.schemas.integration import (
     SubdomainIn,
     SyncQueuedOut,
 )
+from app.services import outbox
 from app.services.connector import (
     ConnectorUnavailable,
     StoreConnectionService,
@@ -89,6 +91,7 @@ def _status(
     )
     if store is None:
         return base
+    link = business.store_link
     synced = db.scalar(
         select(func.count())
         .select_from(ItemLink)
@@ -117,6 +120,8 @@ def _status(
             # Ours still to send, plus the connector's still to push.
             "pending_pushes": (pending or 0) + int(store.get("jobs_pending") or 0),
             "setup": ShopifySetupOut.from_report(store.get("setup")),
+            "sync_paused": bool(link and link.sync_paused),
+            "hidden": bool(link and link.hidden),
         }
     )
 
@@ -150,6 +155,8 @@ def shopify_shops(
             owner_id=business.owner_id,
             status=link.status if link else None,
             shop_domain=link.shop_domain if link else None,
+            sync_paused=bool(link and link.sync_paused),
+            hidden=bool(link and link.hidden),
         )
         for business, link in rows
     ]
@@ -238,6 +245,47 @@ def shopify_setup(
     except ConnectorUnavailable as exc:
         raise _unavailable() from exc
     return MessageResponse(message=translate("shopify.setup_queued"))
+
+
+@admin_router.put(
+    "/businesses/{business_id}/shopify/controls", response_model=ShopifyShopOut
+)
+def shopify_controls(
+    payload: ShopifyControlsIn,
+    business_id: uuid.UUID,
+    admin: AdminUser,
+    db: DbSession,
+    settings: ConnectorSettings,
+) -> ShopifyShopOut:
+    """Pause the sync, or take Shopify off the site, without unlinking the store.
+
+    Kept on our side only: the store, its token and its products in Shopify
+    are untouched, so turning a switch back is instant. Resuming the sync
+    sends every product, since changes made while paused were not queued.
+    """
+    business = _business(db, business_id)
+    link = business.store_link
+    if link is None:
+        raise NotFoundError("shopify.not_connected")
+    resumed = payload.sync_paused is False and link.sync_paused
+    if payload.sync_paused is not None:
+        link.sync_paused = payload.sync_paused
+    if payload.hidden is not None:
+        link.hidden = payload.hidden
+    db.flush()
+    if resumed and link.is_live:
+        outbox.enqueue_full_sync(db, business)
+    db.commit()
+    logger.info(
+        "Shopify switches changed",
+        extra={"business_id": str(business.id), "sync_paused": link.sync_paused,
+               "hidden": link.hidden, "admin_id": str(admin.id)},
+    )
+    return ShopifyShopOut(
+        id=business.id, name=business.name, slug=business.slug, owner_id=business.owner_id,
+        status=link.status, shop_domain=link.shop_domain,
+        sync_paused=link.sync_paused, hidden=link.hidden,
+    )
 
 
 @admin_router.delete("/businesses/{business_id}/shopify", response_model=MessageResponse)

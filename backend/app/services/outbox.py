@@ -74,7 +74,7 @@ def enqueue_full_sync(db: Session, business: Business) -> int:
 
 def _connected(business: Business | None) -> bool:
     link = business.store_link if business is not None else None
-    return link is not None and link.is_live
+    return link is not None and link.is_live and not link.sync_paused
 
 
 def _item_of(session: Session, image: BusinessItemImage) -> BusinessItem | None:

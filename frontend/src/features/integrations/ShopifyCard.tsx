@@ -1,5 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, Palette, RefreshCw, Store, Unplug } from "lucide-react";
+import {
+  EyeOff,
+  ExternalLink,
+  Palette,
+  Pause,
+  Play,
+  RefreshCw,
+  Store,
+  Unplug,
+} from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 
@@ -94,6 +103,12 @@ export function ShopifyCard({
     onSuccess: refresh,
     onError: failed,
   });
+  const controls = useMutation({
+    mutationFn: (body: { sync_paused?: boolean; hidden?: boolean }) =>
+      adminApi.shopifyControls(businessId, body),
+    onSuccess: refresh,
+    onError: failed,
+  });
   const saveSubdomain = useMutation({
     mutationFn: () => adminApi.shopifySubdomain(businessId, subdomain),
     onSuccess: (data) =>
@@ -153,6 +168,14 @@ export function ShopifyCard({
                 </li>
               ) : null}
             </ul>
+            {/* Prices are never converted: every product of a store in
+                another currency is skipped (a store made with a Lebanese
+                address starts in LBP). */}
+            {data.currency && data.currency !== "USD" ? (
+              <p className="rounded-xl bg-clay-50 p-3 text-sm text-clay-800">
+                {t("shopify.currencyWarning", { currency: data.currency })}
+              </p>
+            ) : null}
             <div className="flex flex-wrap gap-2">
               {data.storefront_url ? (
                 <Button asChild variant="outline" size="sm">
@@ -172,7 +195,7 @@ export function ShopifyCard({
                     variant="outline"
                     size="sm"
                     onClick={() => sync.mutate()}
-                    disabled={sync.isPending}
+                    disabled={sync.isPending || data.sync_paused}
                   >
                     <RefreshCw className="h-4 w-4" aria-hidden="true" />
                     {t("shopify.syncNow")}
@@ -202,6 +225,62 @@ export function ShopifyCard({
                 </>
               ) : null}
             </div>
+
+            {data.sync_paused || data.hidden || canManage ? (
+              <div className="space-y-2 border-t border-ink-100 pt-4">
+                <p className="font-semibold text-ink-900">
+                  {t("shopify.controlsTitle")}
+                </p>
+                {data.sync_paused ? (
+                  <p className="text-sm text-ink-700">
+                    {t("shopify.syncPausedNote")}
+                  </p>
+                ) : null}
+                {data.hidden ? (
+                  <p className="text-sm text-clay-700">
+                    {t("shopify.hiddenNote")}
+                  </p>
+                ) : null}
+                {canManage ? (
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={controls.isPending}
+                      onClick={() =>
+                        controls.mutate({ sync_paused: !data.sync_paused })
+                      }
+                    >
+                      {data.sync_paused ? (
+                        <Play className="h-4 w-4" aria-hidden="true" />
+                      ) : (
+                        <Pause className="h-4 w-4" aria-hidden="true" />
+                      )}
+                      {data.sync_paused
+                        ? t("shopify.resumeSync")
+                        : t("shopify.pauseSync")}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={controls.isPending}
+                      onClick={() => {
+                        if (
+                          data.hidden ||
+                          window.confirm(t("shopify.hideConfirm"))
+                        )
+                          controls.mutate({ hidden: !data.hidden });
+                      }}
+                    >
+                      <EyeOff className="h-4 w-4" aria-hidden="true" />
+                      {data.hidden
+                        ? t("shopify.showStore")
+                        : t("shopify.hideStore")}
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
 
             {canManage && data.subdomains_available ? (
               <div className="space-y-2 border-t border-ink-100 pt-4">

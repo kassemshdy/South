@@ -23,6 +23,15 @@ class ShopifyShopOut(BaseModel):
     owner_id: uuid.UUID
     status: str | None = None
     shop_domain: str | None = None
+    sync_paused: bool = False
+    hidden: bool = False
+
+
+class ShopifyControlsIn(BaseModel):
+    """Staff switches; a field left out keeps its value."""
+
+    sync_paused: bool | None = None
+    hidden: bool | None = None
 
 
 class ShopifyInstallOut(BaseModel):
@@ -99,6 +108,8 @@ class ShopifyStatusOut(BaseModel):
     synced_products: int = 0
     pending_pushes: int = 0
     setup: ShopifySetupOut | None = None
+    sync_paused: bool = False
+    hidden: bool = False
 
 
 class SyncQueuedOut(BaseModel):
