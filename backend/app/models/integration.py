@@ -21,7 +21,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text, false
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -49,6 +49,15 @@ class StoreLink(Base, TimestampMixin):
     currency: Mapped[str | None] = mapped_column(String(3), nullable=True)
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     connected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Ours, never the connector's: staff switches that outlive its reports.
+    # Paused: product changes are not sent. Hidden: the site shows no buy
+    # button or store link, though the store stays linked.
+    sync_paused: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=false()
+    )
+    hidden: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=false()
+    )
 
     business: Mapped[Business] = relationship(back_populates="store_link")
 

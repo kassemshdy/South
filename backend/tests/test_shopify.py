@@ -396,6 +396,7 @@ def test_a_reviewer_sees_the_page_but_only_a_manager_connects(
         ("POST", f"/api/admin/businesses/{business.id}/shopify/profile"),
         ("POST", f"/api/admin/businesses/{business.id}/shopify/setup"),
         ("DELETE", f"/api/admin/businesses/{business.id}/shopify"),
+        ("PUT", f"/api/admin/businesses/{business.id}/shopify/controls"),
     ):
         assert shop_client.request(
             method, path, headers=boss, json={"shop": "souk", "subdomain": "souk"}
@@ -763,3 +764,87 @@ def test_store_setup_sends_the_delivery_rate_and_the_card_shows_its_report(
     ).json()
     assert status["setup"]["missing_scopes"] == ["write_shipping"]
     assert status["setup"]["ok"] is False and status["setup"]["currency_ok"] is True
+
+
+def test_a_paused_store_is_sent_nothing_until_it_resumes_with_every_product(
+    shop_client: TestClient,
+    db: Session,
+    settings: Settings,
+    admin: User,
+    fake: FakeConnector,
+    category: Category,
+    location: Location,
+) -> None:
+    headers = sign_in(shop_client, OWNER_PHONE)
+    business = approved_business(shop_client, db, headers, category, location)
+    item_id = add_item(shop_client, business, headers)
+    webhook(shop_client, "store.connected", connected(business))
+    drain(settings, fake)
+    staff = admin_headers(shop_client)
+    controls = f"/api/admin/businesses/{business.id}/shopify/controls"
+
+    paused = shop_client.put(controls, headers=staff, json={"sync_paused": True})
+    assert paused.status_code == 200, paused.text
+    assert paused.json()["sync_paused"] is True and paused.json()["hidden"] is False
+    shop_client.put(f"/api/businesses/{business.id}/items/{item_id}", headers=headers,
+                    json={"price": "6.00"})
+    assert pending(db) == []
+    sync = shop_client.post(f"/api/admin/businesses/{business.id}/shopify/sync", headers=staff)
+    assert sync.status_code == 409
+    shops = shop_client.get("/api/admin/shopify/shops", headers=staff).json()
+    assert shops[0]["sync_paused"] is True
+
+    assert shop_client.put(controls, headers=staff,
+                           json={"sync_paused": False}).status_code == 200
+    assert [e.payload["item_id"] for e in pending(db)] == [item_id]
+
+
+def test_a_hidden_store_shows_no_buy_link_and_stays_linked(
+    shop_client: TestClient,
+    db: Session,
+    settings: Settings,
+    admin: User,
+    fake: FakeConnector,
+    category: Category,
+    location: Location,
+) -> None:
+    headers = sign_in(shop_client, OWNER_PHONE)
+    business = approved_business(shop_client, db, headers, category, location)
+    item_id = add_item(shop_client, business, headers)
+    webhook(shop_client, "store.connected", connected(business))
+    drain(settings, fake)
+    webhook(shop_client, "product.synced", {
+        "store_ref": str(business.id), "product_ref": item_id, "state": "SYNCED",
+        "handle": "zaatar", "active": True,
+        "buy_url": "https://souk.example.com/products/zaatar", "error": None})
+    item = db.get(BusinessItem, uuid.UUID(item_id))
+    assert item is not None
+    staff = admin_headers(shop_client)
+    controls = f"/api/admin/businesses/{business.id}/shopify/controls"
+
+    assert shop_client.put(controls, headers=staff, json={"hidden": True}).status_code == 200
+    assert shop_client.get(f"/api/businesses/{business.slug}").json()["online_store_url"] is None
+    assert shop_client.get(f"/api/items/{item.slug}").json()["buy_url"] is None
+    # Still linked, and a connector report does not turn the switch back.
+    webhook(shop_client, "store.updated", connected(business))
+    db.expire_all()
+    link = db.scalars(select(StoreLink)).one()
+    assert link.is_live and link.hidden
+    assert not fake.calls("DELETE", r".*")
+
+    assert shop_client.put(controls, headers=staff, json={"hidden": False}).status_code == 200
+    assert shop_client.get(f"/api/items/{item.slug}").json()["buy_url"] is not None
+
+
+def test_switches_need_a_linked_store(
+    shop_client: TestClient,
+    db: Session,
+    admin: User,
+    category: Category,
+    location: Location,
+) -> None:
+    headers = sign_in(shop_client, OWNER_PHONE)
+    business = approved_business(shop_client, db, headers, category, location)
+    r = shop_client.put(f"/api/admin/businesses/{business.id}/shopify/controls",
+                        headers=admin_headers(shop_client), json={"hidden": True})
+    assert r.status_code == 404

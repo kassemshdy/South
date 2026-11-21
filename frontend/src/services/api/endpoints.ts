@@ -1171,6 +1171,11 @@ export const adminApi = {
       method: 'POST',
       body,
     }),
+  shopifyControls: (id: string, body: { sync_paused?: boolean; hidden?: boolean }) =>
+    apiRequest<ShopifyShop>(`/api/admin/businesses/${id}/shopify/controls`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
   shopifyDisconnect: (id: string) =>
     apiRequest<{ message: string }>(`/api/admin/businesses/${id}/shopify`, { method: 'DELETE' }),
   shopifySubdomain: (id: string, subdomain: string) =>

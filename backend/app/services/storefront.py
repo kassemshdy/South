@@ -14,7 +14,7 @@ from app.models.enums import BusinessStatus
 
 def online_store_url(business: Business) -> str | None:
     link = business.store_link
-    if link is None or not link.is_live:
+    if link is None or not link.is_live or link.hidden:
         return None
     return link.storefront_url
 

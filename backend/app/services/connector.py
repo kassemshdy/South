@@ -294,6 +294,8 @@ class StoreConnectionService:
         link = business.store_link
         if link is None or not link.is_live:
             raise NotFoundError("shopify.not_connected")
+        if link.sync_paused:
+            raise AppError("shopify.sync_paused", code="sync_paused", status_code=409)
         count = outbox.enqueue_full_sync(self._db, business)
         self._db.commit()
         # Also refresh the shop's page linked from the app in Shopify: stores
@@ -365,7 +367,7 @@ def handle_event(db: Session, event: str, data: dict[str, Any]) -> None:
         if event == "store.connected":
             link.connected_at = datetime.now(UTC)
         db.flush()
-        if link.is_live and not was_live:
+        if link.is_live and not was_live and not link.sync_paused:
             # Newly connected: send every product.
             outbox.enqueue_full_sync(db, business)
     elif event == "store.disconnected":
