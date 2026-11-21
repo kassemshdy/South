@@ -1,0 +1,28 @@
+name: janoubona_admin
+description: Janoubona's staff app — the review queue, listings and the ticket board, on a phone.
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  material_ui: ^1.1.0
+  flutter_localizations:
+    sdk: flutter
+  intl: any
+  http: ^1.2.2
+  # The session token lives in the Keychain / Keystore, never in plain prefs.
+  flutter_secure_storage: ^9.2.2
+  url_launcher: ^6.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  generate: true

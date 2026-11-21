@@ -184,6 +184,37 @@ jobs:
         working-directory: mcp-server
         run: ./.venv/bin/mypy south_mcp
 
+  admin-app:
+    name: Admin app (Flutter analyze, test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pinned to the release the app was written against: 3.50 moved
+      # Material into the material_ui package, so an older SDK fails to
+      # resolve it and a newer one may deprecate something else under us.
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.50.1"
+          channel: stable
+          cache: true
+
+      # `pub get` also runs gen-l10n (pubspec `generate: true`), so the
+      # analyzer sees AppLocalizations. Whether the ARB files match the web
+      # catalogs is the backend job's test_i18n.py, not this job's.
+      - name: Install dependencies
+        working-directory: admin_app
+        run: flutter pub get
+
+      - name: flutter analyze
+        working-directory: admin_app
+        run: flutter analyze
+
+      - name: flutter test
+        if: always()
+        working-directory: admin_app
+        run: flutter test
+
   e2e:
     name: E2E (Playwright)
     runs-on: ubuntu-latest
@@ -295,7 +326,7 @@ jobs:
 
   comment:
     name: Post PR status comment
-    needs: [backend, frontend, mcp, e2e]
+    needs: [backend, frontend, mcp, admin-app, e2e]
     if: always() && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
@@ -314,6 +345,7 @@ jobs:
           MCP_FAILURES: ${{ needs.mcp.outputs.failures }}
           FRONTEND_RESULT: ${{ needs.frontend.result }}
           E2E_RESULT: ${{ needs.e2e.result }}
+          ADMIN_APP_RESULT: ${{ needs.admin-app.result }}
         with:
           script: |
             const env = process.env
@@ -336,6 +368,12 @@ jobs:
                 // Typecheck and build only; the browser suite is its own
                 // job, below.
                 tests: 'typecheck + build',
+                failures: '',
+              },
+              {
+                name: 'Admin app (Flutter analyze, test)',
+                result: env.ADMIN_APP_RESULT,
+                tests: 'analyze + unit tests',
                 failures: '',
               },
               {

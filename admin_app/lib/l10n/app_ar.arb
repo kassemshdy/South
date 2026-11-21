@@ -1,0 +1,409 @@
+{
+  "@@locale": "ar",
+  "adminApprove": "موافقة",
+  "@adminApprove": {
+    "description": "Web catalog key admin.approve"
+  },
+  "adminReject": "رفض",
+  "@adminReject": {
+    "description": "Web catalog key admin.reject"
+  },
+  "adminReactivate": "إعادة التفعيل",
+  "@adminReactivate": {
+    "description": "Web catalog key admin.reactivate"
+  },
+  "adminSuspend": "إيقاف النشاط",
+  "@adminSuspend": {
+    "description": "Web catalog key admin.suspend"
+  },
+  "adminRejectReasonLabel": "سبب الرفض",
+  "@adminRejectReasonLabel": {
+    "description": "Web catalog key admin.rejectReasonLabel"
+  },
+  "adminRejectReasonPlaceholder": "مثال: الرجاء إضافة صورة شعار أوضح ووصف أدق للخدمات.",
+  "@adminRejectReasonPlaceholder": {
+    "description": "Web catalog key admin.rejectReasonPlaceholder"
+  },
+  "adminRejectionReasonTitle": "سبب الرفض المُسجّل",
+  "@adminRejectionReasonTitle": {
+    "description": "Web catalog key admin.rejectionReasonTitle"
+  },
+  "adminStatusUpdated": "تم تحديث حالة النشاط إلى «{status}»",
+  "@adminStatusUpdated": {
+    "description": "Web catalog key admin.statusUpdated",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "adminNavDashboard": "لوحة التحكم",
+  "@adminNavDashboard": {
+    "description": "Web catalog key admin.navDashboard"
+  },
+  "adminNavBusinesses": "النشاطات",
+  "@adminNavBusinesses": {
+    "description": "Web catalog key admin.navBusinesses"
+  },
+  "adminNavTalent": "المواهب",
+  "@adminNavTalent": {
+    "description": "Web catalog key admin.navTalent"
+  },
+  "adminNavFeedback": "التغذية الراجعة",
+  "@adminNavFeedback": {
+    "description": "Web catalog key admin.navFeedback"
+  },
+  "adminReviewRequests": "مراجعة الطلبات",
+  "@adminReviewRequests": {
+    "description": "Web catalog key admin.reviewRequests"
+  },
+  "adminQueueEmpty": "لا توجد طلبات بانتظار المراجعة",
+  "@adminQueueEmpty": {
+    "description": "Web catalog key admin.queueEmpty"
+  },
+  "adminQueueEmptyDescription": "كل الطلبات تمت معالجتها.",
+  "@adminQueueEmptyDescription": {
+    "description": "Web catalog key admin.queueEmptyDescription"
+  },
+  "adminListEmptyTitle": "لا توجد نشاطات في حالة «{status}»",
+  "@adminListEmptyTitle": {
+    "description": "Web catalog key admin.listEmptyTitle",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "adminListEmptyDescription": "جرّب تغيير عامل التصفية أو البحث.",
+  "@adminListEmptyDescription": {
+    "description": "Web catalog key admin.listEmptyDescription"
+  },
+  "adminTalentListEmptyTitle": "لا توجد ملفات مواهب في حالة «{status}»",
+  "@adminTalentListEmptyTitle": {
+    "description": "Web catalog key admin.talentListEmptyTitle",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "adminSearchPlaceholder": "ابحث بالاسم أو الوصف…",
+  "@adminSearchPlaceholder": {
+    "description": "Web catalog key admin.searchPlaceholder"
+  },
+  "adminTalentSearchPlaceholder": "الاسم أو المهارة أو المنطقة",
+  "@adminTalentSearchPlaceholder": {
+    "description": "Web catalog key admin.talentSearchPlaceholder"
+  },
+  "adminFilterAll": "الكل",
+  "@adminFilterAll": {
+    "description": "Web catalog key admin.filterAll"
+  },
+  "adminFilterPending": "بانتظار المراجعة",
+  "@adminFilterPending": {
+    "description": "Web catalog key admin.filterPending"
+  },
+  "adminFilterApproved": "مقبولة",
+  "@adminFilterApproved": {
+    "description": "Web catalog key admin.filterApproved"
+  },
+  "adminFilterRejected": "مرفوضة",
+  "@adminFilterRejected": {
+    "description": "Web catalog key admin.filterRejected"
+  },
+  "adminFilterSuspended": "موقوفة",
+  "@adminFilterSuspended": {
+    "description": "Web catalog key admin.filterSuspended"
+  },
+  "adminFilterDrafts": "مسودات",
+  "@adminFilterDrafts": {
+    "description": "Web catalog key admin.filterDrafts"
+  },
+  "adminOwnerTitle": "صاحب النشاط",
+  "@adminOwnerTitle": {
+    "description": "Web catalog key admin.ownerTitle"
+  },
+  "adminOwnerName": "الاسم",
+  "@adminOwnerName": {
+    "description": "Web catalog key admin.ownerName"
+  },
+  "adminOwnerAccount": "رقم الحساب",
+  "@adminOwnerAccount": {
+    "description": "Web catalog key admin.ownerAccount"
+  },
+  "adminOwnerPersonalPhone": "الهاتف الشخصي",
+  "@adminOwnerPersonalPhone": {
+    "description": "Web catalog key admin.ownerPersonalPhone"
+  },
+  "adminSubmittedAt": "أُرسل للمراجعة: {date}",
+  "@adminSubmittedAt": {
+    "description": "Web catalog key admin.submittedAt",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "adminApprovedByStaff": "وافق عليه: {name}",
+  "@adminApprovedByStaff": {
+    "description": "Web catalog key admin.approvedByStaff",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "adminStatTotal": "إجمالي النشاطات",
+  "@adminStatTotal": {
+    "description": "Web catalog key admin.statTotal"
+  },
+  "adminStatApproved": "نشاطات مقبولة",
+  "@adminStatApproved": {
+    "description": "Web catalog key admin.statApproved"
+  },
+  "adminStatRejected": "نشاطات مرفوضة",
+  "@adminStatRejected": {
+    "description": "Web catalog key admin.statRejected"
+  },
+  "adminStatSuspended": "نشاطات موقوفة",
+  "@adminStatSuspended": {
+    "description": "Web catalog key admin.statSuspended"
+  },
+  "adminStatDrafts": "مسودات",
+  "@adminStatDrafts": {
+    "description": "Web catalog key admin.statDrafts"
+  },
+  "adminStatUsers": "المستخدمون المسجلون",
+  "@adminStatUsers": {
+    "description": "Web catalog key admin.statUsers"
+  },
+  "adminStatAdmins": "المشرفون",
+  "@adminStatAdmins": {
+    "description": "Web catalog key admin.statAdmins"
+  },
+  "adminStatItems": "المنتجات والخدمات",
+  "@adminStatItems": {
+    "description": "Web catalog key admin.statItems"
+  },
+  "adminPendingLabel": "سلع ومنتجات بانتظار المراجعة",
+  "@adminPendingLabel": {
+    "description": "Web catalog key admin.pendingLabel"
+  },
+  "adminPendingTalentLabel": "خدمات وطلبات توظيف بانتظار المراجعة",
+  "@adminPendingTalentLabel": {
+    "description": "Web catalog key admin.pendingTalentLabel"
+  },
+  "adminPendingTestimonialsLabel": "شهادات بانتظار المراجعة",
+  "@adminPendingTestimonialsLabel": {
+    "description": "Web catalog key admin.pendingTestimonialsLabel"
+  },
+  "adminShopsCall": "اتصال",
+  "@adminShopsCall": {
+    "description": "Web catalog key adminShops.call"
+  },
+  "statusDRAFT": "مسودة",
+  "@statusDRAFT": {
+    "description": "Web catalog key status.DRAFT"
+  },
+  "statusPENDING_REVIEW": "قيد المراجعة",
+  "@statusPENDING_REVIEW": {
+    "description": "Web catalog key status.PENDING_REVIEW"
+  },
+  "statusAPPROVED": "مقبول",
+  "@statusAPPROVED": {
+    "description": "Web catalog key status.APPROVED"
+  },
+  "statusREJECTED": "يحتاج إلى تعديل",
+  "@statusREJECTED": {
+    "description": "Web catalog key status.REJECTED"
+  },
+  "statusSUSPENDED": "موقوف",
+  "@statusSUSPENDED": {
+    "description": "Web catalog key status.SUSPENDED"
+  },
+  "feedbackStatusBACKLOG": "قائمة الانتظار",
+  "@feedbackStatusBACKLOG": {
+    "description": "Web catalog key feedback.status.BACKLOG"
+  },
+  "feedbackStatusTODO": "للتنفيذ",
+  "@feedbackStatusTODO": {
+    "description": "Web catalog key feedback.status.TODO"
+  },
+  "feedbackStatusIN_PROGRESS": "قيد التنفيذ",
+  "@feedbackStatusIN_PROGRESS": {
+    "description": "Web catalog key feedback.status.IN_PROGRESS"
+  },
+  "feedbackStatusNEEDS_FEEDBACK": "بانتظار رد الإدارة",
+  "@feedbackStatusNEEDS_FEEDBACK": {
+    "description": "Web catalog key feedback.status.NEEDS_FEEDBACK"
+  },
+  "feedbackStatusNEEDS_APPROVAL": "بانتظار الموافقة",
+  "@feedbackStatusNEEDS_APPROVAL": {
+    "description": "Web catalog key feedback.status.NEEDS_APPROVAL"
+  },
+  "feedbackStatusAPPROVED": "تمّت الموافقة",
+  "@feedbackStatusAPPROVED": {
+    "description": "Web catalog key feedback.status.APPROVED"
+  },
+  "feedbackStatusDONE": "منجزة",
+  "@feedbackStatusDONE": {
+    "description": "Web catalog key feedback.status.DONE"
+  },
+  "feedbackPriorityLOW": "منخفضة",
+  "@feedbackPriorityLOW": {
+    "description": "Web catalog key feedback.priority.LOW"
+  },
+  "feedbackPriorityMEDIUM": "متوسطة",
+  "@feedbackPriorityMEDIUM": {
+    "description": "Web catalog key feedback.priority.MEDIUM"
+  },
+  "feedbackPriorityHIGH": "عالية",
+  "@feedbackPriorityHIGH": {
+    "description": "Web catalog key feedback.priority.HIGH"
+  },
+  "feedbackPriorityURGENT": "عاجلة",
+  "@feedbackPriorityURGENT": {
+    "description": "Web catalog key feedback.priority.URGENT"
+  },
+  "feedbackPriorityLabel": "الأولوية",
+  "@feedbackPriorityLabel": {
+    "description": "Web catalog key feedback.priorityLabel"
+  },
+  "feedbackAssigneeLabel": "المسؤول",
+  "@feedbackAssigneeLabel": {
+    "description": "Web catalog key feedback.assigneeLabel"
+  },
+  "feedbackUnassigned": "غير مسند",
+  "@feedbackUnassigned": {
+    "description": "Web catalog key feedback.unassigned"
+  },
+  "feedbackDescriptionLabel": "التفاصيل",
+  "@feedbackDescriptionLabel": {
+    "description": "Web catalog key feedback.descriptionLabel"
+  },
+  "feedbackCommentsLabel": "الملاحظات",
+  "@feedbackCommentsLabel": {
+    "description": "Web catalog key feedback.commentsLabel"
+  },
+  "feedbackNoComments": "لا توجد ملاحظات بعد.",
+  "@feedbackNoComments": {
+    "description": "Web catalog key feedback.noComments"
+  },
+  "feedbackAddCommentLabel": "ملاحظة جديدة",
+  "@feedbackAddCommentLabel": {
+    "description": "Web catalog key feedback.addCommentLabel"
+  },
+  "feedbackAddCommentPlaceholder": "اكتب تحديثاً أو ملاحظة على هذا البلاغ.",
+  "@feedbackAddCommentPlaceholder": {
+    "description": "Web catalog key feedback.addCommentPlaceholder"
+  },
+  "feedbackAddCommentAction": "إضافة",
+  "@feedbackAddCommentAction": {
+    "description": "Web catalog key feedback.addCommentAction"
+  },
+  "feedbackMoveFailed": "تعذّر تحديث حالة البطاقة",
+  "@feedbackMoveFailed": {
+    "description": "Web catalog key feedback.moveFailed"
+  },
+  "feedbackTicketDetails": "تفاصيل البلاغ",
+  "@feedbackTicketDetails": {
+    "description": "Web catalog key feedback.ticketDetails"
+  },
+  "feedbackSentBy": "المُرسِل",
+  "@feedbackSentBy": {
+    "description": "Web catalog key feedback.sentBy"
+  },
+  "feedbackReportedFrom": "أُرسل من",
+  "@feedbackReportedFrom": {
+    "description": "Web catalog key feedback.reportedFrom"
+  },
+  "feedbackBoardSearch": "ابحث في عناوين التذاكر",
+  "@feedbackBoardSearch": {
+    "description": "Web catalog key feedback.board.search"
+  },
+  "feedbackBoardTotal": "{count} تذكرة",
+  "@feedbackBoardTotal": {
+    "description": "Web catalog key feedback.board.total",
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "loginWelcome": "مرحباً بك في جنوبنا",
+  "@loginWelcome": {
+    "description": "Web catalog key login.welcome"
+  },
+  "loginPasswordTitle": "تسجيل الدخول",
+  "@loginPasswordTitle": {
+    "description": "Web catalog key login.passwordTitle"
+  },
+  "loginIdentifierLabel": "رقم الهاتف أو البريد الإلكتروني",
+  "@loginIdentifierLabel": {
+    "description": "Web catalog key login.identifierLabel"
+  },
+  "loginPasswordLabel": "كلمة المرور",
+  "@loginPasswordLabel": {
+    "description": "Web catalog key login.passwordLabel"
+  },
+  "loginSignIn": "دخول",
+  "@loginSignIn": {
+    "description": "Web catalog key login.signIn"
+  },
+  "loginVerifyFailed": "تعذر تسجيل الدخول",
+  "@loginVerifyFailed": {
+    "description": "Web catalog key login.verifyFailed"
+  },
+  "loginShowPassword": "إظهار ما كُتب",
+  "@loginShowPassword": {
+    "description": "Web catalog key login.showPassword"
+  },
+  "loginHidePassword": "إخفاء ما كُتب",
+  "@loginHidePassword": {
+    "description": "Web catalog key login.hidePassword"
+  },
+  "navAdminPanel": "لوحة الإدارة",
+  "@navAdminPanel": {
+    "description": "Web catalog key nav.adminPanel"
+  },
+  "navSignOut": "تسجيل الخروج",
+  "@navSignOut": {
+    "description": "Web catalog key nav.signOut"
+  },
+  "navLocaleArabic": "العربية",
+  "@navLocaleArabic": {
+    "description": "Web catalog key nav.localeArabic"
+  },
+  "navLocaleEnglish": "English",
+  "@navLocaleEnglish": {
+    "description": "Web catalog key nav.localeEnglish"
+  },
+  "commonCancel": "إلغاء",
+  "@commonCancel": {
+    "description": "Web catalog key common.cancel"
+  },
+  "commonConfirm": "تأكيد",
+  "@commonConfirm": {
+    "description": "Web catalog key common.confirm"
+  },
+  "commonNotSet": "غير محدد",
+  "@commonNotSet": {
+    "description": "Web catalog key common.notSet"
+  },
+  "statesLoading": "جارٍ التحميل…",
+  "@statesLoading": {
+    "description": "Web catalog key states.loading"
+  },
+  "statesErrorTitle": "تعذّر تحميل البيانات",
+  "@statesErrorTitle": {
+    "description": "Web catalog key states.errorTitle"
+  },
+  "statesErrorFallback": "حدث خطأ غير متوقع. يرجى المحاولة لاحقاً.",
+  "@statesErrorFallback": {
+    "description": "Web catalog key states.errorFallback"
+  },
+  "statesRetry": "إعادة المحاولة",
+  "@statesRetry": {
+    "description": "Web catalog key states.retry"
+  }
+}

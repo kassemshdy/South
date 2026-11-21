@@ -20,7 +20,7 @@ license: Apache-2.0
 
 ## What must be green
 
-Four CI jobs (`.github/workflows/ci.yml`), plus a bot comment summarising
+Five CI jobs (`.github/workflows/ci.yml`), plus a bot comment summarising
 them:
 
 | Job | Covers |
@@ -28,6 +28,7 @@ them:
 | Backend (pytest, ruff, mypy) | ~400 tests against a real Postgres, including the no-Arabic guard |
 | Frontend (tsc, build) | Typecheck and production build |
 | MCP server (pytest, ruff, mypy) | `mcp-server/`, no database or credentials needed |
+| Admin app (Flutter analyze, test) | `admin_app/`, the Flutter staff app; SDK pinned in the job |
 | E2E (Playwright) | The acceptance suite on mobile Chromium, against a migrated and seeded stack; uploads `e2e-results` (screenshots, traces, server logs) on failure |
 
 A push to `develop-claude` or `master-claude` runs the same workflow again, so
@@ -56,9 +57,9 @@ act on the first row that matches.
 | A CI job still running | Wait. Meanwhile read any review threads. |
 | Only a human approval is outstanding | Report and stop. Approval is not yours to give. |
 | No checks after a few minutes | Report that no checks registered rather than assuming green. |
-| All four jobs green, no threads, mergeable | Say it is ready to merge, and stop. |
+| All five jobs green, no threads, mergeable | Say it is ready to merge, and stop. |
 
-**Actionable** here means the four CI jobs. The Railway preview comment is
+**Actionable** here means the five CI jobs. The Railway preview comment is
 not a check: it edits itself repeatedly as four services build, an all-green
 table is not CI, and a red one is not a CI failure.
 

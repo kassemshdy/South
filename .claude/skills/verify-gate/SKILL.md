@@ -9,9 +9,9 @@ compatibility: Requires the sandbox's local Postgres and the checked-in virtuale
 
 ## Before every push: the fast checks only
 
-The full suites run in pull-request CI, on every PR, as four jobs — Backend,
-Frontend, MCP server and E2E (Playwright) — and nothing merges until all four
-are green. Running them here as well cost fifteen minutes a push for no extra
+The full suites run in pull-request CI, on every PR, as five jobs — Backend,
+Frontend, MCP server, Admin app (Flutter) and E2E (Playwright) — and nothing
+merges until all five are green. Running them here as well cost fifteen minutes a push for no extra
 safety (issue #121), so a development session runs only what takes seconds:
 
 ```bash
