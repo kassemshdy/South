@@ -52,6 +52,8 @@ interface FormState {
   register_url: string
   register_label: string
   show_calendar: boolean
+  ask_background: boolean
+  ask_residence: boolean
   in_carousel: boolean
   registration_limit: string
   registration_override: RegistrationOverride | 'AUTO'
@@ -72,6 +74,8 @@ const EMPTY: FormState = {
   register_url: '',
   register_label: '',
   show_calendar: true,
+  ask_background: true,
+  ask_residence: false,
   in_carousel: false,
   registration_limit: '',
   registration_override: 'AUTO',
@@ -115,6 +119,8 @@ function toPayload(form: FormState): ActivityInput {
     register_url: blank(form.register_url),
     register_label: blank(form.register_label),
     show_calendar: form.show_calendar,
+    ask_background: form.ask_background,
+    ask_residence: form.ask_residence,
     registration_limit: Number.parseInt(form.registration_limit, 10) || null,
     registration_override:
       form.registration_override === 'AUTO' ? null : form.registration_override,
@@ -428,6 +434,8 @@ function ActivityForm({
           register_url: activity.register_url ?? '',
           register_label: activity.register_label ?? '',
           show_calendar: activity.show_calendar ?? true,
+          ask_background: activity.ask_background ?? true,
+          ask_residence: activity.ask_residence ?? false,
           in_carousel: activity.in_carousel ?? false,
           registration_limit:
             activity.registration_limit == null ? '' : String(activity.registration_limit),
@@ -659,6 +667,31 @@ function ActivityForm({
               )}
             </Field>
           </div>
+          {form.registration_mode === 'ON_SITE' ? (
+            <fieldset className="space-y-2 rounded-xl border border-ink-100 p-4">
+              <legend className="px-1 text-sm font-semibold text-ink-900">
+                {t('adminActivity.questionsLabel')}
+              </legend>
+              <label className="flex items-start gap-2 text-sm text-ink-700">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 accent-brand-600"
+                  checked={form.ask_background}
+                  onChange={(event) => set('ask_background', event.target.checked)}
+                />
+                <span>{t('adminActivity.askBackgroundLabel')}</span>
+              </label>
+              <label className="flex items-start gap-2 text-sm text-ink-700">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 accent-brand-600"
+                  checked={form.ask_residence}
+                  onChange={(event) => set('ask_residence', event.target.checked)}
+                />
+                <span>{t('adminActivity.askResidenceLabel')}</span>
+              </label>
+            </fieldset>
+          ) : null}
           <label className="flex items-start gap-2 text-sm text-ink-700">
             <input
               type="checkbox"
@@ -812,6 +845,11 @@ function Registrations({ activity }: { activity: AdminActivity }) {
               {row.background ? (
                 <span className="ms-2 rounded-full bg-olive-50 px-2 py-0.5 text-xs font-semibold text-olive-800">
                   {t(`activityRegistration.background.${row.background}`)}
+                </span>
+              ) : null}
+              {row.residence ? (
+                <span className="ms-2 rounded-full bg-sand-100 px-2 py-0.5 text-xs font-semibold text-ink-700" dir="auto">
+                  {row.residence}
                 </span>
               ) : null}
               <span className="ms-2 text-xs text-ink-500">{formatDateTime(row.created_at, locale)}</span>
