@@ -188,6 +188,8 @@ def register_for_activity(
     )
     if not overall.allowed:
         raise RateLimitedError(overall.retry_after_seconds, "activity.rate_limited")
+    if activity.ask_residence and not payload.residence:
+        raise ValidationError("activity.residence_required", code="residence_required")
     verify_captcha(payload.captcha_token, settings, client_ip=client_ip)
 
     db.add(
@@ -195,7 +197,8 @@ def register_for_activity(
             activity_id=activity.id,
             full_name=payload.full_name,
             phone_number=payload.phone_number,
-            background=payload.background,
+            background=payload.background if activity.ask_background else None,
+            residence=payload.residence if activity.ask_residence else None,
         )
     )
     db.commit()
@@ -316,6 +319,8 @@ def update_activity(
         "kind",
         "registration_mode",
         "show_calendar",
+        "ask_background",
+        "ask_residence",
     ):
         # Not nullable: an explicit null leaves the value as it was.
         if field in data and data[field] is None:

@@ -547,7 +547,12 @@ export const activityApi = {
   /** Sign up on the site; who signed up reaches staff only. */
   register: (
     slug: string,
-    payload: { full_name: string; phone_number: string; background: ActivityBackground },
+    payload: {
+      full_name: string
+      phone_number: string
+      background?: ActivityBackground
+      residence?: string
+    },
     captchaToken: string | null,
   ) =>
     apiRequest<{ message: string }>(`/api/activities/${encodeURIComponent(slug)}/register`, {

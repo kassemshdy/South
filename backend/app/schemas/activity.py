@@ -50,6 +50,8 @@ class ActivityIn(BaseModel):
     register_url: str | None = Field(default=None, max_length=500)
     register_label: str | None = Field(default=None, max_length=60)
     show_calendar: bool = True
+    ask_background: bool = True
+    ask_residence: bool = False
     registration_limit: int | None = Field(default=None, ge=1, le=100_000)
     registration_override: RegistrationOverride | None = None
 
@@ -85,6 +87,8 @@ class ActivityUpdateIn(BaseModel):
     register_url: str | None = Field(default=None, max_length=500)
     register_label: str | None = Field(default=None, max_length=60)
     show_calendar: bool | None = None
+    ask_background: bool | None = None
+    ask_residence: bool | None = None
     # Null clears either: no limit, and the limit decides again.
     registration_limit: int | None = Field(default=None, ge=1, le=100_000)
     registration_override: RegistrationOverride | None = None
@@ -115,6 +119,8 @@ class ActivityOut(ORMModel):
     register_url: str | None = None
     register_label: str | None = None
     show_calendar: bool = True
+    ask_background: bool = True
+    ask_residence: bool = False
     # Whether the on-site form takes a sign-up now (the limit, the
     # administrator's override and the dates together); never the count.
     registration_open: bool = False
@@ -151,12 +157,18 @@ class ActivityRegistrationIn(BaseModel):
     full_name: str = Field(min_length=2, max_length=80)
     phone_number: str = Field(min_length=6, max_length=20)
     background: RegistrationBackground | None = None
+    residence: str | None = Field(default=None, max_length=80)
     captcha_token: str | None = Field(default=None, max_length=4096)
 
     @field_validator("full_name")
     @classmethod
     def _strip(cls, value: str) -> str:
         return value.strip()
+
+    @field_validator("residence")
+    @classmethod
+    def _residence(cls, value: str | None) -> str | None:
+        return (value or "").strip() or None
 
     @field_validator("phone_number")
     @classmethod
@@ -171,6 +183,7 @@ class ActivityRegistrationOut(ORMModel):
     full_name: str
     phone_number: str
     background: str | None = None
+    residence: str | None = None
     created_at: datetime
 
 

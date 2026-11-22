@@ -296,6 +296,7 @@
   "activity.deleted": "حُذف النشاط.",
   "activity.registered": "وصلنا تسجيلك، وسيتواصل معك فريقنا على واتساب.",
   "activity.rate_limited": "محاولات كثيرة، يرجى المحاولة لاحقًا.",
+  "activity.residence_required": "يرجى كتابة مكان سكنك الأساسي.",
   "activity.registration_closed": "التسجيل في هذا النشاط مغلق.",
   "activity.external_needs_link": "أضف رابط التسجيل، أو اختر التسجيل على الموقع.",
   "telegram.kind.activity_signup": "تسجيل جديد في نشاط",

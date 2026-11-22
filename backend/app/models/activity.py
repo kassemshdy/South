@@ -86,6 +86,15 @@ class Activity(Base, TimestampMixin):
     # limit, "CLOSED" shuts it whatever the count; null lets the limit and
     # the dates decide. See ``registration_open``.
     registration_override: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    # Which questions the on-site form asks besides name and phone (ticket
+    # 6f0b9420, 22 Nov 2026): the background question, and the main place of
+    # residence.
+    ask_background: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
+    ask_residence: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
 
 
 def registration_open(activity: Activity, count: int, ended: bool) -> bool:
@@ -119,6 +128,8 @@ class ActivityRegistration(Base, TimestampMixin):
     # ticket, 15 Nov 2026): one of ``REGISTRATION_BACKGROUNDS``. Null on the
     # sign-ups taken before the question was asked.
     background: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    # "Main place of residence", free text, when the activity asks for it.
+    residence: Mapped[str | None] = mapped_column(String(80), nullable=True)
 
     activity: Mapped[Activity] = relationship()
 

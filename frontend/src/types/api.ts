@@ -1438,6 +1438,10 @@ export interface Activity {
   register_label: string | null
   /** Offer "add to calendar" (only meaningful with a start). */
   show_calendar: boolean
+  /** The on-site form asks the background question (ticket 6f0b9420). */
+  ask_background: boolean
+  /** The on-site form asks for the main place of residence. */
+  ask_residence: boolean
   /** Whether the on-site form takes a sign-up now (limit, override and dates). */
   registration_open: boolean
 }
@@ -1502,6 +1506,8 @@ export interface ActivityInput {
   register_url?: string | null
   register_label?: string | null
   show_calendar?: boolean
+  ask_background?: boolean
+  ask_residence?: boolean
   registration_limit?: number | null
   registration_override?: RegistrationOverride | null
   /** The form's "show in carousel" box (update only). */
@@ -1567,6 +1573,8 @@ export interface ActivityRegistration {
   phone_number: string
   /** One of ACTIVITY_BACKGROUNDS; null on sign-ups from before the question. */
   background: ActivityBackground | null
+  /** Main place of residence, when the activity asked for it. */
+  residence: string | null
   created_at: string
 }
 

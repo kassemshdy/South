@@ -329,6 +329,35 @@ def test_the_sign_up_asks_for_a_background_and_staff_see_the_answer(
     assert sorted(str(row["background"]) for row in listed) == ["None", "job_seeker"]
 
 
+def test_an_activity_can_ask_for_residence_instead_of_background(
+    client: TestClient, admin: User
+) -> None:
+    """Ticket 6f0b9420, 22 Nov 2026: no background question, main residence only."""
+    headers = admin_headers(client)
+    activity = _create(client, headers, slug="residence")
+    put = client.put(
+        f"/api/admin/activities/{activity['id']}",
+        headers=headers,
+        json={"ask_background": False, "ask_residence": True},
+    )
+    assert put.status_code == 200, put.text
+    public = client.get("/api/activities/residence").json()
+    assert public["ask_background"] is False and public["ask_residence"] is True
+
+    url = "/api/activities/residence/register"
+    person = {"full_name": ar("order.customer"), "phone_number": "70 111 777"}
+    assert client.post(url, json={**person, "residence": "  "}).status_code == 422
+    signed = client.post(
+        url, json={**person, "residence": " Tyre ", "background": "student"}
+    )
+    assert signed.status_code == 201, signed.text
+
+    listed = client.get(
+        f"/api/admin/activities/{activity['id']}/registrations", headers=headers
+    ).json()
+    assert [(row["residence"], row["background"]) for row in listed] == [("Tyre", None)]
+
+
 def test_an_external_link_or_no_sign_up_closes_the_form(client: TestClient, admin: User) -> None:
     headers = admin_headers(client)
     _create(
