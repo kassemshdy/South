@@ -296,6 +296,7 @@
   "activity.deleted": "Activity deleted.",
   "activity.registered": "We received your sign-up; our team will contact you on WhatsApp.",
   "activity.rate_limited": "Too many attempts; please try again later.",
+  "activity.residence_required": "Please enter your main place of residence.",
   "activity.registration_closed": "Sign-up for this activity is closed.",
   "activity.external_needs_link": "Add the registration link, or choose registration on the site.",
   "telegram.kind.activity_signup": "New activity sign-up",

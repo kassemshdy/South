@@ -179,13 +179,20 @@ function SignUpForm({ activity }: { activity: Activity }) {
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
   const [background, setBackground] = useState<ActivityBackground | null>(null)
+  const [residence, setResidence] = useState('')
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const register = useMutation({
     mutationFn: () =>
       activityApi.register(
         activity.slug,
-        // The form's radios are required, so it is set by the time this runs.
-        { full_name: fullName, phone_number: phone, background: background ?? 'other' },
+        // The form's radios and residence are required when asked, so they are
+        // set by the time this runs.
+        {
+          full_name: fullName,
+          phone_number: phone,
+          ...(activity.ask_background ? { background: background ?? 'other' } : {}),
+          ...(activity.ask_residence ? { residence } : {}),
+        },
         captchaToken,
       ),
     onError: (error) =>
@@ -237,6 +244,22 @@ function SignUpForm({ activity }: { activity: Activity }) {
                 />
               )}
             </Field>
+            {activity.ask_residence ? (
+              <Field label={t('activityRegistration.residenceLabel')} required>
+                {(props) => (
+                  <Input
+                    {...props}
+                    required
+                    minLength={2}
+                    maxLength={80}
+                    autoComplete="address-level2"
+                    value={residence}
+                    onChange={(event) => setResidence(event.target.value)}
+                  />
+                )}
+              </Field>
+            ) : null}
+            {activity.ask_background ? (
             <fieldset className="space-y-2">
               <legend className="mb-2 text-sm font-semibold text-ink-700">
                 {t('activityRegistration.backgroundLabel')}
@@ -264,6 +287,7 @@ function SignUpForm({ activity }: { activity: Activity }) {
                 </label>
               ))}
             </fieldset>
+            ) : null}
             <Turnstile onToken={setCaptchaToken} />
             <Button type="submit" block loading={register.isPending}>
               <Send className="h-5 w-5" aria-hidden="true" />
