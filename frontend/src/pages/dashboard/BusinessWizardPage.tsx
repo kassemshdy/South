@@ -175,6 +175,7 @@ function PersonalStep({ onContinue }: { onContinue: () => void }) {
         icon={<ShieldCheck className="h-5 w-5 text-brand-700" aria-hidden="true" />}
         titleKey="account.documentFrontTitle"
         hintKey="account.documentHint"
+        noteKey="register.documentAlternative"
         queryKey={queryKeys.myVerificationDocument}
         read={authApi.getVerificationDocument}
         upload={authApi.uploadVerificationDocument}

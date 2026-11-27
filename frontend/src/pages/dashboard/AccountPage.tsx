@@ -74,6 +74,7 @@ export function AccountPage() {
           icon={<ShieldCheck className="h-5 w-5 text-brand-700" aria-hidden="true" />}
           titleKey="account.documentFrontTitle"
           hintKey="account.documentHint"
+          noteKey="register.documentAlternative"
           queryKey={queryKeys.myVerificationDocument}
           read={authApi.getVerificationDocument}
           upload={authApi.uploadVerificationDocument}
@@ -531,6 +532,7 @@ export function DocumentCard({
   icon,
   titleKey,
   hintKey,
+  noteKey,
   queryKey,
   read,
   upload: uploadFile,
@@ -538,6 +540,8 @@ export function DocumentCard({
   icon: ReactNode
   titleKey: TranslationKey
   hintKey: TranslationKey
+  /** A second line under the hint, in bold (e.g. "any other identity paper will do"). */
+  noteKey?: TranslationKey
   queryKey: readonly string[]
   read: () => Promise<VerificationDocument | null>
   upload: (file: File) => Promise<VerificationDocument>
@@ -587,6 +591,7 @@ export function DocumentCard({
       </CardHeader>
       <CardBody className="space-y-4">
         <p className="text-sm text-ink-500">{t(hintKey)}</p>
+        {noteKey ? <p className="text-sm font-semibold text-ink-700">{t(noteKey)}</p> : null}
 
         {documentQuery.isLoading ? (
           <InlineSpinner />
